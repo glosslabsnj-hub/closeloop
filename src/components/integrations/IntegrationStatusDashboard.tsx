@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { CheckCircle, AlertCircle, Zap, Clock, Plus, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle, AlertCircle, Zap, Clock, Plus, RefreshCw, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

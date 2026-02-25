@@ -379,7 +379,7 @@ function ReportEmpty({
   heroIcon: HeroIconName;
 }) {
   const navigate = useNavigate();
-  const HeroIcon = HERO_ICONS[heroIcon];
+  const _HeroIcon = HERO_ICONS[heroIcon];
 
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center space-y-6">
@@ -437,7 +437,7 @@ function ReportEmpty({
 }
 
 export default function ReportsROIPage() {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { tenant } = useAuth();
   const [dateRange, setDateRange] = useState<DateRangeOption>("this_month");
   const [chartsOpen, setChartsOpen] = useState(false);
@@ -469,7 +469,7 @@ export default function ReportsROIPage() {
     }
   }, [tenant?.id]);
 
-  const HeroIcon = data ? HERO_ICONS[data.heroIcon] : BarChart3;
+  const _HeroIcon = data ? HERO_ICONS[data.heroIcon] : BarChart3;
 
   // Build story-driven content when we have data
   const storyHeadline = data

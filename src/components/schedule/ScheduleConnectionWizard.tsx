@@ -15,13 +15,13 @@ import {
   Link2,
   CalendarCheck,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useCalendarConnections, CALENDAR_PROVIDERS } from "@/hooks/useCalendarConnections";
+import { useCalendarConnections } from "@/hooks/useCalendarConnections";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -524,7 +524,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-sm">
                 <p className="font-medium text-amber-600">Recommendation: Manual Busy Blocks</p>
                 <p className="text-muted-foreground">
-                  You can manage your availability directly in CloseLoop
+                  You can manage your availability directly in Flux Receptionist
                 </p>
               </div>
             )}
@@ -708,7 +708,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                 </div>
                 <h2 className="text-xl font-semibold">Manual Busy Blocks</h2>
                 <p className="text-muted-foreground">
-                  You can add busy times manually in CloseLoop whenever you need to block off time
+                  You can add busy times manually in Flux Receptionist whenever you need to block off time
                 </p>
                 <Button onClick={handleManualSetup} disabled={createConnection.isPending}>
                   {createConnection.isPending ? "Setting up..." : "Continue with Manual"}
@@ -738,7 +738,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                 What happens now:
               </p>
               <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
-                <li>Busy events sync to your CloseLoop schedule</li>
+                <li>Busy events sync to your Flux Receptionist schedule</li>
                 <li>AI only offers slots that are actually free</li>
                 <li>No more overlapping appointments</li>
               </ul>

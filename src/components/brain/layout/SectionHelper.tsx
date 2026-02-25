@@ -8,7 +8,7 @@
  * - Mode-specific tips (not just dispatch)
  */
 
-import { Info, Lightbulb, Mic, Truck, UtensilsCrossed, HeartPulse, Wrench, Building2 } from "lucide-react";
+import { Info, Lightbulb, Truck, UtensilsCrossed, HeartPulse, Wrench, Building2 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 import { SECTION_HELPERS, MODE_LABELS } from "@/lib/industryHelpers";
 

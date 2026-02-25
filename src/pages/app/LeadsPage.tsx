@@ -19,7 +19,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionCard } from "@/components/layout/SectionCard";
 import { StatCard } from "@/components/layout/StatCard";
-import { Toolbar, FilterSelect } from "@/components/layout/Toolbar";
+import { Toolbar } from "@/components/layout/Toolbar";
 import {
   Plus, MoreHorizontal, Phone, Mail, Calendar, MessageSquare,
   Users, Flame, Thermometer, Snowflake, TrendingUp, UserCheck, UserX,
@@ -36,7 +36,6 @@ import { LeadDetailPanel } from "@/components/leads/LeadDetailPanel";
 import { PipelineSummaryBar, type PipelineStage } from "@/components/leads/PipelineSummaryBar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
-import { toast } from "sonner";
 
 const statusColors: Record<string, string> = {
   new: "bg-blue-500/10 text-blue-700 dark:text-blue-400",

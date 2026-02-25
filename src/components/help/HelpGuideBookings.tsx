@@ -24,7 +24,7 @@ interface HelpGuideBookingsProps {
   searchQuery?: string;
 }
 
-export function HelpGuideBookings({ mode, searchQuery = "" }: HelpGuideBookingsProps) {
+export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookingsProps) {
   const matchesSearch = (text: string) => {
     if (!searchQuery) return true;
     return text.toLowerCase().includes(searchQuery.toLowerCase());

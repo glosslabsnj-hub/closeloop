@@ -44,7 +44,7 @@ export default function AdminSetupRequestsPage() {
   const [selectedRequest, setSelectedRequest] = useState<string | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
 
-  const getStatusBadge = (status: string) => {
+  const _getStatusBadge = (status: string) => {
     switch (status) {
       case "new":
         return <Badge variant="default">New</Badge>;

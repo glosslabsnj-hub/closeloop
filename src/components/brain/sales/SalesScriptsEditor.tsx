@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Save, Shield, Plus, Trash2, MessageCircle, Swords, Lightbulb } from "lucide-react";
+import { Loader2, Save, Shield, Plus, Trash2, Swords, Lightbulb } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { AIPreviewCard } from "../AIPreviewCard";
@@ -165,7 +165,7 @@ export function SalesScriptsEditor() {
     }));
   };
 
-  const getCategoryLabel = (cat: string) =>
+  const _getCategoryLabel = (cat: string) =>
     CATEGORIES.find((c) => c.value === cat)?.label || cat;
 
   const buildPreview = (): string => {

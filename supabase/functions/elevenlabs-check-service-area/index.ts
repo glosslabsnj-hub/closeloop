@@ -597,10 +597,10 @@ serve(async (req: Request) => {
             if (pricingDistanceMiles >= minMiles && pricingDistanceMiles <= maxMiles) {
               const extraMiles = Math.max(0, pricingDistanceMiles - minMiles);
               const distanceCharge = extraMiles * perMilePrice;
-              let baseTotal = basePrice + distanceCharge;
+              const baseTotal = basePrice + distanceCharge;
               
               // Apply vehicle modifier if provided
-              let modifierCharges: { name: string; amount: number }[] = [];
+              const modifierCharges: { name: string; amount: number }[] = [];
               let modifierTotal = 0;
               
               if (vehicleType && config.variables && Array.isArray(config.variables)) {

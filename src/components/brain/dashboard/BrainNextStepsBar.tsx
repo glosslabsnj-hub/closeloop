@@ -10,7 +10,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Sparkles, Target } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";

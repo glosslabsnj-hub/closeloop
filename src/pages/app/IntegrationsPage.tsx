@@ -35,7 +35,6 @@ import {
   PROVIDERS 
 } from "@/hooks/useIntegrations";
 import { useToast } from "@/hooks/use-toast";
-import { AutomationRunHistorySection } from "@/components/automations/AutomationRunHistorySection";
 import { ConciergeRequestDialog } from "@/components/integrations/ConciergeRequestDialog";
 import { IntegrationConnectDialog } from "@/components/integrations/IntegrationConnectDialog";
 import { IntegrationCard } from "@/components/integrations/IntegrationCard";
@@ -142,7 +141,7 @@ const QUICK_PRESETS: QuickPreset[] = [
 ];
 
 // Tool connections (used for status checking)
-const CONNECT_TOOLS = [
+const _CONNECT_TOOLS = [
   { id: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync bookings to your calendar" },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", description: "Log data to spreadsheets" },
   { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL" },
@@ -167,10 +166,10 @@ export default function IntegrationsPage() {
 
   // Data hooks
   const { data: integrations, isLoading: integrationsLoading } = useIntegrations(tenantId);
-  const { data: rules, isLoading: rulesLoading } = useAutomationRules(tenantId);
+  const { data: rules, isLoading: _rulesLoading } = useAutomationRules(tenantId);
   const { data: automationRuns, isLoading: runsLoading } = useAutomationRuns(tenantId, 50);
   const { createRule, toggleRule } = useAutomationRuleMutations(tenantId);
-  const { createIntegration, testIntegration, updateIntegration } = useIntegrationMutations(tenantId);
+  const { _createIntegration, testIntegration, _updateIntegration } = useIntegrationMutations(tenantId);
   const testAutomation = useTestAutomation();
 
   // Compute automation stats for dashboard
@@ -551,7 +550,7 @@ export default function IntegrationsPage() {
                 <div>
                   <h3 className="font-medium mb-1">How Integrations Work</h3>
                   <p className="text-sm text-muted-foreground">
-                    Connect CloseLoop to your existing tools. Some integrations you can set up yourself in minutes — others our team will configure for you (usually within 24 hours).
+                    Connect Flux Receptionist to your existing tools. Some integrations you can set up yourself in minutes — others our team will configure for you (usually within 24 hours).
                   </p>
                 </div>
               </div>

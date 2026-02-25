@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkflow } from "@/hooks/useWorkflows";
 import { useWorkflowRuns, useRetryWorkflowRun } from "@/hooks/useWorkflowRuns";
-import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowRunStatus } from "@/types/workflow";
+import { TRIGGER_METADATA, type WorkflowRunStatus } from "@/types/workflow";
 
 export default function WorkflowRunsPage() {
   const { id } = useParams<{ id: string }>();

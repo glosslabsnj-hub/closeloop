@@ -107,7 +107,7 @@ export default function AIContextInspectorPage() {
     setGeneratingContext(true);
     try {
       // Call the get-business-context edge function directly to generate a test snapshot
-      const { data, error } = await supabase.functions.invoke("get-business-context", {
+      const { _data, error } = await supabase.functions.invoke("get-business-context", {
         body: { tenantId },
       });
       

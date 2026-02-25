@@ -106,8 +106,8 @@ function parseDate(dateStr?: string): string {
     if (!isNaN(parsed.getTime())) {
       return parsed.toISOString();
     }
-  } catch {}
-  
+  } catch { /* invalid date, fall through */ }
+
   return new Date().toISOString();
 }
 

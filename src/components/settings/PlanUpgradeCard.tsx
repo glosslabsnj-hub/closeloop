@@ -6,8 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -25,8 +23,8 @@ import {
 
 export function PlanUpgradeCard() {
   const { tenant } = useAuth();
-  const { subscription, planSku, hasVoice, hasSms, refetch } = useSubscription(tenant?.id || null);
-  const { usage, nextUpgrade } = useUsage(tenant?.id || null, planSku);
+  const { subscription, planSku, hasVoice, _hasSms, refetch } = useSubscription(tenant?.id || null);
+  const { usage, _nextUpgrade } = useUsage(tenant?.id || null, planSku);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [selectedUpgradeSku, setSelectedUpgradeSku] = useState<PlanSku | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);

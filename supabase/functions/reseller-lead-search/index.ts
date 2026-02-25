@@ -177,7 +177,7 @@ serve(async (req) => {
       searchResellerBatch(PERPLEXITY_API_KEY, `${company_type} agency`, location, perBatch),
     ]);
 
-    let allLeads: any[] = [];
+    const allLeads: any[] = [];
     for (const r of results) {
       if (r.status === "fulfilled") allLeads.push(...r.value);
     }

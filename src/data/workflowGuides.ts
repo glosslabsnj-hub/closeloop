@@ -751,7 +751,7 @@ export const ZAPIER_SETUP_STEPS = [
   {
     step: 3,
     title: "Select 'Catch Hook'",
-    description: "Choose 'Catch Hook' as the trigger event - this receives data from CloseLoop",
+    description: "Choose 'Catch Hook' as the trigger event - this receives data from Flux Receptionist",
   },
   {
     step: 4,
@@ -760,7 +760,7 @@ export const ZAPIER_SETUP_STEPS = [
   },
   {
     step: 5,
-    title: "Paste in CloseLoop",
+    title: "Paste in Flux Receptionist",
     description: "Go back to your automation settings and paste the webhook URL",
   },
   {

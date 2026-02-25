@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2, Zap, Globe, Search } from "lucide-react";
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
 import { ConfigureAIStep } from "./ConfigureAIStep";
@@ -14,7 +12,7 @@ import { TestCallCard } from "./TestCallCard";
 import { SmartChecklist } from "./SmartChecklist";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { searchIndustries, getPopularIndustries, type IndustryCatalogEntry } from "@/data/industryCatalog";
+import { type IndustryCatalogEntry } from "@/data/industryCatalog";
 import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 
 interface SetupWizardProps {
@@ -31,8 +29,8 @@ type SetupStep = {
 
 export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
-  const { score, p0Flags, canGoLive: aiReady, stepProgress } = useAIReadinessV2();
-  const { businessMode } = useTenantConfig();
+  const { score, p0Flags, canGoLive: _aiReady, stepProgress } = useAIReadinessV2();
+  const { _businessMode } = useTenantConfig();
   const [quickStartQuery, setQuickStartQuery] = useState("");
   const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
   const [quickStartDismissed, setQuickStartDismissed] = useState(false);

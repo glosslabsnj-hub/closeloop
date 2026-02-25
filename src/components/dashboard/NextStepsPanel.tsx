@@ -32,7 +32,7 @@ export function NextStepsPanel() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const caps = useCapabilities();
-  const businessMode = tenant?.business_mode || "service";
+  const _businessMode = tenant?.business_mode || "service";
 
   const { data: recentOutcomes, isLoading } = useQuery({
     queryKey: ["recent-outcomes", tenant?.id],

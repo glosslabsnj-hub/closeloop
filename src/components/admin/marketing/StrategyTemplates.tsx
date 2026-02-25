@@ -10,7 +10,7 @@ const TEMPLATES = [
   {
     title: "30-Day Social Media Launch Plan",
     description: "Complete day-by-day content calendar with exact post copy, hashtags, images, and scheduling for all platforms.",
-    prompt: `Create a complete 30-day social media launch plan for CloseLoop (AI phone receptionist for local businesses like towing, HVAC, dental, salons, restaurants). 
+    prompt: `Create a complete 30-day social media launch plan for Flux Receptionist (AI phone receptionist for local businesses like towing, HVAC, dental, salons, restaurants). 
 
 For EACH of the 30 days, provide:
 1. **Platform** (rotate LinkedIn, Instagram, TikTok, Facebook, X/Twitter)
@@ -26,7 +26,7 @@ Week 2: Social proof & case studies
 Week 3: Product demos & how-it-works
 Week 4: Urgency & conversion ("Limited spots for beta pricing")
 
-Include 5 viral-potential TikTok/Reel scripts showing before/after scenarios of businesses missing calls vs. using CloseLoop.`,
+Include 5 viral-potential TikTok/Reel scripts showing before/after scenarios of businesses missing calls vs. using Flux Receptionist.`,
     category: "social",
     icon: Calendar,
     tag: "Done for You",
@@ -34,7 +34,7 @@ Include 5 viral-potential TikTok/Reel scripts showing before/after scenarios of 
   {
     title: "LinkedIn Thought Leadership Playbook",
     description: "20 ready-to-post LinkedIn articles and posts positioning you as the AI receptionist authority.",
-    prompt: `Write 20 complete LinkedIn posts for CloseLoop's founder to establish thought leadership in the AI receptionist space. Mix of formats:
+    prompt: `Write 20 complete LinkedIn posts for Flux Receptionist's founder to establish thought leadership in the AI receptionist space. Mix of formats:
 
 - 5 **Story Posts** (personal experiences, lessons learned, customer wins)
 - 5 **Data Posts** (industry stats about missed calls, SMB revenue loss)
@@ -58,7 +58,7 @@ Write these so they're immediately publishable — no placeholders, no "[insert 
   {
     title: "Google Ads Campaign (Full Build)",
     description: "Complete Google Ads structure: campaigns, ad groups, keywords, ad copy, extensions, and budget allocation.",
-    prompt: `Build a COMPLETE Google Ads campaign for CloseLoop ready to import. Include:
+    prompt: `Build a COMPLETE Google Ads campaign for Flux Receptionist ready to import. Include:
 
 **Campaign Structure:**
 - 4 campaigns (Search Brand, Search Non-Brand, Search Competitor, Display Remarketing)
@@ -92,7 +92,7 @@ Make all ad copy compliant with Google policies. Include exact character counts.
   {
     title: "Meta Ads (Facebook + Instagram) Funnel",
     description: "Full-funnel Meta ad campaign with audiences, creatives, and copy for every stage.",
-    prompt: `Design a complete Meta Ads (Facebook + Instagram) funnel for CloseLoop:
+    prompt: `Design a complete Meta Ads (Facebook + Instagram) funnel for Flux Receptionist:
 
 **TOFU (Awareness) — $50/day:**
 - 3 video ad scripts (15s, 30s, 60s) showing missed call pain
@@ -129,7 +129,7 @@ For EACH ad provide:
   {
     title: "10 Blog Posts + SEO Strategy",
     description: "Complete blog posts with titles, outlines, meta descriptions, and internal linking strategy.",
-    prompt: `Write 10 complete, SEO-optimized blog posts for CloseLoop's website. Each post should be 1,500-2,000 words.
+    prompt: `Write 10 complete, SEO-optimized blog posts for Flux Receptionist's website. Each post should be 1,500-2,000 words.
 
 **Post Topics (with target keywords):**
 1. "How Much Revenue Are You Losing From Missed Calls?" (missed calls revenue loss)
@@ -158,14 +158,14 @@ For EACH post provide:
   {
     title: "Video Content Scripts (YouTube + TikTok)",
     description: "15 complete video scripts for YouTube tutorials, TikTok virals, and customer testimonial formats.",
-    prompt: `Write 15 complete video scripts for CloseLoop:
+    prompt: `Write 15 complete video scripts for Flux Receptionist:
 
 **YouTube (Long-form, 5-8 min each):**
 1. "I Built an AI Receptionist That Answers Calls 24/7 — Here's What Happened"
 2. "How This Towing Company Doubled Revenue with AI"
 3. "5 Ways AI is Replacing the Traditional Receptionist"
 4. "Stop Losing $10K/Month: The Missed Call Crisis in Small Business"
-5. "CloseLoop Demo: Watch Our AI Book an Appointment in Real-Time"
+5. "Flux Receptionist Demo: Watch Our AI Book an Appointment in Real-Time"
 
 **TikTok/Reels (15-60 sec each):**
 6. "POV: Your AI receptionist handles a 2am emergency towing call"
@@ -187,7 +187,7 @@ For each script include: hook, full dialogue/narration, B-roll suggestions, on-s
   {
     title: "Cold Email + LinkedIn DM Sequences",
     description: "Complete multi-touch outreach sequences for SMBs and agency partners with A/B variants.",
-    prompt: `Create complete outreach sequences for CloseLoop:
+    prompt: `Create complete outreach sequences for Flux Receptionist:
 
 **SEQUENCE 1: Direct to SMB Owners (7-touch, 21 days)**
 For each email:
@@ -219,7 +219,7 @@ For each message provide exact copy, no placeholders. Include personalization va
   {
     title: "Partnership & Channel Strategy",
     description: "Complete playbook for building an agency reseller channel with commission structure and enablement materials.",
-    prompt: `Create a comprehensive Partnership Channel Strategy for CloseLoop:
+    prompt: `Create a comprehensive Partnership Channel Strategy for Flux Receptionist:
 
 **1. Partner Tiers & Economics:**
 - Referral Partner (10% recurring commission)
@@ -260,7 +260,7 @@ For each message provide exact copy, no placeholders. Include personalization va
   {
     title: "0 to 100 Customers Acquisition Plan",
     description: "Detailed 90-day plan with exact tactics, budgets, and milestones to hit 100 paying customers.",
-    prompt: `Create an extremely detailed 90-day plan to acquire the first 100 paying customers for CloseLoop (AI phone receptionist, $249-$2,999/mo plans):
+    prompt: `Create an extremely detailed 90-day plan to acquire the first 100 paying customers for Flux Receptionist (AI phone receptionist, $249-$2,999/mo plans):
 
 **Phase 1: Days 1-30 (Target: 15 customers)**
 - Exact daily actions (hour by hour for week 1)
@@ -294,13 +294,13 @@ For each phase include: exact budget breakdown, expected CAC, expected LTV, and 
   {
     title: "Pricing & Positioning Strategy",
     description: "Competitive analysis, pricing psychology, and positioning framework for maximum conversion.",
-    prompt: `Develop a comprehensive Pricing & Positioning Strategy for CloseLoop:
+    prompt: `Develop a comprehensive Pricing & Positioning Strategy for Flux Receptionist:
 
 **1. Competitive Landscape Analysis:**
 - Map all competitors (Ruby, Smith.ai, Nexa, Dialzara, etc.)
 - Feature comparison matrix
 - Pricing comparison table
-- CloseLoop's competitive moat
+- Flux Receptionist's competitive moat
 
 **2. Positioning Framework:**
 - Category: What category do we own?
@@ -332,7 +332,7 @@ For towing, dental, HVAC, restaurant, salon — specific ROI calculations and me
   {
     title: "Webinar & Podcast Launch Kit",
     description: "Complete webinar scripts, podcast pitch templates, and guest appearance strategy.",
-    prompt: `Create a complete Webinar & Podcast Strategy for CloseLoop:
+    prompt: `Create a complete Webinar & Podcast Strategy for Flux Receptionist:
 
 **WEBINAR SERIES (4 webinars):**
 
@@ -369,7 +369,7 @@ Webinar 4: "Customer Success Stories: Real Businesses, Real Results"
   {
     title: "SEO & Local Marketing Domination",
     description: "Complete SEO strategy with keyword map, content clusters, and local SEO tactics for each vertical.",
-    prompt: `Build a complete SEO and Local Marketing strategy for CloseLoop:
+    prompt: `Build a complete SEO and Local Marketing strategy for Flux Receptionist:
 
 **1. Keyword Strategy (100+ keywords):**
 Group by intent:

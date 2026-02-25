@@ -47,7 +47,7 @@ export function BrainProgressIndicator({
   const isNearComplete = percentage >= 75;
 
   // Color based on completion
-  const getProgressColor = () => {
+  const _getProgressColor = () => {
     if (isComplete) return "bg-green-500";
     if (isNearComplete) return "bg-blue-500";
     if (isGettingStarted) return "bg-amber-500";

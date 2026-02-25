@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LeadKanbanCard } from "./LeadKanbanCard";
 import type { PriorityConfig } from "@/config/industryBrainConfig";
-import { computeCallPriority } from "@/lib/priorityScoring";
 import { computeLeadTemperatureFromSession, TEMPERATURE_COLORS, type LeadTemperature } from "@/lib/leadTemperature";
 import {
   Select,

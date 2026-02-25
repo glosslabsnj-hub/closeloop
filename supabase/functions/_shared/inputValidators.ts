@@ -105,7 +105,7 @@ export function validateDate(value: string): ValidationResult {
   }
 
   // Numeric date formats
-  const numericDate = /\d{1,2}[\/\-]\d{1,2}(?:[\/\-]\d{2,4})?/;
+  const numericDate = /\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?/;
   if (numericDate.test(value)) {
     return { valid: true };
   }
@@ -261,7 +261,7 @@ export function validatePhone(value: string): ValidationResult {
   }
 
   // Remove common formatting characters
-  const cleaned = value.replace(/[\s\-\.\(\)]/g, '');
+  const cleaned = value.replace(/[\s.()-]/g, '');
 
   // Check if it contains enough digits (at least 7 for local, typically 10+ for full)
   const digits = cleaned.match(/\d/g);

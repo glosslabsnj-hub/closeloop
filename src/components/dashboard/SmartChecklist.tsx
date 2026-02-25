@@ -36,7 +36,7 @@ interface ChecklistTask {
  * Tasks are mode-aware and sorted by impact.
  */
 export function SmartChecklist() {
-  const { tenant, assistantSettings } = useAuth();
+  const { tenant, _assistantSettings } = useAuth();
   const { businessMode } = useTenantConfig();
   const { services } = useServices();
   const { hasConnectedCalendar } = useCalendarConnections();

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -24,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWorkflow, useWorkflowMutations, useWorkflowNodeMutations } from "@/hooks/useWorkflows";
-import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { 
   NODE_TYPE_METADATA, 
   TRIGGER_METADATA,
@@ -37,7 +35,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function WorkflowEditPage() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { tenant } = useAuth();
   const tenantId = tenant?.id ?? null;
   

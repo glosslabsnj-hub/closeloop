@@ -153,7 +153,7 @@ export function FoodPoliciesEditor() {
     setFormData(prev => prev ? { ...prev, [field]: value } : null);
   };
 
-  const formatCents = (cents: number) => cents > 0 ? `$${(cents / 100).toFixed(0)}` : 'No fee';
+  const _formatCents = (cents: number) => cents > 0 ? `$${(cents / 100).toFixed(0)}` : 'No fee';
 
   // Build AI preview
   const buildAIPreview = (): string => {

@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Package, Loader2, Star, AlertTriangle } from "lucide-react";
+import { Package, Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { KnowledgeSection } from "@/components/brain/shared/KnowledgeSection";
 import { KnowledgeItem } from "@/components/brain/shared/KnowledgeItem";

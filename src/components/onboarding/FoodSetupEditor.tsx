@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Clock, Truck, UtensilsCrossed, Cake, Plus, X, Sparkles, ArrowRight } from "lucide-react";
+import { Clock, Truck, UtensilsCrossed, Cake, Plus, X, Sparkles } from "lucide-react";
 
 export interface FoodSetupData {
   acceptsPickup: boolean;

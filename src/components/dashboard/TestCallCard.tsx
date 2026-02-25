@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PhoneCall, Sparkles, MessageSquare, X } from "lucide-react";
+import { PhoneCall, Sparkles, MessageSquare } from "lucide-react";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 // Format E.164 number to friendly display

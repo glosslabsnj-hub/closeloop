@@ -1,4 +1,4 @@
-import { Phone, MoreHorizontal, ChevronRight, MapPin, Navigation, Truck, Clock, ChevronDown } from "lucide-react";
+import { Phone, MoreHorizontal, ChevronRight, MapPin, Navigation, Clock, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

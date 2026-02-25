@@ -185,7 +185,7 @@ const defaultFormData: ModifierFormData = {
 export function PriceModifiersEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
-  const { config: industryConfig } = useIndustryContext();
+  const { config: _industryConfig } = useIndustryContext();
   const queryClient = useQueryClient();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -393,7 +393,7 @@ export function PriceModifiersEditor() {
   };
 
   // Build AI preview
-  const aiPreview = useMemo(() => {
+  const _aiPreview = useMemo(() => {
     const activeModifiers = modifiers?.filter(m => m.is_active && m.show_to_customer) || [];
     if (activeModifiers.length === 0) return null;
 

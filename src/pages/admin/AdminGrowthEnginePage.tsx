@@ -40,7 +40,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
 };
 
 export default function AdminGrowthEnginePage() {
-  const { data: settings, isLoading: settingsLoading } = useAdminGrowthSettings();
+  const { data: settings, isLoading: _settingsLoading } = useAdminGrowthSettings();
   const { data: campaigns } = useOutreachCampaigns();
   const { data: socialPosts } = useAdminSocialPosts();
   const { data: activityLog, isLoading: activityLoading } = useGrowthActivityLog(100);

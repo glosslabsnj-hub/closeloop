@@ -14,7 +14,7 @@ import { useIndustryDemoAdmin, IndustryDemo } from "@/hooks/useIndustryDemos";
 import { toast } from "sonner";
 
 export default function AdminDemoLibraryPage() {
-  const { demos, loading, updateDemo, uploadAudio, deleteAudio, refetch } = useIndustryDemoAdmin();
+  const { demos, loading, updateDemo, uploadAudio, deleteAudio, _refetch } = useIndustryDemoAdmin();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<IndustryDemo>>({});
   const [uploading, setUploading] = useState<string | null>(null);

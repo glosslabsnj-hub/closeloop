@@ -148,7 +148,7 @@ export function useLeadRecoveryCampaigns(filters: CampaignFilters = {}) {
       // Fetch last action for each campaign
       const campaignIds = campaigns?.map(c => c.id) || [];
       
-      let actionsMap: Record<string, any> = {};
+      const actionsMap: Record<string, any> = {};
       if (campaignIds.length > 0) {
         const { data: actions } = await supabase
           .from("lead_recovery_actions")

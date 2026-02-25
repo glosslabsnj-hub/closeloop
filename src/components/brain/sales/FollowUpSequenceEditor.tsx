@@ -143,7 +143,7 @@ export function FollowUpSequenceEditor() {
     setSteps(getSteps().map((s, i) => (i === idx ? { ...s, [field]: value } : s)));
   };
 
-  const formatDelay = (hours: number): string => {
+  const _formatDelay = (hours: number): string => {
     if (hours < 1) return `${Math.round(hours * 60)} min`;
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);

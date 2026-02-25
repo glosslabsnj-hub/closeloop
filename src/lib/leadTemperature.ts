@@ -27,12 +27,12 @@ interface SessionLike {
   } | null;
 }
 
-const URGENCY_KEYWORDS = [
+const _URGENCY_KEYWORDS = [
   "asap", "emergency", "urgent", "broken down", "stranded",
   "right away", "immediately", "today", "right now",
 ];
 
-const HIGH_VALUE_KEYWORDS = [
+const _HIGH_VALUE_KEYWORDS = [
   "engine", "transmission", "rebuild", "replace", "overhaul",
   "full service", "renovation", "remodel", "commercial",
 ];

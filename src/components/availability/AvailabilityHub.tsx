@@ -1,6 +1,4 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusyBlocks } from "@/hooks/useCalendarConnections";
 import { useTenantSettings } from "@/hooks/useSettings";
@@ -41,7 +39,7 @@ const DAY_MAP: Record<number, string> = {
 };
 
 export function AvailabilityHub() {
-  const { tenant } = useAuth();
+  const { _tenant } = useAuth();
   const { tenant: tenantData, updateTenant } = useTenantSettings();
   const tenantLoading = updateTenant.isPending;
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);

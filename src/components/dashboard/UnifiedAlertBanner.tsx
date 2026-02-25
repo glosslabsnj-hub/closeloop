@@ -42,15 +42,15 @@ export function UnifiedAlertBanner() {
   const { tenant } = useAuth();
 
   // Gather alerts from various sources (V2 readiness — V1 was deprecated)
-  const { score: readinessScore, p0Flags } = useAIReadinessV2();
+  const { score: _readinessScore, _p0Flags } = useAIReadinessV2();
   const { conflicts } = useKnowledgeConflicts();
-  const { uploads, processingCount } = useKnowledgeUploads();
+  const { uploads, _processingCount } = useKnowledgeUploads();
   
   // Pending uploads are those still processing or uploading
   const pendingUploads = uploads.filter(u => u.status === "processing" || u.status === "uploading");
 
   // Usage tracking
-  const { planSku, hasVoice, hasSms } = useSubscription(tenant?.id || null);
+  const { planSku, _hasVoice, _hasSms } = useSubscription(tenant?.id || null);
   const { usage } = useUsage(tenant?.id || null, planSku);
 
   const alerts: Alert[] = [];

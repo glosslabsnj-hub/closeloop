@@ -26,7 +26,7 @@ export const StepNavigator = React.memo(function StepNavigator({ steps, icons, c
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">CL</span>
           </div>
-          <span className="font-semibold text-lg">CloseLoop</span>
+          <span className="font-semibold text-lg">Flux Receptionist</span>
         </div>
       </div>
 

@@ -2,8 +2,6 @@ import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Phone, 
@@ -22,7 +20,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-import { format, startOfDay, endOfDay, isToday } from "date-fns";
+import { startOfDay, endOfDay } from "date-fns";
 import { AutomationStatusCard } from "./AutomationStatusCard";
 
 interface TodayStats {
@@ -289,7 +287,7 @@ function FoodTodayView({ stats }: { stats?: TodayStats }) {
   );
 }
 
-function MedicalTodayView({ stats, hipaaMode }: { stats?: TodayStats; hipaaMode: boolean }) {
+function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode: boolean }) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Patient Intake Queue</h3>

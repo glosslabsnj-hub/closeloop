@@ -18,7 +18,7 @@
  * - Vague address => blocked unless allow_vague_address_fallback true
  */
 
-import { estimateEta, EtaPolicy, EtaInput, DEFAULT_ETA_POLICY } from "../src/lib/eta/estimateEta";
+import { estimateEta, EtaPolicy, EtaInput } from "../src/lib/eta/estimateEta";
 import {
   EtaPolicyExtended,
   EtaInputExtended,

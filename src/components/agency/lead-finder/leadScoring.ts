@@ -1,7 +1,7 @@
 /**
  * Agency Lead Scoring Engine
  * 
- * Scores prospective businesses on their likelihood to convert to CloseLoop customers.
+ * Scores prospective businesses on their likelihood to convert to Flux Receptionist customers.
  * Hot leads = high pain, high urgency, high fit. Cold leads = low pain or poor fit.
  *
  * 12 weighted factors (max ~130 raw, clamped to 100):

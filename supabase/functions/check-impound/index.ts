@@ -116,7 +116,7 @@ async function fetchImpoundVehicles(
 
 // Normalize license plate: remove spaces, dashes, convert to uppercase
 function normalizePlate(plate: string): string {
-  return plate.replace(/[\s\-\.]/g, "").toUpperCase();
+  return plate.replace(/[\s.-]/g, "").toUpperCase();
 }
 
 // Format date for speaking

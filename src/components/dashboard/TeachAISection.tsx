@@ -73,7 +73,7 @@ export function TeachAISection() {
 
         // Upload to Supabase storage
         const fileName = `${tenant.id}/${Date.now()}-${file.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: _uploadData, error: uploadError } = await supabase.storage
           .from("knowledge-uploads")
           .upload(fileName, file);
 
@@ -114,18 +114,18 @@ export function TeachAISection() {
     }
   }, [tenant?.id, createUpload, toast]);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const _handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     handleFileUpload(e.dataTransfer.files);
   }, [handleFileUpload]);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
+  const _handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
   }, []);
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
+  const _handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
   }, []);
@@ -137,9 +137,9 @@ export function TeachAISection() {
   const hasPolicies = !!(context?.policies.cancellation || context?.policies.deposit);
 
   // Mode-aware labels
-  const serviceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
-  const missingServiceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
-  const minServicesNeeded = businessMode === 'food' ? 5 : 3;
+  const _serviceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
+  const _missingServiceLabel = businessMode === 'food' ? 'Menu items' : 'Services';
+  const _minServicesNeeded = businessMode === 'food' ? 5 : 3;
 
   // Missing items - industry aware
   const missingItems: string[] = [];

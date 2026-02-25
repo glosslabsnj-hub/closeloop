@@ -38,7 +38,7 @@ const HANDOFF_METHODS: Array<{
   icon: React.ComponentType<{ className?: string }>;
   always?: boolean;
 }> = [
-  { id: "internal", label: "CloseLoop Dispatch Queue", icon: Truck, always: true },
+  { id: "internal", label: "Flux Receptionist Dispatch Queue", icon: Truck, always: true },
   { id: "webhook", label: "Webhook", icon: Webhook, always: false },
   { id: "email", label: "Email", icon: Mail, always: false },
   { id: "sms", label: "SMS", icon: Phone, always: false },
@@ -205,7 +205,7 @@ export function DispatchDeliverySettings() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Dispatch jobs are always saved internally in CloseLoop first. External delivery methods 
+              Dispatch jobs are always saved internally in Flux Receptionist first. External delivery methods 
               push a copy to your existing dispatch systems.
             </AlertDescription>
           </Alert>

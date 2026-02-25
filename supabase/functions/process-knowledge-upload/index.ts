@@ -101,7 +101,7 @@ serve(async (req) => {
     let fileUrl: string;
     let sourceType: string;
     let useNewTable = false;
-    let autoDetect = body.autoDetect ?? true; // Default to auto-detect
+    const autoDetect = body.autoDetect ?? true; // Default to auto-detect
 
     if (body.upload_id) {
       // New format: knowledge_uploads table
@@ -288,32 +288,36 @@ serve(async (req) => {
     let matchedItems = 0;
 
     switch (detectedType) {
-      case "menu_pdf":
+      case "menu_pdf": {
         const menuResult = await processMenuItems(supabase, tenantId, sourceId, extractedData.items || []);
         suggestionsCreated = menuResult.suggestions;
         conflictsCreated = menuResult.conflicts;
         matchedItems = menuResult.matched;
         break;
+      }
 
-      case "services_doc":
+      case "services_doc": {
         const servicesResult = await processServices(supabase, tenantId, sourceId, extractedData.services || []);
         suggestionsCreated = servicesResult.suggestions;
         conflictsCreated = servicesResult.conflicts;
         matchedItems = servicesResult.matched;
         break;
+      }
 
-      case "faq_doc":
+      case "faq_doc": {
         const faqResult = await processFAQs(supabase, tenantId, sourceId, extractedData.faqs || []);
         suggestionsCreated = faqResult.suggestions;
         conflictsCreated = faqResult.conflicts;
         matchedItems = faqResult.matched;
         break;
+      }
 
-      case "hours":
+      case "hours": {
         const hoursResult = await processHours(supabase, tenantId, sourceId, extractedData.hours || []);
         suggestionsCreated = hoursResult.suggestions;
         conflictsCreated = hoursResult.conflicts;
         break;
+      }
 
       case "pricing":
         // Pricing can contain both services and menu items

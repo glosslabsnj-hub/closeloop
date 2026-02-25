@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -17,7 +17,6 @@ import { Plus, Trash2, Save, Send, CreditCard, Loader2, Layers } from "lucide-re
 import { useEstimates, EstimateLineItem, PricingOption, EstimateWithCustomer } from "@/hooks/useEstimates";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useFinancing, formatFinancingAmount } from "@/hooks/useFinancing";
-import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
 interface EstimateBuilderProps {

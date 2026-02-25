@@ -68,7 +68,7 @@ export function useKnowledgeMergeQueue() {
   const acceptMutation = useMutation({
     mutationFn: async (item: KnowledgeMergeItem) => {
       // Apply the change to the appropriate table
-      await applyMergeItem(item, tenant?.id!);
+      await applyMergeItem(item, tenant!.id);
 
       // Mark as accepted
       const { error } = await supabase
@@ -106,7 +106,7 @@ export function useKnowledgeMergeQueue() {
   const acceptAllMutation = useMutation({
     mutationFn: async () => {
       for (const item of pendingItems) {
-        await applyMergeItem(item, tenant?.id!);
+        await applyMergeItem(item, tenant!.id);
         await supabase
           .from("knowledge_merge_queue")
           .update({ status: "accepted" })

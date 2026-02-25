@@ -119,7 +119,7 @@ export function LeadDetailPanel({
       ? `Based on your business size, you could be missing around ${missedWeekly} calls a week — that's potentially $${missedWeekly * 150}-$${missedWeekly * 300} in lost revenue monthly.`
       : "Every missed call is a potential customer going to your competitor.";
 
-    return `${ownerGreeting} [YOUR NAME] with CloseLoop. I work with ${lead.industry || "local"} businesses in your area.
+    return `${ownerGreeting} [YOUR NAME] with Flux Receptionist. I work with ${lead.industry || "local"} businesses in your area.
 
 ${painLine}
 
@@ -223,9 +223,9 @@ We have an AI receptionist that answers every call 24/7 — it books appointment
             </div>
           )}
 
-          {/* Why They Need CloseLoop */}
+          {/* Why They Need Flux Receptionist */}
           <div>
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Why They Need CloseLoop</h4>
+            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Why They Need Flux Receptionist</h4>
             <p className="text-sm leading-relaxed">{lead.reason}</p>
           </div>
 

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { usePricingRules, PricingRule } from "@/hooks/usePricingRules";
 import { useServices } from "@/hooks/useServices";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

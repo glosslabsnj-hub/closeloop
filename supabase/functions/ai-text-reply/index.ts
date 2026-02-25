@@ -45,7 +45,7 @@ serve(async (req) => {
     await storeContextSnapshot(supabase, context);
 
     // Build SMS-specific prompt with intelligence layers
-    let smsPrompt = systemPrompt + `
+    const smsPrompt = systemPrompt + `
 
 SMS CONVERSATION GUIDELINES:
 1. Keep responses concise - SMS messages should be short and actionable

@@ -34,15 +34,12 @@ import {
   Map,
   Presentation,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import {
   AnimatedSidebar,
   SidebarBody,
   SidebarLink,
   useAnimatedSidebar,
 } from "@/components/ui/animated-sidebar";
-import { BRAND } from "@/config/brand";
 import { cn } from "@/lib/utils";
 
 interface NavItem {

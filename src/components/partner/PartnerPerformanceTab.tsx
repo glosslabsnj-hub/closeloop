@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, BarChart3, Phone, Percent } from "lucide-react";
 import { ConversionMetricsCard } from "@/components/intelligence/ConversionMetricsCard";
 import { PatternsList } from "@/components/intelligence/PatternsList";

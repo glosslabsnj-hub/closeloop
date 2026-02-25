@@ -5,7 +5,6 @@ import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { StatCard } from "@/components/layout/StatCard";
 import { SectionCard } from "@/components/layout/SectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -32,7 +31,6 @@ import { CreateCustomerDialog } from "@/components/customers/CreateCustomerDialo
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { CustomerCSVImportDialog } from "@/components/customers/CustomerCSVImportDialog";
-import { cn } from "@/lib/utils";
 
 const sourceLabels: Record<string, string> = {
   ai_call: "AI Call",
@@ -65,8 +63,8 @@ function getModeLabels(mode: string) {
 
 export default function CustomersPage() {
   const { customers, isLoading } = useCustomers();
-  const { terms, mode } = useIndustryContext();
-  const { businessMode } = useTenantConfig();
+  const { _terms, mode } = useIndustryContext();
+  const { _businessMode } = useTenantConfig();
   const modeLabels = getModeLabels(mode);
 
   const customerIds = useMemo(() => customers.map((c) => c.id), [customers]);
@@ -116,10 +114,10 @@ export default function CustomersPage() {
   }, [baseList, searchQuery, sourceFilter, sortBy]);
 
   // Stats
-  const totalCount = customers.length;
-  const activeCount = activeCustomers.length;
-  const withEmail = customers.filter((c) => c.email).length;
-  const recentCount = customers.filter((c) => {
+  const _totalCount = customers.length;
+  const _activeCount = activeCustomers.length;
+  const _withEmail = customers.filter((c) => c.email).length;
+  const _recentCount = customers.filter((c) => {
     const created = new Date(c.created_at).getTime();
     return Date.now() - created < 30 * 24 * 60 * 60 * 1000;
   }).length;

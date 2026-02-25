@@ -98,7 +98,7 @@ function parseDate(input: string, timezone: string): string {
   }
   
   // Try parsing as MM/DD or MM-DD
-  const mdMatch = input.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  const mdMatch = input.match(/^(\d{1,2})[/-](\d{1,2})$/);
   if (mdMatch) {
     const month = mdMatch[1].padStart(2, "0");
     const day = mdMatch[2].padStart(2, "0");

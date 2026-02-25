@@ -11,8 +11,8 @@ import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
-const defaultGreeting = "Hi, thanks for calling! How can I help you today?";
-const defaultFallback = "I'm sorry, I didn't quite catch that. Could you please repeat?";
+const _defaultGreeting = "Hi, thanks for calling! How can I help you today?";
+const _defaultFallback = "I'm sorry, I didn't quite catch that. Could you please repeat?";
 
 /**
  * Industry-aware greeting examples and helper text

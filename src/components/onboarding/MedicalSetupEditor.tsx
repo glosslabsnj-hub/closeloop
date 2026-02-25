@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Shield, Phone, FileText, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Shield, FileText, Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export interface MedicalSetupData {
   requireVerbalConsent: boolean;

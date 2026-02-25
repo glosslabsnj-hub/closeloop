@@ -1,8 +1,8 @@
 export const BRAND = {
-  name: "CloseLoop",
+  name: "Flux Receptionist",
   tagline: "Every call answered. Every lead captured.",
   logoIcon: "AudioWaveform",
-  domain: "closeloop.com",
-  supportEmail: "support@closeloop.com",
-  salesEmail: "sales@closeloop.com",
+  domain: "getfluxdata.com",
+  supportEmail: "support@getfluxdata.com",
+  salesEmail: "jack@getfluxdata.com",
 } as const;

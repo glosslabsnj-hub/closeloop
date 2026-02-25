@@ -1,7 +1,7 @@
 /**
  * Quote Engine Module
  *
- * Deterministic quoting for CloseLoop. Provides runtime pricing
+ * Deterministic quoting for Flux Receptionist. Provides runtime pricing
  * calculation with safe fallbacks and clear data requirements.
  *
  * @example

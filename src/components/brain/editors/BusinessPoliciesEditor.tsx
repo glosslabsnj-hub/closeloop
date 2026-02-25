@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Save, Info } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { updateBusinessPolicies } from "@/lib/brain/writeBrainFact";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -114,7 +114,7 @@ export function BusinessPoliciesEditor() {
   };
 
   // Build preview
-  const buildPreview = () => {
+  const _buildPreview = () => {
     const parts: string[] = [];
     if (formData.cancellation_policy) {
       parts.push(formData.cancellation_policy.split('.')[0] + '.');

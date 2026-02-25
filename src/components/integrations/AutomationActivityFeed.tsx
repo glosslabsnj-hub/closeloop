@@ -11,7 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { formatDistanceToNow, format } from "date-fns";
-import type { AutomationRun, AutomationRunStep } from "@/hooks/useIntegrations";
+import type { AutomationRun } from "@/hooks/useIntegrations";
 
 interface AutomationActivityFeedProps {
   runs: AutomationRun[];

@@ -7,7 +7,6 @@
 
 import { useMemo } from "react";
 import { Volume2, CheckCircle2, AlertCircle, Info, Building2, Clock, Package, MapPin, Shield, Sparkles, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";

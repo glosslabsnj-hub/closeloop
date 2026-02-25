@@ -8,7 +8,7 @@
  * - Combo deals
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -306,7 +306,7 @@ export function DailySpecialsEditor() {
 
   // AI Preview
   const activeSpecials = specials?.filter(s => s.is_active) || [];
-  const aiPreview = activeSpecials.length > 0
+  const _aiPreview = activeSpecials.length > 0
     ? `Today we have our ${activeSpecials[0].name}! ${activeSpecials[0].description || ""}`
     : "I can tell you about any specials we're running.";
 

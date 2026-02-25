@@ -8,7 +8,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Search, Globe, Phone, Star, ExternalLink, Loader2, MapPin, Bookmark, Check, AlertCircle } from "lucide-react";
+import { Search, Globe, Phone, Star, Loader2, MapPin, Bookmark, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { scoreAgencyLead, getTemperatureColor, getTemperatureIcon, type LeadTemperature } from "./lead-finder/leadScoring";

@@ -78,7 +78,7 @@ export function computePriceQuote(params: {
   offering: OfferingContext;
   inputs: Record<string, string | number | boolean | undefined>;
 }): QuoteResult {
-  const { rules, businessMode, offering, inputs } = params;
+  const { rules, _businessMode, offering, inputs } = params;
 
   // If offering has fixed base price and no rules, return EXACT
   if (offering.priceType === "fixed" && offering.basePrice && rules.length === 0) {
@@ -226,7 +226,7 @@ export function computeEtaQuote(params: {
   queueMetrics: QueueMetrics;
   inputs: Record<string, string | number | boolean | undefined>;
 }): QuoteResult {
-  const { busynessRules, mode, queueMetrics, inputs } = params;
+  const { busynessRules, _mode, queueMetrics, inputs } = params;
 
   const rawDuration = inputs.duration || inputs.estimatedDuration;
 

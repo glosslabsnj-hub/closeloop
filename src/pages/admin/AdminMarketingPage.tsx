@@ -24,7 +24,7 @@ export default function AdminMarketingPage() {
       <div className="mb-4">
         <h1 className="text-2xl font-bold">Marketing HQ</h1>
         <p className="text-sm text-muted-foreground">
-          AI-powered marketing strategies, content generation, and campaign planning for CloseLoop.
+          AI-powered marketing strategies, content generation, and campaign planning for Flux Receptionist.
         </p>
       </div>
 

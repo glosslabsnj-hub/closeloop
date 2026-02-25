@@ -16,7 +16,7 @@ export default function AgencyClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Clients</h1>
-          <p className="text-sm text-muted-foreground">Manage your CloseLoop client accounts.</p>
+          <p className="text-sm text-muted-foreground">Manage your Flux Receptionist client accounts.</p>
         </div>
         <Button onClick={() => setProvisionOpen(true)}>
           <Plus className="h-4 w-4 mr-2" /> Add Client

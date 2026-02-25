@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Plus, X, User, Users, UserPlus } from "lucide-react";
+import { X, User, Users, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EditableService } from "./ServicePreviewStep";
 

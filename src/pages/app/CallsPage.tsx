@@ -206,7 +206,7 @@ export default function CallsPage() {
     );
   });
 
-  const getCallStatus = (outcome: string | null): CallStatus => {
+  const _getCallStatus = (outcome: string | null): CallStatus => {
     switch (outcome) {
       case "booked":
         return "booked";
@@ -227,7 +227,7 @@ export default function CallsPage() {
     }
   };
 
-  const getStatusBadge = (status: CallStatus, outcome: string | null) => {
+  const _getStatusBadge = (status: CallStatus, outcome: string | null) => {
     switch (status) {
       case "booked":
         return (

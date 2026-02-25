@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { Plus, Play, Pause, Trash2, Settings, Zap, ChevronRight, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Play, Trash2, Zap, ChevronRight, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";

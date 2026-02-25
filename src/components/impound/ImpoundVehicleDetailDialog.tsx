@@ -88,7 +88,7 @@ export function ImpoundVehicleDetailDialog({
   onOpenChange,
   onUpdate,
 }: ImpoundVehicleDetailDialogProps) {
-  const { tenant } = useAuth();
+  const { _tenant } = useAuth();
   
   const [releaseData, setReleaseData] = useState({
     released_to_name: "",

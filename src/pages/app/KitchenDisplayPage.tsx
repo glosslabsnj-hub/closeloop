@@ -16,7 +16,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow, differenceInMinutes } from "date-fns";
+import { differenceInMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
@@ -253,7 +253,7 @@ export default function KitchenDisplayPage() {
     try {
       const audio = new Audio("/notification.mp3");
       audio.play().catch(() => {});
-    } catch {}
+    } catch { /* audio playback not supported */ }
   };
 
   const handleBump = async (order: KitchenOrder) => {

@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { AnimatedList, AnimatedListItem } from "@/components/ui/animated";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";
 import { format, isToday, isTomorrow, isThisWeek, isAfter } from "date-fns";
-import { cn } from "@/lib/utils";
 
 function groupBookingsByDate(bookings: BookingWithDetails[]) {
   const today: BookingWithDetails[] = [];
@@ -52,7 +50,7 @@ function groupBookingsByDate(bookings: BookingWithDetails[]) {
 
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
-  const { bookings, isLoading, error: bookingsError, updateBooking, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
+  const { bookings, isLoading, error: bookingsError, _updateBooking, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -115,7 +113,7 @@ export default function BookingsPage() {
     setDetailsOpen(false);
   };
 
-  const handleCancelBookingConfirmed = (booking: BookingWithDetails) => {
+  const _handleCancelBookingConfirmed = (booking: BookingWithDetails) => {
     cancelBooking.mutate(booking.id);
     setDetailsOpen(false);
   };

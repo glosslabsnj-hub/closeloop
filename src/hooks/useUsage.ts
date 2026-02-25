@@ -7,7 +7,6 @@ import {
   type PlanSku,
   type PlanLadderStep,
 } from "@/config/pricing";
-import type { SubscriptionUsage, Subscription } from "@/types/database";
 
 export interface UsageData {
   voiceMinutesUsed: number;

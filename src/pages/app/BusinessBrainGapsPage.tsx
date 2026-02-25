@@ -4,7 +4,6 @@ import { SectionCard } from "@/components/layout/SectionCard";
 import { StatCard } from "@/components/layout/StatCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   SkeletonStatCard,
   SkeletonCard

@@ -202,7 +202,7 @@ export default function ExtractionDebugPage() {
 
   // Get specific logs for pipeline stages
   const getLogForStage = (stage: string) => eventLogs?.find(l => l.stage === stage);
-  const canonicalizedLog = getLogForStage("extraction_canonicalized");
+  const _canonicalizedLog = getLogForStage("extraction_canonicalized");
   const normalizedLog = getLogForStage("normalization_applied");
   const extractionNormalizedLog = getLogForStage("extraction_normalized");
   const entityCreatedLog = getLogForStage("derived_entity_created");

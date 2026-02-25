@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Send, Loader2, Bookmark, RotateCcw, Bot, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -187,7 +186,7 @@ export function MarketingChatPanel() {
             <Bot className="h-12 w-12 mx-auto mb-4 opacity-30" />
             <h3 className="text-lg font-medium mb-2">Marketing AI Strategist</h3>
             <p className="text-sm max-w-md mx-auto">
-              Your AI CMO for CloseLoop. Ask me anything about marketing, content, ads,
+              Your AI CMO for Flux Receptionist. Ask me anything about marketing, content, ads,
               social media, partnerships, or scaling — I'll give you exact, actionable strategies.
             </p>
             <p className="text-xs mt-3 text-muted-foreground/60">

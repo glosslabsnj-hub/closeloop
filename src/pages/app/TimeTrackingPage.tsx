@@ -41,7 +41,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { useTimeTracking, TimeEntry } from "@/hooks/useTimeTracking";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 

@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import type { CustomerMergeQueue as MergeQueueType } from "@/types/database";
-import { GitMerge, User, Check, X, ArrowRight } from "lucide-react";
+import { GitMerge, User, Check, ArrowRight } from "lucide-react";
 
 interface MergeQueueItemWithCustomer extends MergeQueueType {
   existing_customer?: {

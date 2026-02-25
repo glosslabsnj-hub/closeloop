@@ -21,7 +21,7 @@ interface ClientOnboardingTrackerProps {
   compact?: boolean;
 }
 
-export function ClientOnboardingTracker({ readiness, tenantId, compact = true }: ClientOnboardingTrackerProps) {
+export function ClientOnboardingTracker({ readiness, _tenantId, compact = true }: ClientOnboardingTrackerProps) {
   const currentStep = stepOrder[readiness?.onboarding_step || "provisioned"] ?? 0;
 
   if (compact) {

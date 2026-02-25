@@ -215,7 +215,7 @@ export function useTestDelivery() {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ entityType, method }: { entityType: EntityType; method: "webhook" | "email" | "sms" }) => {
+    mutationFn: async ({ entityType, _method }: { entityType: EntityType; method: "webhook" | "email" | "sms" }) => {
       if (!tenant?.id) throw new Error("No tenant");
       
       const response = await supabase.functions.invoke("universal-delivery", {

@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, Loader2, ToggleLeft, Sliders, HelpCircle } from "lucide-react";
+import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, ToggleLeft, Sliders, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -24,9 +24,9 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useWorkflows, useWorkflowMutations, useWorkflowNodeMutations } from "@/hooks/useWorkflows";
+import { useWorkflows, useWorkflowMutations } from "@/hooks/useWorkflows";
 import { useWorkflowStats } from "@/hooks/useWorkflowRuns";
-import { TRIGGER_METADATA, NODE_TYPE_METADATA, type WorkflowTrigger, type Workflow, type WorkflowNodeType } from "@/types/workflow";
+import { TRIGGER_METADATA, type WorkflowTrigger, type Workflow, type WorkflowNodeType } from "@/types/workflow";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
@@ -389,7 +389,7 @@ const UNIVERSAL_TEMPLATES: WorkflowTemplate[] = [
 ];
 
 export default function WorkflowsPage() {
-  const { tenant, hasActiveSubscription } = useAuth();
+  const { tenant, _hasActiveSubscription } = useAuth();
   const { businessMode, enabledModules } = useTenantConfig();
   const tenantId = tenant?.id ?? null;
   

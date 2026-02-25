@@ -14,7 +14,6 @@ import {
 } from "@/components/ui/collapsible";
 import { useAutomationRuns, useAutomationRunSteps, type AutomationRun } from "@/hooks/useIntegrations";
 import { useTenantWorkflowRuns } from "@/hooks/useWorkflowRuns";
-import type { WorkflowRun } from "@/types/workflow";
 
 interface AutomationRunHistorySectionProps {
   tenantId: string;

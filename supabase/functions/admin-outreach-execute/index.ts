@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
     const demoLink = settings?.demo_link || "https://closeloop.ai";
     const trialLink = settings?.trial_link || "https://closeloop.ai/signup";
     let message = resolveTokens(step.message_template || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
-    let subject = resolveTokens(step.subject || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
+    const subject = resolveTokens(step.subject || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
 
     // AI personalization with full lead context
     if (step.use_ai_personalization) {

@@ -130,7 +130,7 @@ function determineIfHasUsableInfo(
       }
       break;
 
-    case "hybrid":
+    case "hybrid": {
       // Hybrid mode - we might be able to check with partial info
       // Try to find ANY criteria we can check
       const canCheckRadius = config.radius_miles !== null && location.distanceMiles !== undefined;
@@ -159,6 +159,7 @@ function determineIfHasUsableInfo(
         });
       }
       break;
+    }
   }
 
   // For state line restrictions, we always need state

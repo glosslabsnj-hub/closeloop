@@ -148,7 +148,7 @@ export function CalendarConnectionStatus() {
               <CheckCircle2 className="h-6 w-6 text-primary" />
             </div>
             <div className="flex-1 space-y-1.5">
-              <h3 className="font-semibold">Using CloseLoop Calendar</h3>
+              <h3 className="font-semibold">Using Flux Receptionist Calendar</h3>
               <p className="text-sm text-muted-foreground">
                 Your AI books appointments based on your configured business hours and availability slots.
               </p>

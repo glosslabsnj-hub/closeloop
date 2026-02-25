@@ -3,7 +3,7 @@
  * Shows customer name, phone, service requested, priority, and time.
  */
 
-import { Phone, Clock, ChevronRight } from "lucide-react";
+import { Clock, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { AnimatedList, AnimatedListItem } from "@/components/ui/animated";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Truck, Plus, Loader2, Map, Bell, AlertTriangle } from "lucide-react";
+import { Truck, Plus, Loader2, Map, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
@@ -159,7 +159,7 @@ export default function DispatchPage() {
             const audio = new Audio("/notification.mp3");
             audio.volume = 0.5;
             audio.play().catch(() => {});
-          } catch {}
+          } catch { /* audio playback not supported */ }
           // Refetch to get the new job
           refetch();
         }

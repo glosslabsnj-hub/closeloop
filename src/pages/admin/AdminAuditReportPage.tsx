@@ -172,7 +172,7 @@ const AUDIT_ITEMS: AuditItem[] = [
 export default function AdminAuditReportPage() {
   const fixedItems = AUDIT_ITEMS.filter(i => i.status === "fixed");
   const pendingItems = AUDIT_ITEMS.filter(i => i.status === "pending");
-  const infoItems = AUDIT_ITEMS.filter(i => i.status === "info");
+  const _infoItems = AUDIT_ITEMS.filter(i => i.status === "info");
 
   const categories = Array.from(new Set(AUDIT_ITEMS.map(i => i.category)));
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
@@ -41,14 +41,14 @@ const getIcon = (iconName: TierInfo["icon"]) => {
 };
 
 export default function GoLivePage() {
-  const { user, tenant, refreshTenant, isSuperAdmin } = useAuth();
-  const { createSubscription, loading: subLoading } = useSubscription(tenant?.id || null, isSuperAdmin);
-  const { score, canGoLive, p0Flags, isReady } = useAIReadinessV2();
+  const { user, tenant, _refreshTenant, isSuperAdmin } = useAuth();
+  const { _createSubscription, loading: _subLoading } = useSubscription(tenant?.id || null, isSuperAdmin);
+  const { _score, canGoLive, p0Flags, _isReady } = useAIReadinessV2();
   const [step, setStep] = useState<"tier" | "usage">("tier");
   const [selectedTier, setSelectedTier] = useState<PlanTier | null>(null);
   const [selectedSku, setSelectedSku] = useState<PlanSku | null>(null);
   const [processing, setProcessing] = useState(false);
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { toast } = useToast();
 
   const { data: isAgencyManaged } = useIsAgencyManagedTenant(tenant?.id || null);

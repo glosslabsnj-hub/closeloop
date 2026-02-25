@@ -34,7 +34,6 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
-import { Separator } from "@/components/ui/separator";
 
 interface NavSection {
   label: string;
@@ -122,7 +121,7 @@ export function AdminLayout() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                 <Shield className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-bold hidden lg:inline">CloseLoop Admin</span>
+              <span className="font-bold hidden lg:inline">Flux Receptionist Admin</span>
             </div>
 
             {/* Mode Selector - Center */}

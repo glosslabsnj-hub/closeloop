@@ -164,7 +164,7 @@ export function useGoldenPathRunner() {
         description: "Tenant resolved from To number",
         passed: hasInbound,
         details: hasInbound ? `${twilioLogs?.length || 0} events logged` : "No inbound calls logged",
-        fixSuggestion: !hasInbound ? "Make a test call to the CloseLoop number" : undefined,
+        fixSuggestion: !hasInbound ? "Make a test call to the Flux Receptionist number" : undefined,
         fixLink: "/debug/telephony",
       });
 
@@ -223,7 +223,7 @@ export function useGoldenPathRunner() {
 
       const aiStages = new Set(aiEventLogs?.map(l => l.stage) || []);
       const webhookReceived = aiStages.has("webhook_received");
-      const summarySaved = aiStages.has("summary_saved") || aiStages.has("transcript_saved");
+      const _summarySaved = aiStages.has("summary_saved") || aiStages.has("transcript_saved");
 
       results.push({
         id: "webhook_received",
@@ -501,7 +501,7 @@ export function useGoldenPathRunner() {
         failCount === 0 ? "passed" : passCount > 0 ? "partial" : "failed";
 
       // Update run with results
-      const { error: updateError } = await supabase
+      const { error: _updateError } = await supabase
         .from("golden_path_runs")
         .update({
           finished_at: new Date().toISOString(),

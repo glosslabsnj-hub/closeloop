@@ -153,7 +153,7 @@ export function useAvailabilitySlots() {
         if (insertError) {
           // Attempt to restore previously deleted slots to prevent data loss
             if (existingSlots && existingSlots.length > 0) {
-              const restore = existingSlots.map(({ id, created_at, ...rest }) => rest);
+              const restore = existingSlots.map(({ _id, _created_at, ...rest }) => rest);
               try {
                 await supabase.from("availability_slots").insert(restore);
               } catch (restoreErr) {

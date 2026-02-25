@@ -50,7 +50,7 @@ const discoveryQuestions = [
 function generateRecommendation(answers: Record<string, string>): RecommendedSetup {
   const businessType = answers['business_type'] || '';
   const callVolume = answers['call_volume'] || '';
-  const channel = answers['channel'] || '';
+  const _channel = answers['channel'] || '';
   
   let businessMode = 'service';
   let businessTypeDisplay = 'Service Business';
@@ -70,7 +70,7 @@ function generateRecommendation(answers: Record<string, string>): RecommendedSet
   }
 
   // All channels now map to voice tier (SMS coming soon)
-  const tier: 'voice' = 'voice';
+  const tier = 'voice' as const;
 
   const defaultStep = getDefaultStepForTier(tier);
   let sku = defaultStep?.sku || 'voice-200';
@@ -216,7 +216,7 @@ export function SalesAIAgent() {
             <Bot className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-sm font-semibold">CloseLoop Assistant</CardTitle>
+            <CardTitle className="text-sm font-semibold">Flux Receptionist Assistant</CardTitle>
             {!isMinimized && (
               <p className="text-xs text-muted-foreground">Find your perfect setup</p>
             )}
@@ -350,7 +350,7 @@ export function SalesAIAgent() {
           {/* Footer */}
           <div className="p-3 border-t bg-muted/20">
             <p className="text-xs text-center text-muted-foreground">
-              Powered by CloseLoop
+              Powered by Flux Receptionist
             </p>
           </div>
         </>

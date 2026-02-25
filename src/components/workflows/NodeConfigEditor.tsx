@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { NODE_TYPE_METADATA, type WorkflowNode } from "@/types/workflow";
 import { VariablePicker } from "./VariablePicker";
 

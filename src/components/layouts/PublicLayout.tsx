@@ -6,7 +6,7 @@ import { BRAND } from "@/config/brand";
 
 export function PublicLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const location = useLocation();
+  const _location = useLocation();
 
   // Close mobile menu on navigation
   const handleNavClick = () => setMobileMenuOpen(false);

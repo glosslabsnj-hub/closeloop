@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Bot, PhoneCall, Loader2 } from "lucide-react";
+import { Bot, Loader2 } from "lucide-react";
 
 type AIBehaviorMode = "full_service" | "callback_only";
 

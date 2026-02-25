@@ -1,4 +1,4 @@
-// Industry-specific service templates, context fields, FAQs, and objection handlers for CloseLoop
+// Industry-specific service templates, context fields, FAQs, and objection handlers for Flux Receptionist
 
 export interface ServiceTemplate {
   name: string;

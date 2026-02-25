@@ -188,7 +188,7 @@ export function ServicePackagesEditor() {
     return { amount: savings, percent };
   };
 
-  const getServiceName = (serviceId: string) => {
+  const _getServiceName = (serviceId: string) => {
     const service = primaryServices.find(s => s.id === serviceId);
     return service?.name || "Unknown Service";
   };
@@ -396,7 +396,7 @@ export function ServicePackagesEditor() {
     isSaving: boolean;
     isNew?: boolean;
   }) => {
-    const typeConfig = PACKAGE_TYPES[formData.package_type];
+    const _typeConfig = PACKAGE_TYPES[formData.package_type];
     const savings = calculateSavings(formData.regular_price_cents, formData.package_price_cents);
 
     return (

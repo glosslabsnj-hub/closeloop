@@ -25,7 +25,7 @@ interface QuickAddServiceDialogProps {
  */
 export function QuickAddServiceDialog({ open, onOpenChange }: QuickAddServiceDialogProps) {
   const navigate = useNavigate();
-  const { businessMode } = useTenantConfig();
+  const { _businessMode } = useTenantConfig();
   const caps = useCapabilities();
 
   const isFood = caps.isFoodBusiness;

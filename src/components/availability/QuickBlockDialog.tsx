@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useBusyBlocks } from "@/hooks/useCalendarConnections";
-import { format, addDays, setHours, setMinutes, parseISO } from "date-fns";
+import { format, addDays, setHours, setMinutes } from "date-fns";
 import { Loader2, Clock } from "lucide-react";
 
 interface QuickBlockDialogProps {

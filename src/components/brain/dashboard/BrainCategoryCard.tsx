@@ -30,8 +30,8 @@ export function BrainCategoryCard({
 }: BrainCategoryCardProps) {
   const Icon = category.icon;
   const isComplete = completion.percentage === 100;
-  const hasWarning = completion.hasRequiredIncomplete;
-  const essentialCount = category.cards.filter(c => c.setupPriority === "essential").length;
+  const _hasWarning = completion.hasRequiredIncomplete;
+  const _essentialCount = category.cards.filter(c => c.setupPriority === "essential").length;
 
   return (
     <button

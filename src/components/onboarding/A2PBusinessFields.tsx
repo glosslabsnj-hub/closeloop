@@ -55,7 +55,7 @@ interface Props {
   userDisplayName?: string;
 }
 
-export function A2PBusinessFields({ value, onChange, businessName, userEmail, userDisplayName }: Props) {
+export function A2PBusinessFields({ value, onChange, businessName, _userEmail, _userDisplayName }: Props) {
   const update = <K extends keyof A2PBusinessData>(key: K, val: A2PBusinessData[K]) => {
     onChange({ ...value, [key]: val });
   };

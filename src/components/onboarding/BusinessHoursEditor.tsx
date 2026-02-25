@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Copy } from "lucide-react";
 
 /**
  * Time window representing an open period
@@ -115,7 +115,7 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
     updateDay(dayKey, { windows: newWindows });
   };
 
-  const addWindow = (dayKey: string) => {
+  const _addWindow = (dayKey: string) => {
     const dayHours = normalizedHours[dayKey];
     const lastWindow = dayHours.windows[dayHours.windows.length - 1];
     // Default new window starts 2 hours after last close
@@ -131,7 +131,7 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
     });
   };
 
-  const removeWindow = (dayKey: string, windowIndex: number) => {
+  const _removeWindow = (dayKey: string, windowIndex: number) => {
     const dayHours = normalizedHours[dayKey];
     const newWindows = dayHours.windows.filter((_, i) => i !== windowIndex);
     

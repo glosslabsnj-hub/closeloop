@@ -112,7 +112,7 @@ export function TroubleshootingCard({
 }: TroubleshootingCardProps) {
   const commonFixes = [
     "Your account password may have changed",
-    "CloseLoop access may have been revoked in your account settings",
+    "Flux Receptionist access may have been revoked in your account settings",
     "There may be a temporary service outage",
   ];
 

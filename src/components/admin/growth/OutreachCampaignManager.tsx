@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -29,7 +29,7 @@ export function OutreachCampaignManager() {
   const [newSequenceId, setNewSequenceId] = useState("");
   const [newTargetType, setNewTargetType] = useState("business");
 
-  const selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
+  const _selectedCampaign = campaigns?.find((c) => c.id === selectedCampaignId);
 
   if (isLoading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;

@@ -53,7 +53,7 @@ export function DispatchJobListener() {
             const audio = new Audio("/notification.mp3");
             audio.volume = 0.5;
             audio.play().catch(() => {});
-          } catch {}
+          } catch { /* audio playback not supported */ }
 
           // Show global toast with View action
           sonnerToast.info("🚨 New Dispatch Job!", {

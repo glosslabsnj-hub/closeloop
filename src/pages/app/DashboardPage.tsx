@@ -5,8 +5,8 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 
 export default function DashboardPage() {
-  const { tenant, subscription, assistantSettings, refreshTenant, isSuperAdmin, hasActiveSubscription } = useAuth();
-  const { canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
+  const { _tenant, _subscription, assistantSettings, refreshTenant, isSuperAdmin, hasActiveSubscription } = useAuth();
+  const { _canGoLive, _p0Flags, loading: _readinessLoading } = useAIReadinessV2();
 
   const setupComplete =
     isSuperAdmin ||

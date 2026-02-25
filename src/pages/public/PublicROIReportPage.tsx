@@ -153,7 +153,7 @@ export default function PublicROIReportPage() {
           <CardContent className="p-6 text-center space-y-3">
             <p className="text-sm font-medium">Want results like these for your business?</p>
             <p className="text-xs text-muted-foreground">
-              CloseLoop's AI receptionist handles every call, books {terms.entity}, and drives revenue 24/7.
+              Flux Receptionist's AI receptionist handles every call, books {terms.entity}, and drives revenue 24/7.
             </p>
             <a
               href="/"
@@ -166,7 +166,7 @@ export default function PublicROIReportPage() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          Powered by CloseLoop AI
+          Powered by Flux Receptionist AI
         </p>
       </div>
     </div>

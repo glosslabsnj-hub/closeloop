@@ -122,7 +122,7 @@ export function useGoldenPathChecks(tenantId: string | null): GoldenPathCheckRes
       const aiStages = new Set(aiEventLogs?.map(l => l.stage) || []);
       const webhookReceived = aiStages.has("webhook_received");
       const summarySaved = aiStages.has("summary_saved");
-      const extractionSaved = aiStages.has("extraction_saved");
+      const _extractionSaved = aiStages.has("extraction_saved");
       const customerResolved = aiStages.has("customer_resolved");
 
       checks.push({
@@ -152,7 +152,7 @@ export function useGoldenPathChecks(tenantId: string | null): GoldenPathCheckRes
         .limit(5);
 
       const hasExtraction = (callSessions?.length || 0) > 0;
-      const latestExtraction = callSessions?.[0]?.extracted_payload;
+      const _latestExtraction = callSessions?.[0]?.extracted_payload;
 
       checks.push({
         id: "extraction_created",

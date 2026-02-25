@@ -61,7 +61,7 @@ const TROUBLESHOOTING_GUIDE = [
 ];
 
 export default function TelephonyDebugPage() {
-  const { tenant, user, isSuperAdmin, loading: authLoading } = useAuth();
+  const { tenant, _user, isSuperAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
@@ -81,7 +81,7 @@ export default function TelephonyDebugPage() {
     queryKey: ["debug-phone-config", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return null;
-      const { data, error } = await supabase
+      const { data, _error } = await supabase
         .from("phone_numbers")
         .select("*")
         .eq("tenant_id", tenant.id);
@@ -110,7 +110,7 @@ export default function TelephonyDebugPage() {
     queryKey: ["debug-twilio-logs", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return [];
-      const { data, error } = await supabase
+      const { data, _error } = await supabase
         .from("twilio_event_logs")
         .select("*")
         .eq("tenant_id", tenant.id)

@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, MapPin, Phone, Building, Navigation, ExternalLink, Car, Clock } from "lucide-react";
+import { Loader2, Phone, Building, Navigation, ExternalLink, Car, Clock } from "lucide-react";
 
 interface HoursEntry {
   open: string | null;

@@ -31,7 +31,7 @@ export function useOAuthConnect(options: UseOAuthConnectOptions = {}) {
   // Listen for postMessage from popup
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
-      const { type, provider, error, calendars } = event.data || {};
+      const { type, provider, error, _calendars } = event.data || {};
 
       // Handle universal integration OAuth
       if (type === "integration-oauth-success") {

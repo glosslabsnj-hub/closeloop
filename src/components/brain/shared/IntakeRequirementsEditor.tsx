@@ -124,7 +124,7 @@ export function IntakeRequirementsEditor({ businessMode }: IntakeRequirementsEdi
     setIsSaving(true);
     try {
       // Delete removed requirements
-      const existingIds = requirements.filter(r => r.id).map(r => r.id);
+      const _existingIds = requirements.filter(r => r.id).map(r => r.id);
       
       // Upsert all requirements
       for (const req of requirements) {

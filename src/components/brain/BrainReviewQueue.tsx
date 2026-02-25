@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useKnowledgeSuggestions, ExtractedKnowledgeSuggestion, SuggestionType } from "@/hooks/useKnowledgeSuggestions";
-import { useKnowledgeConflicts, KnowledgeConflict, conflictTypeLabels, entityTypeLabels } from "@/hooks/useKnowledgeConflicts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useKnowledgeConflicts, KnowledgeConflict, entityTypeLabels } from "@/hooks/useKnowledgeConflicts";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

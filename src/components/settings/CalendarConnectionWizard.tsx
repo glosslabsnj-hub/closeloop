@@ -831,7 +831,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                     <Badge variant="secondary" className="text-xs">No sync needed</Badge>
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Manage availability directly in CloseLoop — no external calendar needed
+                    Manage availability directly in Flux Receptionist — no external calendar needed
                   </p>
                 </div>
                 {selectedProvider === "internal" && (

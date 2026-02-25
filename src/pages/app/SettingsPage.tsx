@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -51,7 +50,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
-  const { terms } = useIndustryContext();
+  const { _terms } = useIndustryContext();
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
@@ -115,7 +114,7 @@ export default function SettingsPage() {
   };
 
   // Navigation config based on enabled modules and business mode
-  const isDispatchMode = isDispatchEnabled && !isBookingEnabled && !isFoodMode;
+  const _isDispatchMode = isDispatchEnabled && !isBookingEnabled && !isFoodMode;
   const navConfig: SettingsNavConfig = {
     showHipaa: isMedicalMode || hipaaMode,
     showBookingDelivery: isBookingEnabled,

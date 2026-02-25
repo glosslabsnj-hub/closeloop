@@ -238,7 +238,7 @@ export function isLocationServiceable(
                c.state.toLowerCase() === location.countyState!.toLowerCase()
       );
 
-    case "hybrid":
+    case "hybrid": {
       // Hybrid mode: pass if ANY inclusion criteria is met
       let passesAnyCriteria = false;
 
@@ -276,6 +276,7 @@ export function isLocationServiceable(
         config.include.states.length > 0;
 
       return !hasAnyCriteria || passesAnyCriteria;
+    }
 
     default:
       return true;
@@ -316,7 +317,7 @@ export function getServiceAreaSummary(config: ServiceAreaConfig): string {
       }
       break;
 
-    case "hybrid":
+    case "hybrid": {
       const criteria: string[] = [];
       if (config.radius_miles) criteria.push(`${config.radius_miles}mi radius`);
       if (config.include.zips.length > 0) criteria.push(`${config.include.zips.length} ZIPs`);
@@ -325,6 +326,7 @@ export function getServiceAreaSummary(config: ServiceAreaConfig): string {
 
       parts.push(criteria.length > 0 ? `Hybrid: ${criteria.join(", ")}` : "Hybrid mode (no criteria set)");
       break;
+    }
   }
 
   // Exclusions

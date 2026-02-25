@@ -242,7 +242,7 @@ function evaluatePricingRule(
       };
     }
 
-    case "distance-based":
+    case "distance-based": {
       const miles = parseFloat(extractedData.miles || extractedData.estimated_miles || "0");
       if (miles === 0) {
         return {
@@ -278,8 +278,9 @@ function evaluatePricingRule(
           finalPrice
         }
       };
+    }
 
-    case "tiered":
+    case "tiered": {
       const tierValue = parseFloat(extractedData.tier_value || extractedData.miles || "0");
       const tiers = rule.config.tiers || [];
       const matchingTier = tiers.find(t => tierValue >= t.min && tierValue <= t.max);
@@ -298,6 +299,7 @@ function evaluatePricingRule(
         priceType: "exact",
         logData: { ruleType: "tiered", ruleId: rule.id, tierValue, tier: matchingTier }
       };
+    }
 
     case "range-only":
       return {

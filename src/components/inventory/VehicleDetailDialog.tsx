@@ -7,7 +7,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ExternalLink, Fuel, Gauge, Calendar, MapPin, Palette, Car } from "lucide-react";
+import { ExternalLink, Gauge, Calendar, MapPin, Palette, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { proxyImageUrl } from "@/lib/proxyImage";
 

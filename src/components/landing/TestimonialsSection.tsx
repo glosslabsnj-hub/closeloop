@@ -1,4 +1,3 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Star, Shield, Lock, Quote } from "lucide-react";
 
 // Example testimonials representing typical customer experiences

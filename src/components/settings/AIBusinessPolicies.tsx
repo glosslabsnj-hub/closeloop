@@ -92,8 +92,8 @@ const defaultPolicies: BusinessPolicies = {
 
 export function AIBusinessPolicies() {
   const { tenant } = useAuth();
-  const { businessMode } = useTenantConfig();
-  const { services } = useServices();
+  const { _businessMode } = useTenantConfig();
+  const { _services } = useServices();
   const queryClient = useQueryClient();
   const [expandedPolicy, setExpandedPolicy] = useState<string | null>("upsell");
 

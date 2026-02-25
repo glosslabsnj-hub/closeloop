@@ -11,7 +11,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -118,7 +117,7 @@ export function DispatchIvrSettings() {
     <div className="space-y-6">
       {/* Intro Text */}
       <p className="text-sm text-muted-foreground">
-        Choose how inbound calls are routed when someone calls your CloseLoop number. This controls whether they reach your towing dispatcher, impound assistant, or an IVR menu.
+        Choose how inbound calls are routed when someone calls your Flux Receptionist number. This controls whether they reach your towing dispatcher, impound assistant, or an IVR menu.
       </p>
 
       {/* AI Preview */}

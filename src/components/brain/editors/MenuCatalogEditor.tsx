@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -201,7 +201,7 @@ export function MenuCatalogEditor() {
     }
   };
 
-  const handleToggleAvailable = (item: any) => {
+  const _handleToggleAvailable = (item: any) => {
     updateMutation.mutate({
       id: item.id,
       updates: { is_available: !item.is_available },
@@ -252,7 +252,7 @@ export function MenuCatalogEditor() {
 
   // AI preview for first item
   const firstItem = menuItems?.[0];
-  const aiPreview = firstItem
+  const _aiPreview = firstItem
     ? `Our ${firstItem.name} is $${((firstItem.price_cents || 0) / 100).toFixed(2)}${firstItem.prep_time_minutes ? ` and takes about ${firstItem.prep_time_minutes} minutes to prepare` : ""}.`
     : "I can tell you about our menu items and pricing.";
 

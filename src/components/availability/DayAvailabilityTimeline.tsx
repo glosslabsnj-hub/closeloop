@@ -1,9 +1,8 @@
 import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { format, parseISO, isSameDay, addDays, isToday, isTomorrow } from "date-fns";
+import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { Plus, Calendar, XCircle } from "lucide-react";
 import type { BusyBlock } from "@/hooks/useCalendarConnections";
 

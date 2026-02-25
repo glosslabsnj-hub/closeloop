@@ -11,7 +11,7 @@ import React from "react";
  * - Prev / Next category navigation
  */
 
-import { ArrowLeft, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
@@ -73,7 +73,7 @@ export const BrainSectionDetail = React.memo(function BrainSectionDetail({
   addOnContent,
   editorContent,
 }: BrainSectionDetailProps) {
-  const Icon = category.icon;
+  const _Icon = category.icon;
   const displayTitle = resolvedTitle || category.title;
   const { prev, next } = getAdjacentCategories(category.section, orderedCategories);
   const activeStatus = activeItemId ? statuses[activeItemId] : undefined;

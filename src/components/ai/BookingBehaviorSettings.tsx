@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck, Clock, Bell, AlertCircle } from "lucide-react";
+import { CalendarCheck, Bell, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface BookingBehaviorSettingsProps {

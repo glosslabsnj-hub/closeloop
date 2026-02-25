@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     sourcemap: mode === "development",
+    chunkSizeWarningLimit: 1024,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -29,6 +30,9 @@ export default defineConfig(({ mode }) => ({
           ui: ["@radix-ui/react-dialog", "@radix-ui/react-popover", "@radix-ui/react-select", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
           motion: ["framer-motion"],
           charts: ["recharts"],
+          mapbox: ["mapbox-gl"],
+          forms: ["react-hook-form", "@hookform/resolvers", "zod"],
+          markdown: ["react-markdown"],
         },
       },
     },

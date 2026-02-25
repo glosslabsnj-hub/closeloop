@@ -2207,7 +2207,7 @@ async function persistDerivedEntity(
   
   try {
     switch (routingDecision.target) {
-      case "food_orders":
+      case "food_orders": {
         const order = await persistFoodOrder(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (order) {
           entityType = "order";
@@ -2216,8 +2216,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
-        
-      case "reservations":
+      }
+
+      case "reservations": {
         const reservation = await persistReservation(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (reservation) {
           entityType = "reservation";
@@ -2225,8 +2226,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
-        
-      case "bookings":
+      }
+
+      case "bookings": {
         const booking = await persistBooking(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164, leadId);
         if (booking) {
           entityType = "booking";
@@ -2234,8 +2236,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
-        
-      case "dispatch_jobs":
+      }
+
+      case "dispatch_jobs": {
         const dispatchJob = await persistDispatchJob(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (dispatchJob) {
           entityType = "dispatch_job";
@@ -2244,8 +2247,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
+      }
 
-      case "callback_requests":
+      case "callback_requests": {
         const callback = await persistCallback(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (callback) {
           entityType = "callback";
@@ -2253,8 +2257,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
+      }
 
-      case "medical_intakes":
+      case "medical_intakes": {
         const intake = await persistMedicalIntake(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (intake) {
           entityType = "medical_intake";
@@ -2262,8 +2267,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
+      }
 
-      case "test_drives":
+      case "test_drives": {
         const testDrive = await persistTestDrive(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (testDrive) {
           entityType = "test_drive";
@@ -2271,8 +2277,9 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
+      }
 
-      case "sales_leads":
+      case "sales_leads": {
         const salesLead = await persistSalesLead(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, payload, customerName, customerId, callerPhoneE164);
         if (salesLead) {
           entityType = "sales_lead";
@@ -2281,6 +2288,7 @@ async function persistDerivedEntity(
           success = true;
         }
         break;
+      }
 
       case "none":
       default:
@@ -3154,7 +3162,7 @@ function buildSummaryFromTranscript(transcript: NonNullable<ElevenLabsWebhookPay
   if (nameMatch) parts.push(`Customer: ${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)}`);
   
   switch (businessMode) {
-    case "food":
+    case "food": {
       if (customerMessages.match(/pickup|pick up/i)) parts.push("Order type: Pickup");
       else if (customerMessages.match(/delivery|deliver/i)) parts.push("Order type: Delivery");
       const foodKeywords = ["pizza", "pasta", "burger", "sandwich", "salad", "soup", "wings", "fries", "drink", "pepsi", "coke", "soda"];
@@ -3162,19 +3170,22 @@ function buildSummaryFromTranscript(transcript: NonNullable<ElevenLabsWebhookPay
       if (mentionedItems.length > 0) parts.push(`Items: ${mentionedItems.join(", ")}`);
       if (aiMessages.match(/order.*(?:ready|placed|confirmed|got it)/i)) parts.push("Status: Order confirmed");
       break;
-    case "service":
+    }
+    case "service": {
       const serviceMatch = customerMessages.match(/(?:need|want|book|schedule).*?(?:detail|wash|clean|repair|service|appointment)/i);
       if (serviceMatch) parts.push(`Service: ${serviceMatch[0]}`);
       break;
+    }
     case "dispatch":
       if (customerMessages.match(/tow|broke down/i)) parts.push("Job: Towing");
       else if (customerMessages.match(/jump|battery/i)) parts.push("Job: Jump start");
       else if (customerMessages.match(/flat|tire/i)) parts.push("Job: Tire change");
       else if (customerMessages.match(/lock|keys/i)) parts.push("Job: Lockout");
       break;
-    default:
+    default: {
       const reasonMatch = customerMessages.match(/(?:calling about|need|want|looking for)\s+(.{10,50}?)(?:\.|,|$)/i);
       if (reasonMatch) parts.push(`Reason: ${reasonMatch[1].trim()}`);
+    }
   }
   
   return parts.length > 0 ? parts.join(". ") + "." : null;
@@ -3214,17 +3225,17 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
   if (nameMatch) extracted.customer_name = nameMatch[1].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   
   // Extract callback number
-  const phoneMatch = customerMessages.match(/(?:call me (?:back )?at|my number is|reach me at)\s*([\d\-\(\)\s]+)/);
+  const phoneMatch = customerMessages.match(/(?:call me (?:back )?at|my number is|reach me at)\s*([\d()\s-]+)/);
   if (phoneMatch) extracted.callback_number = phoneMatch[1].replace(/\D/g, "");
   
   switch (businessMode) {
-    case "food":
+    case "food": {
       // Reservation detection
       const reservationPatterns = [/(?:table|reservation|party)\s+(?:for|of)\s+(\d+)/i, /(\d+)\s+(?:people|guests|persons?)\s+(?:for|on|this)/i, /book(?:ing)?\s+(?:a\s+)?table/i, /make\s+(?:a\s+)?reservation/i];
-      
+
       let isReservation = false;
       let partySizeFromTranscript: number | null = null;
-      
+
       for (const pattern of reservationPatterns) {
         const match = customerMessages.match(pattern);
         if (match) {
@@ -3233,7 +3244,7 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
           break;
         }
       }
-      
+
       const largeParyMatch = customerMessages.match(/(\d+)\s*(?:people|guests|of us)/i);
       if (largeParyMatch) {
         const size = parseInt(largeParyMatch[1]);
@@ -3242,30 +3253,30 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
           partySizeFromTranscript = size;
         }
       }
-      
+
       if (isReservation) {
         extracted._reservation_detected = true;
         if (partySizeFromTranscript) extracted.party_size = String(partySizeFromTranscript);
-        
+
         const resDateMatch = customerMessages.match(/(?:on|for|this|next)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|today)/i);
         if (resDateMatch) extracted.reservation_date = resDateMatch[1];
-        
+
         const resTimeMatch = customerMessages.match(/(?:at|around|about)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
         if (resTimeMatch) extracted.reservation_time = resTimeMatch[1];
-        
+
         if (allMessages.includes("reservation") && (allMessages.includes("confirm") || allMessages.includes("booked") || allMessages.includes("see you"))) {
           extracted.reservation_confirmed = "true";
         }
         break;
       }
-      
+
       // Order detection
       if (allMessages.includes("order") && (allMessages.includes("confirm") || allMessages.includes("placed") || allMessages.includes("ready"))) {
         extracted.order_confirmed = "true";
       }
       if (customerMessages.includes("delivery")) extracted.order_type = "delivery";
       else if (customerMessages.includes("pickup")) extracted.order_type = "pickup";
-      
+
       const foodItems: string[] = [];
       const foodPatterns = [/(?:i(?:'d| would) like|order|want|get me|have)\s+(?:a|an|the|some)?\s*(\d*\s*[a-z\s]+)/gi];
       for (const pattern of foodPatterns) {
@@ -3276,8 +3287,9 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
       }
       if (foodItems.length > 0) extracted.items_raw = foodItems.join(", ");
       break;
-      
-    case "service":
+    }
+
+    case "service": {
       const servicePatterns = [/(?:need|want|looking for|schedule|book)\s+(?:a|an)?\s*([a-z\s]+(?:service|appointment|cleaning|repair|maintenance|consultation))/i];
       for (const pattern of servicePatterns) {
         const match = customerMessages.match(pattern);
@@ -3288,8 +3300,9 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
       const timeMatch = customerMessages.match(/(?:at|around|about)\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
       if (timeMatch) extracted.preferred_time = timeMatch[1];
       break;
-      
-    case "dispatch":
+    }
+
+    case "dispatch": {
       const pickupMatch = customerMessages.match(/(?:pick(?:ing)? (?:me )?up|from|at)\s+(\d+\s+[a-z\s]+(?:street|st|avenue|ave|road|rd))/i);
       if (pickupMatch) extracted.pickup_address = pickupMatch[1];
       const dropoffMatch = customerMessages.match(/(?:to|drop(?:ping)? (?:me )?(?:off|at)|going to|destination)\s+(\d+\s+[a-z\s]+(?:street|st|avenue|ave|road|rd))/i);
@@ -3300,16 +3313,19 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
       else if (customerMessages.includes("flat") || customerMessages.includes("tire")) extracted.job_type = "tire_change";
       else if (customerMessages.includes("lock") || customerMessages.includes("keys")) extracted.job_type = "lockout";
       break;
-      
-    case "medical":
+    }
+
+    case "medical": {
       if (customerMessages.includes("new patient") || customerMessages.includes("first time")) extracted.is_new_patient = "true";
       const apptMatch = customerMessages.match(/(?:need|want|schedule|book)\s+(?:a|an)?\s*([a-z\s]+(?:appointment|checkup|consultation|exam|visit))/i);
       if (apptMatch) extracted.appointment_type = apptMatch[1].trim();
       break;
-      
-    default:
+    }
+
+    default: {
       const reasonMatch = customerMessages.match(/(?:calling about|reason for calling|need help with|question about)\s+(.+?)(?:\.|$)/i);
       if (reasonMatch) extracted.service_requested = reasonMatch[1].trim();
+    }
   }
   
   return extracted;

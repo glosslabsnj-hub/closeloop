@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { startOfWeek, addDays, isSameDay } from "date-fns";
+import { startOfWeek, addDays } from "date-fns";
 import { CalendarHeader } from "./CalendarHeader";
 import { TimeGrid } from "./TimeGrid";
 import { DayColumn } from "./DayColumn";

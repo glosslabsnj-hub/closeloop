@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
-import { useBusinessContext, calculateReadinessFromContext, getMissingKnowledge } from "@/hooks/useBusinessContext";
+import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -136,7 +136,7 @@ export default function AIReadinessScore({ compact = false }: AIReadinessScorePr
     return 'text-rose-400';
   };
 
-  const getScoreLabel = (score: number) => {
+  const _getScoreLabel = (score: number) => {
     if (score >= 80) return 'Ready';
     if (score >= 50) return 'Almost There';
     return 'Needs Work';

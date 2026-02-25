@@ -16,7 +16,6 @@ import {
   Network,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
-import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export interface SettingsNavConfig {

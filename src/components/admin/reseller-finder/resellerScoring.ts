@@ -56,7 +56,7 @@ export function scoreResellerLead(lead: {
   }
   if (signals.has("complementary_services")) {
     score += 5;
-    reasons.push("Services complement CloseLoop offering");
+    reasons.push("Services complement Flux Receptionist offering");
   }
 
   // --- Factor 3: Recurring revenue model (0-15) ---

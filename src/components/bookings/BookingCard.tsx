@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { Clock, MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck } from "lucide-react";
+import { MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {

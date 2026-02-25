@@ -128,7 +128,7 @@ CRITICAL RULES:
 `;
 
   // User prompt based on intent
-  let userPrompt = `Customer message: "${userMessage}"
+  const userPrompt = `Customer message: "${userMessage}"
 Intent detected: ${intent}
 
 Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 characters.' : 'Be conversational.'}`;

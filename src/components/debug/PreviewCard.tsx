@@ -32,7 +32,7 @@ const sourceConfig: Record<PreviewSource, { label: string; icon: React.ReactNode
 };
 
 export function PreviewCard({ title, value, source, icon, className }: PreviewCardProps) {
-  const config = sourceConfig[source];
+  const _config = sourceConfig[source];
   const isEmpty = !value || value.trim() === "";
   const effectiveSource = isEmpty ? "missing" : source;
   const effectiveConfig = sourceConfig[effectiveSource];

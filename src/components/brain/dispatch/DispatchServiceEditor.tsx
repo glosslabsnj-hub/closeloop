@@ -1,17 +1,15 @@
-import { useLayoutEffect, useState, useMemo } from "react";
+import { useLayoutEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useServices } from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTenantDistanceSettings } from "@/hooks/useTenantDistanceSettings";
 import { useServiceArea } from "@/hooks/useServiceArea";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -607,7 +605,7 @@ export function DispatchServiceEditor({
                               },
                             });
                           } else {
-                            const { included_miles, overage_per_mile, ...rest } = formData.pricing_config;
+                            const { _included_miles, _overage_per_mile, ...rest } = formData.pricing_config;
                             setFormData({
                               ...formData,
                               pricing_config: rest as DispatchPricingConfig,

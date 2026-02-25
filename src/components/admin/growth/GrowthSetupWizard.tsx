@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   CheckCircle2, Circle, Mail, Share2, Megaphone, Search,
   ChevronRight, ChevronDown, Loader2, Save, Rocket, Key, X,
@@ -24,7 +23,7 @@ const ALL_INDUSTRIES = [
   "law firm", "fitness studio",
 ];
 
-const ALL_PLATFORMS = ["linkedin", "twitter", "facebook", "instagram", "tiktok"];
+const _ALL_PLATFORMS = ["linkedin", "twitter", "facebook", "instagram", "tiktok"];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DAY_FULL = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
 
@@ -115,7 +114,7 @@ export function GrowthSetupWizard() {
   };
 
   const saveSettings = () => {
-    const { id, created_at, updated_at, discovery_stats, best_industries, best_locations, ...rest } = form as any;
+    const { _id, _created_at, _updated_at, _discovery_stats, _best_industries, _best_locations, ...rest } = form as any;
     updateSettings.mutate(rest);
   };
 
@@ -239,23 +238,23 @@ export function GrowthSetupWizard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">From Email</Label>
-              <Input value={form.outreach_from_email ?? ""} onChange={(e) => update("outreach_from_email", e.target.value)} className="h-8 text-sm mt-1" placeholder="hello@closeloop.ai" />
+              <Input value={form.outreach_from_email ?? ""} onChange={(e) => update("outreach_from_email", e.target.value)} className="h-8 text-sm mt-1" placeholder="hello@getfluxdata.com" />
             </div>
             <div>
               <Label className="text-xs">From Name</Label>
-              <Input value={form.outreach_from_name ?? ""} onChange={(e) => update("outreach_from_name", e.target.value)} className="h-8 text-sm mt-1" placeholder="CloseLoop" />
+              <Input value={form.outreach_from_name ?? ""} onChange={(e) => update("outreach_from_name", e.target.value)} className="h-8 text-sm mt-1" placeholder="Flux Receptionist" />
             </div>
             <div>
               <Label className="text-xs">Demo Link</Label>
-              <Input value={form.demo_link ?? ""} onChange={(e) => update("demo_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai" />
+              <Input value={form.demo_link ?? ""} onChange={(e) => update("demo_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://getfluxdata.com" />
             </div>
             <div>
               <Label className="text-xs">Trial / Signup Link</Label>
-              <Input value={form.trial_link ?? ""} onChange={(e) => update("trial_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai/signup" />
+              <Input value={form.trial_link ?? ""} onChange={(e) => update("trial_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://getfluxdata.com/signup" />
             </div>
             <div>
               <Label className="text-xs">Alert Email</Label>
-              <Input value={form.notification_email ?? ""} onChange={(e) => update("notification_email", e.target.value || null)} className="h-8 text-sm mt-1" placeholder="admin@closeloop.ai" />
+              <Input value={form.notification_email ?? ""} onChange={(e) => update("notification_email", e.target.value || null)} className="h-8 text-sm mt-1" placeholder="admin@getfluxdata.com" />
             </div>
             <div>
               <Label className="text-xs">Quiet Hours</Label>
@@ -319,7 +318,7 @@ function EmailStep({ isConnected }: { isConnected: boolean }) {
         <ol className="text-xs text-muted-foreground space-y-1 ml-4 list-decimal">
           <li>Go to <a href="https://resend.com/signup" target="_blank" rel="noreferrer" className="text-primary underline">resend.com</a> and create a free account</li>
           <li>Navigate to <strong>API Keys</strong> in the left sidebar</li>
-          <li>Click <strong>"Create API Key"</strong>, name it "CloseLoop Growth"</li>
+          <li>Click <strong>"Create API Key"</strong>, name it "Flux Receptionist Growth"</li>
           <li>Copy the key and click the button below to paste it in</li>
         </ol>
         {!isConnected && (
@@ -349,7 +348,7 @@ function DiscoveryStep({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Pick the industries and locations you want to target. The engine will automatically search for businesses that could benefit from CloseLoop and add them to your pipeline.
+        Pick the industries and locations you want to target. The engine will automatically search for businesses that could benefit from Flux Receptionist and add them to your pipeline.
       </p>
 
       <div className="flex items-center gap-2 mb-2">
@@ -459,7 +458,7 @@ function SocialStep({ isConnected }: { isConnected: boolean }) {
 }
 
 /* ───────── Step: Ads ───────── */
-function AdsStep({ isConnected }: { isConnected: boolean }) {
+function AdsStep({ _isConnected }: { isConnected: boolean }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">

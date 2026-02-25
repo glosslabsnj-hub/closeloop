@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 
 export interface FieldError {
   field: string;
@@ -10,8 +10,8 @@ export interface StepValidationResult {
   errors: FieldError[];
 }
 
-const EMAIL_REGEX = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
-const PHONE_REGEX = /^[\d\s()+-]{7,20}$/;
+const _EMAIL_REGEX = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const _PHONE_REGEX = /^[\d\s()+-]{7,20}$/;
 
 export function validateIdentityStep(
   businessName: string,

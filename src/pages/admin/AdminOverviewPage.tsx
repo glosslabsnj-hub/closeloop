@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, DollarSign, TrendingUp, FileText, Headset, Loader2 } from "lucide-react";
+import { Building2, Users, DollarSign, TrendingUp, FileText, Headset } from "lucide-react";
 import { AdminPhoneSettings } from "@/components/admin/AdminPhoneSettings";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";

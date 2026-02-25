@@ -5,7 +5,6 @@ import { useCapabilities } from "@/hooks/useCapabilities";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Phone, Calendar, Users, UtensilsCrossed, Truck, Stethoscope,
 } from "lucide-react";

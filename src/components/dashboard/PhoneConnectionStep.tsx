@@ -148,7 +148,7 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
       await refreshTenant();
       toast({
         title: "New Number Provisioned! 🎉",
-        description: `Your new CloseLoop number is ${data.friendly_name || data.phone_number}`,
+        description: `Your new Flux Receptionist number is ${data.friendly_name || data.phone_number}`,
       });
       onComplete();
     } catch (error: any) {
@@ -191,7 +191,7 @@ export function PhoneConnectionStep({ onComplete, isComplete }: PhoneConnectionS
             </div>
             <p className="text-sm">
               {assistantSettings?.phone_method === "closeloop_number" 
-                ? "This is your dedicated CloseLoop number. Share it with customers!"
+                ? "This is your dedicated Flux Receptionist number. Share it with customers!"
                 : "Forward your business calls to this number."
               }
             </p>

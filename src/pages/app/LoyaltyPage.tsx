@@ -33,7 +33,7 @@ import {
   Coins,
   Search,
 } from "lucide-react";
-import { useLoyalty, LoyaltyBalance, LoyaltyReward } from "@/hooks/useLoyalty";
+import { useLoyalty, LoyaltyBalance } from "@/hooks/useLoyalty";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 

@@ -263,7 +263,7 @@ function parseAddressString(address: string | null | undefined): {
 
 export function ServiceAreaManager() {
   const { serviceArea, isLoading, isSaving, saveServiceArea } = useServiceArea();
-  const { businessMode } = useTenantConfig();
+  const { _businessMode } = useTenantConfig();
   const { tenant } = useAuth();
   const [formData, setFormData] = useState<ServiceAreaConfig>(serviceArea);
   const [hasChanges, setHasChanges] = useState(false);

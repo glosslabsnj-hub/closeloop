@@ -215,7 +215,7 @@ serve(async (req) => {
       });
     }
 
-    let allLeads: any[] = [];
+    const allLeads: any[] = [];
 
     if (industry === "all") {
       const topIndustries = ALL_INDUSTRIES.slice(0, 10);

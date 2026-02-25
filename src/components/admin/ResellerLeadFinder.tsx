@@ -12,7 +12,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Globe, Phone, Star, Loader2, MapPin, Bookmark, Check, Trash2, Handshake, Mail } from "lucide-react";
+import { Search, Phone, Star, Loader2, MapPin, Bookmark, Check, Trash2, Handshake, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -199,7 +199,7 @@ export function ResellerLeadFinder() {
       <div>
         <h2 className="text-lg font-semibold">Reseller / Agency Partner Finder</h2>
         <p className="text-sm text-muted-foreground">
-          Find marketing agencies, consultants, and resellers who could become CloseLoop channel partners.
+          Find marketing agencies, consultants, and resellers who could become Flux Receptionist channel partners.
         </p>
       </div>
 

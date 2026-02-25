@@ -45,7 +45,7 @@ export function TestAIStep({ onComplete, isComplete }: TestAIStepProps) {
 
     setCallingPhone(true);
     try {
-      const { data, error } = await supabase.functions.invoke("test-call-phone", {
+      const { _data, error } = await supabase.functions.invoke("test-call-phone", {
         body: { 
           tenantId: tenant?.id, 
           phoneNumber: testPhoneNumber.trim(),

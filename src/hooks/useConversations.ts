@@ -16,8 +16,8 @@ export interface ConversationWithDetails extends Conversation {
 
 export function useConversations() {
   const { tenant } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { _toast } = useToast();
+  const _queryClient = useQueryClient();
 
   const conversationsQuery = useQuery({
     queryKey: ["conversations", tenant?.id],

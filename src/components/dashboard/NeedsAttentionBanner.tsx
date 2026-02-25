@@ -26,7 +26,7 @@ interface AttentionItem {
 export function NeedsAttentionBanner() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
-  const { businessMode } = useTenantConfig();
+  const { _businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { terms } = useIndustryContext();
   const { pendingCount: knowledgeGaps } = useKnowledgeSuggestions();

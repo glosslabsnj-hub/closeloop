@@ -193,7 +193,7 @@ export async function computeDistanceEta(
     }
 
     // ===== 3. Fall back to legacy tenant_distance_settings =====
-    let { data: settings, error: settingsError } = await supabase
+    const { data: settings, error: settingsError } = await supabase
       .from("tenant_distance_settings")
       .select("*")
       .eq("tenant_id", tenantId)
@@ -253,8 +253,8 @@ export async function computeDistanceEta(
     const distanceSettings = settings as DistanceSettings;
 
     // Get origin coordinates (prefer base_lat/lng from settings, fallback to tenant address)
-    let originLat = distanceSettings.base_lat;
-    let originLng = distanceSettings.base_lng;
+    const originLat = distanceSettings.base_lat;
+    const originLng = distanceSettings.base_lng;
     const originAddress = tenantConfig.address;
 
     if ((originLat === null || originLng === null) && (!originAddress || originAddress.trim().length < 5)) {
@@ -510,7 +510,7 @@ async function computeDistanceEtaV2(
   }
 
   // Calculate final values
-  let distance_miles = providerResult.distance_meters / METERS_PER_MILE;
+  const distance_miles = providerResult.distance_meters / METERS_PER_MILE;
   let drive_minutes = providerResult.duration_seconds / SECONDS_PER_MINUTE;
 
   // Add base prep time

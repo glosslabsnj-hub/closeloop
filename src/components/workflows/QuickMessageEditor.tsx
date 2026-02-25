@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil, Check, X, Eye, Variable, HelpCircle } from "lucide-react";
-import { VARIABLE_INFO, getVariablesByCategory, CATEGORY_LABELS, type VariableCategory } from "@/data/workflowGuides";
+import { VARIABLE_INFO, CATEGORY_LABELS, type VariableCategory } from "@/data/workflowGuides";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 
 interface QuickMessageEditorProps {
@@ -29,7 +29,7 @@ export function QuickMessageEditor({
   variables,
   isLoading = false,
 }: QuickMessageEditorProps) {
-  const { businessMode } = useTenantConfig();
+  const { _businessMode } = useTenantConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [editedMessage, setEditedMessage] = useState(message);
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");

@@ -9,7 +9,7 @@
  * Backward-compatible URL aliases for all legacy section params.
  */
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,10 +21,8 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useFoodOrderSettings } from "@/hooks/useFoodOrderSettings";
-import { resolveCardTitle } from "@/data/industryTerminology";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { SECTION_RELEVANCE } from "@/config/brainSectionRelevance";
-import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
 import { useAddOnSections, type AddOnItem } from "@/hooks/useAddOnSections";
 import { useBrainReviewCount } from "@/components/brain/BrainReviewQueue";
@@ -56,7 +54,6 @@ import {
 
 // Dashboard components
 import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard";
-import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDetail";
 
 // Intelligence components
 import { IntelligenceDashboard } from "@/components/intelligence";
@@ -135,7 +132,7 @@ export default function BusinessBrainPage() {
   // Guided setup mode: ?mode=setup or auto-detected for new users
   const modeParam = searchParams.get("mode");
   const isGuidedMode = modeParam === "setup";
-  const { p0Flags: readinessP0Flags, score: readinessScore } = useAIReadinessV2();
+  const { p0Flags: _readinessP0Flags, score: readinessScore } = useAIReadinessV2();
 
   // Auto-trigger guided setup for new users with low readiness
   const isNewUserFirstVisit = !modeParam && readinessScore < 50 &&
@@ -165,8 +162,8 @@ export default function BusinessBrainPage() {
   const knowledgeAddOns = useAddOnSections("knowledge");
 
   // Merge add-on items for operations tab
-  const operationsAddOnItems = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
-  const operationsEnableAddOn = useCallback(async (item: AddOnItem) => {
+  const _operationsAddOnItems = [...coverageAddOns.addOnItems, ...policiesAddOns.addOnItems];
+  const _operationsEnableAddOn = useCallback(async (item: AddOnItem) => {
     const coverageIds = new Set(coverageAddOns.addOnItems.map(i => i.id));
     if (coverageIds.has(item.id)) {
       await coverageAddOns.enableAddOn(item);
@@ -346,6 +343,9 @@ export default function BusinessBrainPage() {
     return getCardConfig(cardId)?.usedByAI;
   };
 
+  // Mode-shaped categories for dashboard + detail views (must be before early returns)
+  const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
+
   // ─── Early returns ─────────────────────────────────────────────────────────
 
   if (!tenant) {
@@ -357,9 +357,6 @@ export default function BusinessBrainPage() {
   }
 
   const isDispatchMode = caps.isDispatchBusiness;
-
-  // Mode-shaped categories for dashboard + detail views
-  const modeCategories = useMemo(() => getModeCategories(businessMode), [businessMode]);
 
   const currentCategory = activeSection
     ? modeCategories.find(c => c.section === activeSection) ?? null

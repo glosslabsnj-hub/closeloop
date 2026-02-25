@@ -27,7 +27,6 @@ import { HelpGuideDispatch } from "@/components/help/HelpGuideDispatch";
 import { HelpGuideFood } from "@/components/help/HelpGuideFood";
 import { HelpGuideMedical } from "@/components/help/HelpGuideMedical";
 import { HelpGuideBrain } from "@/components/help/HelpGuideBrain";
-import { HelpGuideAutomations } from "@/components/help/HelpGuideAutomations";
 import { HelpGuideSettings } from "@/components/help/HelpGuideSettings";
 import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
 
@@ -107,7 +106,7 @@ const allCategories: GuideCategory[] = [
 
 export default function HelpCenterPage() {
   const { businessMode, enabledModules } = useTenantConfig();
-  const { tenant } = useAuth();
+  const { _tenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("getting-started");
 

@@ -39,7 +39,7 @@ export default function AIAssistantPage() {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { context, loading: contextLoading, refetch } = useBusinessContext(tenant?.id || null);
+  const { _context, loading: _contextLoading, _refetch } = useBusinessContext(tenant?.id || null);
   
   const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>("sarah");

@@ -55,7 +55,7 @@ export default function SystemMapPage() {
       {/* Header */}
       <div className="max-w-5xl mx-auto px-6 py-8 print:py-4">
         <div className="flex items-center justify-between mb-2 print:mb-1">
-          <h1 className="text-2xl font-bold tracking-tight">CloseLoop — System Map</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Flux Receptionist — System Map</h1>
           <div className="flex gap-2 print:hidden">
             <button
               onClick={() => setAllOpen(!allOpen)}
@@ -320,7 +320,7 @@ AGENCY LOGIN (same /login page, same auth)
               |           Filter by: New, Contacted, Interested, Converted
               |           Click lead → detail panel with:
               |             Contact info, website, address
-              |             CloseLoop score breakdown
+              |             Flux Receptionist score breakdown
               |             Friction signals, temperature
               |             Status dropdown + notes field
               |
@@ -487,7 +487,7 @@ AGENCY TEAM ★ NOT YET BUILT
 
         {/* Footer */}
         <div className="mt-12 pt-4 border-t border-gray-200 text-xs text-gray-400 print:text-gray-600">
-          CloseLoop System Map — Internal Reference — {new Date().toLocaleDateString()}
+          Flux Receptionist System Map — Internal Reference — {new Date().toLocaleDateString()}
         </div>
       </div>
     </div>

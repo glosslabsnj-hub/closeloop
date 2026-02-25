@@ -65,7 +65,7 @@ export function QuickActionsMenu({
           },
         ];
 
-      case "google_sheets":
+      case "google_sheets": {
         const sheetId = integrationConfig?.sheet_id as string;
         return [
           {
@@ -74,7 +74,7 @@ export function QuickActionsMenu({
             icon: <ExternalLink className="h-4 w-4" />,
             description: "View your connected spreadsheet",
             onClick: () => {
-              const url = sheetId 
+              const url = sheetId
                 ? `https://docs.google.com/spreadsheets/d/${sheetId}`
                 : "https://sheets.google.com";
               window.open(url, "_blank");
@@ -86,13 +86,14 @@ export function QuickActionsMenu({
             icon: <FileText className="h-4 w-4" />,
             description: "See the most recently added row",
             onClick: () => {
-              const url = sheetId 
+              const url = sheetId
                 ? `https://docs.google.com/spreadsheets/d/${sheetId}`
                 : "https://sheets.google.com";
               window.open(url, "_blank");
             },
           },
         ];
+      }
 
       case "webhook":
         return [

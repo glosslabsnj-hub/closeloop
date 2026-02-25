@@ -47,11 +47,12 @@ serve(async (req: Request) => {
         return await handleSquareWebhook(req, supabase, tenantId);
       case "hubspot":
         return await handleHubSpotWebhook(req, supabase);
-      default:
+      default: {
         // Log unknown provider events for debugging
         const body = await req.text();
         console.log(`Unknown webhook provider: ${provider}`, body.substring(0, 500));
         return jsonResp({ status: "ignored", reason: "unknown provider" });
+      }
     }
   } catch (error: unknown) {
     console.error(`Webhook error (${provider}):`, error);

@@ -27,9 +27,9 @@ type CalendarOption = 'closeloop' | 'google' | 'outlook' | 'apple';
 const calendarOptions = [
   { 
     id: 'closeloop' as CalendarOption, 
-    name: "CloseLoop Calendar", 
+    name: "Flux Receptionist Calendar",
     icon: CalendarDays,
-    description: "Manage your availability directly in CloseLoop",
+    description: "Manage your availability directly in Flux Receptionist",
     available: true,
     recommended: true,
   },
@@ -101,7 +101,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
     }
   };
 
-  const handleSaveCloseLoop = async () => {
+  const handleSaveBuiltInCalendar = async () => {
     if (!tenant) return;
 
     setSaving(true);
@@ -204,12 +204,12 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
 
   const handleContinue = () => {
     if (selectedOption === 'closeloop') {
-      handleSaveCloseLoop();
+      handleSaveBuiltInCalendar();
     } else {
       // All other options are "coming soon" - allow skip
       toast({
         title: "Coming Soon",
-        description: "This calendar integration will be available soon. You can skip for now or use CloseLoop Calendar.",
+        description: "This calendar integration will be available soon. You can skip for now or use Flux Receptionist Calendar.",
       });
     }
   };
@@ -227,7 +227,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </CardTitle>
           <CardDescription className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4" />
-            {provider === 'closeloop' ? 'Using CloseLoop Calendar' : `Connected to ${provider}`}
+            {provider === 'closeloop' ? 'Using Flux Receptionist Calendar' : `Connected to ${provider}`}
           </CardDescription>
         </CardHeader>
       </Card>
@@ -292,7 +292,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </RadioGroup>
         </div>
 
-        {/* Booking Mode Selection - only show for CloseLoop */}
+        {/* Booking Mode Selection - only show for built-in calendar */}
         {selectedOption === 'closeloop' && (
           <div className="space-y-3 pt-4 border-t">
             <Label className="font-medium">When AI books an appointment:</Label>
@@ -344,7 +344,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           </div>
         )}
 
-        {/* What AI Does - only show for CloseLoop */}
+        {/* What AI Does - only show for built-in calendar */}
         {selectedOption === 'closeloop' && (
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
             <p className="font-medium mb-2">How AI books appointments:</p>
@@ -384,7 +384,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <Check className="h-4 w-4" />
             )}
             {saving ? "Setting up..." : 
-             selectedOption === 'closeloop' ? "Use CloseLoop Calendar" :
+             selectedOption === 'closeloop' ? "Use Flux Receptionist Calendar" :
              "Connect Calendar"}
           </Button>
           

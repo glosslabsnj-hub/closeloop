@@ -25,7 +25,7 @@ interface QuickAction {
 
 export function QuickActionsCard() {
   const navigate = useNavigate();
-  const { businessMode, enabledModules } = useTenantConfig();
+  const { _businessMode, _enabledModules } = useTenantConfig();
   const caps = useCapabilities();
   const { terms } = useIndustryContext();
 

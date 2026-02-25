@@ -109,7 +109,7 @@ export function useTenantDistanceSettings() {
       };
 
       // Remove computed fields
-      const { created_at, ...upsertData } = updatedSettings;
+      const { _created_at, ...upsertData } = updatedSettings;
 
       const { error } = await supabase
         .from("tenant_distance_settings")

@@ -39,7 +39,7 @@ function formatPrice(cents: number | null): string {
 
 export default function SalesInventoryPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_inventory"]);
-  const { inventory, isLoading, stats, refetch } = useSalesInventory();
+  const { inventory, isLoading, stats, _refetch } = useSalesInventory();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [conditionFilter, setConditionFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");

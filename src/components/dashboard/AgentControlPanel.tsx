@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate, Link } from "react-router-dom";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import { useQuery } from "@tanstack/react-query";
@@ -63,7 +62,7 @@ export function AgentControlPanel() {
     phoneNumberData;
   const hasPhoneConnected = !!closeloopNumber;
   const isActive = (voiceEnabled || smsEnabled) && hasPhoneConnected;
-  const canToggleOn = isSuperAdmin || canGoLive;
+  const _canToggleOn = isSuperAdmin || canGoLive;
   const readinessPercent = readinessScore || 0;
 
   const [offBehaviorModalOpen, setOffBehaviorModalOpen] = useState(false);

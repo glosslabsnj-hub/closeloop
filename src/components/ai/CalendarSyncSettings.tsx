@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -257,7 +256,7 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
             <li>AI only offers times during your available hours</li>
             <li>AI respects buffer time between appointments</li>
             <li>AI checks for conflicts with existing bookings</li>
-            <li>AI books directly into CloseLoop's booking system</li>
+            <li>AI books directly into Flux Receptionist's booking system</li>
           </ul>
         </div>
 

@@ -652,14 +652,16 @@ export function getRelativeDate(dateKey: string): string {
   switch (dateKey) {
     case "TODAY":
       return today.toISOString().split("T")[0];
-    case "YESTERDAY":
+    case "YESTERDAY": {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
       return yesterday.toISOString().split("T")[0];
-    case "TOMORROW":
+    }
+    case "TOMORROW": {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
       return tomorrow.toISOString().split("T")[0];
+    }
     case "FRIDAY": {
       const friday = new Date(today);
       const daysUntilFriday = (5 - today.getDay() + 7) % 7 || 7;

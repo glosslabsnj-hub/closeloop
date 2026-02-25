@@ -102,7 +102,7 @@ export function DeliveryIntegrationsSettings() {
             Where should new items go?
           </CardTitle>
           <CardDescription>
-            All outcomes are always stored in CloseLoop. Optionally push them to your existing systems.
+            All outcomes are always stored in Flux Receptionist. Optionally push them to your existing systems.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -111,7 +111,7 @@ export function DeliveryIntegrationsSettings() {
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-green-500" />
               <div>
-                <div className="font-medium">Internal (CloseLoop)</div>
+                <div className="font-medium">Internal (Flux Receptionist)</div>
                 <div className="text-sm text-muted-foreground">Always on — your source of truth</div>
               </div>
             </div>

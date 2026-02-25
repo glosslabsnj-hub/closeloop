@@ -1,4 +1,4 @@
-import { format, getHours, getMinutes } from "date-fns";
+import { getHours, getMinutes } from "date-fns";
 import { cn } from "@/lib/utils";
 import { CalendarEvent } from "./CalendarEvent";
 import type { ScheduleEvent } from "@/hooks/useScheduleData";

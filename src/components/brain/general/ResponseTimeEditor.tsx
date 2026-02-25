@@ -11,9 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectContent,
@@ -159,7 +157,7 @@ export function ResponseTimeEditor() {
 
   const generateAIPreview = () => {
     const target = settings.callback_target_minutes;
-    const max = settings.callback_max_minutes;
+    const _max = settings.callback_max_minutes;
     
     let response = `We typically respond within ${formatTime(target)}`;
     if (settings.urgent_callback_minutes < target) {

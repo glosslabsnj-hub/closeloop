@@ -93,10 +93,11 @@ export function coerceByType(value: unknown, type: DynamicVarType, defaultValue:
       if (typeof value === "boolean") return value;
       if (typeof value === "string") return value === "true";
       return Boolean(value);
-    case "number":
+    case "number": {
       if (typeof value === "number") return value;
       const num = Number(value);
       return isNaN(num) ? (typeof defaultValue === "number" ? defaultValue : 0) : num;
+    }
     case "string":
     default:
       return coerceToString(value);

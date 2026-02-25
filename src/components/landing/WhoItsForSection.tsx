@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Wrench, 
@@ -132,7 +131,7 @@ export function WhoItsForSection() {
           <a href="#demo" className="text-primary font-medium hover:underline">
             Hear how it sounds
           </a>
-          {" "}— CloseLoop works for any inbound-call business.
+          {" "}— Flux Receptionist works for any inbound-call business.
         </p>
       </div>
     </section>

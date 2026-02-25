@@ -29,7 +29,7 @@ export function useMarketingChatHistory(userId: string | undefined, sessionId: s
 }
 
 export function useMarketingChat(userId: string | undefined) {
-  const qc = useQueryClient();
+  const _qc = useQueryClient();
   const [sessionId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);

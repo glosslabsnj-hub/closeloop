@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
-    let result: CompleteRecoveryResult = {
+    const result: CompleteRecoveryResult = {
       success: true,
       campaign_id,
       status: outcome,

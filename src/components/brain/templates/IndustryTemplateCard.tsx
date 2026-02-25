@@ -33,7 +33,7 @@ const businessModeLabels: Record<string, string> = {
 };
 
 export function IndustryTemplateCard() {
-  const { tenant } = useAuth();
+  const { _tenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");

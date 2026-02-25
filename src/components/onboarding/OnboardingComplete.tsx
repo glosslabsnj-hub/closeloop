@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Check, LayoutDashboard, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar, Wand2 } from "lucide-react";
+import { Check, BookOpen, Phone as PhoneIcon, Settings, MapPin, Sparkles, Calendar, Wand2 } from "lucide-react";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { getIndustryOnboardingConfig, type NextStepItem } from "@/config/industryOnboardingConfig";
@@ -62,7 +62,7 @@ function getNextSteps(
   return steps;
 }
 
-export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
+export function OnboardingComplete({ _businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
   const navigate = useNavigate();
   const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
 

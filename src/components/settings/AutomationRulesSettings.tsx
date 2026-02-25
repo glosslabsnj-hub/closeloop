@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, Truck, UtensilsCrossed, Stethoscope, Users, ClipboardList, Info } from "lucide-react";
 import { useDeliveryRules, type EntityType, type DeliveryRule } from "@/hooks/useUniversalDelivery";
-import { useTenantConfig, useModuleEnabled } from "@/hooks/useTenantConfig";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ReviewRequestSettings } from "./ReviewRequestSettings";
 
@@ -170,7 +170,7 @@ function RuleCard({ config, rule, onUpdate, isUpdating }: RuleCardProps) {
 }
 
 export function AutomationRulesSettings() {
-  const { rules, isLoading, updateRule, getRuleForEntity, isUpdating } = useDeliveryRules();
+  const { _rules, isLoading, updateRule, getRuleForEntity, isUpdating } = useDeliveryRules();
   const { enabledModules } = useTenantConfig();
 
   const handleUpdate = (entityType: EntityType, updates: Partial<DeliveryRule>) => {

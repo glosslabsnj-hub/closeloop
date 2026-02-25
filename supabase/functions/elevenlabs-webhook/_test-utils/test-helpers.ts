@@ -620,7 +620,7 @@ export function extractGeneralData(transcript: TranscriptEntry[]): GeneralExtrac
   
   // Extract callback number
   const phonePatterns = [
-    /(?:call me (?:back )?at|my number is|reach me at|phone number is)\s*([\d\-\(\)\s]+)/i,
+    /(?:call me (?:back )?at|my number is|reach me at|phone number is)\s*([\d()\s-]+)/i,
     /(?:at\s+)?(\d{3}[-.\s]?\d{3}[-.\s]?\d{4})/,
   ];
   

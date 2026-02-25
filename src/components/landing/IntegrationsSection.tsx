@@ -1,6 +1,4 @@
-import { Check, Database, Webhook, Mail, Smartphone, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Check, Database, Webhook, Mail, Smartphone } from "lucide-react";
 
 export function IntegrationsSection() {
   return (
@@ -18,18 +16,18 @@ export function IntegrationsSection() {
               <span className="text-gradient-primary">what you have</span>
             </h2>
             <p className="text-lg text-muted-foreground/80 max-w-xl mx-auto leading-relaxed">
-              Use CloseLoop as your main system, or push data to your existing tools
+              Use Flux Receptionist as your main system, or push data to your existing tools
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-5 lg:gap-6">
-            {/* Option 1: Use CloseLoop */}
+            {/* Option 1: Use Flux Receptionist */}
             <div className="p-8 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 hover:border-primary/30 hover:bg-card/80 hover:shadow-[0_8px_32px_-8px_hsl(230_70%_62%/0.12)] transition-all duration-300 group">
               <div className="flex items-center gap-4 mb-5">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/10 flex items-center justify-center group-hover:bg-primary/15 group-hover:border-primary/20 transition-colors">
                   <Database className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-xl">Use CloseLoop</h3>
+                <h3 className="font-semibold text-xl">Use Flux Receptionist</h3>
               </div>
               <p className="text-muted-foreground/80 mb-5">
                 Manage bookings, jobs, and orders in one place. No extra software needed.

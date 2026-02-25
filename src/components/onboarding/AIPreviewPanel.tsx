@@ -5,7 +5,6 @@
 import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Phone, Bot, User } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { AITone } from "@/components/onboarding/CommunicationPreferences";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 

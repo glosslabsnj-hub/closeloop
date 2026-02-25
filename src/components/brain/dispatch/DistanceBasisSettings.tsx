@@ -4,7 +4,6 @@
  * This sets the tenant-level default for how pricing distance is calculated.
  * Individual services can override this setting.
  */
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";

@@ -73,7 +73,7 @@ export default function AdminTenantsPage() {
   const handleDelete = async (tenantId: string) => {
     setDeletingId(tenantId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { _session } } = await supabase.auth.getSession();
       const res = await supabase.functions.invoke("delete-tenant", {
         body: { tenant_id: tenantId },
       });

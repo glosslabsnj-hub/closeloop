@@ -82,7 +82,7 @@ export function ReferralNetworkSettings() {
             <div>
               <CardTitle>Referral Network</CardTitle>
               <CardDescription>
-                When you can't help a caller, the AI can find another business on CloseLoop that can
+                When you can't help a caller, the AI can find another business on Flux Receptionist that can
                 and warm-transfer the call with full context.
               </CardDescription>
             </div>

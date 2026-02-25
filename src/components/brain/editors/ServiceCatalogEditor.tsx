@@ -30,7 +30,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Clock, DollarSign, Loader2, Info, Lightbulb, ChevronDown, ChevronRight, Check, X, ClipboardPaste, FileSpreadsheet } from "lucide-react";
+import { Plus, Trash2, Clock, DollarSign, Loader2, ChevronDown, ChevronRight, Check, X, ClipboardPaste, FileSpreadsheet } from "lucide-react";
 import { InlineUploadButton } from "../uploads/InlineUploadButton";
 import { PasteFromPOSDialog } from "../templates/PasteFromPOSDialog";
 import { ServiceCSVImportDialog } from "../templates/ServiceCSVImportDialog";
@@ -411,7 +411,7 @@ export function ServiceCatalogEditor() {
   const { tenant } = useAuth();
   const { services, isLoading } = useServices();
   const { businessMode } = useTenantConfig();
-  const { terms, config, slug } = useIndustryContext();
+  const { terms, _config, slug } = useIndustryContext();
   const queryClient = useQueryClient();
 
   const serviceExamples = slug
@@ -669,7 +669,7 @@ export function ServiceCatalogEditor() {
 
   // Build AI quote preview from first service
   const firstService = services?.[0];
-  const aiQuotePreview = firstService
+  const _aiQuotePreview = firstService
     ? `Our ${firstService.name.toLowerCase()} ${
         firstService.price_type === "starting_at" 
           ? `starts at $${firstService.price_amount}` 

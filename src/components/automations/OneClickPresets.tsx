@@ -3,7 +3,7 @@ import {
   Calendar, FileSpreadsheet, MessageSquare, Printer, Truck, Webhook,
   Check, ChevronRight, Settings, Play, Loader2
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -121,7 +121,7 @@ export function OneClickPresets({ tenantId }: OneClickPresetsProps) {
   const { toast } = useToast();
   const { data: rules, isLoading } = useAutomationRules(tenantId);
   const { data: integrations } = useIntegrations(tenantId);
-  const { createRule, toggleRule, deleteRule } = useAutomationRuleMutations(tenantId);
+  const { createRule, toggleRule, _deleteRule } = useAutomationRuleMutations(tenantId);
   const testAutomation = useTestAutomation();
   
   const [configDialog, setConfigDialog] = useState<{ preset: Preset; mode: "enable" | "test" } | null>(null);

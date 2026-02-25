@@ -34,7 +34,7 @@ import {
   Minus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useInventory, InventoryItem, InventoryLocation, InventoryStock } from "@/hooks/useInventory";
+import { useInventory, InventoryItem } from "@/hooks/useInventory";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 
 function formatCurrency(cents: number | null): string {

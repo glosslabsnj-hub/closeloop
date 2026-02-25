@@ -7,7 +7,7 @@
  */
 
 import { Link, useNavigate } from "react-router-dom";
-import { useAIReadinessV2, formatReadinessFlag } from "@/hooks/useAIReadinessV2";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { getIssueDetails, isPlanGatedIssue, type ReadinessIssue, type FixType } from "@/lib/readiness/issueMapping";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,7 +67,7 @@ export default function ReadinessFixCenterPage() {
 
   // Separate plan-gated from fixable
   const planGatedIssues = allIssues.filter((i) => isPlanGatedIssue(i.code));
-  const fixableIssues = allIssues.filter((i) => !isPlanGatedIssue(i.code));
+  const _fixableIssues = allIssues.filter((i) => !isPlanGatedIssue(i.code));
 
   const getScoreColor = () => {
     if (score >= 85) return "text-emerald-500";

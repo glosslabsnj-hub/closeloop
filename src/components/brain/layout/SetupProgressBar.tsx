@@ -124,7 +124,7 @@ export function SetupProgressBar({ onNavigateToSection, className }: SetupProgre
       <div className="flex flex-wrap gap-2">
         <TooltipProvider>
           {milestones.map((milestone) => {
-            const Icon = milestone.icon;
+            const _Icon = milestone.icon;
             return (
               <Tooltip key={milestone.id}>
                 <TooltipTrigger asChild>

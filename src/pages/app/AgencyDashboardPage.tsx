@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 export default function AgencyDashboardPage() {
   const { data: agency, isLoading: agencyLoading, error: agencyError } = useAgencyAccount();
-  const { data: tenants, isLoading: tenantsLoading, error: tenantsError } = useAgencyTenants(agency?.id);
+  const { data: tenants, isLoading: tenantsLoading, error: _tenantsError } = useAgencyTenants(agency?.id);
   const { data: metrics, isLoading: metricsLoading } = useAgencyMetrics(agency?.id);
   const { data: commissionData, isLoading: commissionsLoading } = useAgencyCommissions(agency?.id);
   const { data: myApplication, isLoading: appLoading } = useMyAgencyApplication();

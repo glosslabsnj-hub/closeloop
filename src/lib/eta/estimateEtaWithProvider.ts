@@ -6,7 +6,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { estimateEta, formatSpokenEta, EtaPolicy, EtaInput, EtaResult, DEFAULT_ETA_POLICY } from "./estimateEta";
+import { estimateEta, formatSpokenEta, EtaPolicy, EtaInput, EtaResult } from "./estimateEta";
 
 // ============================================================================
 // Types

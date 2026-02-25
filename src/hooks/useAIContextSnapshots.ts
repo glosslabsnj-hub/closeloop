@@ -105,7 +105,7 @@ export function runGoldenPathTests(context: Record<string, unknown> | null): Gol
     mode: businessMode,
     testName: "Hours answerable",
     passed: !!tenant?.hours_today && String(tenant.hours_today).length > 0,
-    missingKeys: !!tenant?.hours_today ? [] : ["hours_today"],
+    missingKeys: tenant?.hours_today ? [] : ["hours_today"],
     details: tenant?.hours_today ? `Today: ${tenant.hours_today}` : "Hours not available - AI cannot answer hours questions",
   });
 

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, ReactNode, useCallback } from "react";
-import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, Lightbulb, LucideIcon, Zap } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, AlertCircle, Circle, Sparkles, LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -123,8 +123,8 @@ export function SectionSummaryCard({
   }, [id, isExpanded, onExpandedChange]);
 
   // Determine effective guidance: new props take priority over legacy concatenated props
-  const effectiveWhatText = whatText || (guidanceText && !whyText ? guidanceText : undefined);
-  const effectiveTipText = tipText || guidanceTip;
+  const _effectiveWhatText = whatText || (guidanceText && !whyText ? guidanceText : undefined);
+  const _effectiveTipText = tipText || guidanceTip;
 
   return (
     <div

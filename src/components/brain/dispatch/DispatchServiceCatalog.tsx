@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useServices } from "@/hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -231,7 +231,7 @@ export function DispatchServiceCatalog() {
   const activeServices = services?.filter(s => s.is_active) || [];
   const firstService = activeServices[0];
   const firstPricingConfig = firstService?.pricing_config_json as unknown as DispatchPricingConfig | null;
-  const aiQuotePreview = firstService
+  const _aiQuotePreview = firstService
     ? generatePricingSummary(firstPricingConfig, firstService.name)
     : "I can help you with our range of services. What do you need assistance with?";
 
