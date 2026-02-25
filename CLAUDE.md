@@ -82,7 +82,7 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 - **Build**: Clean (0 TypeScript errors, 0 ESLint errors)
 - **Tests**: 237 passing (8 test files)
 - **ESLint warnings**: ~1,752 (mostly `any` types from stale Supabase type generation)
-- **Brand**: Rebranded to "Flux Receptionist" (brand.ts updated, UI components reference BRAND config)
+- **Brand**: Fully rebranded to "Flux Receptionist" (brand.ts, all UI components, all 28 edge functions updated)
 
 ## BUSINESS MODE READINESS (update each session)
 
@@ -108,7 +108,7 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 
 ### P1 - Launch Readiness
 - [ ] Regenerate Supabase types (need access token) to eliminate `as any` casts
-- [ ] Complete branding update across all UI components (search for "CloseLoop" references)
+- [x] ~~Complete branding update across all UI components and edge functions~~ (done 2026-02-25)
 - [ ] Set up production domain and SSL
 - [ ] Configure Stripe webhook endpoints
 - [ ] Set up email delivery (transactional emails for estimates, booking confirmations)
