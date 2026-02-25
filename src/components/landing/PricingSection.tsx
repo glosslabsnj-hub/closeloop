@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight } from "lucide-react";
 import { LADDER_STEPS, INCLUDED_IN_ALL_PLANS, TRIAL_CONFIG, formatPrice } from "@/config/pricing";
@@ -102,7 +101,7 @@ export function PricingSection() {
               </p>
             </div>
             <Button variant="outline" asChild>
-              <a href="mailto:sales@closeloop.com">Contact Sales</a>
+              <a href="mailto:jack@getfluxdata.com">Contact Sales</a>
             </Button>
           </div>
         </div>

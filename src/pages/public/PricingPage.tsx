@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Shield, CreditCard, Check, ArrowRight, Phone, MapPin, Plus, Minus, Mail, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -207,7 +206,7 @@ export default function PricingPage() {
                     {enterpriseStep.shortName} with custom pricing and dedicated support
                   </p>
                 </div>
-                <a href="mailto:sales@closeloop.com?subject=Enterprise%20Inquiry">
+                <a href="mailto:jack@getfluxdata.com?subject=Enterprise%20Inquiry">
                   <Button variant="outline" className="gap-2">
                     <Mail className="h-4 w-4" />
                     Talk to Sales

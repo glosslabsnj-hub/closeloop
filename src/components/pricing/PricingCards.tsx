@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Check, Phone, ArrowRight, MapPin, Plus, Minus, Mail } from "lucide-react";
 import {
   TIERS,
@@ -203,7 +202,7 @@ export function PricingCards({ onSelectPlan, linkToSignup = false, compact = fal
                     {enterpriseStep.shortName} with custom pricing and dedicated support
                   </p>
                 </div>
-                <a href="mailto:sales@closeloop.com?subject=Enterprise%20Inquiry">
+                <a href="mailto:jack@getfluxdata.com?subject=Enterprise%20Inquiry">
                   <Button variant="outline" className="gap-2">
                     <Mail className="h-4 w-4" />
                     Talk to Sales

@@ -60,7 +60,7 @@ export function GrowthSettingsPanel({ open, onClose }: GrowthSettingsPanelProps)
   };
 
   const handleSave = () => {
-    const { id, created_at, updated_at, ...rest } = form as any;
+    const { _id, _created_at, _updated_at, ...rest } = form as any;
     updateSettings.mutate(rest, { onSuccess: onClose });
   };
 
@@ -303,11 +303,11 @@ export function GrowthSettingsPanel({ open, onClose }: GrowthSettingsPanelProps)
             <CardContent className="space-y-3">
               <div>
                 <Label className="text-xs">Demo Link (used in {"{{demo_link}}"} token)</Label>
-                <Input value={form.demo_link ?? "https://closeloop.ai"} onChange={(e) => update("demo_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai" />
+                <Input value={form.demo_link ?? "https://getfluxdata.com"} onChange={(e) => update("demo_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://getfluxdata.com" />
               </div>
               <div>
                 <Label className="text-xs">Trial Link (used in {"{{trial_link}}"} token)</Label>
-                <Input value={form.trial_link ?? "https://closeloop.ai/signup"} onChange={(e) => update("trial_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://closeloop.ai/signup" />
+                <Input value={form.trial_link ?? "https://getfluxdata.com/signup"} onChange={(e) => update("trial_link", e.target.value)} className="h-8 text-sm mt-1" placeholder="https://getfluxdata.com/signup" />
               </div>
             </CardContent>
           </Card>

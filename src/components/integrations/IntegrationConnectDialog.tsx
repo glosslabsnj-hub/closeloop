@@ -293,7 +293,7 @@ export function IntegrationConnectDialog({
                     />
                   </div>
                   <a
-                    href="https://docs.closeloop.com/integrations"
+                    href="https://getfluxdata.com/docs/integrations"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline inline-flex items-center gap-1"

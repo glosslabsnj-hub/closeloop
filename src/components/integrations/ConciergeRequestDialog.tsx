@@ -180,7 +180,7 @@ export function ConciergeRequestDialog({ open, onOpenChange }: ConciergeRequestD
                 <Label htmlFor="credentials">How should we access your account?</Label>
                 <Textarea
                   id="credentials"
-                  placeholder="e.g., 'I'll send a team invite to support@closeloop.com' or 'I'll share API keys via email'"
+                  placeholder="e.g., 'I'll send a team invite to support@getfluxdata.com' or 'I'll share API keys via email'"
                   value={credentialsNotes}
                   onChange={(e) => setCredentialsNotes(e.target.value)}
                   rows={2}

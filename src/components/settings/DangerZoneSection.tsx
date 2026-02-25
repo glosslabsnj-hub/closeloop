@@ -51,7 +51,7 @@
        const url = URL.createObjectURL(blob);
        const link = document.createElement("a");
        link.href = url;
-       link.download = `closeloop-export-${tenant.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
+       link.download = `flux-receptionist-export-${tenant.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.json`;
        link.click();
        URL.revokeObjectURL(url);
 
@@ -76,7 +76,7 @@
      setIsDeleting(true);
      try {
        toast.success("Account deletion requested", {
-         description: "To complete data deletion, please contact support@closeloop.com. You have been signed out.",
+         description: "To complete data deletion, please contact support@getfluxdata.com. You have been signed out.",
        });
        signOut?.();
      } catch (error) {

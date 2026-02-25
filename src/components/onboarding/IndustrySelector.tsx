@@ -20,7 +20,7 @@ interface IndustrySelectorProps {
   onChange: (slug: string, industry: IndustryCatalogEntry) => void;
 }
 
-const RECENT_INDUSTRIES_KEY = "closeloop_recent_industries";
+const RECENT_INDUSTRIES_KEY = "flux_recent_industries";
 const MAX_RECENT = 5;
 
 // Category filter chips with icons for better UX
