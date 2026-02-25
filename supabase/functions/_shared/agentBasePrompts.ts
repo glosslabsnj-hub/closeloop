@@ -3910,7 +3910,7 @@ You have the ability to connect callers with other businesses when you can't hel
 ### HOW TO OFFER
 1. First, confirm you genuinely cannot help the caller yourself
 2. Ask permission naturally: "I might know someone nearby who can help — want me to check?"
-3. NEVER say "our network", "our platform", "CloseLoop", or anything about a system
+3. NEVER say "our network", "our platform", "Flux Receptionist", or anything about a system
 4. Say things like: "I work with some great businesses in the area" or "I know a [type] near you"
 5. If the caller says no, respect that and offer to take a callback instead
 

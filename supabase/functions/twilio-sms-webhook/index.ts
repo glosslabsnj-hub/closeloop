@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     const normalizedFrom = normalizePhoneNumber(from);
     const normalizedTo = normalizePhoneNumber(to);
 
-    // Look up tenant by the 'to' number (CloseLoop number)
+    // Look up tenant by the 'to' number (Flux assigned number)
     const { data: assistantSettings } = await supabase
       .from("assistant_settings")
       .select("tenant_id")

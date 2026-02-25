@@ -1,7 +1,7 @@
 /**
  * seed-stripe-prices
  *
- * Admin-only edge function that idempotently creates the CloseLoop
+ * Admin-only edge function that idempotently creates the Flux Receptionist
  * Stripe Product + 4 recurring Price objects with plan_code metadata.
  *
  * Auth: JWT (super_admin role) OR x-admin-secret header
@@ -13,8 +13,8 @@ import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { requireAdminSecret, serviceClient } from "../_shared/tenant.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PRODUCT_KEY = "closeloop_ai_receptionist";
-const PRODUCT_NAME = "CloseLoop AI Voice Receptionist";
+const PRODUCT_KEY = "flux_ai_receptionist";
+const PRODUCT_NAME = "Flux AI Voice Receptionist";
 
 interface PriceDef {
   sku: string;

@@ -735,7 +735,7 @@ async function provisionForwardingNumber(
     PhoneNumber: selectedNumber,
     VoiceUrl: voiceWebhookUrl,
     VoiceMethod: "POST",
-    FriendlyName: `CloseLoop-${tenantId.substring(0, 8)}`,
+    FriendlyName: `Flux-${tenantId.substring(0, 8)}`,
   });
 
   const purchaseResponse = await fetch(

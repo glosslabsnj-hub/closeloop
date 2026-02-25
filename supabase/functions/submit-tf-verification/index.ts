@@ -60,14 +60,14 @@ serve(async (req) => {
     `BusinessCountry=US`,
     `BusinessContactFirstName=${encodeURIComponent(a2p.contact_first_name || "Jack")}`,
     `BusinessContactLastName=${encodeURIComponent(a2p.contact_last_name || "Angelini")}`,
-    `BusinessContactEmail=${encodeURIComponent(a2p.contact_email || "support@closeloop.ai")}`,
+    `BusinessContactEmail=${encodeURIComponent(a2p.contact_email || "support@getfluxdata.com")}`,
     `BusinessContactPhone=${encodeURIComponent(a2p.contact_phone || "+16097318641")}`,
-    `NotificationEmail=${encodeURIComponent(a2p.contact_email || "support@closeloop.ai")}`,
+    `NotificationEmail=${encodeURIComponent(a2p.contact_email || "support@getfluxdata.com")}`,
     `UseCaseCategories=${encodeURIComponent("CUSTOMER_CARE")}`,
     `UseCaseSummary=${encodeURIComponent(`${bizName} sends appointment confirmations, reminders, and follow-up messages to customers who have booked services.`)}`,
     `ProductionMessageSample=${encodeURIComponent(`Hi! Your appointment with ${bizName} is confirmed for tomorrow at 2:00 PM. Reply STOP to opt out.`)}`,
     `OptInType=VERBAL`,
-    `OptInImageUrls=https://closeloop.ai/verbal-opt-in`,
+    `OptInImageUrls=https://getfluxdata.com/verbal-opt-in`,
     `MessageVolume=100`,
   ].join("&");
 

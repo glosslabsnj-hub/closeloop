@@ -484,7 +484,7 @@ Typical Services: ${ctx.industryEntry.services.map((s: any) => s.name).join(", "
 }
 
 function buildSystemPrompt(): string {
-  return `You are a seasoned business consultant specializing in small businesses that use AI phone automation (CloseLoop platform). You analyze real business data and produce structured, actionable reports.
+  return `You are a seasoned business consultant specializing in small businesses that use AI phone automation (Flux Receptionist platform). You analyze real business data and produce structured, actionable reports.
 
 ## Your Role
 - You are analyzing a REAL business with REAL data. Be specific — reference actual numbers, services, and patterns.

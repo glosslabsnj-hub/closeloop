@@ -71,7 +71,7 @@ serve(async (req: Request) => {
             response = await fetch(url, {
               method: "HEAD",
               signal: headController.signal,
-              headers: { "User-Agent": "CloseLoop-Integration-Test/1.0" },
+              headers: { "User-Agent": "Flux-Integration-Test/1.0" },
             });
           } catch (headErr) {
             headFailed = true;
@@ -93,10 +93,10 @@ serve(async (req: Request) => {
                 method: "POST",
                 signal: postController.signal,
                 headers: {
-                  "User-Agent": "CloseLoop-Integration-Test/1.0",
+                  "User-Agent": "Flux-Integration-Test/1.0",
                   "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ test: true, source: "closeloop" }),
+                body: JSON.stringify({ test: true, source: "flux-receptionist" }),
               });
             } finally {
               clearTimeout(postTimeout);

@@ -175,7 +175,7 @@ serve(async (req) => {
     }
 
     // Get the app URL from environment or use default
-    const appUrl = Deno.env.get("APP_URL") || "https://closeloop.lovable.app";
+    const appUrl = Deno.env.get("APP_URL") || "https://getfluxdata.com";
     const viewUrl = `${appUrl}/estimate/${estimate.id}`;
 
     // Generate email HTML
@@ -221,8 +221,8 @@ serve(async (req) => {
     }
 
     // Send via Resend
-    const fromEmail = tenantData?.email || "noreply@closeloop.ai";
-    const fromName = tenantData?.business_name || "CloseLoop";
+    const fromEmail = tenantData?.email || "noreply@getfluxdata.com";
+    const fromName = tenantData?.business_name || "Flux Receptionist";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",

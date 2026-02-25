@@ -1767,7 +1767,7 @@ function createLookupOrderStatusTool(): AgentTool {
  * - ONLY call AFTER confirming you can't help (e.g., after check_service_area returns out-of-area,
  *   or the caller needs a service this business doesn't offer).
  * - Ask the caller's permission BEFORE searching: "I might know someone who can help. Mind if I check?"
- * - NEVER say "CloseLoop" or "same platform" — say "I work with" or "I know a great..."
+ * - NEVER say "Flux Receptionist" or "same platform" — say "I work with" or "I know a great..."
  */
 function createSearchReferralNetworkTool(): AgentTool {
   return {

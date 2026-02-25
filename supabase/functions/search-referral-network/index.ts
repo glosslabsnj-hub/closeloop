@@ -1,7 +1,7 @@
 /**
  * search-referral-network: Core matching engine for the referral network.
  *
- * Finds the best matching business on the CloseLoop platform when the
+ * Finds the best matching business on the Flux Receptionist platform when the
  * current business can't help a caller (out of area, wrong service, etc.).
  *
  * Auth: requireInternalSecret (called by elevenlabs-search-referral-network proxy)

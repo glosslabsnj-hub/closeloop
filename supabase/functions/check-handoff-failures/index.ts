@@ -8,7 +8,7 @@ import { captureException, captureMessage } from "../_shared/sentry.ts";
  * This function should be run on a schedule (e.g., every 15 minutes) to:
  * 1. Check for failed handoff deliveries
  * 2. Send alerts to tenant owners via email/SMS
- * 3. Send alerts to the CloseLoop ops team for critical failures
+ * 3. Send alerts to the Flux Receptionist ops team for critical failures
  *
  * Alert thresholds:
  * - Single failure: Log only (will be retried)
@@ -43,7 +43,7 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const OPS_ALERT_EMAIL = Deno.env.get("OPS_ALERT_EMAIL") || "ops@closeloop.ai";
+  const OPS_ALERT_EMAIL = Deno.env.get("OPS_ALERT_EMAIL") || "support@getfluxdata.com";
   const SLACK_WEBHOOK_URL = Deno.env.get("SLACK_OPS_WEBHOOK_URL");
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -260,7 +260,7 @@ serve(async (req) => {
     .join("\n");
 
   const message = `
-CloseLoop Handoff Alert
+Flux Receptionist Handoff Alert
 
 ${totalFailures} handoff failures detected in the last hour.
 

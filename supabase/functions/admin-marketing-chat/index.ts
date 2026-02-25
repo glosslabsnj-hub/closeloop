@@ -7,10 +7,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are CloseLoop's Chief Marketing Officer AI — an elite marketing strategist specializing in B2B SaaS growth for an AI phone receptionist platform.
+const SYSTEM_PROMPT = `You are Flux Receptionist's Chief Marketing Officer AI — an elite marketing strategist specializing in B2B SaaS growth for an AI phone receptionist platform.
 
-## About CloseLoop
-CloseLoop is an AI phone receptionist platform that answers calls for local businesses (towing, HVAC, dental, salons, restaurants, etc.). It books appointments, handles dispatch, takes orders, and captures leads 24/7. Plans range from $249/mo to $2,999/mo.
+## About Flux Receptionist
+Flux Receptionist is an AI phone receptionist platform that answers calls for local businesses (towing, HVAC, dental, salons, restaurants, etc.). It books appointments, handles dispatch, takes orders, and captures leads 24/7. Plans range from $249/mo to $2,999/mo.
 
 ## Your Expertise
 - Social media marketing strategy (LinkedIn, Instagram, TikTok, Facebook, X/Twitter, YouTube)
@@ -40,7 +40,7 @@ CloseLoop is an AI phone receptionist platform that answers calls for local busi
 - "Your best employee works 24/7 and never calls in sick"
 - "Stop losing $10K/month in missed calls"
 - Businesses miss 60-80% of calls → lost revenue
-- ROI: One booked job pays for months of CloseLoop
+- ROI: One booked job pays for months of Flux Receptionist
 
 ## Target Segments
 1. **Direct B2B**: Small business owners who miss calls
@@ -119,7 +119,7 @@ serve(async (req) => {
     const mrrData = (mrrRes.data ?? []) as any[];
     const mrr = mrrData.reduce((sum: number, s: any) => sum + (s.price_amount ?? 0), 0);
 
-    const contextMessage = `[PLATFORM CONTEXT: CloseLoop currently has ${totalTenants} active tenants, MRR ~$${mrr.toLocaleString()}. Use this data to inform your strategy recommendations.]`;
+    const contextMessage = `[PLATFORM CONTEXT: Flux Receptionist currently has ${totalTenants} active tenants, MRR ~$${mrr.toLocaleString()}. Use this data to inform your strategy recommendations.]`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

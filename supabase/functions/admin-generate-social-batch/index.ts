@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
               messages: [
                 {
                   role: "system",
-                  content: `You are a social media content creator for CloseLoop, an AI phone receptionist SaaS for small businesses. CloseLoop answers calls 24/7, books appointments, captures leads, and handles customer inquiries using AI. ${toneInstruction}`,
+                  content: `You are a social media content creator for Flux Receptionist, an AI phone receptionist SaaS for small businesses. Flux Receptionist answers calls 24/7, books appointments, captures leads, and handles customer inquiries using AI. ${toneInstruction}`,
                 },
                 {
                   role: "user",

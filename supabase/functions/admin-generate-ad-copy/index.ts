@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert digital advertising copywriter. You create high-converting ad copy for CloseLoop, an AI phone receptionist SaaS. CloseLoop answers business calls 24/7 with AI, books appointments, captures leads, and handles inquiries. It's designed for small-to-medium service businesses.`,
+            content: `You are an expert digital advertising copywriter. You create high-converting ad copy for Flux Receptionist, an AI phone receptionist SaaS. Flux Receptionist answers business calls 24/7 with AI, books appointments, captures leads, and handles inquiries. It's designed for small-to-medium service businesses.`,
           },
           {
             role: "user",

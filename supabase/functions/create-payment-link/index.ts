@@ -2,7 +2,7 @@
  * create-payment-link
  *
  * Generates a Stripe Checkout URL that an agency can share with a client.
- * The client can click the link without CloseLoop auth to pay for their plan.
+ * The client can click the link without Flux Receptionist auth to pay for their plan.
  *
  * Auth: JWT + requireAuthedTenant (agency user must have membership on the client tenant)
  * Input: { tenant_id, plan_sku }

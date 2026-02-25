@@ -484,7 +484,7 @@ async function executeNotifyEmail(
     throw new Error("Email requires 'to'");
   }
 
-  const businessName = context.business_name || context.tenant_name || "CloseLoop";
+  const businessName = context.business_name || context.tenant_name || "Flux Receptionist";
   const result = await sendEmail({
     to,
     subject,
@@ -1117,11 +1117,11 @@ async function executeCalendarAction(
 
   // Build event details from context
   const eventDetails = {
-    summary: context.service_name || context.job_type || "CloseLoop Event",
+    summary: context.service_name || context.job_type || "Flux Receptionist Event",
     start: context.start_time || context.scheduled_at,
     end: context.end_time,
     description: [
-      "Booked via CloseLoop AI",
+      "Booked via Flux Receptionist AI",
       context.customer_phone ? `Phone: ${context.customer_phone}` : "",
       context.customer_email ? `Email: ${context.customer_email}` : "",
       context.notes || context.description || "",
@@ -1431,7 +1431,7 @@ async function executePrintAction(
         title: `Receipt - ${confirmationSummary}`,
         contentType: "raw_base64",
         content: btoa(receiptHtml),
-        source: "CloseLoop",
+        source: "Flux Receptionist",
         qty: 1,
       }),
     });

@@ -29,7 +29,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     return { success: false, error: "Missing recipient email" };
   }
 
-  const from = params.from || `${params.businessName || "CloseLoop"} <notifications@closeloop.ai>`;
+  const from = params.from || `${params.businessName || "Flux Receptionist"} <notifications@getfluxdata.com>`;
 
   try {
     const response = await fetch("https://api.resend.com/emails", {

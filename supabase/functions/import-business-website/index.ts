@@ -166,7 +166,7 @@ serve(async (req) => {
       const siteResponse = await fetch(url, {
         headers: {
           "User-Agent":
-            "Mozilla/5.0 (compatible; CloseLoopBot/1.0; +https://closeloop.ai)",
+            "Mozilla/5.0 (compatible; FluxBot/1.0; +https://getfluxdata.com)",
           Accept: "text/html,application/xhtml+xml,*/*",
         },
         signal: controller.signal,

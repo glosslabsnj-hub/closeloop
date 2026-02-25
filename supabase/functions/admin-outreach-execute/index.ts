@@ -118,10 +118,10 @@ Deno.serve(async (req) => {
     const reasonSnippet = buildReasonSnippet(enrollment.lead_name, frictionSignals, industry);
 
     // Resolve tokens with real lead data
-    const fromName = settings?.outreach_from_name || "CloseLoop";
-    const fromEmail = settings?.outreach_from_email || "hello@closeloop.ai";
-    const demoLink = settings?.demo_link || "https://closeloop.ai";
-    const trialLink = settings?.trial_link || "https://closeloop.ai/signup";
+    const fromName = settings?.outreach_from_name || "Flux Receptionist";
+    const fromEmail = settings?.outreach_from_email || "jack@getfluxdata.com";
+    const demoLink = settings?.demo_link || "https://getfluxdata.com";
+    const trialLink = settings?.trial_link || "https://getfluxdata.com/signup";
     let message = resolveTokens(step.message_template || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
     const subject = resolveTokens(step.subject || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);
 
@@ -312,7 +312,7 @@ async function personalizeWithAI(
       messages: [
         {
           role: "system",
-          content: `You personalize cold outreach messages for an AI phone receptionist SaaS called CloseLoop. Use the business context to make the message feel genuinely written for this specific business. Reference their industry, specific pain points, or situation naturally. Keep the same structure, length, and call-to-action. Return ONLY the rewritten message, no quotes or explanation.`,
+          content: `You personalize cold outreach messages for an AI phone receptionist SaaS called Flux Receptionist. Use the business context to make the message feel genuinely written for this specific business. Reference their industry, specific pain points, or situation naturally. Keep the same structure, length, and call-to-action. Return ONLY the rewritten message, no quotes or explanation.`,
         },
         {
           role: "user",

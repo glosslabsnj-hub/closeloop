@@ -179,7 +179,7 @@ serve(async (req) => {
     const eventPayload = {
       summary: `${serviceName} - ${customerName}`,
       description: [
-        `Booked via CloseLoop AI`,
+        `Booked via Flux Receptionist AI`,
         booking.notes ? `Notes: ${booking.notes}` : "",
         customerPhone ? `Customer phone: ${customerPhone}` : "",
         customerEmail ? `Customer email: ${customerEmail}` : "",

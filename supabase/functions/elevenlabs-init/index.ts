@@ -160,7 +160,7 @@ serve(async (req) => {
       JSON.stringify({
         status: "ok",
         service: "elevenlabs-init",
-        description: "ElevenLabs Client Data Webhook for CloseLoop",
+        description: "ElevenLabs Client Data Webhook for Flux Receptionist",
         _version: VERSION,
         _deployed_at: DEPLOYED_AT,
       }),

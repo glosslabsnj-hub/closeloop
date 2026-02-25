@@ -7,10 +7,10 @@ const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   });
 
 /**
- * sync-fieldedge: Bidirectional sync between CloseLoop and FieldEdge.
- * 
- * Outbound: Push CloseLoop bookings → FieldEdge work orders
- * Inbound: Pull FieldEdge dispatches → CloseLoop active_jobs
+ * sync-fieldedge: Bidirectional sync between Flux Receptionist and FieldEdge.
+ *
+ * Outbound: Push Flux Receptionist bookings → FieldEdge work orders
+ * Inbound: Pull FieldEdge dispatches → Flux Receptionist active_jobs
  * 
  * NOTE: FieldEdge API is partner-only. The endpoints below are placeholders.
  * Update the actual endpoint URLs and field mappings once you have access
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
                 scheduled_start: booking.start_at,
                 scheduled_end: booking.end_at,
                 notes: booking.notes || "",
-                source: "closeloop",
+                source: "flux-receptionist",
               }),
             });
 

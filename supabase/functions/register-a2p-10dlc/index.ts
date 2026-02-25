@@ -293,7 +293,7 @@ serve(async (req) => {
       const msgSvcRes = await twilioPost(
         `https://messaging.twilio.com/v1/Services`,
         {
-          FriendlyName: `CloseLoop - ${a2p.legal_business_name || tenant?.business_name || tenant_id.substring(0, 8)}`,
+          FriendlyName: `Flux - ${a2p.legal_business_name || tenant?.business_name || tenant_id.substring(0, 8)}`,
           InboundRequestUrl: `${SUPABASE_URL}/functions/v1/twilio-sms-webhook`,
           InboundMethod: "POST",
           UseInboundWebhookOnNumber: "false",

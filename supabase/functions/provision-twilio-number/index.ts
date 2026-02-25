@@ -256,7 +256,7 @@ serve(async (req) => {
       PhoneNumber: selectedNumber.phone_number,
       VoiceUrl: voiceUrl,
       VoiceMethod: "POST",
-      FriendlyName: `CloseLoop - ${tenant_id.substring(0, 8)}`,
+      FriendlyName: `Flux - ${tenant_id.substring(0, 8)}`,
     });
 
     console.log(`[provision] Purchasing number: ${selectedNumber.phone_number} for tenant ${tenant_id}`);
@@ -407,7 +407,7 @@ serve(async (req) => {
               },
               body: new URLSearchParams({
                 PhoneNumber: tfSelected.phone_number,
-                FriendlyName: `CloseLoop TF - ${tenant_id.substring(0, 8)}`,
+                FriendlyName: `Flux TF - ${tenant_id.substring(0, 8)}`,
               }).toString(),
             }
           );
@@ -428,7 +428,7 @@ serve(async (req) => {
                   "Content-Type": "application/x-www-form-urlencoded",
                 },
                 body: new URLSearchParams({
-                  FriendlyName: `CloseLoop TF - ${tenant_id.substring(0, 8)}`,
+                  FriendlyName: `Flux TF - ${tenant_id.substring(0, 8)}`,
                   FallbackToLongCode: "false",
                   StickySender: "true",
                 }).toString(),
@@ -473,7 +473,7 @@ serve(async (req) => {
             const bizWebsite = a2pInfo?.website_url || tenantInfo?.website_url || "https://example.com";
             const contactFirstName = a2pInfo?.contact_first_name || "Owner";
             const contactLastName = a2pInfo?.contact_last_name || "Contact";
-            const contactEmail = a2pInfo?.contact_email || "support@closeloop.ai";
+            const contactEmail = a2pInfo?.contact_email || "support@getfluxdata.com";
             const contactPhone = a2pInfo?.contact_phone || "";
 
             const tfVerifBody = [

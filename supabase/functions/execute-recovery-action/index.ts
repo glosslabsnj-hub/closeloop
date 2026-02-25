@@ -348,7 +348,7 @@ async function executeEmailAction(
     const result = await sendEmail({
       to: customer.email,
       subject,
-      businessName: assistantSettings?.business_name || campaign.business_name || "CloseLoop",
+      businessName: assistantSettings?.business_name || campaign.business_name || "Flux Receptionist",
       html: `<p>${message.replace(/\n/g, "<br>")}</p>`,
     });
 
@@ -489,7 +489,7 @@ async function executeInternalTaskAction(
 
     // Send SMS notification if configured
     if (recoverySettings?.notification_sms && assistantSettings?.closeloop_number) {
-      const notificationMessage = `[CloseLoop Task] ${description}. Customer: ${customer.phone_e164}`;
+      const notificationMessage = `[Flux Task] ${description}. Customer: ${customer.phone_e164}`;
       
       await supabase.functions.invoke("send-sms", {
         body: {

@@ -17,9 +17,9 @@ const CATEGORY_SYSTEM_PROMPTS: Record<string, string> = {
 };
 
 const PRODUCT_CONTEXT = `
-## CloseLoop Product Knowledge
+## Flux Receptionist Product Knowledge
 
-CloseLoop is an AI-powered phone receptionist platform for local businesses. Key facts:
+Flux Receptionist is an AI-powered phone receptionist platform for local businesses. Key facts:
 
 **What it does:**
 - AI answers business phone calls 24/7 with natural voice conversation
@@ -44,12 +44,12 @@ CloseLoop is an AI-powered phone receptionist platform for local businesses. Key
 - Agency/reseller partner program with commission
 
 **Competitive Landscape:**
-- vs. Ruby, Smith.ai (human receptionists) — CloseLoop is 24/7, instant, fraction of the cost
-- vs. Bland.ai, Air.ai (AI-only) — CloseLoop has full business workflow integration
-- vs. GoHighLevel, ServiceTitan — CloseLoop focuses on AI phone handling specifically
+- vs. Ruby, Smith.ai (human receptionists) — Flux Receptionist is 24/7, instant, fraction of the cost
+- vs. Bland.ai, Air.ai (AI-only) — Flux Receptionist has full business workflow integration
+- vs. GoHighLevel, ServiceTitan — Flux Receptionist focuses on AI phone handling specifically
 
 **Agency Program:**
-- Marketing agencies, IT consultants, and business coaches can resell CloseLoop
+- Marketing agencies, IT consultants, and business coaches can resell Flux Receptionist
 - White-label options available
 - Commission on referred clients
 - Lead finder tool for agencies to prospect local businesses
@@ -143,7 +143,7 @@ ${PRODUCT_CONTEXT}
 ${platformStats}
 
 Important guidelines:
-- Always ground your advice in CloseLoop's specific product, market, and competitive position
+- Always ground your advice in Flux Receptionist's specific product, market, and competitive position
 - Be specific and actionable — provide actual copy, numbers, and timelines when possible
 - Format your responses clearly with headers, bullet points, and sections
 - When suggesting metrics, provide realistic benchmarks for B2B SaaS targeting SMBs
