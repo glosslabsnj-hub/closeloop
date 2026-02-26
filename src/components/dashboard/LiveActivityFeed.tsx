@@ -66,14 +66,23 @@ export function LiveActivityFeed() {
       calls?.forEach((call) => {
         const phone = call.caller_phone || "Unknown";
         const displayPhone = phone.length > 8 ? `${phone.slice(0, 3)}...${phone.slice(-4)}` : phone;
+        // Show a meaningful title based on what the AI actually did
+        const outcomeLabel = call.outcome === 'booked' ? 'Booked'
+          : call.outcome === 'voicemail' ? 'Voicemail'
+          : call.outcome === 'transferred' ? 'Transferred'
+          : call.outcome === 'cancelled' ? 'Cancelled'
+          : call.outcome === 'dispatched' ? 'Dispatched'
+          : 'Answered';
         results.push({
           id: `call-${call.id}`,
           type: "call",
-          title: `Call ${call.outcome === 'booked' ? 'converted' : 'answered'}`,
-          subtitle: call.summary?.slice(0, 50) || `From: ${displayPhone}`,
+          title: `Call ${outcomeLabel}`,
+          subtitle: call.summary?.slice(0, 80) || `From: ${displayPhone}`,
           time: formatDistanceToNow(new Date(call.started_at), { addSuffix: true }),
           timestamp: new Date(call.started_at),
-          status: call.outcome === 'booked' ? 'success' : 'info',
+          status: call.outcome === 'booked' || call.outcome === 'dispatched' ? 'success'
+            : call.outcome === 'voicemail' ? 'warning'
+            : 'info',
         });
       });
 
@@ -234,7 +243,15 @@ export function LiveActivityFeed() {
                     <Icon className="h-3.5 w-3.5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium leading-tight truncate">{item.title}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium leading-tight truncate">{item.title}</p>
+                      {item.status === "success" && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+                      )}
+                      {item.status === "warning" && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" />
+                      )}
+                    </div>
                     <p className="text-[13px] text-muted-foreground truncate">{item.subtitle}</p>
                   </div>
                   <p className="text-[11px] text-muted-foreground/60 shrink-0 mt-0.5">{item.time}</p>

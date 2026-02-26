@@ -1,11 +1,11 @@
 /**
- * BrainDashboard - Redesigned hub with quick actions, category rows, and AI readiness
+ * BrainDashboard - Simplified hub with AI readiness first, essential actions, progressive disclosure
  *
  * Layout:
- * 1. Header with search + AI preview
- * 2. Quick Actions bar (most-used settings)
- * 3. Settings Categories (rows with progress bars)
- * 4. AI Readiness section at bottom
+ * 1. Header with AI readiness progress
+ * 2. Essential settings (3 most important for their mode)
+ * 3. All settings (collapsible)
+ * 4. Intelligence + advanced
  */
 
 import { useMemo, useState } from "react";
@@ -25,8 +25,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { resolveCardTitle } from "@/data/industryTerminology";
 import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 import {
-  Search, Eye, Clock, Settings, Bot,
-  ChevronRight, AlertCircle, Sparkles, Wand2,
+  Search, Eye, Clock, Bot, UtensilsCrossed, Truck, ShoppingBag, Package,
+  ChevronRight, ChevronDown, AlertCircle, Sparkles, Wand2,
 } from "lucide-react";
 import { BrainQuickAction } from "./BrainQuickAction";
 import { BrainCategoryRow } from "./BrainCategoryRow";
@@ -61,6 +61,9 @@ function getCategorySummary(
   }
 }
 
+/** Sections considered essential for getting started */
+const ESSENTIAL_SECTIONS = ["about", "services", "training"];
+
 export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboardProps) {
   const completions = useAllCategoriesCompletion();
   const summaries = useBrainSummaries();
@@ -68,7 +71,7 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
   const { tenant } = useAuth();
   const readiness = useAIReadinessV2();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAllSettings, setShowAllSettings] = useState(false);
   const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
 
   // Mode-specific categories
@@ -112,19 +115,34 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
     );
   }, [modeCategories, searchQuery, summaries]);
 
-  // Split into main + advanced
-  const mainCategories = filteredCategories.filter((c) => c.order <= 4);
-  const advancedCategories = filteredCategories.filter((c) => c.order > 4);
+  // Split into essential + other
+  const essentialCategories = filteredCategories
+    .filter((c) => ESSENTIAL_SECTIONS.includes(c.section))
+    .sort((a, b) => a.order - b.order);
 
-  // Quick actions — most common entry points
+  const otherCategories = filteredCategories
+    .filter((c) => !ESSENTIAL_SECTIONS.includes(c.section))
+    .sort((a, b) => a.order - b.order);
+
+  const isNewSetup = overallPercent < 50;
+  const isReady = readiness.score >= 80;
+
+  // Quick actions — mode-aware labels and icons
   const quickActions = useMemo(() => {
-    const actions = [
+    const servicesIcon = businessMode === "food" ? UtensilsCrossed
+      : businessMode === "dispatch" ? Truck
+      : businessMode === "sales" ? ShoppingBag
+      : Package;
+    const servicesLabel = businessMode === "food" ? "Menu"
+      : businessMode === "dispatch" ? "Services"
+      : businessMode === "sales" ? "Products"
+      : "Services";
+    return [
       { id: "about", icon: Clock, label: "Hours", section: "about", item: "business-hours" },
-      { id: "services", icon: Settings, label: "Services", section: "services" },
+      { id: "services", icon: servicesIcon, label: servicesLabel, section: "services" },
       { id: "training", icon: Bot, label: "AI Tone", section: "training", item: "scripts" },
     ];
-    return actions;
-  }, []);
+  }, [businessMode]);
 
   return (
     <div className="space-y-6">
@@ -137,7 +155,10 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
               <p className="text-sm text-muted-foreground mt-0.5">{tenant.name as string}</p>
             )}
             <p className="text-sm text-muted-foreground mt-1 max-w-lg">
-              Teach your AI everything about your business. Each section below controls what your AI says on real customer calls.
+              {isNewSetup
+                ? "Set up the essentials below so your AI can start handling calls."
+                : "Fine-tune what your AI knows. Each section controls how it handles real calls."
+              }
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -153,36 +174,74 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
             </Button>
           </div>
         </div>
-        <div className="rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 px-4 py-3 flex items-center gap-3">
-          <span className="text-xs text-muted-foreground shrink-0">Setup Progress</span>
-          <Progress value={overallPercent} className="h-1.5 flex-1" />
-          <span className="text-sm font-medium tabular-nums shrink-0">{overall.completed} of {overall.total} fields</span>
-        </div>
-
-        {/* Search + actions bar */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search settings..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 h-9"
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onNavigate("training")}
-            className="gap-1.5 hidden sm:flex"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            View AI Preview
-          </Button>
-        </div>
       </div>
 
       <WebsiteImportWizard open={websiteImportOpen} onOpenChange={setWebsiteImportOpen} />
+
+      {/* ── AI Readiness — FIRST, most important visual ──────────── */}
+      {!searchQuery && (
+        <div className={cn(
+          "rounded-xl border bg-card/60 backdrop-blur-sm p-5 space-y-4",
+          isReady ? "border-primary/20 glow-primary-subtle" : "border-border/30",
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 glow-primary-sm">
+                <Sparkles className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  {isReady ? "Your AI is ready for calls" : "Getting your AI ready"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isReady ? "All essentials configured" : `${readiness.recommendations.length} item${readiness.recommendations.length === 1 ? "" : "s"} to set up`}
+                </p>
+              </div>
+            </div>
+            <span className="text-sm font-bold tabular-nums">{readiness.score}%</span>
+          </div>
+          <Progress value={readiness.score} className="h-2" />
+
+          {readiness.recommendations.length > 0 && (
+            <div className="space-y-1.5">
+              {readiness.recommendations.slice(0, 3).map((rec, i) => {
+                const isP0 = readiness.p0Flags.some(f => rec.label.toLowerCase().includes(f.replace(/_/g, " ")));
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      if (rec.deep_link) {
+                        const link = rec.deep_link.startsWith("/") ? rec.deep_link : `/${rec.deep_link}`;
+                        const sectionMatch = link.match(/section=([^&]+)/);
+                        if (sectionMatch) onNavigate(sectionMatch[1]);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-3 w-full p-2.5 rounded-lg border border-transparent hover:border-border/20 hover:bg-card/80 transition-colors text-left group",
+                      isP0 ? "accent-left-destructive" : "accent-left-warning",
+                    )}
+                  >
+                    <AlertCircle className={cn("h-4 w-4 shrink-0", isP0 ? "text-destructive" : "text-warning")} />
+                    <span className="text-sm flex-1 truncate">{rec.label}</span>
+                    {isP0 && <Badge variant="destructive" className="text-[10px] shrink-0">Required</Badge>}
+                    <span className="text-xs text-primary font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Fix now
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {isReady && (
+            <div className="flex items-center gap-2 text-sm text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span className="font-medium">All set! Your AI is fully configured.</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Quick Actions ──────────────────────────────────────────── */}
       {!searchQuery && (
@@ -209,16 +268,42 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
         </div>
       )}
 
-      {/* ── Settings Categories ─────────────────────────────────────── */}
-      <div className="space-y-2">
-        <div className="divider-gradient" />
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pt-2">
-          Settings
-        </p>
-        <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
-          {(searchQuery ? filteredCategories : mainCategories)
-            .sort((a, b) => a.order - b.order)
-            .map((cat) => (
+      {/* ── Search (appears when user wants to find something specific) ── */}
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search settings..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onNavigate("training")}
+          className="gap-1.5 hidden sm:flex"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          View AI Preview
+        </Button>
+      </div>
+
+      {/* ── Essential Settings (always visible) ─────────────────── */}
+      {!searchQuery && essentialCategories.length > 0 && (
+        <div className="space-y-2">
+          <div className="divider-gradient" />
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {isNewSetup ? "Set Up These First" : "Essential Settings"}
+            </p>
+            {isNewSetup && (
+              <Badge variant="outline" className="text-[10px]">Most Important</Badge>
+            )}
+          </div>
+          <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
+            {essentialCategories.map((cat) => (
               <BrainCategoryRow
                 key={cat.id}
                 category={cat}
@@ -229,42 +314,69 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
                 onEdit={() => onNavigate(cat.section)}
               />
             ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── Advanced Settings (collapsible) ─────────────────────────── */}
-      {!searchQuery && advancedCategories.length > 0 && (
+      {/* ── More Settings (collapsible) ──────────────────────────── */}
+      {!searchQuery && otherCategories.length > 0 && (
         <div className="space-y-2">
           <button
             type="button"
-            onClick={() => setShowAdvanced(!showAdvanced)}
+            onClick={() => setShowAllSettings(!showAllSettings)}
             className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
           >
-            <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", showAdvanced && "rotate-90")} />
-            Advanced Settings
+            {showAllSettings ? (
+              <ChevronDown className="h-3.5 w-3.5 transition-transform" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 transition-transform" />
+            )}
+            More Settings ({otherCategories.length})
           </button>
-          {showAdvanced && (
+          {showAllSettings && (
             <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
-              {advancedCategories
-                .sort((a, b) => a.order - b.order)
-                .map((cat) => (
-                  <BrainCategoryRow
-                    key={cat.id}
-                    category={cat}
-                    resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
-                    completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
-                    summaryText={getCategorySummary(cat.section, summaries)}
-                    groupLabels={categoryGroupLabels[cat.section]}
-                    onEdit={() => onNavigate(cat.section)}
-                  />
-                ))}
+              {otherCategories.map((cat) => (
+                <BrainCategoryRow
+                  key={cat.id}
+                  category={cat}
+                  resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
+                  completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
+                  summaryText={getCategorySummary(cat.section, summaries)}
+                  groupLabels={categoryGroupLabels[cat.section]}
+                  onEdit={() => onNavigate(cat.section)}
+                />
+              ))}
             </div>
           )}
         </div>
       )}
 
+      {/* ── Search results (show all when searching) ─────────────── */}
+      {searchQuery && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Results ({filteredCategories.length})
+          </p>
+          <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
+            {filteredCategories
+              .sort((a, b) => a.order - b.order)
+              .map((cat) => (
+                <BrainCategoryRow
+                  key={cat.id}
+                  category={cat}
+                  resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
+                  completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
+                  summaryText={getCategorySummary(cat.section, summaries)}
+                  groupLabels={categoryGroupLabels[cat.section]}
+                  onEdit={() => onNavigate(cat.section)}
+                />
+              ))}
+          </div>
+        </div>
+      )}
+
       {/* Intelligence card */}
-      {!searchQuery && intelligenceCategory && (
+      {!searchQuery && intelligenceCategory && showAllSettings && (
         <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm divide-y divide-border/20">
           <BrainCategoryRow
             category={intelligenceCategory}
@@ -274,73 +386,6 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
             groupLabels={categoryGroupLabels[intelligenceCategory.section]}
             onEdit={() => onNavigate(intelligenceCategory.section)}
           />
-        </div>
-      )}
-
-      {/* ── AI Readiness ───────────────────────────────────────────── */}
-      {!searchQuery && (
-        <div className="rounded-xl border-border/30 border bg-card/60 backdrop-blur-sm glow-primary-subtle p-5 space-y-4 card-interactive">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 glow-primary-sm">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold">Ready to Go Live</p>
-                <p className="text-xs text-muted-foreground">How prepared your AI is for real calls</p>
-              </div>
-            </div>
-            <span className="text-sm font-bold tabular-nums">{readiness.score}%</span>
-          </div>
-          <Progress value={readiness.score} className="h-2" />
-
-          {readiness.recommendations.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-xs text-muted-foreground">
-                {readiness.recommendations.length} item{readiness.recommendations.length === 1 ? "" : "s"} need{readiness.recommendations.length === 1 ? "s" : ""} attention:
-              </p>
-              <div className="space-y-1.5">
-                {readiness.recommendations.slice(0, 4).map((rec, i) => {
-                  const isP0 = readiness.p0Flags.some(f => rec.label.toLowerCase().includes(f.replace(/_/g, " ")));
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => {
-                        if (rec.deep_link) {
-                          const link = rec.deep_link.startsWith("/") ? rec.deep_link : `/${rec.deep_link}`;
-                          // Extract section from deep link
-                          const sectionMatch = link.match(/section=([^&]+)/);
-                          if (sectionMatch) onNavigate(sectionMatch[1]);
-                        }
-                      }}
-                      className={cn(
-                        "flex items-center gap-3 w-full p-2.5 rounded-lg border border-transparent hover:border-border/20 hover:bg-card/80 transition-colors text-left group",
-                        isP0 ? "accent-left-destructive" : "accent-left-warning",
-                      )}
-                    >
-                      <AlertCircle className={cn(
-                        "h-4 w-4 shrink-0",
-                        isP0 ? "text-destructive" : "text-warning",
-                      )} />
-                      <span className="text-sm flex-1 truncate">{rec.label}</span>
-                      {isP0 && (
-                        <Badge variant="destructive" className="text-[10px] shrink-0">Required</Badge>
-                      )}
-                      <span className="text-xs text-primary font-medium shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Fix now
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-sm text-primary">
-              <Sparkles className="h-4 w-4" />
-              <span className="font-medium">All set! Your AI is fully configured.</span>
-            </div>
-          )}
         </div>
       )}
     </div>
