@@ -1,5 +1,7 @@
 /**
- * OnboardingPage — 7-phase industry-aware onboarding flow.
+ * OnboardingPage — 5-phase industry-first onboarding flow.
+ * Consolidated from 7 phases: work style merged into Phase 1 (Identity),
+ * connect tools merged into Phase 5 (Review). Estimated ~7 min total.
  * Form state extracted to useOnboardingFormState, submission to useOnboardingSubmit.
  */
 import { useState, useEffect } from "react";
@@ -13,8 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Building2, CheckCircle2, Loader2,
   ChevronRight, ChevronLeft,
-  RefreshCw, Briefcase, Sparkles, Link2, Rocket,
-  Settings2, Clock,
+  RefreshCw, Briefcase, Sparkles, Rocket,
+  Clock,
 } from "lucide-react";
 import { useOnboardingValidation } from "@/hooks/useOnboardingValidation";
 import { useOnboardingProgress, ONBOARDING_PHASES } from "@/hooks/useOnboardingProgress";
@@ -31,17 +33,15 @@ import {
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Phase sub-components
+// Phase sub-components (5 phases: Identity, Offerings, Hours, AI, Review)
 import { OnboardingIdentity } from "@/components/onboarding/phases/OnboardingIdentity";
-import { OnboardingHowYouWork } from "@/components/onboarding/phases/OnboardingHowYouWork";
 import { OnboardingOfferings } from "@/components/onboarding/phases/OnboardingOfferings";
 import { OnboardingHoursArea } from "@/components/onboarding/phases/OnboardingHoursArea";
 import { OnboardingAI } from "@/components/onboarding/phases/OnboardingAI";
-import { OnboardingConnect } from "@/components/onboarding/phases/OnboardingConnect";
 import { OnboardingReview } from "@/components/onboarding/phases/OnboardingReview";
 
-/** Phase icons for sidebar — 7 phases */
-const PHASE_ICONS = [Building2, Settings2, Briefcase, Clock, Sparkles, Link2, Rocket];
+/** Phase icons for sidebar — 5 phases */
+const PHASE_ICONS = [Building2, Briefcase, Clock, Sparkles, Rocket];
 
 export default function OnboardingPage() {
   const { user, tenant, loading: authLoading } = useAuth();
@@ -67,6 +67,9 @@ export default function OnboardingPage() {
   // Import conflict dialog
   const [showImportConflictDialog, setShowImportConflictDialog] = useState(false);
   const [pendingIndustrySlug, setPendingIndustrySlug] = useState("");
+
+  // Inline website import (replaces Phase 0 splash)
+  const [showInlineImport, setShowInlineImport] = useState(false);
 
   const handleResume = () => { setShowResumeModal(false); setResumeDecided(true); };
   const handleStartFresh = () => {
@@ -102,16 +105,14 @@ export default function OnboardingPage() {
     if (!authLoading && tenant) navigate("/app/dashboard", { replace: true });
   }, [authLoading, tenant, navigate]);
 
-  // Phase validation
+  // Phase validation (5-phase flow)
   const canProceed = (phaseNum: number) => {
     switch (phaseNum) {
       case 1: return form.businessName.trim().length > 0 && form.industrySlug.length > 0;
-      case 2: return true; // work style + scenario questions are optional
-      case 3: return form.templateServices.some(s => s.enabled && s.name.trim().length > 0);
-      case 4: return true; // hours have defaults
-      case 5: return true; // AI settings have defaults
-      case 6: return true; // connect is optional
-      case 7: return true; // review
+      case 2: return form.templateServices.some(s => s.enabled && s.name.trim().length > 0);
+      case 3: return true; // hours have defaults
+      case 4: return true; // AI settings have defaults
+      case 5: return true; // review
       default: return false;
     }
   };
@@ -173,7 +174,7 @@ export default function OnboardingPage() {
     if (phase === 1) {
       const isValid = validateStep("identity", { businessName: form.businessName, industrySlug: form.industrySlug, businessDetails: form.businessDetails });
       if (!isValid) return;
-    } else if (phase === 3) {
+    } else if (phase === 2) {
       const isValid = validateStep("services-preview", { templateServices: form.templateServices });
       if (!isValid) return;
     }
@@ -186,7 +187,7 @@ export default function OnboardingPage() {
     if (phase > 1) progressGoBack();
   };
 
-  const REVIEW_PHASE = totalPhases; // 7
+  const REVIEW_PHASE = totalPhases; // 5
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -279,38 +280,43 @@ export default function OnboardingPage() {
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {/* Phase 1: Your Business */}
+                  {/* Phase 1: Your Business (Industry + Name + Work Style) */}
                   {phase === 1 && (
-                    <OnboardingIdentity
-                      businessName={form.businessName}
-                      onBusinessNameChange={form.setBusinessName}
-                      businessAddress={form.businessAddress}
-                      onBusinessAddressChange={form.setBusinessAddress}
-                      industrySlug={form.industrySlug}
-                      onIndustryChange={handleIndustryChange}
-                      businessMode={form.businessMode}
-                      onBusinessModeChange={form.handleBusinessModeChange}
-                      workStyle={form.workStyle}
-                      getFieldError={getFieldError}
-                      otherDescription={form.otherDescription}
-                      onOtherDescriptionChange={form.setOtherDescription}
-                    />
+                    <>
+                      {showInlineImport ? (
+                        <div className="space-y-4">
+                          <WebsiteQuickStart
+                            onImportComplete={(result) => {
+                              const mapped = mapWebsiteImportToOnboarding(result);
+                              form.applyWebsiteImport(mapped);
+                              setShowInlineImport(false);
+                            }}
+                            onSkip={() => setShowInlineImport(false)}
+                          />
+                        </div>
+                      ) : (
+                        <OnboardingIdentity
+                          businessName={form.businessName}
+                          onBusinessNameChange={form.setBusinessName}
+                          businessAddress={form.businessAddress}
+                          onBusinessAddressChange={form.setBusinessAddress}
+                          industrySlug={form.industrySlug}
+                          onIndustryChange={handleIndustryChange}
+                          businessMode={form.businessMode}
+                          onBusinessModeChange={form.handleBusinessModeChange}
+                          workStyle={form.workStyle}
+                          onWorkStyleChange={form.setWorkStyle}
+                          getFieldError={getFieldError}
+                          otherDescription={form.otherDescription}
+                          onOtherDescriptionChange={form.setOtherDescription}
+                          onWebsiteImport={() => setShowInlineImport(true)}
+                          websiteImportActive={form.websiteImportActive}
+                        />
+                      )}
+                    </>
                   )}
-                  {/* Phase 2: How You Work */}
+                  {/* Phase 2: Your Services */}
                   {phase === 2 && (
-                    <OnboardingHowYouWork
-                      businessMode={form.businessMode}
-                      industrySlug={form.industrySlug}
-                      workStyle={form.workStyle}
-                      onWorkStyleChange={form.setWorkStyle}
-                      scenarioAnswers={form.scenarioAnswers}
-                      onScenarioAnswersChange={form.setScenarioAnswers}
-                      scenarioDetails={form.scenarioDetails}
-                      onScenarioDetailsChange={form.setScenarioDetails}
-                    />
-                  )}
-                  {/* Phase 3: Your Offerings */}
-                  {phase === 3 && (
                     <OnboardingOfferings
                       businessMode={form.businessMode}
                       industrySlug={form.industrySlug}
@@ -318,8 +324,8 @@ export default function OnboardingPage() {
                       onServicesChange={form.setTemplateServices}
                     />
                   )}
-                  {/* Phase 4: Hours & Area */}
-                  {phase === 4 && (
+                  {/* Phase 3: Hours & Area */}
+                  {phase === 3 && (
                     <OnboardingHoursArea
                       businessMode={form.businessMode}
                       hours={form.businessHours}
@@ -331,8 +337,8 @@ export default function OnboardingPage() {
                       workStyle={form.workStyle}
                     />
                   )}
-                  {/* Phase 5: Your AI Assistant */}
-                  {phase === 5 && (
+                  {/* Phase 4: Your AI Assistant */}
+                  {phase === 4 && (
                     <OnboardingAI
                       businessName={form.businessName}
                       businessMode={form.businessMode}
@@ -346,22 +352,7 @@ export default function OnboardingPage() {
                       onCustomGreetingChange={form.setCustomGreeting}
                     />
                   )}
-                  {/* Phase 6: Connect Tools */}
-                  {phase === 6 && (
-                    <OnboardingConnect
-                      businessMode={form.businessMode}
-                      notificationPhone={form.notificationPhone}
-                      onNotificationPhoneChange={form.setNotificationPhone}
-                      calendarConnected={form.calendarConnected}
-                      onConnectCalendar={() => {
-                        toast({ title: "Calendar", description: "Calendar connection will be available after setup." });
-                      }}
-                      onConnectIntegration={(providerId) => {
-                        toast({ title: "Coming soon", description: `${providerId} integration will be available after setup.` });
-                      }}
-                    />
-                  )}
-                  {/* Phase 7: Review & Launch */}
+                  {/* Phase 5: Review & Launch (includes Connect) */}
                   {phase === REVIEW_PHASE && (
                     <OnboardingReview
                       businessName={form.businessName}
@@ -380,8 +371,13 @@ export default function OnboardingPage() {
                       serviceAreaRadius={form.serviceArea.radiusMiles}
                       scenarioAnswers={form.scenarioAnswers}
                       customGreeting={form.customGreeting}
+                      notificationPhone={form.notificationPhone}
+                      onNotificationPhoneChange={form.setNotificationPhone}
+                      calendarConnected={form.calendarConnected}
+                      onConnectCalendar={() => {
+                        toast({ title: "Calendar", description: "Calendar connection will be available after setup." });
+                      }}
                       onEditPhase={goToPhase}
-                      onTestAI={() => toast({ title: "Test AI", description: "AI testing will be available after setup." })}
                       onGoLive={() => submit.handleComplete(buildSubmitParams(), clearProgress)}
                       loading={submit.loading}
                     />
@@ -407,11 +403,6 @@ export default function OnboardingPage() {
                   Back
                 </Button>
                 <div className="flex gap-2">
-                  {phase === 6 && (
-                    <Button variant="ghost" onClick={goNext} className="text-muted-foreground">
-                      Skip for now
-                    </Button>
-                  )}
                   <Button
                     variant="outline"
                     onClick={() => {

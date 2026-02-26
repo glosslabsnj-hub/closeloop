@@ -65,10 +65,10 @@ export const OnboardingAI = React.memo(function OnboardingAI({
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          How should your AI handle calls?
+          Customize your AI receptionist
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Teach the AI your style. You can fine-tune everything later.
+          Set the tone and behavior. The preview below updates live as you make changes.
         </p>
       </div>
 
@@ -212,19 +212,29 @@ export const OnboardingAI = React.memo(function OnboardingAI({
                 <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs max-w-[200px]">Leave blank and we'll generate one based on your industry. Or write exactly what you want the AI to say.</p>
+                <p className="text-xs max-w-[200px]">Leave blank and we'll generate one based on your industry. Or write exactly what you want the AI to say first.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
         </div>
         <Input
           id="custom-greeting"
-          placeholder="e.g. Thanks for calling Mike's Plumbing! How can I help you today?"
+          placeholder={
+            businessName
+              ? aiTone === "professional"
+                ? `Thank you for calling ${businessName}. How may I assist you today?`
+                : aiTone === "casual"
+                  ? `Hey! You've reached ${businessName}. What can I do for you?`
+                  : `Hi there! Thanks for calling ${businessName}. How can I help you today?`
+              : "e.g. Thanks for calling! How can I help you today?"
+          }
           value={customGreeting}
           onChange={(e) => onCustomGreetingChange(e.target.value)}
         />
         <p className="text-xs text-muted-foreground">
-          Leave blank to use the default greeting for your industry.
+          {customGreeting
+            ? `${customGreeting.length} characters`
+            : "Leave blank and your AI will use the greeting shown in the preview above."}
         </p>
       </div>
     </div>

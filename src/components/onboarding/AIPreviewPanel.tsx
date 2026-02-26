@@ -24,13 +24,31 @@ const TONE_GREETINGS: Record<AITone, (name: string) => string> = {
     `Hey! You've reached ${name}. What can I do for you?`,
 };
 
-const TONE_RESPONSES: Record<AITone, string> = {
-  professional:
-    "I'd be happy to help you with that. Let me check our availability for you right away.",
-  friendly:
-    "Great, I can definitely help with that! Let me look at what we have available.",
-  casual:
-    "Sure thing! Let me pull that up for you real quick.",
+const TONE_RESPONSES: Record<AITone, Record<BusinessMode, string>> = {
+  professional: {
+    service: "I'd be happy to help you with that. I have availability this Thursday at 10 AM or Friday at 2 PM. Which works better for you?",
+    food: "I'd be happy to help you with that. What items would you like to order today?",
+    dispatch: "I can dispatch someone to you right away. Can you confirm your exact location?",
+    medical: "I'd be happy to help you schedule that. Are you a new patient or an existing patient?",
+    sales: "Absolutely. Let me go over what we currently have available that might be a good fit for you.",
+    general: "I'd be happy to help you with that. Let me check our availability for you right away.",
+  },
+  friendly: {
+    service: "I can definitely help with that! I've got a few openings this week — how does Thursday at 10 AM sound?",
+    food: "Great choice! What can I get started for you today?",
+    dispatch: "I'll get someone out to you right away! Can you give me your exact location?",
+    medical: "Of course! Are you a new patient, or have you been in before?",
+    sales: "Sure! Let me tell you about what we've got that might work for you.",
+    general: "Great, I can definitely help with that! Let me look at what we have available.",
+  },
+  casual: {
+    service: "No problem! I've got some spots open this week. How about Thursday at 10?",
+    food: "Awesome, what are you in the mood for?",
+    dispatch: "On it! Where exactly are you right now?",
+    medical: "No worries! Have you been here before, or is this your first visit?",
+    sales: "For sure! Let me tell you what we've got going on.",
+    general: "Sure thing! Let me pull that up for you real quick.",
+  },
 };
 
 function getCallerMessage(mode: BusinessMode): string {
@@ -62,7 +80,7 @@ export function AIPreviewPanel({
   }, [customGreeting, aiTone, displayName]);
 
   const callerMessage = useMemo(() => getCallerMessage(businessMode), [businessMode]);
-  const aiResponse = useMemo(() => TONE_RESPONSES[aiTone], [aiTone]);
+  const aiResponse = useMemo(() => TONE_RESPONSES[aiTone][businessMode] || TONE_RESPONSES[aiTone].general, [aiTone, businessMode]);
 
   return (
     <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">

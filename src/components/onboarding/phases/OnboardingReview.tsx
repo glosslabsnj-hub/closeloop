@@ -1,12 +1,17 @@
 import React, { useMemo } from "react";
 /**
- * Phase 5: GO LIVE — Review setup + launch
+ * Phase 5: GO LIVE — Review setup + connect tools + launch
+ * Merged with former Phase 6 (Connect) for a streamlined 5-phase flow.
  */
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { Check, Pencil, Sparkles, TestTube2, Rocket, AlertTriangle, X } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { Check, Pencil, Sparkles, Rocket, AlertTriangle, X, Calendar, MessageSquare, ArrowRight, HelpCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 import { estimateOnboardingReadiness, type ReadinessFlag } from "@/lib/estimateOnboardingReadiness";
@@ -64,8 +69,11 @@ interface OnboardingReviewProps {
   serviceAreaRadius?: number;
   scenarioAnswers: Record<string, boolean>;
   customGreeting: string;
+  notificationPhone: string;
+  onNotificationPhoneChange: (phone: string) => void;
+  calendarConnected: boolean;
+  onConnectCalendar: () => void;
   onEditPhase: (phase: number) => void;
-  onTestAI: () => void;
   onGoLive: () => void;
   loading: boolean;
 }
@@ -87,8 +95,11 @@ export const OnboardingReview = React.memo(function OnboardingReview({
   serviceAreaRadius,
   scenarioAnswers,
   customGreeting,
+  notificationPhone,
+  onNotificationPhoneChange,
+  calendarConnected,
+  onConnectCalendar,
   onEditPhase,
-  onTestAI,
   onGoLive,
   loading,
 }: OnboardingReviewProps) {
@@ -138,10 +149,14 @@ export const OnboardingReview = React.memo(function OnboardingReview({
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">
-          {readiness >= 85 ? "You're ready to go live!" : "Almost there — a few items to finish"}
+          {readiness >= 85
+            ? `${businessName} is ready to go live!`
+            : `Almost there, ${businessName}!`}
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Review your setup, then launch your AI receptionist.
+          {readiness >= 85
+            ? "Review your setup below, then launch your AI receptionist."
+            : "Review your setup and fix any remaining items before launching."}
         </p>
       </div>
 
@@ -180,7 +195,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
             <p className="text-sm font-medium">Setup Summary</p>
             <button
               type="button"
-              onClick={() => onEditPhase(3)}
+              onClick={() => onEditPhase(2)}
               className="text-muted-foreground hover:text-primary transition-colors text-xs"
             >
               Edit
@@ -275,10 +290,90 @@ export const OnboardingReview = React.memo(function OnboardingReview({
           </div>
           <Progress value={readiness} className={cn("h-2", progressColor)} />
           <p className="text-xs text-muted-foreground">
-            This matches the readiness score on your dashboard. You can continue to improve after going live.
+            {readiness >= 85
+              ? "Your AI has everything it needs to handle calls effectively."
+              : readiness >= 60
+                ? "Your AI can handle most calls. You can improve this score anytime from your Business Brain."
+                : "Your AI needs a bit more info to handle calls well. Fix the items above to improve."}
           </p>
         </CardContent>
       </Card>
+
+      <Separator />
+
+      {/* Connect Tools (merged from former Phase 6) */}
+      <div className="space-y-3">
+        <p className="text-sm font-medium text-muted-foreground">Optional — connect now or later</p>
+
+        {/* Calendar */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                  <Calendar className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Google Calendar</p>
+                  <p className="text-xs text-muted-foreground">For live availability checking</p>
+                </div>
+              </div>
+              <Button
+                variant={calendarConnected ? "secondary" : "outline"}
+                size="sm"
+                onClick={onConnectCalendar}
+                disabled={calendarConnected}
+                className="gap-1.5"
+              >
+                {calendarConnected ? (
+                  <>
+                    <Check className="h-3.5 w-3.5" />
+                    Connected
+                  </>
+                ) : (
+                  <>
+                    Connect
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* SMS Notifications */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                <MessageSquare className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium">SMS Alerts</p>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs max-w-[200px]">Get a text when your AI books an appointment or captures a lead.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <p className="text-xs text-muted-foreground">Get notified for new bookings</p>
+              </div>
+            </div>
+            <Input
+              placeholder="(555) 123-4567"
+              value={notificationPhone}
+              onChange={(e) => onNotificationPhoneChange(e.target.value)}
+              className="h-9 text-sm"
+            />
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex flex-col gap-3 pt-2">
@@ -291,31 +386,25 @@ export const OnboardingReview = React.memo(function OnboardingReview({
           {loading ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Setting up...
+              Setting up {businessName}...
+            </>
+          ) : p0Flags.length > 0 ? (
+            <>
+              <AlertTriangle className="h-4 w-4" />
+              Fix {p0Flags.length} {p0Flags.length === 1 ? "issue" : "issues"} to go live
             </>
           ) : (
             <>
               <Rocket className="h-4 w-4" />
-              Go Live Now
+              Launch {businessName}
             </>
           )}
         </Button>
-        <Button
-          variant="outline"
-          size="lg"
-          onClick={onTestAI}
-          disabled={loading}
-          className="w-full gap-2"
-        >
-          <TestTube2 className="h-4 w-4" />
-          Test Your AI First
-        </Button>
+        <p className="text-xs text-muted-foreground text-center">
+          You'll get a phone number and can make a test call right after launch. Everything can be fine-tuned later in your{" "}
+          <span className="font-medium text-foreground">Business Brain</span>.
+        </p>
       </div>
-
-      <p className="text-xs text-muted-foreground text-center">
-        Everything can be fine-tuned later in your{" "}
-        <span className="font-medium text-foreground">Business Brain</span>.
-      </p>
     </div>
   );
 });

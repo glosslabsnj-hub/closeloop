@@ -1,7 +1,8 @@
 import React from "react";
-import { CheckCircle2 } from "lucide-react";
+import { AudioWaveform, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { BRAND } from "@/config/brand";
 
 export interface StepDefinition {
   id: string;
@@ -24,9 +25,9 @@ export const StepNavigator = React.memo(function StepNavigator({ steps, icons, c
       <div className="p-6 border-b">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">CL</span>
+            <AudioWaveform className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold text-lg">Flux Receptionist</span>
+          <span className="font-semibold text-lg">{BRAND.name}</span>
         </div>
       </div>
 
