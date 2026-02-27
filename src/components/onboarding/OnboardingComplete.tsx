@@ -62,7 +62,7 @@ function getNextSteps(
   return steps;
 }
 
-export function OnboardingComplete({ _businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
+export function OnboardingComplete({ businessName, phoneNumber, businessMode, scenarioAnswers, industrySlug }: OnboardingCompleteProps) {
   const navigate = useNavigate();
   const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
 
@@ -93,22 +93,35 @@ export function OnboardingComplete({ _businessName, phoneNumber, businessMode, s
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h2 className="text-2xl font-semibold">You're all set!</h2>
+        <h2 className="text-2xl font-semibold">
+          {businessName ? `${businessName} is live!` : "You're all set!"}
+        </h2>
         <p className="mt-2 text-muted-foreground max-w-sm mx-auto">
-          Your AI receptionist is ready to start handling calls.
+          Your AI receptionist is ready to answer calls 24/7.
         </p>
       </motion.div>
 
-      {/* Phone number */}
+      {/* Phone number + test call CTA */}
       {phoneNumber && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
-          className="py-4 px-6 rounded-lg bg-primary/5 border border-primary/20 inline-block"
+          className="space-y-3"
         >
-          <p className="text-xs text-muted-foreground mb-1">Your AI phone number</p>
-          <p className="text-xl font-semibold tracking-wide">{phoneNumber}</p>
+          <div className="py-4 px-6 rounded-lg bg-primary/5 border border-primary/20 inline-block">
+            <p className="text-xs text-muted-foreground mb-1">Your AI phone number</p>
+            <p className="text-xl font-semibold tracking-wide">{phoneNumber}</p>
+          </div>
+          <div>
+            <a
+              href={`tel:${phoneNumber.replace(/\D/g, "")}`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              <PhoneIcon className="h-4 w-4" />
+              Call it now — hear your AI live
+            </a>
+          </div>
         </motion.div>
       )}
 

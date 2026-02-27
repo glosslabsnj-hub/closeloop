@@ -77,6 +77,82 @@ export const TYPICAL_BUSINESS_HOURS: BusinessHours = {
 };
 
 /**
+ * Mon-Sat 9-5, closed Sunday
+ */
+export const MON_SAT_9_5: BusinessHours = {
+  monday: createDayHours("09:00", "17:00"),
+  tuesday: createDayHours("09:00", "17:00"),
+  wednesday: createDayHours("09:00", "17:00"),
+  thursday: createDayHours("09:00", "17:00"),
+  friday: createDayHours("09:00", "17:00"),
+  saturday: createDayHours("09:00", "17:00"),
+  sunday: createDayHours("09:00", "17:00", true),
+};
+
+/**
+ * 7 days 9-5
+ */
+export const SEVEN_DAYS_9_5: BusinessHours = {
+  monday: createDayHours("09:00", "17:00"),
+  tuesday: createDayHours("09:00", "17:00"),
+  wednesday: createDayHours("09:00", "17:00"),
+  thursday: createDayHours("09:00", "17:00"),
+  friday: createDayHours("09:00", "17:00"),
+  saturday: createDayHours("09:00", "17:00"),
+  sunday: createDayHours("09:00", "17:00"),
+};
+
+/**
+ * Mon-Fri 8-6 (longer day, common for service businesses)
+ */
+export const MON_FRI_8_6: BusinessHours = {
+  monday: createDayHours("08:00", "18:00"),
+  tuesday: createDayHours("08:00", "18:00"),
+  wednesday: createDayHours("08:00", "18:00"),
+  thursday: createDayHours("08:00", "18:00"),
+  friday: createDayHours("08:00", "18:00"),
+  saturday: createDayHours("08:00", "18:00", true),
+  sunday: createDayHours("08:00", "18:00", true),
+};
+
+/**
+ * Named hour presets for the quick-select UI
+ */
+export interface HoursPreset {
+  id: string;
+  label: string;
+  sublabel: string;
+  hours: BusinessHours;
+}
+
+export const HOURS_PRESETS: HoursPreset[] = [
+  {
+    id: "mon_fri_9_5",
+    label: "Mon–Fri",
+    sublabel: "9am – 5pm",
+    hours: TYPICAL_BUSINESS_HOURS,
+  },
+  {
+    id: "mon_sat_9_5",
+    label: "Mon–Sat",
+    sublabel: "9am – 5pm",
+    hours: MON_SAT_9_5,
+  },
+  {
+    id: "7_days_9_5",
+    label: "7 days",
+    sublabel: "9am – 5pm",
+    hours: SEVEN_DAYS_9_5,
+  },
+  {
+    id: "mon_fri_8_6",
+    label: "Mon–Fri",
+    sublabel: "8am – 6pm",
+    hours: MON_FRI_8_6,
+  },
+];
+
+/**
  * Format time window(s) for display
  */
 export function formatWindowsForDisplay(windows: TimeWindow[]): string {

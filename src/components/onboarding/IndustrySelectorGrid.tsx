@@ -45,17 +45,7 @@
    const displayedIndustries = showAll ? allIndustries : filteredIndustries;
  
    return (
-     <div className="space-y-6">
-       {/* Header */}
-       <div>
-         <h2 className="text-2xl font-semibold tracking-tight">
-           What type of business do you run?
-         </h2>
-         <p className="mt-2 text-muted-foreground">
-           We'll customize your AI receptionist for your industry.
-         </p>
-       </div>
- 
+     <div className="space-y-4">
        {/* Search */}
        <div className="relative">
          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

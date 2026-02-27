@@ -11,12 +11,10 @@ export interface OnboardingPhase {
 }
 
 export const ONBOARDING_PHASES: OnboardingPhase[] = [
-  { id: "business", title: "Your Business", subtitle: "Name & industry", estimatedMinutes: 2 },
-  { id: "how-you-work", title: "How You Work", subtitle: "Style & features", estimatedMinutes: 3 },
-  { id: "offerings", title: "Your Offerings", subtitle: "Services & menu", estimatedMinutes: 5 },
-  { id: "hours-area", title: "Hours & Area", subtitle: "Schedule & coverage", estimatedMinutes: 3 },
-  { id: "ai-assistant", title: "Your AI", subtitle: "Tone & behavior", estimatedMinutes: 4 },
-  { id: "connect", title: "Connect Tools", subtitle: "Calendar & phone", estimatedMinutes: 2 },
+  { id: "business", title: "Your Business", subtitle: "Industry, name & style", estimatedMinutes: 2 },
+  { id: "offerings", title: "Your Services", subtitle: "What you offer", estimatedMinutes: 1 },
+  { id: "hours-area", title: "Hours & Area", subtitle: "Schedule & coverage", estimatedMinutes: 1 },
+  { id: "ai-assistant", title: "Your AI", subtitle: "Tone & behavior", estimatedMinutes: 1 },
   { id: "go-live", title: "Go Live", subtitle: "Review & launch", estimatedMinutes: 1 },
 ];
 
@@ -40,10 +38,12 @@ export function useOnboardingProgress(userId?: string) {
       if (raw) {
         const parsed = JSON.parse(raw) as OnboardingProgressState;
         loaded.current = !!parsed.savedAt;
-        return parsed.phase ?? 0;
+        // Auto-advance past phase 0 (website splash) — now inline in phase 1
+        const saved = parsed.phase ?? 1;
+        return saved < 1 ? 1 : saved;
       }
     } catch { /* ignore */ }
-    return 0;
+    return 1; // Start directly at Phase 1 (industry selection)
   });
 
   const hasSavedProgress = loaded.current && phase >= 1;
