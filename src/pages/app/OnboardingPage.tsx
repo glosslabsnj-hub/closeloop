@@ -311,6 +311,10 @@ export default function OnboardingPage() {
                           onOtherDescriptionChange={form.setOtherDescription}
                           onWebsiteImport={() => setShowInlineImport(true)}
                           websiteImportActive={form.websiteImportActive}
+                          scenarioAnswers={form.scenarioAnswers}
+                          onScenarioAnswersChange={form.setScenarioAnswers}
+                          scenarioDetails={form.scenarioDetails}
+                          onScenarioDetailsChange={form.setScenarioDetails}
                         />
                       )}
                     </>
