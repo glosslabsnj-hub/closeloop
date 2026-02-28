@@ -112,40 +112,36 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 
 ## PRIORITY WORK QUEUE
 
-### P0 - Production Blockers
-- [x] ~~**MIGRATE SUPABASE**: Created new project yltzlvzgwkidbeqaoevp under Jack's account. ALL 199 migrations applied. ALL 155 edge functions deployed. 18 secrets configured.~~ (done 2026-02-25)
-- [x] ~~**UPGRADE SUPABASE TO PRO ($25/mo)**: Upgraded to Pro plan. All 155/155 edge functions now deployed.~~ (done 2026-02-25)
-- [x] ~~**SET ELEVENLABS SECRETS**: API key (flux-receptionist), agent IDs, webhook secret. ConvAI settings updated to new project.~~ (done 2026-02-25)
-- [x] ~~**SET STRIPE WEBHOOK SECRET**: Webhook endpoint created (we_1T4sBwDb4MCv003YFSVXjpfX), secret set on Supabase.~~ (done 2026-02-25)
-- [x] ~~**FIX STRIPE PRICE METADATA**: Scale and Power plans had spaces in metadata keys. Fixed.~~ (done 2026-02-25)
-- [x] ~~Verify Stripe products/prices match pricing.ts configuration~~ (done 2026-02-25, 4 plans with correct plan_code metadata)
-- [x] ~~Verify ElevenLabs agents are configured and responding~~ (done 2026-02-25, 7 agents found, ConvAI init+webhook URLs updated)
-- [x] ~~**MAPBOX_ACCESS_TOKEN**: Logged into Mapbox (g20fang), set default public token on Supabase.~~ (done 2026-02-25)
-- [x] ~~**UPDATE TWILIO WEBHOOKS**: All 8 phone numbers updated from old to new Supabase URL.~~ (done 2026-02-25)
-- [x] ~~**SET UP GOOGLE CALENDAR OAUTH**: Created OAuth 2.0 Web Application client "Flux Receptionist Calendar" in Google Cloud Console (project n8n-33-484113). Calendar API enabled. Client ID, Secret, and Redirect URI set on Supabase.~~ (done 2026-02-25)
-- [x] ~~Fix Quick Book button broken route (`/app/bookings/new` → `/app/bookings?new=true`)~~ (done 2026-02-27)
-- [ ] Test complete signup -> onboarding -> first call flow
+### P0 - CRITICAL: Onboarding Intelligence Overhaul
+**READ `.claude/docs/product-quality-mandate.md` BEFORE ANY WORK. Jack's direct feedback.**
+
+- [x] ~~**FIX RLS POLICIES**: user_roles and tenant_users missing SELECT policies. Super admin couldn't log in, onboarding couldn't create tenants.~~ (done 2026-02-28, migration: 20260228080000_fix_missing_rls_policies.sql)
+- [x] ~~**ONBOARDING INTELLIGENCE**: Industry intelligence layer shipped (2026-02-28). `isWorkStyleDeterministic()` skips obvious questions. `suppressedFor` hides irrelevant scenario questions. Work style auto-detected for home_services/beauty/medical/food/sales_dealerships. ModeAwareQuestions wired to Phase 1. walk-ins defaultValue fixed (was `true`, now `false`).~~
+- [ ] **INDUSTRY TERMINOLOGY**: Audit onboarding for industry-native words. Plumber: "jobs" not "appointments". Restaurant: "orders" not "bookings". Use `industryTerminology.ts` labels in Phase 3 and Phase 4 headers.
+- [ ] **REMOVE REDUNDANT QUESTIONS**: Verify no question appears twice across phases. Team size check: staff-scheduling scenario question is only occurrence (businessDetailsForm.teamSize not rendered).
+- [ ] **MAP QUESTIONS TO FEATURES**: Audit which scenario questions actually change AI behavior. Remove any that are purely cosmetic.
+- [ ] **INDUSTRY-SPECIFIC ONBOARDING**: Each industry should feel custom-built. Different questions, terminology, defaults, and examples per industry.
+- [ ] **VERIFY TENANT CREATION**: Test both quick and full onboarding paths end-to-end after RLS fixes.
+- [ ] **VERIFY SUPER ADMIN FLOW**: Login -> admin dashboard (not onboarding). Create test tenants. Switch between tenants and modes.
+
+### P0.5 - Previous Production Blockers (All Infrastructure Done)
+- [x] ~~All Supabase secrets, migrations, edge functions, Twilio, ElevenLabs, Stripe, Mapbox, Google Calendar~~ (done 2026-02-25)
+- [x] ~~Fix Quick Book button broken route~~ (done 2026-02-27)
 
 ### P1 - Launch Readiness
-- [x] ~~Regenerate Supabase types to eliminate `as any` casts~~ (done 2026-02-25, regenerated from new project)
-- [x] ~~Complete branding update across all UI components and edge functions~~ (done 2026-02-25)
-- [x] ~~Configure Stripe webhook endpoints (new project URL)~~ (done 2026-02-25)
-- [x] ~~Set up email delivery~~ (RESEND_API_KEY already configured on Supabase)
-- [ ] Set up production domain and SSL (or use Supabase URL for MVP)
+- [ ] Test complete signup -> onboarding -> first call flow (end-to-end)
+- [ ] Set up production domain and SSL (app.getfluxdata.com deployed, SSL active)
 
 ### P2 - Quality Improvements
-- [ ] Reduce ESLint warnings (1,752 → 0) by adding proper TypeScript types
 - [ ] Code-split BusinessBrainPage (871 kB) and AIAssistantPage (546 kB)
-- [ ] Add route-level auth guards (currently component-level only)
 - [ ] Add error boundaries to major page sections
-- [ ] Improve onboarding flow (7 phases may be too many)
+- [ ] Business Brain simplification (3-5 settings default, advanced hidden)
+- [ ] Dashboard polish (test call button, zero-state, mobile-first)
 
 ### P3 - Growth Features
 - [ ] Landing page optimization for conversions
 - [ ] Agency/reseller program launch
 - [ ] Demo profiles for sales calls
-- [ ] Customer testimonials and case studies
-- [ ] SEO optimization
 
 ## SECRETS STATUS (Supabase project yltzlvzgwkidbeqaoevp)
 

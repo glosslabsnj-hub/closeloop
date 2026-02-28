@@ -188,7 +188,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     label: "Walk-Ins Welcome",
     question: "Do you accept walk-in customers?",
     description: "Customers can show up without an appointment",
-    defaultValue: true,
+    defaultValue: false,  // Most businesses are by-appointment; beauty_wellness sets true via preAnswers
     group: "core",
     preAnsweredFor: { categories: ["beauty_wellness"] },
     // Suppress for industries where walk-ins is not a meaningful concept
