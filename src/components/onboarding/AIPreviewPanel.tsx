@@ -13,6 +13,7 @@ interface AIPreviewPanelProps {
   businessMode: BusinessMode;
   aiTone: AITone;
   customGreeting: string;
+  industrySlug?: string;
 }
 
 const TONE_GREETINGS: Record<AITone, (name: string) => string> = {
@@ -51,18 +52,38 @@ const TONE_RESPONSES: Record<AITone, Record<BusinessMode, string>> = {
   },
 };
 
-function getCallerMessage(mode: BusinessMode): string {
+/** Industry-specific caller messages for the preview conversation */
+const SLUG_CALLER_MESSAGES: Record<string, string> = {
+  plumbing: "Hi, I've got a leak under my kitchen sink. Can someone come take a look?",
+  hvac: "My AC isn't cooling. Can I get someone out to take a look?",
+  electrical: "I need some outlets installed in my garage. Can you help?",
+  "hair-salon": "Hi, I'd like to book a haircut and color for this Saturday.",
+  barbershop: "Hey, do you have any openings for a cut today?",
+  dental: "I'd like to schedule a cleaning and exam, please.",
+  chiropractic: "I've been having back pain. Can I get an adjustment?",
+  "house-cleaning": "I need a deep clean for my 3-bedroom house. Are you available this week?",
+  "auto-detailing": "I'd like to get a full detail on my SUV. What's your availability?",
+  landscaping: "I need my lawn mowed and some bushes trimmed. Can you come out?",
+  "pest-control": "I think I have a termite problem. Can you send someone to inspect?",
+  towing: "My car broke down on Highway 101. I need a tow.",
+  "massage-therapy": "I'd like to book a 60-minute deep tissue massage.",
+  veterinary: "My dog needs his annual checkup. Do you have any openings?",
+  pizza: "Hi, I'd like to place an order for pickup.",
+};
+
+function getCallerMessage(mode: BusinessMode, slug?: string): string {
+  if (slug && SLUG_CALLER_MESSAGES[slug]) return SLUG_CALLER_MESSAGES[slug];
   switch (mode) {
     case "food":
       return "Hi, I'd like to place an order for pickup.";
     case "dispatch":
       return "I need a tow truck. My car broke down on Highway 101.";
     case "medical":
-      return "I'd like to schedule an appointment with the doctor.";
+      return "I'd like to schedule a visit with the doctor.";
     case "sales":
       return "I'm interested in what you have available. Can you tell me more?";
     default:
-      return "I'd like to schedule an appointment, please.";
+      return "Hi, I'd like to schedule an appointment.";
   }
 }
 
@@ -71,6 +92,7 @@ export function AIPreviewPanel({
   businessMode,
   aiTone,
   customGreeting,
+  industrySlug,
 }: AIPreviewPanelProps) {
   const displayName = businessName || "Your Business";
 
@@ -79,7 +101,7 @@ export function AIPreviewPanel({
     return TONE_GREETINGS[aiTone](displayName);
   }, [customGreeting, aiTone, displayName]);
 
-  const callerMessage = useMemo(() => getCallerMessage(businessMode), [businessMode]);
+  const callerMessage = useMemo(() => getCallerMessage(businessMode, industrySlug), [businessMode, industrySlug]);
   const aiResponse = useMemo(() => TONE_RESPONSES[aiTone][businessMode] || TONE_RESPONSES[aiTone].general, [aiTone, businessMode]);
 
   return (

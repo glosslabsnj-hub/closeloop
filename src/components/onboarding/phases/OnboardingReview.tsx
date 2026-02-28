@@ -14,6 +14,7 @@ import { Check, Pencil, Sparkles, Rocket, AlertTriangle, X, Calendar, MessageSqu
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getIndustryTerminology, getBookingActionPhrase, getAutoBookSummary, getReadinessVerb } from "@/data/industryTerminology";
 import { estimateOnboardingReadiness, type ReadinessFlag } from "@/lib/estimateOnboardingReadiness";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { EditableService } from "@/components/onboarding/ServicePreviewStep";
@@ -91,6 +92,7 @@ interface AIKnowledgePreviewProps {
   customGreeting: string;
   serviceAreaRadius?: number;
   workStyle: WorkStyle;
+  industrySlug?: string;
 }
 
 const greetingByTone: Record<AITone, string> = {
@@ -105,12 +107,14 @@ const afterHoursSummary: Record<AfterHoursBehavior, string> = {
   text_back: "send callers your business hours by text",
 };
 
-const bookingSummary: Record<AIBookingMode, string> = {
-  auto_book: "book appointments automatically",
-  pending_approval: "collect details and wait for your approval",
-  suggest_callback: "suggest a time and you'll confirm",
-  callback_only: "collect info and you'll call back to confirm",
-};
+function getBookingSummary(mode: AIBookingMode, appointmentLabel: string): string {
+  switch (mode) {
+    case "auto_book": return getAutoBookSummary(appointmentLabel);
+    case "pending_approval": return "collect details and wait for your approval";
+    case "suggest_callback": return "suggest a time and you'll confirm";
+    case "callback_only": return "collect info and you'll call back to confirm";
+  }
+}
 
 function AIKnowledgePreview({
   businessName,
@@ -123,10 +127,14 @@ function AIKnowledgePreview({
   customGreeting,
   serviceAreaRadius,
   workStyle,
+  industrySlug,
 }: AIKnowledgePreviewProps) {
   const greeting = customGreeting || greetingByTone[aiTone].replace("{name}", businessName || "your business");
   const serviceNames = services.slice(0, 4).map(s => s.name).filter(Boolean);
   const moreServices = services.length > 4 ? ` +${services.length - 4} more` : "";
+  const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+  const terms = getIndustryTerminology(businessMode, industryEntry?.category, industrySlug);
+  const appointmentLabel = terms.appointmentLabel;
 
   const knowledgeBits: { icon: React.ReactNode; text: string }[] = [
     {
@@ -145,7 +153,7 @@ function AIKnowledgePreview({
   if (businessMode !== "dispatch" && businessMode !== "food") {
     knowledgeBits.push({
       icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
-      text: `When someone wants to book: will ${bookingSummary[bookingMode]}`,
+      text: `When someone wants to ${getBookingActionPhrase(appointmentLabel)}: will ${getBookingSummary(bookingMode, appointmentLabel)}`,
     });
   }
 
@@ -219,6 +227,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
   loading,
 }: OnboardingReviewProps) {
   const industryEntry = getIndustryBySlug(industrySlug);
+  const terms = getIndustryTerminology(businessMode, industryEntry?.category, industrySlug);
   const enabledServices = services.filter((s) => s.enabled);
 
   // Calculate real readiness score
@@ -315,6 +324,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
         customGreeting={customGreeting}
         serviceAreaRadius={serviceAreaRadius}
         workStyle={workStyle}
+        industrySlug={industrySlug}
       />
 
       {/* Setup Checklist */}
@@ -422,7 +432,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
           <Progress value={readiness} className={cn("h-2", progressColor)} />
           <div className="text-xs text-muted-foreground space-y-1">
             {readiness >= 85 ? (
-              <p>Your AI can answer calls, {businessMode === "food" ? "take orders" : businessMode === "dispatch" ? "dispatch jobs" : "book appointments"}, quote prices, and handle common questions.</p>
+              <p>Your AI can answer calls, {getReadinessVerb(terms.appointmentLabel)}, quote prices, and handle common questions.</p>
             ) : readiness >= 60 ? (
               <>
                 <p>Your AI can handle most calls. To make it even better:</p>
@@ -495,7 +505,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
                         <HelpCircle className="h-3 w-3 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="text-xs max-w-[200px]">Get a text when your AI books an appointment or captures a lead.</p>
+                        <p className="text-xs max-w-[200px]">Get a text when your AI handles a call or captures a lead.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>

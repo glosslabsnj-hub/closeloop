@@ -358,6 +358,35 @@ export type TerminologyKey = keyof Pick<
   "catalogCardTitle" | "faqsCardTitle" | "policiesCardTitle" | "coverageCardTitle" | "servicesCategoryTitle"
 >;
 
+// ---------------------------------------------------------------------------
+// Booking action helpers — used by onboarding UI to show industry-native verbs
+// ---------------------------------------------------------------------------
+
+const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string; readinessVerb: string }> = {
+  job: { actionPhrase: "schedule a job", autoSummary: "schedule jobs automatically", readinessVerb: "schedule jobs" },
+  reservation: { actionPhrase: "make a reservation", autoSummary: "take reservations automatically", readinessVerb: "take reservations" },
+  dispatch: { actionPhrase: "request service", autoSummary: "assign dispatches automatically", readinessVerb: "dispatch jobs" },
+  visit: { actionPhrase: "schedule a visit", autoSummary: "schedule visits automatically", readinessVerb: "schedule visits" },
+  session: { actionPhrase: "book a session", autoSummary: "book sessions automatically", readinessVerb: "book sessions" },
+  consultation: { actionPhrase: "schedule a consultation", autoSummary: "schedule consultations automatically", readinessVerb: "schedule consultations" },
+  appointment: { actionPhrase: "book an appointment", autoSummary: "book appointments automatically", readinessVerb: "book appointments" },
+};
+
+/** Returns phrasing like "schedule a job" or "book an appointment" based on appointmentLabel */
+export function getBookingActionPhrase(appointmentLabel: string): string {
+  return BOOKING_VERBS[appointmentLabel]?.actionPhrase ?? `book an ${appointmentLabel}`;
+}
+
+/** Returns phrasing like "schedule jobs automatically" for auto-book summary */
+export function getAutoBookSummary(appointmentLabel: string): string {
+  return BOOKING_VERBS[appointmentLabel]?.autoSummary ?? "book appointments automatically";
+}
+
+/** Returns phrasing like "schedule jobs" for readiness descriptions */
+export function getReadinessVerb(appointmentLabel: string): string {
+  return BOOKING_VERBS[appointmentLabel]?.readinessVerb ?? "book appointments";
+}
+
 /**
  * Resolve a Brain card or category title using industry terminology.
  * If the card has a titleKey, it resolves from terminology; otherwise falls back to the static title.

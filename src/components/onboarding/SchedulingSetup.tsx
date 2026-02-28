@@ -11,6 +11,8 @@ import {
   HOURS_24_7,
 } from "@/lib/hoursUtils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 
 export interface SchedulingPrefs {
   defaultDurationMinutes: number;
@@ -112,6 +114,7 @@ interface SchedulingSetupProps {
   prefs: SchedulingPrefs;
   onPrefsChange: (prefs: SchedulingPrefs) => void;
   scenarioAnswers?: Record<string, boolean>;
+  industrySlug?: string;
 }
 
 function formatDuration(mins: number): string {
@@ -172,9 +175,14 @@ export function SchedulingSetup({
   prefs,
   onPrefsChange,
   scenarioAnswers,
+  industrySlug,
 }: SchedulingSetupProps) {
   const isCallbackOnly = scenarioAnswers?.aiBooksDirect === false;
   const hasLongJobs = scenarioAnswers?.hasLongDurationJobs ?? false;
+  const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+  const terms = getIndustryTerminology(businessMode, industryEntry?.category, industrySlug);
+  const apptLabel = terms.appointmentLabel;
+  const apptLabelCap = apptLabel.charAt(0).toUpperCase() + apptLabel.slice(1);
 
   const update = <K extends keyof SchedulingPrefs>(key: K, val: SchedulingPrefs[K]) => {
     onPrefsChange({ ...prefs, [key]: val });
@@ -219,8 +227,8 @@ export function SchedulingSetup({
               <div>
                 <p className="font-medium text-sm">Callback-Only Mode</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Your AI will collect customer information and create callback requests. 
-                  You'll schedule appointments manually by calling them back. Just set your 
+                  Your AI will collect {terms.customerLabel} information and create callback requests.
+                  You'll schedule {apptLabel}s manually by calling them back. Just set your
                   business hours below so the AI knows when you're available.
                 </p>
               </div>
@@ -265,8 +273,8 @@ export function SchedulingSetup({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs">Default Appointment Duration</Label>
-                <WhyTooltip text="This sets how long the AI blocks on your calendar per booking. Pick your most common appointment length — you can always override per service later." />
+                <Label className="text-xs">Default {apptLabelCap} Duration</Label>
+                <WhyTooltip text={`This sets how long the AI blocks on your calendar per ${apptLabel}. Pick your most common ${apptLabel} length — you can always override per service later.`} />
               </div>
               <div className="flex flex-wrap gap-2">
                 {durationOptions.map((d) => (
@@ -289,7 +297,7 @@ export function SchedulingSetup({
 
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
-                <Label className="text-xs">Buffer Between Appointments</Label>
+                <Label className="text-xs">Buffer Between {apptLabelCap}s</Label>
                 <WhyTooltip text="Buffer time prevents back-to-back bookings. Use it for cleanup, travel, or prep. For example, a 30-minute buffer after a 3-hour detail gives you time to inspect the car and prep for the next one." />
               </div>
               <div className="flex flex-wrap gap-2">
@@ -318,9 +326,9 @@ export function SchedulingSetup({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="font-medium text-sm">Same-day booking</p>
-                    <WhyTooltip text="When enabled, callers can book an appointment for later today if you have open slots. Turn this off if you need lead time to prepare (e.g., ordering supplies, scheduling staff)." />
+                    <WhyTooltip text={`When enabled, callers can book a ${apptLabel} for later today if you have open slots. Turn this off if you need lead time to prepare (e.g., ordering supplies, scheduling staff).`} />
                   </div>
-                  <p className="text-xs text-muted-foreground">Allow customers to book appointments for today</p>
+                  <p className="text-xs text-muted-foreground">Allow {terms.customerLabel}s to book {apptLabel}s for today</p>
                 </div>
                 <Switch
                   checked={prefs.sameDayBooking}

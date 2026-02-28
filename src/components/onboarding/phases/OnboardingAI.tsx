@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { AITone, AIBookingMode } from "@/components/onboarding/CommunicationPreferences";
 import { AIPreviewPanel } from "@/components/onboarding/AIPreviewPanel";
-import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryTerminology, getBookingActionPhrase } from "@/data/industryTerminology";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 
 export type AfterHoursBehavior = "ai_24_7" | "voicemail" | "text_back";
@@ -85,6 +85,7 @@ export const OnboardingAI = React.memo(function OnboardingAI({
         businessMode={businessMode}
         aiTone={aiTone}
         customGreeting={customGreeting}
+        industrySlug={industrySlug}
       />
 
       {/* Tone Selection */}
@@ -129,7 +130,7 @@ export const OnboardingAI = React.memo(function OnboardingAI({
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">When someone wants to {bookingLabel === "job" ? "schedule a job" : bookingLabel === "reservation" ? "make a reservation" : bookingLabel === "dispatch" ? "request service" : "book"}:</p>
+              <p className="text-sm font-medium">When someone wants to {getBookingActionPhrase(bookingLabel)}:</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

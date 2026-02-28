@@ -49,7 +49,7 @@ function getNextSteps(
   steps.push({ label: "Make a test call to hear your AI", icon: PhoneIcon });
 
   if (!isCallbackOnly && (mode === "service" || mode === "medical" || mode === "sales")) {
-    steps.push({ label: "Connect your calendar for live booking", icon: Calendar });
+    steps.push({ label: "Connect your calendar for live scheduling", icon: Calendar });
   }
 
   if (mode === "dispatch") {

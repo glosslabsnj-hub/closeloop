@@ -81,7 +81,9 @@ export const OnboardingHoursArea = React.memo(function OnboardingHoursArea({
     ? "When do you take calls & dispatches?"
     : businessMode === "food"
       ? "When are you open for orders?"
-      : "When are you available?";
+      : businessMode === "medical"
+        ? "When do you see patients?"
+        : "When are you available?";
 
   return (
     <div className="space-y-8">

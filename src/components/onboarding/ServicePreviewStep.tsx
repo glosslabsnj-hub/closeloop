@@ -224,7 +224,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       </Button>
                     </div>
                     {service.priceType === "quote_only" && (
-                      <p className="text-[11px] text-muted-foreground">Your AI will tell callers that pricing depends on the job and offer to schedule an estimate.</p>
+                      <p className="text-[11px] text-muted-foreground">Your AI will tell callers that pricing varies and offer to schedule an estimate.</p>
                     )}
                   </div>
                 ) : (
