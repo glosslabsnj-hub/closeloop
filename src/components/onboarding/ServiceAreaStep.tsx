@@ -19,8 +19,26 @@ export interface ServiceAreaConfig {
   outOfAreaMessage: string;
 }
 
-export function getDefaultServiceArea(mode: BusinessMode): ServiceAreaConfig {
-  const radius = mode === "dispatch" ? 30 : mode === "food" ? 10 : 25;
+// Industry-specific default radius (miles) — based on typical service ranges
+const INDUSTRY_RADIUS: Record<string, number> = {
+  // Home services: typically drive 15-30 miles
+  plumbing: 20, hvac: 25, electrical: 20, roofing: 25, painting: 15,
+  "pest-control": 25, cleaning: 15, "lawn-care": 10, "general-contractor": 30,
+  "garage-door": 25, "appliance-repair": 20, "pool-service": 15, handyman: 15,
+  // Auto services
+  towing: 30, locksmith: 25, "mobile-mechanic": 20,
+  // Beauty/wellness (usually walk-in, but if mobile)
+  "hair-salon": 5, barbershop: 5, "nail-salon": 5, massage: 10,
+  "personal-trainer": 10, "pet-grooming": 10,
+  // Medical
+  dental: 10, chiropractic: 10, veterinary: 15,
+  // Food
+  pizza: 8, "food-truck": 10, catering: 30, bakery: 8,
+};
+
+export function getDefaultServiceArea(mode: BusinessMode, industrySlug?: string): ServiceAreaConfig {
+  const industryRadius = industrySlug ? INDUSTRY_RADIUS[industrySlug] : undefined;
+  const radius = industryRadius ?? (mode === "dispatch" ? 30 : mode === "food" ? 10 : 25);
   const msg =
     mode === "dispatch"
       ? "I'm sorry, that location is outside our coverage zone. Let me take your number and we'll see if we can help."
@@ -66,7 +84,7 @@ export function ServiceAreaStep({
 
       {/* Radius slider */}
       <div className="space-y-3">
-        <Label>Coverage Radius</Label>
+        <Label>How far do you travel to serve customers?</Label>
         <div className="flex items-center gap-4">
           <Slider
             value={[value.radiusMiles]}
@@ -80,6 +98,9 @@ export function ServiceAreaStep({
             {value.radiusMiles} miles
           </span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Your AI will ask callers for their location and check if they're within {value.radiusMiles} miles of your base.
+        </p>
       </div>
 
       {/* ZIP codes (optional) */}

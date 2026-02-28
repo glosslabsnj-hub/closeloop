@@ -224,14 +224,14 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
       {industrySlug && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">How do you work?</p>
+            <p className="text-sm font-medium">Where do your customers find you?</p>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-xs max-w-[200px]">This determines whether we set up service areas, coverage zones, or just a shop address.</p>
+                  <p className="text-xs max-w-[200px]">If you travel to customers, we'll set up a service area so your AI knows where you cover.</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

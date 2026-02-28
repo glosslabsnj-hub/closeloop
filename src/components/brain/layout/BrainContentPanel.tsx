@@ -5,12 +5,20 @@
  */
 
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, ChevronRight, Lightbulb, Sparkles, Info } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronRight, Lightbulb, Sparkles, Info, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 import type { BrainSectionItem } from "@/config/brainSectionRegistry";
 import type { ItemStatusInfo } from "@/hooks/useBrainItemStatuses";
 import type { SectionStatus } from "./SectionSummaryCard";
+
+/** Items that get auto-configured during onboarding based on industry template */
+const AUTO_CONFIGURED_ITEMS = new Set([
+  "business-info", "business-hours", "service-catalog", "catalog",
+  "faqs", "policies", "scripts", "ai-behavior-mode",
+  "service-area", "coverage-zone",
+]);
 
 interface BrainContentPanelProps {
   activeItem: BrainSectionItem | null;
@@ -53,11 +61,18 @@ export function BrainContentPanel({
   children,
 }: BrainContentPanelProps) {
   const [aiUsageOpen, setAiUsageOpen] = useState(false);
+  const { tenant } = useAuth();
 
   if (!activeItem) return null;
 
   const Icon = activeItem.icon;
   const badge = status ? STATUS_BADGE[status.status] : null;
+  const tenantIndustry = tenant?.industry as string | undefined;
+  const isSmartDefault = !!(
+    tenantIndustry &&
+    status?.status === "complete" &&
+    AUTO_CONFIGURED_ITEMS.has(activeItem.id)
+  );
 
   return (
     <div className="flex-1 min-w-0">
@@ -82,6 +97,12 @@ export function BrainContentPanel({
               {badge && (
                 <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", badge.className)}>
                   {badge.label}
+                </span>
+              )}
+              {isSmartDefault && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  <Zap className="h-3 w-3" />
+                  Auto-configured
                 </span>
               )}
             </div>

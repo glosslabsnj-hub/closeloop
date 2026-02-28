@@ -18,7 +18,7 @@ import type { EditablePolicies } from "@/components/onboarding/PolicyPreviewStep
 import type { EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
 import { getIndustryOnboardingConfig } from "@/config/industryOnboardingConfig";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
-import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getIndustryBySlug, getIndustryDefaultWorkStyle } from "@/data/industryCatalog";
 import { resolveIndustryTemplate } from "@/lib/templateResolver";
 import type { WorkStyle } from "@/components/onboarding/phases/OnboardingIdentity";
 import type { AfterHoursBehavior } from "@/components/onboarding/phases/OnboardingAI";
@@ -180,10 +180,10 @@ export function useOnboardingFormState(userId?: string) {
         refund: config.defaultPolicies?.refund || "",
       });
       setBusinessHours(getDefaultHoursForMode(newMode));
-      setServiceArea(getDefaultServiceArea(newMode as BusinessMode));
+      setServiceArea(getDefaultServiceArea(newMode as BusinessMode, industrySlug));
     }
-    if (newMode === "dispatch") setWorkStyle("go_to_customer");
-    else if (newMode === "food") setWorkStyle("customer_comes");
+    // Auto-infer work style from industry so user doesn't have to think about it
+    setWorkStyle(getIndustryDefaultWorkStyle(industrySlug));
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);
 
@@ -205,7 +205,7 @@ export function useOnboardingFormState(userId?: string) {
     setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
     setSchedulingPrefs(getDefaultSchedulingPrefs(mode, undefined, industrySlug));
     setBusinessHours(getDefaultHoursForMode(mode));
-    setServiceArea(getDefaultServiceArea(mode));
+    setServiceArea(getDefaultServiceArea(mode, industrySlug));
     const modePrefs = getDefaultCommunicationPrefs(mode);
     setAiTone(modePrefs.aiTone);
     setBookingMode(modePrefs.aiBookingMode);

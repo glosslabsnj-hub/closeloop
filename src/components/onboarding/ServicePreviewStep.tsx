@@ -74,6 +74,12 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
 
   const enabledCount = services.filter((s) => s.enabled).length;
   const enabledNoPriceCount = services.filter((s) => s.enabled && s.price === 0 && s.priceType !== "quote_only").length;
+  const allEnabled = services.length > 0 && enabledCount === services.length;
+  const noneEnabled = enabledCount === 0;
+
+  const toggleAll = (enabled: boolean) => {
+    onChange(services.map(s => ({ ...s, enabled })));
+  };
 
   return (
     <div className="space-y-6">
@@ -110,6 +116,37 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
             Tap a service to add a price, or mark it as "Quote only" if pricing varies.
             Your AI uses prices to give callers accurate quotes.
           </p>
+        </div>
+      )}
+
+      {/* Quick toggle all */}
+      {services.length > 2 && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {enabledCount} of {services.length} enabled
+          </span>
+          <div className="flex gap-2">
+            {!allEnabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={() => toggleAll(true)}
+              >
+                Enable all
+              </Button>
+            )}
+            {!noneEnabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs h-7 px-2 text-muted-foreground"
+                onClick={() => toggleAll(false)}
+              >
+                Disable all
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

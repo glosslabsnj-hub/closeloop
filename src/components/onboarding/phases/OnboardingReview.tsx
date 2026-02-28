@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Check, Pencil, Sparkles, Rocket, AlertTriangle, X, Calendar, MessageSquare, ArrowRight, HelpCircle } from "lucide-react";
+import { Check, Pencil, Sparkles, Rocket, AlertTriangle, X, Calendar, MessageSquare, ArrowRight, HelpCircle, Bot, Phone } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { getIndustryBySlug } from "@/data/industryCatalog";
@@ -77,6 +77,121 @@ interface OnboardingReviewProps {
   onGoLive: () => void;
   loading: boolean;
 }
+
+// ─── AI Knowledge Preview Component ────────────────────────────────────────
+
+interface AIKnowledgePreviewProps {
+  businessName: string;
+  businessMode: BusinessMode;
+  services: EditableService[];
+  aiTone: AITone;
+  afterHours: AfterHoursBehavior;
+  is24x7: boolean;
+  bookingMode: AIBookingMode;
+  customGreeting: string;
+  serviceAreaRadius?: number;
+  workStyle: WorkStyle;
+}
+
+const greetingByTone: Record<AITone, string> = {
+  professional: "Thank you for calling {name}. How may I assist you today?",
+  friendly: "Hi there! Thanks for calling {name}. How can I help you today?",
+  casual: "Hey! You've reached {name}. What can I do for you?",
+};
+
+const afterHoursSummary: Record<AfterHoursBehavior, string> = {
+  ai_24_7: "answer calls 24/7",
+  voicemail: "take a voicemail and you'll follow up",
+  text_back: "send callers your business hours by text",
+};
+
+const bookingSummary: Record<AIBookingMode, string> = {
+  auto_book: "book appointments automatically",
+  pending_approval: "collect details and wait for your approval",
+  suggest_callback: "suggest a time and you'll confirm",
+  callback_only: "collect info and you'll call back to confirm",
+};
+
+function AIKnowledgePreview({
+  businessName,
+  businessMode,
+  services,
+  aiTone,
+  afterHours,
+  is24x7,
+  bookingMode,
+  customGreeting,
+  serviceAreaRadius,
+  workStyle,
+}: AIKnowledgePreviewProps) {
+  const greeting = customGreeting || greetingByTone[aiTone].replace("{name}", businessName || "your business");
+  const serviceNames = services.slice(0, 4).map(s => s.name).filter(Boolean);
+  const moreServices = services.length > 4 ? ` +${services.length - 4} more` : "";
+
+  const knowledgeBits: { icon: React.ReactNode; text: string }[] = [
+    {
+      icon: <Phone className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />,
+      text: `Greeting: "${greeting}"`,
+    },
+  ];
+
+  if (serviceNames.length > 0) {
+    knowledgeBits.push({
+      icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
+      text: `Offers: ${serviceNames.join(", ")}${moreServices}`,
+    });
+  }
+
+  if (businessMode !== "dispatch" && businessMode !== "food") {
+    knowledgeBits.push({
+      icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
+      text: `When someone wants to book: will ${bookingSummary[bookingMode]}`,
+    });
+  }
+
+  if (!is24x7) {
+    knowledgeBits.push({
+      icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
+      text: `After hours: will ${afterHoursSummary[afterHours]}`,
+    });
+  } else {
+    knowledgeBits.push({
+      icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
+      text: "Available 24/7 — answers calls at any hour",
+    });
+  }
+
+  if ((workStyle === "go_to_customer" || workStyle === "both") && serviceAreaRadius) {
+    knowledgeBits.push({
+      icon: <Check className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />,
+      text: `Covers a ${serviceAreaRadius}-mile service area`,
+    });
+  }
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Bot className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold text-primary">Here's what your AI already knows</p>
+        </div>
+        <div className="space-y-2">
+          {knowledgeBits.map((bit, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              {bit.icon}
+              <p className="text-sm text-foreground/80 leading-snug">{bit.text}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground pt-1">
+          Fine-tune anything from your Business Brain after launch.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 
 export const OnboardingReview = React.memo(function OnboardingReview({
   businessName,
@@ -188,6 +303,20 @@ export const OnboardingReview = React.memo(function OnboardingReview({
         </CardContent>
       </Card>
 
+      {/* AI Knowledge Preview — "Here's what your AI knows" */}
+      <AIKnowledgePreview
+        businessName={businessName}
+        businessMode={businessMode}
+        services={enabledServices}
+        aiTone={aiTone}
+        afterHours={afterHours}
+        is24x7={is24x7}
+        bookingMode={bookingMode}
+        customGreeting={customGreeting}
+        serviceAreaRadius={serviceAreaRadius}
+        workStyle={workStyle}
+      />
+
       {/* Setup Checklist */}
       <Card>
         <CardContent className="p-5 space-y-4">
@@ -286,16 +415,25 @@ export const OnboardingReview = React.memo(function OnboardingReview({
               <Sparkles className="h-4 w-4 text-primary" />
               <p className="text-sm font-medium">AI Readiness</p>
             </div>
-            <span className={cn("text-sm font-semibold", scoreColor)}>{readiness}%</span>
+            <Badge variant={readiness >= 85 ? "default" : readiness >= 60 ? "secondary" : "destructive"} className="text-xs">
+              {readiness >= 85 ? "Ready to launch" : readiness >= 60 ? "Almost ready" : "Needs setup"}
+            </Badge>
           </div>
           <Progress value={readiness} className={cn("h-2", progressColor)} />
-          <p className="text-xs text-muted-foreground">
-            {readiness >= 85
-              ? "Your AI has everything it needs to handle calls effectively."
-              : readiness >= 60
-                ? "Your AI can handle most calls. You can improve this score anytime from your Business Brain."
-                : "Your AI needs a bit more info to handle calls well. Fix the items above to improve."}
-          </p>
+          <div className="text-xs text-muted-foreground space-y-1">
+            {readiness >= 85 ? (
+              <p>Your AI can answer calls, {businessMode === "food" ? "take orders" : businessMode === "dispatch" ? "dispatch jobs" : "book appointments"}, quote prices, and handle common questions.</p>
+            ) : readiness >= 60 ? (
+              <>
+                <p>Your AI can handle most calls. To make it even better:</p>
+                {p1Flags.length > 0 && (
+                  <p className="text-foreground/70">Add {p1Flags.map(f => f.label.toLowerCase().replace(/^add /, "").replace(/^customize /, "")).slice(0, 2).join(" and ")} from your Business Brain after launch.</p>
+                )}
+              </>
+            ) : (
+              <p>Your AI needs a bit more info to handle calls well. Fix the items above to improve.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
