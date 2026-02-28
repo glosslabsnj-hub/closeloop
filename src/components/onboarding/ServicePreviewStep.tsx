@@ -174,17 +174,39 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       onChange={(e) => updateService(idx, "name", e.target.value)}
                       placeholder={terms.itemNamePlaceholder}
                       autoFocus
-                      onBlur={() => setEditingIdx(null)}
-                      onKeyDown={(e) => e.key === "Enter" && setEditingIdx(null)}
                     />
+                    {/* Price type selector */}
+                    <div className="flex gap-1">
+                      {([
+                        { value: "fixed", label: "Exact price" },
+                        { value: "starting_at", label: "Starting at" },
+                        { value: "quote_only", label: "Varies / quote" },
+                      ] as const).map((pt) => (
+                        <button
+                          key={pt.value}
+                          type="button"
+                          className={cn(
+                            "text-[11px] px-2 py-1 rounded-md border transition-colors",
+                            service.priceType === pt.value
+                              ? "border-primary bg-primary/10 text-primary font-medium"
+                              : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
+                          )}
+                          onClick={() => updateService(idx, "priceType", pt.value)}
+                        >
+                          {pt.label}
+                        </button>
+                      ))}
+                    </div>
                     <div className="flex gap-2">
-                      <Input
-                        type="number"
-                        value={service.price}
-                        onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
-                        className="w-28"
-                        placeholder="Price"
-                      />
+                      {service.priceType !== "quote_only" && (
+                        <Input
+                          type="number"
+                          value={service.price}
+                          onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
+                          className="w-28"
+                          placeholder={service.priceType === "starting_at" ? "From $" : "Price"}
+                        />
+                      )}
                       <Input
                         type="number"
                         value={service.duration}
@@ -192,7 +214,18 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                         className="w-28"
                         placeholder="Duration (min)"
                       />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-9 px-3 shrink-0"
+                        onClick={() => setEditingIdx(null)}
+                      >
+                        Done
+                      </Button>
                     </div>
+                    {service.priceType === "quote_only" && (
+                      <p className="text-[11px] text-muted-foreground">Your AI will tell callers that pricing depends on the job and offer to schedule an estimate.</p>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -203,10 +236,12 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       {service.name || `New ${terms.serviceItemLabel}`}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {service.price > 0
+                      {service.priceType === "quote_only"
+                        ? "Pricing varies"
+                        : service.priceType === "starting_at" && service.price > 0
+                        ? `From $${service.price}`
+                        : service.price > 0
                         ? `$${service.price}`
-                        : service.priceType === "quote_only"
-                        ? "Quote only"
                         : "No price set"}
                       {" · "}
                       {service.duration >= 60
