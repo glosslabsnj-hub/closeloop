@@ -15,7 +15,7 @@ export function ServiceDashboardLayout({ quickBookLabel }: ServiceDashboardLayou
         <QuickActionButton
           label={quickBookLabel || "Quick Book"}
           description="Create a new booking"
-          href="/app/bookings/new"
+          href="/app/bookings?new=true"
           icon={CalendarPlus}
         />
       </div>

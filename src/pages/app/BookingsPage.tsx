@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -52,11 +53,18 @@ export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
   const { bookings, isLoading, error: bookingsError, _updateBooking, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
+  const [searchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("new") === "true") {
+      setCreateDialogOpen(true);
+    }
+  }, [searchParams]);
   const [selectedSlot, setSelectedSlot] = useState<{ date: Date; hour: number } | null>(null);
 
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
