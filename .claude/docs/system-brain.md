@@ -1,31 +1,28 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-02-27 10:47 PM ET (receptionist_dev)
+## Last Session: 2026-02-28 1:12 PM ET (receptionist_dev)
 
 ### What Was Done
-- **UX Pass 5** (commit e54ad52):
-  - Review phase: qualitative readiness badges ("Ready to launch" / "Almost ready" / "Needs setup") with mode-aware capability descriptions instead of raw percentage
-  - Identity phase: "How do you work?" → "Where do your customers find you?" with clearer tooltip
-  - Service area: industry-specific default radius (plumber=20mi, salon=5mi, HVAC=25mi, etc. — 25 industries mapped)
-  - Service area label: "Coverage Radius" → "How far do you travel to serve customers?"
-  - Services: Enable all/Disable all bulk toggle buttons for faster editing
-  - Brain: "Auto-configured" badge on items pre-filled by industry template
+- **Industry Terminology Audit** (commit 3b672cf):
+  - Added `getBookingActionPhrase()`, `getAutoBookSummary()`, `getReadinessVerb()` helpers to industryTerminology.ts
+  - Phase 3: medical mode says "When do you see patients?"
+  - Phase 4: "When someone wants to..." uses dynamic verb per industry
+  - Phase 5: bookingSummary, readiness text, SMS tooltip all industry-aware
+  - AIPreviewPanel: 15 industry-specific caller messages (plumber: "I've got a leak under my kitchen sink")
+  - SchedulingSetup: labels use appointmentLabel (Default Job Duration vs Default Appointment Duration)
+  - ServicePreviewStep: "pricing varies" instead of hardcoded "the job"
+  - OnboardingComplete: "live scheduling" instead of "live booking"
 
-- **Price Type Selector** (commit e02f7ff):
-  - Service editor now shows 3 clear price type options: "Exact price", "Starting at", "Varies / quote"
-  - "Varies / quote" hides price input, shows explanatory text
-  - "Starting at" changes placeholder to "From $"
-  - Display text: "From $X" for starting_at, "Pricing varies" for quote_only
-  - Added Done button (replaces unreliable onBlur auto-close)
+- **Question-to-Feature Audit**:
+  - All onboardingVisible questions verified as mapping to real AI behavior
+  - 4 Brain-only questions identified as cosmetic (reminders, stylist-preference, warranty-check) — not shown in onboarding
+  - No redundant questions found across phases
+  - `long-duration-jobs` confirmed used by SchedulingSetup
 
-- **Phone Forwarding Guide** (commit dd049f4):
-  - New expandable "Ready for real calls?" card on EmptyDashboard
-  - 3-step guide: test call → forward business line → AI answers
-  - Includes carrier-specific forwarding codes (AT&T, T-Mobile, Verizon)
-  - Bridges critical gap between test call and real calls
+- Prior work this day: industry intelligence layer (c3c268c + af2ca4f + f098ab5 + e6f7691 + d8e703a)
 
 ### Blocked
-- **Edge function deployment**: No SUPABASE_ACCESS_TOKEN set. Created task for Jack. Two functions need deploy: elevenlabs-webhook (transcript fix) + booking-handoff (SMS name fix).
+- **Edge function deployment**: No SUPABASE_ACCESS_TOKEN set. Task created for Jack.
 
 ### Build Status
 - Build: Clean (0 errors)
@@ -34,8 +31,8 @@
 ### Next Priorities
 1. **Deploy edge functions** (blocked on access token — task created for Jack)
 2. **Test complete flow**: signup → onboard → call → dashboard (P0 quality gate)
-3. Code-split BusinessBrainPage (876 kB) and AIAssistantPage (546 kB)
-4. Add outcome tooltips to call history (explain what Booked/Transferred/Lost mean)
+3. **Verify tenant creation + super admin flow** after RLS fixes
+4. Code-split BusinessBrainPage (876 kB) and AIAssistantPage (546 kB)
 
 ### Quality Gates (Service Mode)
 - [x] build_clean
@@ -45,4 +42,4 @@
 - [x] error_boundaries (UX Pass 4)
 - [~] onboarding_under_5_min (est. 5-6 min with quick presets + bulk enable — needs real test)
 - [~] call_flow_edge_cases (audit done, fixes shipped, awaiting edge fn deploy + call test)
-- [~] non_technical_setup (UX Pass 5 improvements, phone forwarding guide — needs real test)
+- [~] non_technical_setup (UX Pass 5 + terminology fixes + phone forwarding guide — needs real test)

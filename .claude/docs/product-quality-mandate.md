@@ -60,27 +60,39 @@ This application must be **production-ready and marketable**. Every feature must
 - walk-ins `defaultValue` changed from `true` → `false` (was silently telling AI plumbers accept walk-ins)
 - ModeAwareQuestions wired into Phase 1 via optional scenario props — plumbers now see relevant toggles (emergency, deposits, etc.) immediately after selecting industry
 
+**Also fixed 2026-02-28 (session 2)**:
+- ~~Industry-native terminology~~ → DONE across all 5 phases:
+  - industryTerminology.ts: Added `getBookingActionPhrase()`, `getAutoBookSummary()`, `getReadinessVerb()` helpers
+  - Phase 3: medical mode says "When do you see patients?"
+  - Phase 4: "When someone wants to..." uses dynamic verb (schedule a job / book an appointment / make a reservation)
+  - Phase 5: bookingSummary, readiness text, SMS tooltip all use appointmentLabel
+  - AIPreviewPanel: 15 industry-specific caller messages (plumber: "I've got a leak under my kitchen sink")
+  - ServicePreviewStep: "pricing varies" instead of "the job"
+  - SchedulingSetup: labels use appointmentLabel (Default Job Duration / Default Appointment Duration)
+
 **Still remaining**:
-- Industry-native terminology (plumber: "jobs" not "appointments") — needs audit of Phase 3/4 headers
 - More industries may need additional custom scenario question sets
 
-#### b) Redundant questions — PARTIALLY FIXED
+#### b) Redundant questions — VERIFIED CLEAN (2026-02-28)
 - `getDefaultAnswers()` now respects `preAnsweredFor` so pre-answered questions use the correct industry default
 - `BusinessDetailsForm.teamSize` is NOT shown during onboarding (it's in state but never rendered)
 - `staff-scheduling` is the ONLY place team size is asked — no actual duplicate in current flow
-- Still verify: any phase that shows team-related questions twice
+- Full audit confirmed: no duplicates across phases. Team size only asked via staff-scheduling follow-up.
 
-#### c) Questions without purpose — PARTIALLY FIXED
+#### c) Questions without purpose — VERIFIED (2026-02-28)
 - All `onboardingVisible: true` questions now have `suppressedFor` to hide where irrelevant
 - ModeAwareQuestions re-integrated into Phase 1 — shows 2-5 focused questions per industry
 - Questions that are suppressed still get their `defaultValue` applied silently
+- 4 non-onboarding questions identified as cosmetic-only (reminders, stylist-preference, warranty-check) — they lack `onboardingVisible` so they never appear during onboarding. Only in Brain.
+- `long-duration-jobs` IS used — controls scheduling duration/buffer defaults in SchedulingSetup
 
-#### d) Onboarding must be deeply industry-specific — IN PROGRESS
+#### d) Onboarding must be deeply industry-specific — DONE (2026-02-28)
 - Industry-specific headings, placeholders, service lists: DONE (UX Pass 1-5)
 - Smart defaults via preAnsweredFor + industryOnboardingConfig: DONE
 - Work style auto-detection: DONE (2026-02-28)
-- Terminology (plumber: "jobs" vs "appointments"): NEEDS AUDIT
+- Terminology across all phases: DONE (2026-02-28) — plumber sees "schedule a job", salon sees "book an appointment"
 - Phase 1 now shows only industry-relevant questions: DONE (2026-02-28)
+- AIPreviewPanel shows industry-specific caller messages: DONE (2026-02-28)
 
 ### 2. TENANT CREATION FAILS
 

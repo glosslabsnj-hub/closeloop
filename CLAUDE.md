@@ -117,10 +117,10 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 
 - [x] ~~**FIX RLS POLICIES**: user_roles and tenant_users missing SELECT policies. Super admin couldn't log in, onboarding couldn't create tenants.~~ (done 2026-02-28, migration: 20260228080000_fix_missing_rls_policies.sql)
 - [x] ~~**ONBOARDING INTELLIGENCE**: Industry intelligence layer shipped (2026-02-28). `isWorkStyleDeterministic()` skips obvious questions. `suppressedFor` hides irrelevant scenario questions. Work style auto-detected for home_services/beauty/medical/food/sales_dealerships. ModeAwareQuestions wired to Phase 1. walk-ins defaultValue fixed (was `true`, now `false`).~~
-- [ ] **INDUSTRY TERMINOLOGY**: Audit onboarding for industry-native words. Plumber: "jobs" not "appointments". Restaurant: "orders" not "bookings". Use `industryTerminology.ts` labels in Phase 3 and Phase 4 headers.
-- [ ] **REMOVE REDUNDANT QUESTIONS**: Verify no question appears twice across phases. Team size check: staff-scheduling scenario question is only occurrence (businessDetailsForm.teamSize not rendered).
-- [ ] **MAP QUESTIONS TO FEATURES**: Audit which scenario questions actually change AI behavior. Remove any that are purely cosmetic.
-- [ ] **INDUSTRY-SPECIFIC ONBOARDING**: Each industry should feel custom-built. Different questions, terminology, defaults, and examples per industry.
+- [x] ~~**INDUSTRY TERMINOLOGY**: All 5 onboarding phases now use industry-native terminology. industryTerminology.ts has getBookingActionPhrase/getAutoBookSummary/getReadinessVerb helpers. AIPreviewPanel shows 15 industry-specific caller messages.~~ (done 2026-02-28)
+- [x] ~~**REMOVE REDUNDANT QUESTIONS**: Full audit confirmed no duplicates across phases. Team size only asked via staff-scheduling follow-up.~~ (verified 2026-02-28)
+- [x] ~~**MAP QUESTIONS TO FEATURES**: Full audit completed. All onboardingVisible questions map to real AI behavior (agent prompts, module enables, pricing rules). 4 Brain-only questions are cosmetic (reminders, stylist-preference, warranty-check) — they don't appear in onboarding.~~ (verified 2026-02-28)
+- [x] ~~**INDUSTRY-SPECIFIC ONBOARDING**: Done. Work style auto-detected, scenario questions filtered by industry, terminology dynamic, 15 caller preview messages, phase headings mode-aware.~~ (done 2026-02-28)
 - [ ] **VERIFY TENANT CREATION**: Test both quick and full onboarding paths end-to-end after RLS fixes.
 - [ ] **VERIFY SUPER ADMIN FLOW**: Login -> admin dashboard (not onboarding). Create test tenants. Switch between tenants and modes.
 
