@@ -9,12 +9,12 @@
  * Backward-compatible URL aliases for all legacy section params.
  */
 
-import { useEffect, useMemo, useCallback } from "react";
+import { useEffect, useMemo, useCallback, lazy, Suspense } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { UtensilsCrossed } from "lucide-react";
+import { UtensilsCrossed, Loader2 } from "lucide-react";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -38,9 +38,8 @@ import {
 } from "@/config/brainSectionRegistry";
 import { getItemsForModeTab, getModeCategories } from "@/config/brainModeLayout";
 import { SECTION_GUIDANCE } from "@/config/brainGuidance";
-import { BrainSectionDetailHost } from "@/components/brain/BrainSectionDetailHost";
 
-// Layout components
+// Layout components (lightweight — no editor imports)
 import {
   AddOnGroup,
   HIPAAWarning,
@@ -55,20 +54,34 @@ import {
 // Dashboard components
 import { BrainDashboard } from "@/components/brain/dashboard/BrainDashboard";
 
-// Intelligence components
-import { IntelligenceDashboard } from "@/components/intelligence";
-
-// Workflow configuration
-import WorkflowConfigEditor from "@/components/brain/WorkflowConfigEditor";
-
-// Guided setup
-import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
-
 // Error boundary
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Tab-specific banner components
 import { QuoteReadinessCard } from "@/components/brain/editors/QuoteReadinessCard";
+
+// ─── Lazy-loaded heavy sub-views ────────────────────────────────────────────
+// These are code-split into separate chunks so the dashboard hub loads fast.
+// BrainSectionDetailHost pulls in all 50+ editors (~600 kB); IntelligenceDashboard
+// and WorkflowConfigEditor each have their own heavy dependency trees.
+const BrainSectionDetailHost = lazy(() =>
+  import("@/components/brain/BrainSectionDetailHost").then(m => ({ default: m.BrainSectionDetailHost }))
+);
+const IntelligenceDashboard = lazy(() =>
+  import("@/components/intelligence").then(m => ({ default: m.IntelligenceDashboard }))
+);
+const WorkflowConfigEditor = lazy(() =>
+  import("@/components/brain/WorkflowConfigEditor")
+);
+const GuidedSetupFlow = lazy(() =>
+  import("@/components/brain/guided/GuidedSetupFlow").then(m => ({ default: m.GuidedSetupFlow }))
+);
+
+const LazyFallback = () => (
+  <div className="flex items-center justify-center py-16">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 
 // ─── Section IDs ────────────────────────────────────────────────────────────
@@ -493,7 +506,9 @@ export default function BusinessBrainPage() {
           {/* ═══ GUIDED SETUP MODE ═══ */}
           {shouldShowGuided && (
             <ErrorBoundary>
-              <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
+              <Suspense fallback={<LazyFallback />}>
+                <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
+              </Suspense>
             </ErrorBoundary>
           )}
 
@@ -525,7 +540,9 @@ export default function BusinessBrainPage() {
                 exit="exit"
               >
                 <ErrorBoundary>
-                  <IntelligenceDashboard businessMode={businessMode} />
+                  <Suspense fallback={<LazyFallback />}>
+                    <IntelligenceDashboard businessMode={businessMode} />
+                  </Suspense>
                 </ErrorBoundary>
               </motion.div>
             )}
@@ -540,7 +557,9 @@ export default function BusinessBrainPage() {
                 exit="exit"
               >
                 <ErrorBoundary>
-                  <WorkflowConfigEditor />
+                  <Suspense fallback={<LazyFallback />}>
+                    <WorkflowConfigEditor />
+                  </Suspense>
                 </ErrorBoundary>
               </motion.div>
             )}
@@ -555,6 +574,7 @@ export default function BusinessBrainPage() {
                 exit="exit"
               >
                 <ErrorBoundary>
+                <Suspense fallback={<LazyFallback />}>
                 <BrainSectionDetailHost
                   activeSection={activeSection}
                   currentCategory={currentCategory}
@@ -575,6 +595,7 @@ export default function BusinessBrainPage() {
                   isFoodMode={isFoodMode}
                   isDispatchMode={isDispatchMode}
                 />
+                </Suspense>
                 </ErrorBoundary>
               </motion.div>
             )}

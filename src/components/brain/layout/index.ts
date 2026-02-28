@@ -33,7 +33,9 @@ export { BrainSidebarItem } from "./BrainSidebarItem";
 export { BrainSectionSidebar } from "./BrainSectionSidebar";
 export { BrainMobileItemList } from "./BrainMobileItemList";
 export { BrainContentPanel } from "./BrainContentPanel";
-export { BrainEditorRenderer } from "./BrainEditorRenderer";
+// BrainEditorRenderer intentionally NOT re-exported here — it's heavy (50+ editor imports)
+// and should be imported directly only by consumers that lazy-load it.
+// Direct import path: "@/components/brain/layout/BrainEditorRenderer"
 
 // Config exports
 export {
