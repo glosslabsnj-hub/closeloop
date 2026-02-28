@@ -2526,3 +2526,111 @@ export function getAllIndustrySlugs(): string[] {
 
 // Export catalog count for UI messaging
 export const INDUSTRY_COUNT = industryCatalog.length;
+
+/**
+ * Get the default work style for an industry.
+ * Used during onboarding to auto-select "How do you work?" so users
+ * don't have to think about it — just confirm or change if wrong.
+ *
+ * Logic: category-first with slug-level overrides for exceptions.
+ */
+export type WorkStyleDefault = "go_to_customer" | "customer_comes" | "both" | "online_remote";
+
+export function getIndustryDefaultWorkStyle(slug: string): WorkStyleDefault {
+  // Slug-level overrides (exceptions within a category)
+  const slugOverrides: Record<string, WorkStyleDefault> = {
+    // Auto services: mostly shops, but some are mobile
+    mobile_mechanic: "go_to_customer",
+    auto_detailing: "both",
+    auto_glass: "both",
+    // Professional services: can be remote
+    tutoring: "online_remote",
+    mental_health: "both",
+    financial_advisor: "online_remote",
+    accounting: "online_remote",
+    insurance: "online_remote",
+    "insurance-agency": "online_remote",
+    legal: "online_remote",
+    // Events: go to venue
+    photography: "both",
+    videography: "both",
+    dj: "go_to_customer",
+    wedding_planner: "both",
+    catering_service: "both",
+    // Fitness: depends
+    personal_training: "both",
+    "personal-training": "both",
+    // Dog walking goes to customer
+    dog_walking: "go_to_customer",
+    // IT services often both
+    "it-services": "both",
+  };
+
+  if (slugOverrides[slug]) return slugOverrides[slug];
+
+  // Category-level defaults
+  const entry = getIndustryBySlug(slug);
+  if (!entry) return "go_to_customer";
+
+  const categoryDefaults: Record<IndustryCategory, WorkStyleDefault> = {
+    home_services: "go_to_customer",
+    auto_services: "customer_comes",
+    beauty_wellness: "customer_comes",
+    health_medical: "customer_comes",
+    food_hospitality: "customer_comes",
+    dispatch_logistics: "go_to_customer",
+    professional_services: "customer_comes",
+    pet_services: "customer_comes",
+    events_entertainment: "both",
+    fitness_recreation: "customer_comes",
+    property_real_estate: "go_to_customer",
+    sales_dealerships: "customer_comes",
+    other: "customer_comes",
+  };
+
+  return categoryDefaults[entry.category] ?? "customer_comes";
+}
+
+/**
+ * Returns true when an industry's work style is ALWAYS the same — meaning
+ * we should skip the "Where do your customers find you?" question entirely
+ * and just auto-apply the known work style silently.
+ *
+ * Only mark an industry as deterministic when it NEVER varies within that
+ * industry type. e.g. plumbers ALWAYS go to the customer; hair salons ALWAYS
+ * have customers come to them. Auto-detailing VARIES (mobile vs shop), so it
+ * is NOT deterministic.
+ */
+export function isWorkStyleDeterministic(slug: string): boolean {
+  // Slugs that are genuinely non-deterministic (vary within the type)
+  const nondeterministicSlugs = new Set([
+    "auto_detailing", "auto-detailing",
+    "auto_glass", "auto-glass",
+    "personal_training", "personal-training",
+    "mental_health", "mental-health",
+    "photography",
+    "videography",
+    "dj",
+    "wedding_planner", "wedding-planner",
+    "catering_service", "catering-service",
+    "it_services", "it-services",
+    "cleaning", // some have fixed offices, some mobile-only
+    "mobile_mechanic", "mobile-mechanic",
+  ]);
+
+  if (nondeterministicSlugs.has(slug)) return false;
+
+  const entry = getIndustryBySlug(slug);
+  if (!entry) return false;
+
+  // These categories have a completely predictable work style for 95%+ of businesses
+  const deterministicCategories: IndustryCategory[] = [
+    "home_services",      // plumbing, HVAC, electrical, pest control → always go_to_customer
+    "food_hospitality",   // restaurants, pizza → always customer_comes
+    "beauty_wellness",    // salons, barbershops, nail salons → always customer_comes
+    "health_medical",     // dental, chiropractic, veterinary → always customer_comes
+    "sales_dealerships",  // car dealers → always customer_comes
+  ];
+
+  return deterministicCategories.includes(entry.category);
+}

@@ -49,7 +49,14 @@ export interface ScenarioQuestion {
   impliesModules?: string[];   // Auto-enable these modules when true
   overridesBase?: boolean;     // When true and answer is false, removes impliedModules even from base set
   showWhen?: { capabilityKey: string; value: boolean };  // conditional visibility
-  industryFilter?: { categories?: string[]; slugs?: string[] };  // industry-gated
+  industryFilter?: { categories?: string[]; slugs?: string[] };  // industry-gated (allowlist)
+  /**
+   * Industries for which this question is IRRELEVANT — it will be hidden AND
+   * its answer will be silently set to the question's defaultValue.
+   * Example: "Do customers leave items?" is suppressed for home_services (plumbers,
+   * HVAC, electricians) because they never hold customer property.
+   */
+  suppressedFor?: { categories?: string[]; slugs?: string[] };
   group?: QuestionGroup;       // visual grouping
   requiredForAI?: boolean;     // shows "AI uses this" badge
   preAnsweredFor?: { slugs?: string[]; categories?: string[] };  // pre-checked for these industries
@@ -102,7 +109,19 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "You travel to the customer's location to perform work",
     defaultValue: false,
     group: "core",
-    preAnsweredFor: { categories: ["home_services"] },
+    preAnsweredFor: { categories: ["home_services", "dispatch_logistics"] },
+    // Suppress for industries where the work style is obvious (known at industry-selection time)
+    suppressedFor: {
+      categories: [
+        "home_services",        // plumbers, HVAC, electricians ALWAYS go on-site — no need to ask
+        "dispatch_logistics",   // towing, delivery ALWAYS go to customer
+        "beauty_wellness",      // salons, barbershops NEVER go to customer
+        "health_medical",       // dentists, vets NEVER go to customer
+        "food_hospitality",     // restaurants NEVER go to customer
+        "sales_dealerships",    // car dealers NEVER go to customer
+        "fitness_recreation",   // gyms NEVER go to customer
+      ],
+    },
     onboardingVisible: true,
     followUp: {
       fields: [
@@ -172,6 +191,15 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: true,
     group: "core",
     preAnsweredFor: { categories: ["beauty_wellness"] },
+    // Suppress for industries where walk-ins is not a meaningful concept
+    suppressedFor: {
+      categories: [
+        "home_services",      // plumbers/HVAC don't have walk-ins — they're called first
+        "dispatch_logistics", // towing companies don't have walk-ins
+        "food_hospitality",   // restaurants handle walk-ins differently (separate reservations system)
+        "health_medical",     // medical offices handle walk-ins separately
+      ],
+    },
     onboardingVisible: true,
   },
   // New questions
@@ -339,6 +367,17 @@ const serviceQuestions: ScenarioQuestion[] = [
     preAnsweredFor: {
       slugs: ["auto-repair", "computer-repair", "appliance-repair", "jewelry-repair", "watch-repair", "dry-cleaning", "tailor"],
       categories: ["automotive_services", "repair_services"],
+    },
+    // Suppress for industries where customers NEVER leave items (on-site service businesses)
+    suppressedFor: {
+      categories: [
+        "home_services",      // plumbers, HVAC, electricians — customers don't leave items
+        "dispatch_logistics", // towing, delivery — no drop-off model
+        "beauty_wellness",    // salons — customers sit in chair, don't leave items
+        "food_hospitality",   // restaurants — no drop-off
+        "fitness_recreation", // gyms — no drop-off
+        "health_medical",     // medical — no item drop-off
+      ],
     },
     onboardingVisible: true,
   },
@@ -1075,11 +1114,20 @@ export function getQuestionsForMode(
   if (!industryContext) return all;
 
   return all.filter((q) => {
-    if (!q.industryFilter) return true;
+    // industryFilter is an allowlist — only show for matching industries
+    if (q.industryFilter) {
+      const { categories, slugs } = q.industryFilter;
+      if (categories && !categories.includes(industryContext.category)) return false;
+      if (slugs && !slugs.includes(industryContext.slug)) return false;
+    }
 
-    const { categories, slugs } = q.industryFilter;
-    if (categories && !categories.includes(industryContext.category)) return false;
-    if (slugs && !slugs.includes(industryContext.slug)) return false;
+    // suppressedFor is a blocklist — hide for these industries (answer applied silently)
+    if (q.suppressedFor) {
+      const { categories, slugs } = q.suppressedFor;
+      if (categories?.includes(industryContext.category)) return false;
+      if (slugs?.includes(industryContext.slug)) return false;
+    }
+
     return true;
   });
 }
@@ -1117,7 +1165,9 @@ export function deriveModulesFromScenario(
 }
 
 /**
- * Builds the initial scenario answers from question defaults for a mode
+ * Builds the initial scenario answers from question defaults for a mode.
+ * Respects `preAnsweredFor`: if an industry matches, the answer is set to `true`
+ * instead of the question's base defaultValue.
  */
 export function getDefaultAnswers(
   mode: BusinessMode,
@@ -1126,7 +1176,9 @@ export function getDefaultAnswers(
   const questions = getQuestionsForMode(mode, industryContext);
   const answers: Record<string, boolean> = {};
   for (const q of questions) {
-    answers[q.capabilityKey] = q.defaultValue;
+    // If this industry has a known answer for this question, apply it
+    const preAnswered = industryContext ? isPreAnswered(q, industryContext) : false;
+    answers[q.capabilityKey] = preAnswered ? true : q.defaultValue;
   }
   return answers;
 }

@@ -9,14 +9,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { HelpCircle, Globe, Check, Phone } from "lucide-react";
+import { HelpCircle, Globe, Check, Phone, ChevronDown, Zap, MapPin, Building2 } from "lucide-react";
 import { IndustrySelectorGrid } from "@/components/onboarding/IndustrySelectorGrid";
 import { BusinessModeSelector, type BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import { FieldErrorMessage } from "@/components/onboarding/FieldErrorMessage";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useState } from "react";
-import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getIndustryBySlug, isWorkStyleDeterministic, getIndustryDefaultWorkStyle } from "@/data/industryCatalog";
 import type { WorkStyle } from "./OnboardingHowYouWork";
+import { ModeAwareQuestions } from "@/components/onboarding/ModeAwareQuestions";
 
 // Re-export WorkStyle for backward compatibility
 export type { WorkStyle } from "./OnboardingHowYouWork";
@@ -27,6 +28,14 @@ const workStyleOptions: { value: WorkStyle; label: string; description: string }
   { value: "both", label: "Both", description: "Shop + mobile services" },
   { value: "online_remote", label: "Online / Remote", description: "Virtual or phone-based" },
 ];
+
+/** Human-readable description for each work style (shown in auto-set badge) */
+const WORK_STYLE_AUTO_DESCRIPTIONS: Record<WorkStyle, string> = {
+  go_to_customer: "You travel to your customers' location",
+  customer_comes: "Customers visit your shop, office, or location",
+  both: "Mix of shop-based and on-site / mobile work",
+  online_remote: "Fully remote or phone-based — no physical location required",
+};
 
 interface OnboardingIdentityProps {
   businessName: string;
@@ -44,6 +53,10 @@ interface OnboardingIdentityProps {
   onOtherDescriptionChange?: (desc: string) => void;
   onWebsiteImport?: () => void;
   websiteImportActive?: boolean;
+  scenarioAnswers?: Record<string, boolean>;
+  onScenarioAnswersChange?: (answers: Record<string, boolean>) => void;
+  scenarioDetails?: Record<string, string>;
+  onScenarioDetailsChange?: (details: Record<string, string>) => void;
 }
 
 export const OnboardingIdentity = React.memo(function OnboardingIdentity({
@@ -59,13 +72,20 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
   onWorkStyleChange,
   getFieldError,
   otherDescription,
+  scenarioAnswers,
+  onScenarioAnswersChange,
+  scenarioDetails,
+  onScenarioDetailsChange,
   onOtherDescriptionChange,
   onWebsiteImport,
   websiteImportActive,
 }: OnboardingIdentityProps) {
   const [showModeFallback, setShowModeFallback] = useState(false);
+  // Allow overriding the auto-detected work style for edge cases
+  const [showWorkStyleOverride, setShowWorkStyleOverride] = useState(false);
 
   const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+  const workStyleIsDeterministic = industrySlug ? isWorkStyleDeterministic(industrySlug) : false;
 
   // Dynamic placeholder using industry catalog name
   const SLUG_PLACEHOLDERS: Record<string, string> = {
@@ -137,6 +157,7 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
           onChange={(slug) => {
             onIndustryChange(slug);
             setShowModeFallback(false);
+            setShowWorkStyleOverride(false); // reset when industry changes
           }}
           otherDescription={otherDescription}
           onOtherDescriptionChange={onOtherDescriptionChange}
@@ -220,47 +241,105 @@ export const OnboardingIdentity = React.memo(function OnboardingIdentity({
         />
       </div>
 
-      {/* Work Style — moved from former Phase 2 */}
+      {/* Work Style — auto-detected for known industries, asked only for ambiguous ones */}
       {industrySlug && (
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium">Where do your customers find you?</p>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs max-w-[200px]">If you travel to customers, we'll set up a service area so your AI knows where you cover.</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {workStyleOptions.map((opt) => (
-              <Card
-                key={opt.value}
-                className={cn(
-                  "cursor-pointer transition-all",
-                  workStyle === opt.value
-                    ? "border-primary bg-primary/5"
-                    : "hover:bg-muted/50"
+          {isWorkStyleDeterministic(industrySlug) && !showWorkStyleOverride ? (
+            /* Auto-configured: don't ask the obvious question */
+            <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+              <div className="mt-0.5 shrink-0">
+                {getIndustryDefaultWorkStyle(industrySlug) === "go_to_customer" ? (
+                  <MapPin className="h-4 w-4 text-primary" />
+                ) : (
+                  <Building2 className="h-4 w-4 text-primary" />
                 )}
-                onClick={() => onWorkStyleChange(opt.value)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium">
+                    {getIndustryDefaultWorkStyle(industrySlug) === "go_to_customer"
+                      ? "You travel to your customers"
+                      : getIndustryDefaultWorkStyle(industrySlug) === "customer_comes"
+                      ? "Customers come to your location"
+                      : "Remote / Online"}
+                  </p>
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-1">
+                    <Zap className="h-2.5 w-2.5" />
+                    Auto-detected
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {getIndustryDefaultWorkStyle(industrySlug) === "go_to_customer"
+                    ? `We've set up service area coverage for your ${industryEntry?.name?.toLowerCase() ?? "business"}`
+                    : `Your ${industryEntry?.name?.toLowerCase() ?? "business"} address will be shown to callers`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWorkStyleOverride(true)}
+                className="shrink-0 text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5"
+                aria-label="Change work style"
               >
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{opt.label}</p>
-                    <p className="text-xs text-muted-foreground">{opt.description}</p>
-                  </div>
-                  {workStyle === opt.value && (
-                    <Check className="h-4 w-4 text-primary shrink-0" />
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                <span className="hidden sm:inline">Change</span>
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            /* Non-deterministic or override: show the full selector */
+            <>
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">Where do your customers find you?</p>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs max-w-[200px]">If you travel to customers, we'll set up a service area so your AI knows where you cover.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {workStyleOptions.map((opt) => (
+                  <Card
+                    key={opt.value}
+                    className={cn(
+                      "cursor-pointer transition-all",
+                      workStyle === opt.value
+                        ? "border-primary bg-primary/5"
+                        : "hover:bg-muted/50"
+                    )}
+                    onClick={() => onWorkStyleChange(opt.value)}
+                  >
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{opt.label}</p>
+                        <p className="text-xs text-muted-foreground">{opt.description}</p>
+                      </div>
+                      {workStyle === opt.value && (
+                        <Check className="h-4 w-4 text-primary shrink-0" />
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
         </div>
+      )}
+
+      {/* Industry-specific quick questions — only shown after industry is selected,
+          only shows questions relevant to this industry (suppressedFor + onboardingVisible filter) */}
+      {industrySlug && onScenarioAnswersChange && (
+        <ModeAwareQuestions
+          businessMode={businessMode}
+          industrySlug={industrySlug}
+          scenarioAnswers={scenarioAnswers ?? {}}
+          onScenarioAnswersChange={onScenarioAnswersChange}
+          scenarioDetails={scenarioDetails ?? {}}
+          onScenarioDetailsChange={onScenarioDetailsChange ?? (() => {})}
+        />
       )}
     </div>
   );
