@@ -42,7 +42,7 @@ This application must be **production-ready and marketable**. Every feature must
 
 ### 1. ONBOARDING - Broken and Unintelligent
 
-**Status**: SUBSTANTIALLY FIXED (2026-02-28) — Industry intelligence layer shipped (commits c3c268c + af2ca4f)
+**Status**: SUBSTANTIALLY FIXED (2026-02-28) — Industry intelligence layer shipped (commits c3c268c + af2ca4f + phase-2 suppressions)
 
 **Problems identified by Jack**:
 
@@ -51,8 +51,10 @@ This application must be **production-ready and marketable**. Every feature must
   → Work style now AUTO-DETECTED for home_services, beauty_wellness, health_medical, food_hospitality, etc.
   → Shows "Auto-detected: You travel to your customers" badge + "Change" escape hatch for edge cases
 - ~~Asks a plumber "Do customers leave items with you for an extended period?" - that's for repair shops~~
-  → `suppressedFor` field added to ScenarioQuestion: job-tracking suppressed for home_services, beauty_wellness, food_hospitality, dispatch_logistics, health_medical, fitness_recreation
+  → `suppressedFor` field added to ScenarioQuestion: job-tracking suppressed for home_services, beauty_wellness, food_hospitality, dispatch_logistics, health_medical, fitness_recreation, professional_services, events_entertainment, property_real_estate
   → "Mobile / On-Site Service" question also suppressed for all industries where it's obvious
+  → "Same-Day / Emergency" suppressed for beauty_wellness, fitness_recreation, events_entertainment (no emergency concept for salons/gyms/photographers)
+  → "Walk-Ins Welcome" suppressed for events_entertainment, property_real_estate (appointment-only by nature)
 
 **Also fixed this session**:
 - walk-ins `defaultValue` changed from `true` → `false` (was silently telling AI plumbers accept walk-ins)

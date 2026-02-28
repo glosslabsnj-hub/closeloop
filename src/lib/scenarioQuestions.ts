@@ -139,6 +139,14 @@ const serviceQuestions: ScenarioQuestion[] = [
     defaultValue: false,
     group: "core",
     preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith"] },
+    // Suppress for industries where "emergency" is not a meaningful service concept
+    suppressedFor: {
+      categories: [
+        "beauty_wellness",       // salons — walk-ins covers same-day; no "emergency" haircuts
+        "fitness_recreation",    // gyms/trainers — no emergency workout scenarios
+        "events_entertainment",  // photographers/DJs — no emergency gigs
+      ],
+    },
     onboardingVisible: true,
     followUp: {
       fields: [
@@ -194,10 +202,12 @@ const serviceQuestions: ScenarioQuestion[] = [
     // Suppress for industries where walk-ins is not a meaningful concept
     suppressedFor: {
       categories: [
-        "home_services",      // plumbers/HVAC don't have walk-ins — they're called first
-        "dispatch_logistics", // towing companies don't have walk-ins
-        "food_hospitality",   // restaurants handle walk-ins differently (separate reservations system)
-        "health_medical",     // medical offices handle walk-ins separately
+        "home_services",         // plumbers/HVAC don't have walk-ins — they're called first
+        "dispatch_logistics",    // towing companies don't have walk-ins
+        "food_hospitality",      // restaurants handle walk-ins differently (separate reservations system)
+        "health_medical",        // medical offices handle walk-ins separately
+        "events_entertainment",  // wedding photographers/DJs are purely by-appointment
+        "property_real_estate",  // real estate agents work by appointment only
       ],
     },
     onboardingVisible: true,
@@ -371,12 +381,15 @@ const serviceQuestions: ScenarioQuestion[] = [
     // Suppress for industries where customers NEVER leave items (on-site service businesses)
     suppressedFor: {
       categories: [
-        "home_services",      // plumbers, HVAC, electricians — customers don't leave items
-        "dispatch_logistics", // towing, delivery — no drop-off model
-        "beauty_wellness",    // salons — customers sit in chair, don't leave items
-        "food_hospitality",   // restaurants — no drop-off
-        "fitness_recreation", // gyms — no drop-off
-        "health_medical",     // medical — no item drop-off
+        "home_services",         // plumbers, HVAC, electricians — customers don't leave items
+        "dispatch_logistics",    // towing, delivery — no drop-off model
+        "beauty_wellness",       // salons — customers sit in chair, don't leave items
+        "food_hospitality",      // restaurants — no drop-off
+        "fitness_recreation",    // gyms — no drop-off
+        "health_medical",        // medical — no item drop-off
+        "professional_services", // lawyers/accountants — no physical item drop-offs
+        "events_entertainment",  // photographers/DJs — no item drop-offs
+        "property_real_estate",  // real estate agents — no item drop-offs
       ],
     },
     onboardingVisible: true,
