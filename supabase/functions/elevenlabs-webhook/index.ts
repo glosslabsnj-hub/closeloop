@@ -487,9 +487,29 @@ serve(async (req) => {
       .eq("elevenlabs_conversation_id", payload.conversation_id)
       .single();
 
-    // P0-4: Check ended_at alone. Previously required BOTH transcript AND ended_at,
-    // which allowed duplicate processing when first webhook had null transcript.
+    // Idempotency: skip full re-processing if already ended.
+    // But if the existing session is missing its transcript and this webhook has one,
+    // do a targeted transcript-only update (don't re-run the full pipeline which would
+    // create duplicate bookings/jobs).
     if (existingSession?.ended_at) {
+      if (!existingSession.transcript && payload.transcript?.length) {
+        const lateTranscript = payload.transcript
+          .map((t: { role: string; message: string }) => `${t.role === "user" ? "Customer" : "AI"}: ${t.message}`)
+          .join("\n");
+        await supabase
+          .from("ai_call_sessions")
+          .update({ transcript: lateTranscript })
+          .eq("id", existingSession.id);
+        console.log(`Late transcript update for conversation ${conversationId} (${payload.transcript.length} turns)`);
+        await logEventStage(supabase, "unknown", existingSession.id, null, conversationId, "webhook_late_transcript", {
+          existing_session_id: existingSession.id,
+          transcript_turns: payload.transcript.length,
+        });
+        return new Response(
+          JSON.stringify({ status: "updated", reason: "late_transcript", session_id: existingSession.id }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       console.log(`Duplicate webhook detected for conversation ${conversationId} - already processed`);
       await logEventStage(supabase, "unknown", existingSession.id, null, conversationId, "webhook_duplicate_skipped", {
         existing_session_id: existingSession.id,

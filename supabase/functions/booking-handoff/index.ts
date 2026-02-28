@@ -479,7 +479,7 @@ serve(async (req) => {
 
           const message = template
             .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
-            .replace(/\{\{business_name\}\}/g, tenantData?.name || "")
+            .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
             .replace(/\{\{service_name\}\}/g, booking.service?.name || "your appointment")
             .replace(/\{\{appointment_time\}\}/g, startTime)
             .replace(/\{\{appointment_date\}\}/g, startDate);

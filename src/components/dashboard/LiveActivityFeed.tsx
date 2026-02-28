@@ -18,6 +18,7 @@ import {
   ArrowRight,
   FlaskConical,
   Inbox,
+  Clock,
 } from "lucide-react";
 
 interface ActivityItem {
@@ -25,9 +26,34 @@ interface ActivityItem {
   type: "call" | "booking" | "order" | "dispatch" | "sms";
   title: string;
   subtitle: string;
+  detail?: string;
+  duration?: string;
   time: string;
   timestamp: Date;
   status?: "success" | "warning" | "info";
+}
+
+/** Extract the single most useful detail from a call's extracted_payload */
+function extractKeyDetail(payload: Record<string, unknown> | null | undefined): string | null {
+  if (!payload || typeof payload !== "object") return null;
+  const parts: string[] = [];
+  const name = payload.customer_name ?? payload.name ?? payload.caller_name;
+  if (typeof name === "string" && name.trim()) parts.push(name.trim());
+  const service = payload.service ?? payload.service_type ?? payload.service_name;
+  if (typeof service === "string" && service.trim()) parts.push(service.trim());
+  const time = payload.booking_time ?? payload.appointment_time ?? payload.preferred_time;
+  if (typeof time === "string" && time.trim()) parts.push(time.trim());
+  return parts.length > 0 ? parts.join(" · ") : null;
+}
+
+/** Format call duration from start/end timestamps */
+function formatCallDuration(startedAt: string, endedAt: string | null): string | undefined {
+  if (!endedAt) return undefined;
+  const seconds = Math.floor((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000);
+  if (seconds < 0) return undefined;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return mins === 0 ? `${secs}s` : `${mins}m ${secs}s`;
 }
 
 export function LiveActivityFeed() {
@@ -58,7 +84,7 @@ export function LiveActivityFeed() {
 
       const { data: calls } = await supabase
         .from("ai_call_sessions")
-        .select("id, caller_phone, outcome, started_at, summary")
+        .select("id, caller_phone, outcome, started_at, ended_at, summary, extracted_payload")
         .eq("tenant_id", tenant.id)
         .order("started_at", { ascending: false })
         .limit(5);
@@ -66,22 +92,31 @@ export function LiveActivityFeed() {
       calls?.forEach((call) => {
         const phone = call.caller_phone || "Unknown";
         const displayPhone = phone.length > 8 ? `${phone.slice(0, 3)}...${phone.slice(-4)}` : phone;
-        // Show a meaningful title based on what the AI actually did
-        const outcomeLabel = call.outcome === 'booked' ? 'Booked'
+        const outcomeLabel = call.outcome === 'booked' ? 'Appointment Booked'
           : call.outcome === 'voicemail' ? 'Voicemail'
-          : call.outcome === 'transferred' ? 'Transferred'
+          : call.outcome === 'transferred' ? 'Transferred to Staff'
           : call.outcome === 'cancelled' ? 'Cancelled'
-          : call.outcome === 'dispatched' ? 'Dispatched'
-          : 'Answered';
+          : call.outcome === 'dispatched' ? 'Job Dispatched'
+          : call.outcome === 'order' ? 'Order Taken'
+          : call.outcome === 'lead_captured' ? 'Lead Captured'
+          : call.outcome === 'followup' ? 'Follow-up Needed'
+          : call.outcome === 'escalated' ? 'Escalated'
+          : call.outcome === 'lost' ? 'Lost'
+          : 'Call Handled';
+        const keyDetail = extractKeyDetail(call.extracted_payload as Record<string, unknown> | null);
+        const dur = formatCallDuration(call.started_at, call.ended_at);
         results.push({
           id: `call-${call.id}`,
           type: "call",
-          title: `Call ${outcomeLabel}`,
-          subtitle: call.summary?.slice(0, 80) || `From: ${displayPhone}`,
+          title: outcomeLabel,
+          subtitle: keyDetail || call.summary?.slice(0, 80) || `From: ${displayPhone}`,
+          detail: keyDetail ? (call.summary?.slice(0, 60) || undefined) : undefined,
+          duration: dur,
           time: formatDistanceToNow(new Date(call.started_at), { addSuffix: true }),
           timestamp: new Date(call.started_at),
-          status: call.outcome === 'booked' || call.outcome === 'dispatched' ? 'success'
-            : call.outcome === 'voicemail' ? 'warning'
+          status: call.outcome === 'booked' || call.outcome === 'dispatched' || call.outcome === 'order' ? 'success'
+            : call.outcome === 'voicemail' || call.outcome === 'followup' || call.outcome === 'lead_captured' ? 'warning'
+            : call.outcome === 'lost' ? 'warning'
             : 'info',
         });
       });
@@ -253,8 +288,19 @@ export function LiveActivityFeed() {
                       )}
                     </div>
                     <p className="text-[13px] text-muted-foreground truncate">{item.subtitle}</p>
+                    {item.detail && (
+                      <p className="text-[11px] text-muted-foreground/50 truncate">{item.detail}</p>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground/60 shrink-0 mt-0.5">{item.time}</p>
+                  <div className="flex flex-col items-end shrink-0 mt-0.5 gap-0.5">
+                    <p className="text-[11px] text-muted-foreground/60">{item.time}</p>
+                    {item.duration && (
+                      <span className="text-[10px] text-muted-foreground/40 flex items-center gap-0.5">
+                        <Clock className="h-2.5 w-2.5" />
+                        {item.duration}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}

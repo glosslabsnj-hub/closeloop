@@ -78,6 +78,20 @@ export function useOnboardingSubmit(userId?: string) {
       return;
     }
     setLoading(true);
+    setCompletionError(null);
+
+    // Collect non-critical step failures (steps 2-16) instead of silently swallowing them.
+    // Design: always proceed to dashboard — partial config is fixable in the Brain,
+    // but a stuck onboarding screen is a dead end.
+    const stepFailures: string[] = [];
+    const runStep = async (name: string, fn: () => Promise<void>) => {
+      try { await fn(); }
+      catch (e) {
+        console.error(`Onboarding [${name}]:`, e);
+        stepFailures.push(name);
+      }
+    };
+
     try {
       const {
         businessName, businessAddress, businessMode, industrySlug, workStyle, enabledModules,
@@ -126,7 +140,7 @@ export function useOnboardingSubmit(userId?: string) {
       const selectedPlan = sessionStorage.getItem("selectedPlan") as PlanCode | null;
       const planCode: PlanCode = selectedPlan || "voice";
 
-      // 1. Create tenant (idempotent: skip if already created on a previous attempt)
+      // ── STEP 1: Create tenant (CRITICAL — failure stops everything) ──
       let tenantId = createdTenantId;
       if (!tenantId) {
         const agencySlug = sessionStorage.getItem("referralAgencySlug") || undefined;
@@ -147,48 +161,64 @@ export function useOnboardingSubmit(userId?: string) {
         setCreatedTenantId(tenantId);
       }
 
-      // 2. Services
+      // ── STEPS 2-16: Configuration (non-critical, retry-safe) ──
+      // INSERT steps use delete-then-insert so retries don't create duplicates.
+      // UPDATE/UPSERT steps are naturally idempotent.
+
+      // 2. Services (idempotent: clear + insert)
       const config = resolveIndustryTemplate(industrySlug);
-      const servicesToInsert = templateServices
-        .filter(s => s.enabled && s.name.trim().length > 0)
-        .map(s => ({
-          tenant_id: tenantId, name: s.name, description: s.description || null,
-          duration_minutes: s.duration, price_amount: s.price,
-          price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
-          is_active: true,
-        }));
-      if (servicesToInsert.length > 0) {
-        const { error: svcErr } = await supabase.from("services").insert(servicesToInsert);
-        if (svcErr) console.error("Onboarding step 2 (services):", svcErr.message);
-      }
+      await runStep("services", async () => {
+        const servicesToInsert = templateServices
+          .filter(s => s.enabled && s.name.trim().length > 0)
+          .map(s => ({
+            tenant_id: tenantId!, name: s.name, description: s.description || null,
+            duration_minutes: s.duration, price_amount: s.price,
+            price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
+            is_active: true,
+          }));
+        if (servicesToInsert.length > 0) {
+          await supabase.from("services").delete().eq("tenant_id", tenantId!);
+          const { error } = await supabase.from("services").insert(servicesToInsert);
+          if (error) throw error;
+        }
+      });
 
-      // 3. FAQs
-      const faqsToInsert = templateFAQs
-        .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
-        .map((faq, i) => ({ tenant_id: tenantId, question: faq.question, answer: faq.answer, priority_weight: i }));
-      if (faqsToInsert.length > 0) {
-        const { error: faqErr } = await supabase.from("business_faqs").insert(faqsToInsert);
-        if (faqErr) console.error("Onboarding step 3 (FAQs):", faqErr.message);
-      }
+      // 3. FAQs (idempotent: clear + insert)
+      await runStep("FAQs", async () => {
+        const faqsToInsert = templateFAQs
+          .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
+          .map((faq, i) => ({ tenant_id: tenantId!, question: faq.question, answer: faq.answer, priority_weight: i }));
+        if (faqsToInsert.length > 0) {
+          await supabase.from("business_faqs").delete().eq("tenant_id", tenantId!);
+          const { error } = await supabase.from("business_faqs").insert(faqsToInsert);
+          if (error) throw error;
+        }
+      });
 
-      // 4. Objections
-      const objectionsToInsert = config.objections
-        .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
-        .map((obj, i) => ({ tenant_id: tenantId, objection: obj.objection, response: obj.response, priority_weight: i }));
-      if (objectionsToInsert.length > 0) {
-        const { error: objErr } = await supabase.from("objection_responses").insert(objectionsToInsert);
-        if (objErr) console.error("Onboarding step 4 (objections):", objErr.message);
-      }
+      // 4. Objections (idempotent: clear + insert)
+      await runStep("objections", async () => {
+        const objectionsToInsert = config.objections
+          .filter(o => o.objection.trim().length > 0 && o.response.trim().length > 0)
+          .map((obj, i) => ({ tenant_id: tenantId!, objection: obj.objection, response: obj.response, priority_weight: i }));
+        if (objectionsToInsert.length > 0) {
+          await supabase.from("objection_responses").delete().eq("tenant_id", tenantId!);
+          const { error } = await supabase.from("objection_responses").insert(objectionsToInsert);
+          if (error) throw error;
+        }
+      });
 
-      // 5. Policies
-      await supabase.from("tenants").update({
-        cancellation_policy: templatePolicies.cancellation || null,
-        deposit_policy: templatePolicies.deposit || null,
-        refund_policy: templatePolicies.refund || null,
-      }).eq("id", tenantId);
+      // 5. Policies (update — naturally idempotent)
+      await runStep("policies", async () => {
+        const { error } = await supabase.from("tenants").update({
+          cancellation_policy: templatePolicies.cancellation || null,
+          deposit_policy: templatePolicies.deposit || null,
+          refund_policy: templatePolicies.refund || null,
+        }).eq("id", tenantId!);
+        if (error) throw error;
+      });
 
-      // 5b. Auto-apply rich industry template (best-effort merge to fill gaps)
-      try {
+      // 5b. Auto-apply rich industry template (best-effort merge)
+      await runStep("industry template", async () => {
         const richTemplate = getTemplate(industrySlug);
         if (richTemplate && tenantId) {
           const currentState = await fetchCurrentBrainState(tenantId);
@@ -197,149 +227,173 @@ export function useOnboardingSubmit(userId?: string) {
             await applyTemplate(tenantId, richTemplate, "merge", preview);
           }
         }
-      } catch (e) {
-        console.error("Onboarding step 5b (template merge):", e);
-      }
+      });
 
-      // 6. Service area
-      const showsCoverage = workStyle === "go_to_customer" || workStyle === "both" || ["dispatch", "food"].includes(businessMode);
-      if (showsCoverage) {
-        await supabase.from("tenants").update({
-          service_area_json: {
-            radius_miles: serviceArea.radiusMiles,
-            zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
-            out_of_area_message: serviceArea.outOfAreaMessage,
-          },
-        }).eq("id", tenantId);
-      }
-
-      // 7. Scenario flags + seeds
-      await updateCapabilityFlags(tenantId, scenarioAnswers);
-      await applyScenarioSeeds(tenantId, scenarioAnswers, businessMode);
-
-      // 8. Food settings
-      if (isFoodMode) {
-        const { error: foodErr } = await supabase.from("food_order_settings").insert({
-          tenant_id: tenantId, accepts_pickup: true,
-          accepts_delivery: scenarioAnswers.offersDelivery ?? false,
-          accepts_dine_in: true, accepts_catering: scenarioAnswers.offersCatering ?? false,
-          order_confirmation_mode: "auto_confirm",
-        });
-        if (foodErr) console.error("Onboarding step 8 (food settings):", foodErr.message);
-      }
-
-      // 9. Automations
-      const { error: autoErr } = await supabase.from("automations").insert([
-        { tenant_id: tenantId, name: "Missed Call Follow-up", trigger: "missed_call" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" }] },
-        { tenant_id: tenantId, name: "Booking Confirmation", trigger: "booking_created" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Your appointment is confirmed! We'll see you soon." }] },
-      ]);
-      if (autoErr) console.error("Onboarding step 9 (automations):", autoErr.message);
-
-      // 10. Communication / AI settings
-      const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";
-      const commUpdate: Record<string, unknown> = {
-        ai_booking_mode: bookingMode,
-        missed_call_behavior: communicationPrefs.missedCallBehavior,
-      };
-      if (mappedAfterHours) commUpdate.off_behavior = mappedAfterHours;
-
-      const settingsJson: Record<string, unknown> = {};
-      settingsJson.ai_tone = aiTone;
-      if (customGreeting) settingsJson.custom_greeting = customGreeting;
-      if (notificationPhone) settingsJson.notification_phone = notificationPhone;
-      if (communicationPrefs.aiGuardrails) settingsJson.ai_guardrails = communicationPrefs.aiGuardrails;
-      if (communicationPrefs.requiredIntakeFields?.length) settingsJson.required_intake_fields = communicationPrefs.requiredIntakeFields;
-      if (communicationPrefs.escalationRules) settingsJson.escalation_rules = communicationPrefs.escalationRules;
-      commUpdate.settings_json = settingsJson;
-
-      await supabase.from("assistant_settings").update(commUpdate).eq("tenant_id", tenantId);
-
-      // AI assistant tone & greeting
-      const assistantData: Record<string, unknown> = { tone: aiTone };
-      if (customGreeting) assistantData.greeting_script = customGreeting;
-      const { data: existingAssistant } = await supabase.from("ai_assistants").select("id").eq("tenant_id", tenantId).maybeSingle();
-      if (existingAssistant) {
-        await supabase.from("ai_assistants").update(assistantData).eq("tenant_id", tenantId);
-      } else {
-        await supabase.from("ai_assistants").insert({ tenant_id: tenantId, ...assistantData });
-      }
-
-      // 11. Team members
-      if (!isSoloOperator && teamMembers.length > 0) {
-        const teamData = teamMembers.filter(m => m.name.trim().length > 0).map(m => ({
-          name: m.name.trim(), role: m.role, phone: m.phone || null,
-          email: m.email || null, canPerformAllServices: m.canPerformAllServices,
-          serviceNames: m.serviceNames,
-        }));
-        if (teamData.length > 0) {
-          await supabase.from("tenants").update({
-            capabilities_json: { ...(capabilitiesJson as Record<string, unknown>), _team_members: teamData } as unknown as import("@/integrations/supabase/types").Json,
-          }).eq("id", tenantId);
-        }
-      }
-
-      // 12. Pricing rules
-      const pricingFromDetails: Record<string, unknown> = {};
-      if (scenarioDetails.depositType) pricingFromDetails.deposit_type = scenarioDetails.depositType;
-      if (scenarioDetails.depositAmount) pricingFromDetails.deposit_amount = Number(scenarioDetails.depositAmount);
-      if (scenarioDetails.tripFeeAmount) pricingFromDetails.trip_fee = Number(scenarioDetails.tripFeeAmount);
-      if (scenarioDetails.minimumChargeAmount) pricingFromDetails.minimum_charge = Number(scenarioDetails.minimumChargeAmount);
-      if (scenarioDetails.afterHoursSurcharge) pricingFromDetails.after_hours_surcharge = Number(scenarioDetails.afterHoursSurcharge);
-      if (scenarioDetails.baseRate) pricingFromDetails.base_rate = Number(scenarioDetails.baseRate);
-      if (scenarioDetails.perMileRate) pricingFromDetails.per_mile_rate = Number(scenarioDetails.perMileRate);
-      if (Object.keys(pricingFromDetails).length > 0) {
-        await supabase.from("tenants").update({ pricing_rules_jsonb: pricingFromDetails as unknown as import("@/integrations/supabase/types").Json }).eq("id", tenantId);
-      }
-
-      // 13. Service area from details
-      if (scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles) {
-        const currentRadius = Number(scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles);
-        if (currentRadius > 0) {
-          await supabase.from("tenants").update({
+      // 6. Service area (update — naturally idempotent)
+      await runStep("service area", async () => {
+        const showsCoverage = workStyle === "go_to_customer" || workStyle === "both" || ["dispatch", "food"].includes(businessMode);
+        if (showsCoverage) {
+          const { error } = await supabase.from("tenants").update({
             service_area_json: {
-              radius_miles: currentRadius,
+              radius_miles: serviceArea.radiusMiles,
               zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
               out_of_area_message: serviceArea.outOfAreaMessage,
             },
-          }).eq("id", tenantId);
+          }).eq("id", tenantId!);
+          if (error) throw error;
         }
+      });
+
+      // 7. Scenario flags + seeds
+      await runStep("scenario settings", async () => {
+        await updateCapabilityFlags(tenantId!, scenarioAnswers);
+        await applyScenarioSeeds(tenantId!, scenarioAnswers, businessMode);
+      });
+
+      // 8. Food settings (idempotent: upsert)
+      if (isFoodMode) {
+        await runStep("food settings", async () => {
+          const { error } = await supabase.from("food_order_settings").upsert({
+            tenant_id: tenantId!, accepts_pickup: true,
+            accepts_delivery: scenarioAnswers.offersDelivery ?? false,
+            accepts_dine_in: true, accepts_catering: scenarioAnswers.offersCatering ?? false,
+            order_confirmation_mode: "auto_confirm",
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        });
       }
 
-      // 14. A2P registration
-      if (a2pData.legalBusinessName || a2pData.ein || a2pData.entityType) {
-        await supabase.from("a2p_registrations").upsert({
-          tenant_id: tenantId, status: "pending_data",
-          legal_business_name: a2pData.legalBusinessName || businessName,
-          ein: a2pData.ein || null, entity_type: a2pData.entityType || null,
-          street_address: a2pData.streetAddress || null, city: a2pData.city || null,
-          state: a2pData.state || null, zip_code: a2pData.zipCode || null,
-          contact_first_name: a2pData.contactFirstName || null,
-          contact_last_name: a2pData.contactLastName || null,
-          contact_email: a2pData.contactEmail || user?.email || null,
-          contact_phone: null, website_url: a2pData.websiteUrl || null,
-        }, { onConflict: "tenant_id" });
-      }
+      // 9. Automations (idempotent: clear + insert)
+      await runStep("automations", async () => {
+        await supabase.from("automations").delete().eq("tenant_id", tenantId!);
+        const { error } = await supabase.from("automations").insert([
+          { tenant_id: tenantId!, name: "Missed Call Follow-up", trigger: "missed_call" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Hi! We noticed we missed your call. How can we help you today?" }] },
+          { tenant_id: tenantId!, name: "Booking Confirmation", trigger: "booking_created" as const, is_enabled: true, steps_json: [{ type: "send_message", body: "Your appointment is confirmed! We'll see you soon." }] },
+        ]);
+        if (error) throw error;
+      });
+
+      // 10. Communication / AI settings (update — naturally idempotent)
+      await runStep("AI settings", async () => {
+        const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";
+        const commUpdate: Record<string, unknown> = {
+          ai_booking_mode: bookingMode,
+          missed_call_behavior: communicationPrefs.missedCallBehavior,
+        };
+        if (mappedAfterHours) commUpdate.off_behavior = mappedAfterHours;
+
+        const settingsJson: Record<string, unknown> = {};
+        settingsJson.ai_tone = aiTone;
+        if (customGreeting) settingsJson.custom_greeting = customGreeting;
+        if (notificationPhone) settingsJson.notification_phone = notificationPhone;
+        if (communicationPrefs.aiGuardrails) settingsJson.ai_guardrails = communicationPrefs.aiGuardrails;
+        if (communicationPrefs.requiredIntakeFields?.length) settingsJson.required_intake_fields = communicationPrefs.requiredIntakeFields;
+        if (communicationPrefs.escalationRules) settingsJson.escalation_rules = communicationPrefs.escalationRules;
+        commUpdate.settings_json = settingsJson;
+
+        const { error } = await supabase.from("assistant_settings").update(commUpdate).eq("tenant_id", tenantId!);
+        if (error) throw error;
+
+        // AI assistant tone & greeting (upsert pattern)
+        const assistantData: Record<string, unknown> = { tone: aiTone };
+        if (customGreeting) assistantData.greeting_script = customGreeting;
+        const { data: existingAssistant } = await supabase.from("ai_assistants").select("id").eq("tenant_id", tenantId!).maybeSingle();
+        if (existingAssistant) {
+          await supabase.from("ai_assistants").update(assistantData).eq("tenant_id", tenantId!);
+        } else {
+          await supabase.from("ai_assistants").insert({ tenant_id: tenantId!, ...assistantData });
+        }
+      });
+
+      // 11. Team members (update — naturally idempotent)
+      await runStep("team members", async () => {
+        if (!isSoloOperator && teamMembers.length > 0) {
+          const teamData = teamMembers.filter(m => m.name.trim().length > 0).map(m => ({
+            name: m.name.trim(), role: m.role, phone: m.phone || null,
+            email: m.email || null, canPerformAllServices: m.canPerformAllServices,
+            serviceNames: m.serviceNames,
+          }));
+          if (teamData.length > 0) {
+            const { error } = await supabase.from("tenants").update({
+              capabilities_json: { ...(capabilitiesJson as Record<string, unknown>), _team_members: teamData } as unknown as import("@/integrations/supabase/types").Json,
+            }).eq("id", tenantId!);
+            if (error) throw error;
+          }
+        }
+      });
+
+      // 12. Pricing rules (update — naturally idempotent)
+      await runStep("pricing", async () => {
+        const pricingFromDetails: Record<string, unknown> = {};
+        if (scenarioDetails.depositType) pricingFromDetails.deposit_type = scenarioDetails.depositType;
+        if (scenarioDetails.depositAmount) pricingFromDetails.deposit_amount = Number(scenarioDetails.depositAmount);
+        if (scenarioDetails.tripFeeAmount) pricingFromDetails.trip_fee = Number(scenarioDetails.tripFeeAmount);
+        if (scenarioDetails.minimumChargeAmount) pricingFromDetails.minimum_charge = Number(scenarioDetails.minimumChargeAmount);
+        if (scenarioDetails.afterHoursSurcharge) pricingFromDetails.after_hours_surcharge = Number(scenarioDetails.afterHoursSurcharge);
+        if (scenarioDetails.baseRate) pricingFromDetails.base_rate = Number(scenarioDetails.baseRate);
+        if (scenarioDetails.perMileRate) pricingFromDetails.per_mile_rate = Number(scenarioDetails.perMileRate);
+        if (Object.keys(pricingFromDetails).length > 0) {
+          const { error } = await supabase.from("tenants").update({ pricing_rules_jsonb: pricingFromDetails as unknown as import("@/integrations/supabase/types").Json }).eq("id", tenantId!);
+          if (error) throw error;
+        }
+      });
+
+      // 13. Service area from details (update — naturally idempotent)
+      await runStep("coverage area", async () => {
+        if (scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles) {
+          const currentRadius = Number(scenarioDetails.serviceRadiusMiles || scenarioDetails.deliveryRadiusMiles);
+          if (currentRadius > 0) {
+            const { error } = await supabase.from("tenants").update({
+              service_area_json: {
+                radius_miles: currentRadius,
+                zip_codes: serviceArea.zipCodes ? serviceArea.zipCodes.split(",").map(z => z.trim()).filter(Boolean) : [],
+                out_of_area_message: serviceArea.outOfAreaMessage,
+              },
+            }).eq("id", tenantId!);
+            if (error) throw error;
+          }
+        }
+      });
+
+      // 14. A2P registration (upsert — naturally idempotent)
+      await runStep("SMS registration", async () => {
+        if (a2pData.legalBusinessName || a2pData.ein || a2pData.entityType) {
+          const { error } = await supabase.from("a2p_registrations").upsert({
+            tenant_id: tenantId!, status: "pending_data",
+            legal_business_name: a2pData.legalBusinessName || businessName,
+            ein: a2pData.ein || null, entity_type: a2pData.entityType || null,
+            street_address: a2pData.streetAddress || null, city: a2pData.city || null,
+            state: a2pData.state || null, zip_code: a2pData.zipCode || null,
+            contact_first_name: a2pData.contactFirstName || null,
+            contact_last_name: a2pData.contactLastName || null,
+            contact_email: a2pData.contactEmail || user?.email || null,
+            contact_phone: null, website_url: a2pData.websiteUrl || null,
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        }
+      });
 
       // 15. Twilio provisioning
-      const voicePlans = ["voice", "both", "base-", "growth-", "scale-", "power-", "enterprise"];
-      const shouldProvision = voicePlans.some(p => planCode.startsWith(p));
-      if (shouldProvision && !isSuperAdmin) {
-        try {
+      await runStep("phone number", async () => {
+        const voicePlans = ["voice", "both", "base-", "growth-", "scale-", "power-", "enterprise"];
+        const shouldProvision = voicePlans.some(p => planCode.startsWith(p));
+        if (shouldProvision && !isSuperAdmin) {
           const { data: provisionData, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {
-            body: { tenant_id: tenantId, number_type: "local" },
+            body: { tenant_id: tenantId!, number_type: "local" },
           });
-          if (!provisionError && provisionData?.success && provisionData.phone_number) {
+          if (provisionError) throw provisionError;
+          if (provisionData?.success && provisionData.phone_number) {
             setProvisionedPhone(provisionData.phone_number);
           }
-        } catch (e) { console.error("TwilioProvision: exception", e); }
-      }
+        }
+      });
 
       // 16. Default workflows
-      try {
-        await createDefaultWorkflowsForMode(tenantId, (industryEntry?.businessMode || "service") as BusinessMode);
-      } catch (e) { console.error("WorkflowsAutoCreate: exception", e); }
+      await runStep("workflows", async () => {
+        await createDefaultWorkflowsForMode(tenantId!, (industryEntry?.businessMode || "service") as BusinessMode);
+      });
 
-      // 17. Mark complete
+      // ── STEP 17: Mark complete (always — partial config is fixable in Brain) ──
       await supabase.from("tenants").update({ onboarding_completed_at: new Date().toISOString() }).eq("id", tenantId);
       sessionStorage.removeItem("selectedPlan");
       sessionStorage.removeItem("referralAgencySlug");
@@ -348,7 +402,16 @@ export function useOnboardingSubmit(userId?: string) {
       clearOnboardingData(userId);
       clearProgress();
       setIsComplete(true);
+
+      // Surface any partial failures so the user knows what to check in the Brain
+      if (stepFailures.length > 0) {
+        toast({
+          title: "Almost there!",
+          description: `Your AI is live! A few settings (${stepFailures.join(", ")}) couldn't be saved automatically — you can update them in your Business Brain.`,
+        });
+      }
     } catch (error: unknown) {
+      // Critical failure (tenant creation or mark-complete)
       console.error("Onboarding error:", error);
       const errorInfo = formatErrorForToast(error);
       toast({ variant: "destructive", title: errorInfo.title, description: errorInfo.description });
