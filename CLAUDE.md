@@ -49,7 +49,7 @@ supabase/
   migrations/     # 170+ database migrations
   sql/            # SQL utilities
 scripts/          # ElevenLabs agent deployment scripts
-tests/            # Vitest unit tests (237 passing)
+tests/            # Vitest unit tests (329 passing)
 e2e/              # Playwright E2E tests
 docs/             # Architecture docs, agent audits, deployment guides
 .claude/rules/    # 17 architecture rule files for Claude Code
@@ -81,8 +81,9 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 ## CURRENT STATUS
 
 - **Build**: Clean (0 TypeScript errors, 0 ESLint errors)
-- **Tests**: 237 passing (8 test files)
+- **Tests**: 329 passing (8 test files)
 - **ESLint warnings**: ~1,752 (mostly `any` types from stale Supabase type generation)
+- **BusinessBrainPage**: 117 kB (was 876 kB — 87% reduction via code-splitting)
 - **Brand**: Fully rebranded to "Flux Receptionist" (brand.ts, all UI components, all 28 edge functions updated)
 
 ## BUSINESS MODE READINESS (update each session)

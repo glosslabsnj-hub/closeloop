@@ -1,42 +1,40 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-02-28 1:12 PM ET (receptionist_dev)
+## Last Session: 2026-02-28 1:35 PM ET (receptionist_dev)
 
 ### What Was Done
-- **Industry Terminology Audit** (commit 3b672cf):
-  - Added `getBookingActionPhrase()`, `getAutoBookSummary()`, `getReadinessVerb()` helpers to industryTerminology.ts
-  - Phase 3: medical mode says "When do you see patients?"
-  - Phase 4: "When someone wants to..." uses dynamic verb per industry
-  - Phase 5: bookingSummary, readiness text, SMS tooltip all industry-aware
-  - AIPreviewPanel: 15 industry-specific caller messages (plumber: "I've got a leak under my kitchen sink")
-  - SchedulingSetup: labels use appointmentLabel (Default Job Duration vs Default Appointment Duration)
-  - ServicePreviewStep: "pricing varies" instead of hardcoded "the job"
-  - OnboardingComplete: "live scheduling" instead of "live booking"
+- **92 industry intelligence tests** (commit 4820c64):
+  - Covers isWorkStyleDeterministic, question suppression (suppressedFor), pre-answered questions (preAnsweredFor), terminology resolution, booking action helpers, card title resolution, onboarding config 3-tier hierarchy, expected question counts per industry
+  - All 329 tests passing (237 original + 92 new)
 
-- **Question-to-Feature Audit**:
-  - All onboardingVisible questions verified as mapping to real AI behavior
-  - 4 Brain-only questions identified as cosmetic (reminders, stylist-preference, warranty-check) — not shown in onboarding
-  - No redundant questions found across phases
-  - `long-duration-jobs` confirmed used by SchedulingSetup
+- **BusinessBrainPage code-split** (commit 22ee6c4):
+  - 876 kB → 117 kB (87% reduction)
+  - Lazy-loaded: BrainSectionDetailHost (→689 kB separate chunk), WorkflowConfigEditor (→44 kB), GuidedSetupFlow (→9 kB), IntelligenceDashboard
+  - BrainEditorRenderer removed from barrel export
+  - Dashboard hub loads 760 kB less upfront
 
-- Prior work this day: industry intelligence layer (c3c268c + af2ca4f + f098ab5 + e6f7691 + d8e703a)
+- **Onboarding submission pipeline reviewed** (no changes needed):
+  - 17-step pipeline is solid: idempotent retries, error collection, critical step 1 with clear failure, always proceeds to dashboard
+  - create-tenant edge function uses service role, generates UUID server-side, upserts membership
+  - RLS fix migration verified correct (user_roles + tenant_users SELECT policies)
 
 ### Blocked
 - **Edge function deployment**: No SUPABASE_ACCESS_TOKEN set. Task created for Jack.
+- **End-to-end testing**: Needs browser (verify tenant creation, super admin flow)
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 237/237 passing
+- Tests: 329/329 passing
 
 ### Next Priorities
 1. **Deploy edge functions** (blocked on access token — task created for Jack)
 2. **Test complete flow**: signup → onboard → call → dashboard (P0 quality gate)
-3. **Verify tenant creation + super admin flow** after RLS fixes
-4. Code-split BusinessBrainPage (876 kB) and AIAssistantPage (546 kB)
+3. **Verify tenant creation + super admin flow** after RLS fixes (needs browser)
+4. Code-split AIAssistantPage (546 kB) — lower priority since already lazy at router level
 
 ### Quality Gates (Service Mode)
 - [x] build_clean
-- [x] tests_pass
+- [x] tests_pass (329/329)
 - [x] dashboard_mobile_375px
 - [x] brain_relevant_settings_only
 - [x] error_boundaries (UX Pass 4)
