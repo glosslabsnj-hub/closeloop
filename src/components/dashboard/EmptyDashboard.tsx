@@ -4,7 +4,7 @@
  * Mobile-first, mode-aware, industry-specific language.
  */
 
-import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check, PartyPopper, X } from "lucide-react";
+import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check, PartyPopper, X, PhoneForwarded, ChevronDown, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -81,6 +81,8 @@ export function EmptyDashboard() {
     setShowCelebration(false);
     localStorage.setItem(celebrationKey, "true");
   };
+
+  const [forwardingOpen, setForwardingOpen] = useState(false);
 
   const businessName = (tenant?.name as string) || "your business";
   const phoneNumber = (tenant?.closeloop_number as string) || null;
@@ -219,6 +221,64 @@ export function EmptyDashboard() {
           </p>
         </CardContent>
       </Card>
+
+      {/* ── Next Steps: Phone Forwarding Guide ─────────────────── */}
+      {phoneNumber && isReady && (
+        <Card className="border-border/30 bg-card/60 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <button
+              type="button"
+              onClick={() => setForwardingOpen(!forwardingOpen)}
+              className="flex items-center gap-3 w-full text-left"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 shrink-0">
+                <PhoneForwarded className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Ready for real calls?</p>
+                <p className="text-xs text-muted-foreground">Forward your business line to start receiving AI-answered calls</p>
+              </div>
+              {forwardingOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+              )}
+            </button>
+            {forwardingOpen && (
+              <div className="mt-4 space-y-3 pl-11">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0 mt-0.5">1</span>
+                    <div>
+                      <p className="text-sm font-medium">Make a test call first</p>
+                      <p className="text-xs text-muted-foreground">Call your AI number above to hear how it sounds. Adjust your greeting or services in the Business Brain if needed.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0 mt-0.5">2</span>
+                    <div>
+                      <p className="text-sm font-medium">Forward your business line</p>
+                      <p className="text-xs text-muted-foreground">
+                        On your phone, go to <strong>Settings → Phone → Call Forwarding</strong> and enter your AI number: <span className="font-mono font-medium text-foreground">{phoneNumber}</span>
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1">
+                        Or call your carrier: AT&T dial *21*{phoneNumber}# · T-Mobile *21*{phoneNumber}# · Verizon *72{phoneNumber}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/10 text-primary text-[11px] font-bold shrink-0 mt-0.5">3</span>
+                    <div>
+                      <p className="text-sm font-medium">Your AI starts answering</p>
+                      <p className="text-xs text-muted-foreground">Calls to your business line will be answered by your AI. You'll see every call on your dashboard with transcripts and actions taken.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Quick Actions (mode-aware) ──────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
