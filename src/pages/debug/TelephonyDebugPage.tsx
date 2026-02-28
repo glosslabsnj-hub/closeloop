@@ -161,7 +161,7 @@ export default function TelephonyDebugPage() {
     return null;
   }
 
-  const webhookBaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://zsqfzluyylzmmjtfxwgr.supabase.co";
+  const webhookBaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://yltzlvzgwkidbeqaoevp.supabase.co";
 
   return (
     <div className="min-h-screen bg-background">

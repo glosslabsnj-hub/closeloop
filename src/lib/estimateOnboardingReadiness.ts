@@ -1,12 +1,12 @@
 /**
- * Client-side readiness estimator for onboarding Phase 7 review.
+ * Client-side readiness estimator for onboarding Phase 5 review.
  *
  * Mirrors the server-side `get_ai_readiness` RPC logic but uses form data
  * instead of DB queries. Returns a score + p0/p1 flags matching
  * the format used by useAIReadinessV2.
  *
- * Phase mapping: 1=Your Business, 2=How You Work, 3=Offerings, 4=Hours & Area,
- * 5=Your AI, 6=Connect, 7=Review
+ * Phase mapping (5-phase flow): 1=Your Business, 2=Your Services,
+ * 3=Hours & Area, 4=Your AI, 5=Review & Launch
  */
 
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
@@ -70,14 +70,14 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
   if (hasHours) {
     globalScore += 10;
   } else {
-    p0Flags.push({ id: "hours", label: "Set your business hours", phase: 4 });
+    p0Flags.push({ id: "hours", label: "Set your business hours", phase: 3 });
   }
 
   // Policies (5 pts)
   if (hasPolicies) {
     globalScore += 5;
   } else {
-    p1Flags.push({ id: "policies", label: "Add cancellation or deposit policy", phase: 3 });
+    p1Flags.push({ id: "policies", label: "Add cancellation or deposit policy", phase: 2 });
   }
 
   // FAQs (10 pts)
@@ -85,9 +85,9 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
     globalScore += 10;
   } else if (enabledFAQs.length > 0) {
     globalScore += 5;
-    p1Flags.push({ id: "faqs", label: "Add more FAQs for better AI answers", phase: 3 });
+    p1Flags.push({ id: "faqs", label: "Add more FAQs for better AI answers", phase: 2 });
   } else {
-    p1Flags.push({ id: "faqs", label: "Add FAQs so your AI can answer common questions", phase: 3 });
+    p1Flags.push({ id: "faqs", label: "Add FAQs so your AI can answer common questions", phase: 2 });
   }
 
   // ====== MODE-SPECIFIC CHECKS (60 pts) ======
@@ -99,9 +99,9 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
     modeScore += 20;
   } else if (enabledServices.length > 0) {
     modeScore += 10;
-    p1Flags.push({ id: "services", label: "Add more services for accurate quoting", phase: 3 });
+    p1Flags.push({ id: "services", label: "Add more services for accurate quoting", phase: 2 });
   } else {
-    p0Flags.push({ id: "services", label: "Add at least one service or menu item", phase: 3 });
+    p0Flags.push({ id: "services", label: "Add at least one service or menu item", phase: 2 });
   }
 
   // Pricing (10 pts)
@@ -109,7 +109,7 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
   if (hasBasicPricing) {
     modeScore += 10;
   } else {
-    p1Flags.push({ id: "pricing", label: "Add prices to your services", phase: 3 });
+    p1Flags.push({ id: "pricing", label: "Add prices to your services", phase: 2 });
   }
 
   // Mode-specific capability checks (30 pts)
@@ -132,7 +132,7 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
       if (needsArea && input.serviceAreaRadius && input.serviceAreaRadius > 0) {
         modeScore += 15;
       } else if (needsArea) {
-        p0Flags.push({ id: "service_area", label: "Set your service area radius", phase: 4 });
+        p0Flags.push({ id: "service_area", label: "Set your service area radius", phase: 3 });
       } else {
         modeScore += 15;
       }
@@ -162,7 +162,7 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
       if (isMobile && input.serviceAreaRadius && input.serviceAreaRadius > 0) {
         modeScore += 15;
       } else if (isMobile) {
-        p1Flags.push({ id: "service_area", label: "Set your service area for mobile work", phase: 4 });
+        p1Flags.push({ id: "service_area", label: "Set your service area for mobile work", phase: 3 });
         modeScore += 5;
       } else {
         modeScore += 15;
@@ -176,7 +176,7 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
       // General/sales - basic checks
       modeScore += 20;
       if (input.customGreeting) modeScore += 10;
-      else p1Flags.push({ id: "greeting", label: "Customize your AI greeting", phase: 5 });
+      else p1Flags.push({ id: "greeting", label: "Customize your AI greeting", phase: 4 });
       break;
     }
   }
@@ -188,7 +188,7 @@ export function estimateOnboardingReadiness(input: ReadinessInput): ReadinessRes
 
   // Custom greeting (bonus) — skip if already flagged by mode-specific checks
   if (!input.customGreeting && !p1Flags.some((f) => f.id === "greeting")) {
-    p1Flags.push({ id: "greeting", label: "Customize how your AI greets callers", phase: 5 });
+    p1Flags.push({ id: "greeting", label: "Customize how your AI greets callers", phase: 4 });
   }
 
   const rawScore = globalScore + modeScore;

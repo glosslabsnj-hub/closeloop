@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Check, ExternalLink, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const SUPABASE_PROJECT_REF = import.meta.env.VITE_SUPABASE_PROJECT_ID || "zsqfzluyylzmmjtfxwgr";
+const SUPABASE_PROJECT_REF = import.meta.env.VITE_SUPABASE_PROJECT_ID || "yltzlvzgwkidbeqaoevp";
 const ELEVENLABS_INIT_URL = `https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/elevenlabs-init`;
 
 export function ElevenLabsInitWebhookCard() {

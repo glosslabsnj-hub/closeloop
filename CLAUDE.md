@@ -8,7 +8,8 @@ AI-powered voice receptionist platform for local businesses. Handles phone calls
 **Managed by**: Lenard (autonomous business operator)
 **Repo**: https://github.com/glosslabsnj-hub/closeloop
 **Local path**: C:\Users\jacka\receptionist
-**Supabase project**: zsqfzluyylzmmjtfxwgr
+**Supabase project (NEW)**: yltzlvzgwkidbeqaoevp (Jack's own account)
+**Supabase project (OLD)**: zsqfzluyylzmmjtfxwgr (Lovable-hosted, being replaced)
 
 ## TECH STACK
 
@@ -28,7 +29,7 @@ AI-powered voice receptionist platform for local businesses. Handles phone calls
 5. **Multi-tenant architecture** - ALL queries must include tenant_id filtering. NEVER bypass RLS.
 6. **ElevenLabs agent changes** require running deployment scripts in `scripts/`. Don't modify agents via API without using the standard template in `ELEVENLABS_AGENT_STANDARD_TEMPLATE.js`.
 7. **Brand config is centralized** in `src/config/brand.ts`. Update there, not in individual components.
-8. **Database path**: Supabase cloud (zsqfzluyylzmmjtfxwgr.supabase.co)
+8. **Database path**: Supabase cloud (yltzlvzgwkidbeqaoevp.supabase.co)
 
 ## PROJECT STRUCTURE
 
@@ -88,30 +89,49 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 
 | Mode | Status | What's Needed |
 |------|--------|---------------|
-| Service (appointments) | NOT STARTED | Supabase migration, test booking flow end-to-end |
-| Dispatch (drivers/GPS) | NOT STARTED | Supabase migration, test dispatch + driver assignment |
-| Food (orders) | NOT STARTED | Supabase migration, test menu ordering flow |
-| Medical (intakes) | NOT STARTED | Supabase migration, test intake + triage flow |
-| Sales (leads) | NOT STARTED | Supabase migration, test lead qualification flow |
-| General (callbacks) | NOT STARTED | Supabase migration, test callback scheduling |
+| Service (appointments) | INFRA READY | Test booking flow end-to-end with real call |
+| Dispatch (drivers/GPS) | INFRA READY | Mapbox token needed, test dispatch + driver assignment |
+| Food (orders) | INFRA READY | Test menu ordering flow with real call |
+| Medical (intakes) | INFRA READY | Test intake + triage flow with real call |
+| Sales (leads) | INFRA READY | Test lead qualification flow with real call |
+| General (callbacks) | INFRA READY | Test callback scheduling with real call |
 
-**Strategy**: Get core platform working first (Supabase migration, auth, billing). Then make ONE mode production-ready, hand off to marketing, and move to the next.
+**Strategy**: Core platform infrastructure is done (Supabase, auth, billing, voice AI). Focus ONE mode (Service) to production-ready, do a real end-to-end call test, then hand off to marketing.
+
+## ELEVENLABS AGENT IDS
+
+| Mode | Agent Name | Agent ID |
+|------|-----------|----------|
+| Service | SERVICE & BOOKING | agent_4701kg1vwhzqfxmvzh032nhvx434 |
+| Dispatch | DISPATCH | agent_2601kghfpmckez3t2n6p7bmcpac4 |
+| Food | FOOD & RESTURANT | agent_6501kghfd7pcf5dte8k61wnn0m58 |
+| Medical | medical | agent_1001kghfstqzfryadtx3kh9t4ye4 |
+| Sales | Sales | agent_2301kh5ertzwfas9e9badpers2cf |
+| General | GENERAL | agent_9601kghg3djcfbfvwxxfkrxqpmq9 |
+| Impound | INPOUND | agent_6301kgqscdvyek3a6wgegq8et167 |
 
 ## PRIORITY WORK QUEUE
 
 ### P0 - Production Blockers
-- [ ] **MIGRATE SUPABASE (CRITICAL)**: Current Supabase project (zsqfzluyylzmmjtfxwgr) is hosted through Lovable and Jack has no direct access. Must create a NEW Supabase project under Jack's own account, run all 170+ migrations from supabase/migrations/, deploy all 156 edge functions, update .env with new project URL/keys, and test everything. Lovable login: glosslabsnj@gmail.com. ONLY cancel Lovable subscription AFTER migration is verified working.
-- [ ] Verify Stripe products/prices match pricing.ts configuration
-- [ ] Verify ElevenLabs agents are configured and responding
-- [ ] Verify Twilio phone number routing works end-to-end
-- [ ] Test complete signup → onboarding → first call flow
+- [x] ~~**MIGRATE SUPABASE**: Created new project yltzlvzgwkidbeqaoevp under Jack's account. ALL 199 migrations applied. ALL 155 edge functions deployed. 18 secrets configured.~~ (done 2026-02-25)
+- [x] ~~**UPGRADE SUPABASE TO PRO ($25/mo)**: Upgraded to Pro plan. All 155/155 edge functions now deployed.~~ (done 2026-02-25)
+- [x] ~~**SET ELEVENLABS SECRETS**: API key (flux-receptionist), agent IDs, webhook secret. ConvAI settings updated to new project.~~ (done 2026-02-25)
+- [x] ~~**SET STRIPE WEBHOOK SECRET**: Webhook endpoint created (we_1T4sBwDb4MCv003YFSVXjpfX), secret set on Supabase.~~ (done 2026-02-25)
+- [x] ~~**FIX STRIPE PRICE METADATA**: Scale and Power plans had spaces in metadata keys. Fixed.~~ (done 2026-02-25)
+- [x] ~~Verify Stripe products/prices match pricing.ts configuration~~ (done 2026-02-25, 4 plans with correct plan_code metadata)
+- [x] ~~Verify ElevenLabs agents are configured and responding~~ (done 2026-02-25, 7 agents found, ConvAI init+webhook URLs updated)
+- [x] ~~**MAPBOX_ACCESS_TOKEN**: Logged into Mapbox (g20fang), set default public token on Supabase.~~ (done 2026-02-25)
+- [x] ~~**UPDATE TWILIO WEBHOOKS**: All 8 phone numbers updated from old to new Supabase URL.~~ (done 2026-02-25)
+- [x] ~~**SET UP GOOGLE CALENDAR OAUTH**: Created OAuth 2.0 Web Application client "Flux Receptionist Calendar" in Google Cloud Console (project n8n-33-484113). Calendar API enabled. Client ID, Secret, and Redirect URI set on Supabase.~~ (done 2026-02-25)
+- [x] ~~Fix Quick Book button broken route (`/app/bookings/new` → `/app/bookings?new=true`)~~ (done 2026-02-27)
+- [ ] Test complete signup -> onboarding -> first call flow
 
 ### P1 - Launch Readiness
-- [ ] Regenerate Supabase types (need access token) to eliminate `as any` casts
+- [x] ~~Regenerate Supabase types to eliminate `as any` casts~~ (done 2026-02-25, regenerated from new project)
 - [x] ~~Complete branding update across all UI components and edge functions~~ (done 2026-02-25)
-- [ ] Set up production domain and SSL
-- [ ] Configure Stripe webhook endpoints
-- [ ] Set up email delivery (transactional emails for estimates, booking confirmations)
+- [x] ~~Configure Stripe webhook endpoints (new project URL)~~ (done 2026-02-25)
+- [x] ~~Set up email delivery~~ (RESEND_API_KEY already configured on Supabase)
+- [ ] Set up production domain and SSL (or use Supabase URL for MVP)
 
 ### P2 - Quality Improvements
 - [ ] Reduce ESLint warnings (1,752 → 0) by adding proper TypeScript types
@@ -126,6 +146,37 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 - [ ] Demo profiles for sales calls
 - [ ] Customer testimonials and case studies
 - [ ] SEO optimization
+
+## SECRETS STATUS (Supabase project yltzlvzgwkidbeqaoevp)
+
+**29 secrets configured (all critical + calendar ones set):**
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER, TWILIO_PHONE_NUMBER, RESEND_API_KEY, PERPLEXITY_API_KEY, FIRECRAWL_API_KEY, ANTHROPIC_API_KEY, APP_URL, OPS_ALERT_EMAIL, CLOSELOOP_INTERNAL_SECRET, CLOSELOOP_OAUTH_STATE_SECRET, ADMIN_CLEANUP_SECRET, PORTAL_TOKEN_SECRET, ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, ELEVENLABS_AGENT_ID_IMPOUND, ELEVENLABS_CONVAI_WEBHOOK_SECRET, MAPBOX_ACCESS_TOKEN, GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_CLIENT_SECRET, GOOGLE_CALENDAR_REDIRECT_URI, plus 4 auto-provided Supabase keys (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_DB_URL).
+
+**Optional (not blocking production):**
+
+| Secret | Source | Priority |
+|--------|--------|----------|
+| HERE_API_KEY | HERE developer portal | LOW (alternative geocoding) |
+| GOOGLE_DISTANCE_MATRIX_API_KEY | Google Cloud Console | LOW (alternative routing) |
+| MS_CALENDAR_CLIENT_ID | Azure portal | LOW (Outlook calendar) |
+| MS_CALENDAR_CLIENT_SECRET | Azure portal | LOW (Outlook calendar) |
+| MS_CALENDAR_REDIRECT_URI | Set to new project URL | LOW (Outlook calendar) |
+| PDFSHIFT_API_KEY | PDFShift dashboard | LOW (PDF estimates) |
+
+## TWILIO PHONE NUMBERS (all pointing to new Supabase)
+
+| Phone | Friendly Name | SID |
+|-------|--------------|-----|
+| +16095071271 | CloseLoop - fa871fdd | PN82e3bf81024a3bb61b50f60abf687d69 |
+| +15632786674 | CloseLoop - 976a2f3e | PN55548a9f8d62be396a185af834838c93 |
+| +18553297357 | CloseLoop - aa96d3c3 | PNa0af00def24562ad1a1b809b6530c20b |
+| +19204813421 | CloseLoop - 6b682be5 | PNe81c3ffeaed2fdd97ac966717180aa77 |
+| +15054057226 | CloseLoop - 3d90cd98 | PN862b37582086f2aeef611edd8fbe6b8e |
+| +13527806507 | CloseLoop - 91857144 | PN5fca687a2defcab6860dab582f6cce86 |
+| +17348492892 | CloseLoop - 3b567b02 | PN8102142562df3ff8470aa07fc418686d |
+| +14583093057 | CloseLoop - ebfb645b | PN2b166c1bab8e20acadf6c094dca8a930 |
+
+All voice webhook URLs: `https://yltzlvzgwkidbeqaoevp.supabase.co/functions/v1/twilio-inbound`
 
 ## TESTING
 
