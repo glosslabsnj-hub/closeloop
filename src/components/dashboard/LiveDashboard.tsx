@@ -10,6 +10,7 @@ import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
 import { SoundManager } from "@/components/notifications/SoundManager";
 import { EmptyDashboard } from "./EmptyDashboard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export function LiveDashboard() {
   const { tenant, isSuperAdmin } = useAuth();
@@ -39,23 +40,33 @@ export function LiveDashboard() {
       <SoundManager />
 
       {/* Agent Status */}
-      <AgentControlPanel />
+      <ErrorBoundary>
+        <AgentControlPanel />
+      </ErrorBoundary>
 
       {/* Alerts (only when present) */}
-      <UnifiedAlertBanner />
-      <CompleteProfileBanner />
-      <NeedsAttentionBanner />
+      <ErrorBoundary>
+        <UnifiedAlertBanner />
+        <CompleteProfileBanner />
+        <NeedsAttentionBanner />
+      </ErrorBoundary>
 
       {/* Key Metrics */}
-      <MetricsGrid />
+      <ErrorBoundary>
+        <MetricsGrid />
+      </ErrorBoundary>
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6 min-w-0">
-          <ModeContentArea />
+          <ErrorBoundary>
+            <ModeContentArea />
+          </ErrorBoundary>
         </div>
         <div className="space-y-6 min-w-0">
-          <LiveActivityFeed />
+          <ErrorBoundary>
+            <LiveActivityFeed />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

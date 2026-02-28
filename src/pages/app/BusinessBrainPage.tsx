@@ -64,6 +64,9 @@ import WorkflowConfigEditor from "@/components/brain/WorkflowConfigEditor";
 // Guided setup
 import { GuidedSetupFlow } from "@/components/brain/guided/GuidedSetupFlow";
 
+// Error boundary
+import ErrorBoundary from "@/components/ErrorBoundary";
+
 // Tab-specific banner components
 import { QuoteReadinessCard } from "@/components/brain/editors/QuoteReadinessCard";
 
@@ -489,7 +492,9 @@ export default function BusinessBrainPage() {
 
           {/* ═══ GUIDED SETUP MODE ═══ */}
           {shouldShowGuided && (
-            <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
+            <ErrorBoundary>
+              <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
+            </ErrorBoundary>
           )}
 
           {/* ═══ NORMAL BRAIN MODE ═══ */}
@@ -504,7 +509,9 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <BrainDashboard onNavigate={handleSectionChange} onStartGuidedSetup={handleEnterGuidedMode} />
+                <ErrorBoundary>
+                  <BrainDashboard onNavigate={handleSectionChange} onStartGuidedSetup={handleEnterGuidedMode} />
+                </ErrorBoundary>
               </motion.div>
             )}
 
@@ -517,7 +524,9 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <IntelligenceDashboard businessMode={businessMode} />
+                <ErrorBoundary>
+                  <IntelligenceDashboard businessMode={businessMode} />
+                </ErrorBoundary>
               </motion.div>
             )}
 
@@ -530,7 +539,9 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <WorkflowConfigEditor />
+                <ErrorBoundary>
+                  <WorkflowConfigEditor />
+                </ErrorBoundary>
               </motion.div>
             )}
 
@@ -543,6 +554,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
+                <ErrorBoundary>
                 <BrainSectionDetailHost
                   activeSection={activeSection}
                   currentCategory={currentCategory}
@@ -563,6 +575,7 @@ export default function BusinessBrainPage() {
                   isFoodMode={isFoodMode}
                   isDispatchMode={isDispatchMode}
                 />
+                </ErrorBoundary>
               </motion.div>
             )}
           </AnimatePresence>

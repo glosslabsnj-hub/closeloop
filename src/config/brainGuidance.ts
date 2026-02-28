@@ -200,4 +200,87 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       medical: "Many practices prefer pending mode so staff can verify insurance and prepare for the visit.",
     },
   },
+  "team": {
+    what: "Add your staff members so your AI knows who works at your business.",
+    why: "When callers ask for a specific person, your AI can confirm they work there and route or schedule accordingly.",
+    tips: {
+      default: "Add names and roles so your AI can say 'Let me check Sarah's schedule' instead of 'Let me check if someone is available.'",
+      medical: "Include each provider's specialties so your AI can match patients to the right doctor.",
+    },
+  },
+  "additional-services": {
+    what: "Add secondary services your business offers beyond your main offerings.",
+    why: "Callers sometimes ask about things outside your core services. Having these listed means your AI can answer instead of saying 'I don't know.'",
+    tips: {
+      default: "Think about what customers ask for that isn't your main service — gift cards, maintenance plans, add-ons, etc.",
+    },
+  },
+  "callback-delivery": {
+    what: "Choose how you get notified when your AI takes a callback request.",
+    why: "If a caller asks to be called back, you need to know about it quickly so you can follow up while the lead is still warm.",
+    tips: {
+      default: "Email notifications are on by default. Add SMS for faster alerts if callbacks are time-sensitive.",
+    },
+  },
+  "review": {
+    what: "Items your AI flagged for your review — new questions it couldn't answer, or suggestions for improvement.",
+    why: "Your AI gets smarter over time. Reviewing these items helps fill gaps in its knowledge so it handles more calls perfectly.",
+    tips: {
+      default: "Check this weekly. Each item you address means fewer 'I'll have to check on that' moments on future calls.",
+    },
+  },
+  "aftercare": {
+    what: "Instructions your AI shares with customers after they book — how to prepare, what to bring, etc.",
+    why: "Reduces no-shows and last-minute questions. Customers arrive prepared and your staff spends less time explaining basics.",
+    tips: {
+      default: "Common aftercare: confirmation details, preparation steps, what to bring, and how to reschedule.",
+      medical: "Include pre-appointment instructions: fasting requirements, forms to fill out, what to bring.",
+      service: "Include prep steps: clear the work area, secure pets, ensure someone is home.",
+    },
+  },
+  "competitors": {
+    what: "Tell your AI how to handle questions about your competitors.",
+    why: "Callers sometimes mention competitors or ask 'Why should I choose you?' Your AI can highlight your advantages instead of going silent.",
+    tips: {
+      default: "Focus on what makes you better — don't bash competitors. Highlight your strengths, reviews, and guarantees.",
+    },
+  },
+  "seasonal": {
+    what: "Add seasonal changes, holiday hours, or upcoming events your AI should know about.",
+    why: "Prevents your AI from giving outdated information during holidays, special promotions, or seasonal schedule changes.",
+    tips: {
+      default: "Update before major holidays. Your AI will automatically mention adjusted hours and any special offers.",
+    },
+  },
+  "pricing-rules": {
+    what: "Set how your pricing works — flat rate, by distance, by vehicle type, etc.",
+    why: "Your AI uses these rules to give accurate quotes instead of vague answers when callers ask 'How much will it cost?'",
+    tips: {
+      dispatch: "Most towing companies use distance-based pricing. Set your base rate and per-mile charge.",
+      default: "Choose the pricing model that matches how you actually charge customers.",
+    },
+  },
+  "service-coverage": {
+    what: "Configure scheduling rules — how far out customers can book and appointment durations.",
+    why: "Prevents your AI from booking appointments too far in advance or not leaving enough time between jobs.",
+    tips: {
+      default: "Set realistic buffer times between appointments to avoid running behind schedule.",
+    },
+  },
+  "workload": {
+    what: "Tell your AI about your current workload and availability.",
+    why: "When you're slammed, your AI can set realistic expectations instead of promising same-day service you can't deliver.",
+    tips: {
+      dispatch: "Update this when you're booked up. Your AI will adjust ETAs and let callers know about wait times.",
+      default: "Keeping this updated helps your AI give accurate availability information.",
+    },
+  },
+  "hipaa": {
+    what: "Enable HIPAA-compliant mode for handling protected health information.",
+    why: "Required for medical practices. Ensures your AI handles patient data according to HIPAA regulations.",
+    tips: {
+      medical: "This should always be enabled for healthcare providers. It adds data handling safeguards to every call.",
+      default: "Only enable this if your business handles protected health information.",
+    },
+  },
 };

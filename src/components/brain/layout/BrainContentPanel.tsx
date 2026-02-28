@@ -5,7 +5,7 @@
  */
 
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, ChevronRight, Lightbulb, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronDown, ChevronRight, Lightbulb, Sparkles, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { BrainSectionItem } from "@/config/brainSectionRegistry";
@@ -91,6 +91,17 @@ export function BrainContentPanel({
         {/* Guidance: what this setting does */}
         {guidance?.whatText && (
           <p className="text-sm text-muted-foreground -mt-1">{guidance.whatText}</p>
+        )}
+
+        {/* Why this matters */}
+        {guidance?.whyText && (
+          <div className="flex items-start gap-2 rounded-lg border border-primary/10 bg-primary/5 px-3 py-2.5">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">Why this matters: </span>
+              {guidance.whyText}
+            </p>
+          </div>
         )}
 
         {/* Tip callout */}

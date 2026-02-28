@@ -4,9 +4,10 @@
  * Mobile-first, mode-aware, industry-specific language.
  */
 
-import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check } from "lucide-react";
-import { useState } from "react";
+import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check, PartyPopper, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +17,7 @@ import { SoundManager } from "@/components/notifications/SoundManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 /** Mode-specific welcome messaging */
 function getWelcomeSubtext(mode: string, businessName: string): string {
@@ -39,12 +41,46 @@ function getModeIcon(mode: string) {
   }
 }
 
+/** Mode-specific capabilities list for the celebration */
+function getModeCapabilities(mode: string): string[] {
+  switch (mode) {
+    case "food": return ["Take phone orders", "Answer menu questions", "Handle delivery requests", "Manage reservations"];
+    case "dispatch": return ["Accept new job requests", "Collect location details", "Provide ETA estimates", "Handle emergency calls"];
+    case "medical": return ["Schedule appointments", "Handle patient inquiries", "Triage by urgency", "Verify insurance info"];
+    case "sales": return ["Qualify incoming leads", "Answer product questions", "Schedule consultations", "Follow up on interest"];
+    default: return ["Answer calls 24/7", "Book appointments", "Quote your prices", "Handle common questions"];
+  }
+}
+
 export function EmptyDashboard() {
   const navigate = useNavigate();
-  const { tenant } = useAuth();
+  const { tenant, assistantSettings } = useAuth();
   const readiness = useAIReadinessV2();
   const { mode, terms } = useIndustryContext();
   const [copied, setCopied] = useState(false);
+
+  // First-time celebration: show once after setup completes
+  const celebrationKey = `celebration_dismissed_${tenant?.id}`;
+  const setupJustCompleted = !!assistantSettings?.setup_completed_at;
+  const [showCelebration, setShowCelebration] = useState(() => {
+    if (!setupJustCompleted) return false;
+    return !localStorage.getItem(celebrationKey);
+  });
+
+  // Auto-dismiss celebration after 30 seconds
+  useEffect(() => {
+    if (!showCelebration) return;
+    const timer = setTimeout(() => {
+      setShowCelebration(false);
+      localStorage.setItem(celebrationKey, "true");
+    }, 30000);
+    return () => clearTimeout(timer);
+  }, [showCelebration, celebrationKey]);
+
+  const dismissCelebration = () => {
+    setShowCelebration(false);
+    localStorage.setItem(celebrationKey, "true");
+  };
 
   const businessName = (tenant?.name as string) || "your business";
   const phoneNumber = (tenant?.closeloop_number as string) || null;
@@ -63,7 +99,54 @@ export function EmptyDashboard() {
       <SoundManager />
 
       {/* Agent Status */}
-      <AgentControlPanel />
+      <ErrorBoundary>
+        <AgentControlPanel />
+      </ErrorBoundary>
+
+      {/* ── First-time celebration ─────────────────────────────── */}
+      <AnimatePresence>
+        {showCelebration && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.97 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+          >
+            <Card className="border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50 via-background to-emerald-50/50 dark:from-emerald-950/30 dark:via-background dark:to-emerald-950/20 overflow-hidden relative">
+              <button
+                onClick={dismissCelebration}
+                className="absolute top-3 right-3 p-1 rounded-md hover:bg-muted/50 transition-colors"
+              >
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50">
+                    <PartyPopper className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold">Setup complete!</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {businessName}'s AI receptionist is ready to go.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {getModeCapabilities(mode).map((cap) => (
+                    <div key={cap} className="flex items-center gap-2 text-sm">
+                      <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      <span>{cap}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Make a test call below to hear your AI in action.
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Hero: Test Call CTA (THE primary action) ────────────── */}
       <Card className="border-primary/20 bg-gradient-to-b from-primary/5 to-card/60 backdrop-blur-sm glow-primary-subtle overflow-hidden">
@@ -181,7 +264,9 @@ export function EmptyDashboard() {
       </div>
 
       {/* ── Setup Checklist ─────────────────────────────────────── */}
-      <SmartChecklist />
+      <ErrorBoundary>
+        <SmartChecklist />
+      </ErrorBoundary>
     </div>
   );
 }
