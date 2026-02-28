@@ -13,12 +13,15 @@ import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { AITone, AIBookingMode } from "@/components/onboarding/CommunicationPreferences";
 import { AIPreviewPanel } from "@/components/onboarding/AIPreviewPanel";
+import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 
 export type AfterHoursBehavior = "ai_24_7" | "voicemail" | "text_back";
 
 interface OnboardingAIProps {
   businessName: string;
   businessMode: BusinessMode;
+  industrySlug?: string;
   aiTone: AITone;
   onAiToneChange: (tone: AITone) => void;
   bookingMode: AIBookingMode;
@@ -50,6 +53,7 @@ const afterHoursOptions: { value: AfterHoursBehavior; label: string; description
 export const OnboardingAI = React.memo(function OnboardingAI({
   businessName,
   businessMode,
+  industrySlug,
   aiTone,
   onAiToneChange,
   bookingMode,
@@ -60,6 +64,9 @@ export const OnboardingAI = React.memo(function OnboardingAI({
   onCustomGreetingChange,
 }: OnboardingAIProps) {
   const showBookingMode = businessMode !== "dispatch";
+  const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
+  const terms = getIndustryTerminology(businessMode, industryEntry?.category);
+  const bookingLabel = terms.appointmentLabel ?? "appointment";
 
   return (
     <div className="space-y-8">
@@ -122,7 +129,7 @@ export const OnboardingAI = React.memo(function OnboardingAI({
           <Separator />
           <div className="space-y-3">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-medium">When someone wants to book:</p>
+              <p className="text-sm font-medium">When someone wants to {bookingLabel === "job" ? "schedule a job" : bookingLabel === "reservation" ? "make a reservation" : bookingLabel === "dispatch" ? "request service" : "book"}:</p>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>

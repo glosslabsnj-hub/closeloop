@@ -172,6 +172,7 @@ const CATEGORY_OVERRIDES: Partial<Record<IndustryCategory, Partial<IndustryTermi
   },
   home_services: {
     teamMemberLabel: "technician",
+    appointmentLabel: "job",
     exampleServices: ["Service Call", "Diagnostic", "Installation", "Emergency Repair"],
     exampleFAQs: ["Do you charge a trip fee?", "Are you licensed and insured?", "Do you offer financing?"],
   },

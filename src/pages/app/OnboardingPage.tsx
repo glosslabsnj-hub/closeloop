@@ -346,6 +346,7 @@ export default function OnboardingPage() {
                     <OnboardingAI
                       businessName={form.businessName}
                       businessMode={form.businessMode}
+                      industrySlug={form.industrySlug}
                       aiTone={form.aiTone}
                       onAiToneChange={form.setAiTone}
                       bookingMode={form.bookingMode}
