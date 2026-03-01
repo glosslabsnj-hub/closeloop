@@ -184,18 +184,12 @@ serve(async (req) => {
       throw new Error(`Booking not found or access denied`);
     }
 
-    // SECURITY: Fetch delivery settings scoped to tenant
+    // Fetch delivery settings scoped to tenant (for owner notifications only)
     const { data: settings } = await supabase
       .from("booking_delivery_settings")
       .select("*")
       .eq("tenant_id", tenantId)
-      .single();
-
-    if (!settings?.enabled) {
-      return new Response(JSON.stringify({ success: true, message: "Handoff disabled" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      .maybeSingle();
 
     // Fetch tenant info
     const { data: tenantData } = await supabase
@@ -204,7 +198,19 @@ serve(async (req) => {
       .eq("id", tenantId)
       .single();
 
-    const methods = Array.isArray(settings.handoff_methods) ? settings.handoff_methods : ["internal"];
+    // Fetch assistant settings (timezone + SMS templates) once for reuse below
+    const { data: assistSettingsRow } = await supabase
+      .from("assistant_settings")
+      .select("settings_json")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+    const tenantTimezone = (assistSettingsRow?.settings_json as any)?.timezone || "America/New_York";
+
+    // Owner notification methods are gated by delivery settings;
+    // critical post-booking actions (audit, workflow, calendar, customer SMS) always run
+    const ownerMethods = settings?.enabled && Array.isArray(settings.handoff_methods)
+      ? settings.handoff_methods.filter((m: string) => m !== "internal")
+      : [];
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Build payload
@@ -254,7 +260,7 @@ serve(async (req) => {
             scheduled_start: booking.start_at,
           },
           confirmation_summary: booking.status === "confirmed"
-            ? `Booking confirmed: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString()}`
+            ? `Booking confirmed: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString("en-US", { timeZone: tenantTimezone })}`
             : undefined,
           confirmed_by: "staff",
         }),
@@ -276,7 +282,7 @@ serve(async (req) => {
             tenantId: tenantId,
             observationType: "service_pattern",
             subjectKey: `service_${booking.service.id}`,
-            observation: `${booking.service.name} booked at ${new Date(booking.start_at).toLocaleTimeString()}`,
+            observation: `${booking.service.name} booked at ${new Date(booking.start_at).toLocaleTimeString("en-US", { timeZone: tenantTimezone })}`,
           }),
         });
       } catch (e) {
@@ -284,12 +290,10 @@ serve(async (req) => {
       }
     }
 
-    // Execute each enabled method
-    for (const handoffMethod of methods) {
-      if (handoffMethod === "internal") continue;
-
+    // Execute owner notification methods (gated by delivery settings)
+    for (const handoffMethod of ownerMethods) {
       try {
-        if (handoffMethod === "webhook" && settings.webhook_url) {
+        if (handoffMethod === "webhook" && settings?.webhook_url) {
           const payloadString = JSON.stringify(payload);
           const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -320,10 +324,10 @@ serve(async (req) => {
           });
         }
 
-        if (handoffMethod === "email" && settings.notify_email) {
+        if (handoffMethod === "email" && settings?.notify_email) {
           const customerName = payload.customer.name;
           const serviceName = payload.service?.name || "Service";
-          const startTime = new Date(payload.scheduled_start).toLocaleString();
+          const startTime = new Date(payload.scheduled_start).toLocaleString("en-US", { timeZone: tenantTimezone });
           const businessName = payload.tenant_name || "Your Business";
 
           const emailResult = await sendEmail({
@@ -353,10 +357,10 @@ serve(async (req) => {
           });
         }
 
-        if (handoffMethod === "sms" && settings.notify_phone) {
+        if (handoffMethod === "sms" && settings?.notify_phone) {
           const customerName = booking.lead?.full_name || "Customer";
           const serviceName = booking.service?.name || "Service";
-          const startTime = new Date(booking.start_at).toLocaleString();
+          const startTime = new Date(booking.start_at).toLocaleString("en-US", { timeZone: tenantTimezone });
           const smsBody = `New booking: ${customerName} for ${serviceName} at ${startTime}`;
 
           const smsResult = await sendTenantSms({
@@ -451,16 +455,11 @@ serve(async (req) => {
 
     // ─── CUSTOMER CONFIRMATION SMS ───────────────────────────────────
     // Send confirmation SMS to the CUSTOMER (not the owner) if enabled
+    // This always runs (not gated by delivery settings) — customers expect confirmation
     try {
       const customerPhone = booking.lead?.phone;
       if (customerPhone) {
-        const { data: assistSettings } = await supabase
-          .from("assistant_settings")
-          .select("settings_json")
-          .eq("tenant_id", tenantId)
-          .maybeSingle();
-
-        const smsTemplates = (assistSettings?.settings_json as any)?.sms_templates;
+        const smsTemplates = (assistSettingsRow?.settings_json as any)?.sms_templates;
         const confirmationConfig = smsTemplates?.appointment_confirmation;
         // Default to enabled=true if the tenant hasn't configured SMS settings yet
         // (matches the default in the Settings UI which shows confirmation as enabled by default)
@@ -470,11 +469,13 @@ serve(async (req) => {
           const startTime = new Date(booking.start_at).toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
+            timeZone: tenantTimezone,
           });
           const startDate = new Date(booking.start_at).toLocaleDateString("en-US", {
             weekday: "long",
             month: "long",
             day: "numeric",
+            timeZone: tenantTimezone,
           });
 
           const template = confirmationConfig?.message ||

@@ -4022,7 +4022,7 @@ function scoreCallQuality(
 
   // 5. Outcome quality (0-100)
   const outcomeScores: Record<string, number> = {
-    booked: 100, order: 100, dispatch_created: 100,
+    booked: 100, order: 100, dispatch: 100,
     lead_captured: 70, followup: 70,
     escalated: 50, faq_answered: 60,
     lost: 20, hangup: 0, referral_transfer: 60,
@@ -4062,7 +4062,7 @@ async function queueWarmLeadFollowup(
   tenantTimezone: string
 ): Promise<void> {
   // Only queue for warm/hot leads that didn't convert
-  if (outcome === "booked" || outcome === "order" || outcome === "dispatch_created") return;
+  if (outcome === "booked" || outcome === "order" || outcome === "dispatch") return;
   if (leadScore < 40) return; // cold leads don't get callbacks
 
   try {

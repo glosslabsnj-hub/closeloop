@@ -106,7 +106,7 @@ export default function LoginPage() {
               </div>
             ))}
           </div>
-          <p className="text-muted-foreground/40 text-xs pt-6">Trusted by 500+ local businesses</p>
+          <p className="text-muted-foreground/40 text-xs pt-6">Built for local businesses that never miss a call</p>
         </div>
       </div>
 

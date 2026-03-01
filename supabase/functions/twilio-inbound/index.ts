@@ -814,12 +814,12 @@ Deno.serve(async (req) => {
       console.error(`[twilio-inbound] Session insert error:`, e);
     }
 
-    // Update connect_status if needed
+    // Update connect_status if needed (fire-and-forget — don't delay TwiML response)
     if (settings.connect_status !== "forwarding_verified") {
-      await updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings", 
-        { tenant_id: tenantId }, 
+      void updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "assistant_settings",
+        { tenant_id: tenantId },
         { connect_status: "forwarding_verified", updated_at: new Date().toISOString() }
-      );
+      ).catch(e => console.error("[twilio-inbound] connect_status update failed:", e));
     }
 
     return new Response(twiml, {

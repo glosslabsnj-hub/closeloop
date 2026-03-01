@@ -558,9 +558,10 @@ serve(async (req: Request) => {
         : null,
     });
 
-    // Update session with booking outcome
+    // Update session with booking outcome — CRITICAL for duplicate prevention.
+    // The webhook checks session.booking_id to skip creating a second booking.
     if (sessionId) {
-      await supabase
+      const { error: sessionUpdateErr } = await supabase
         .from("ai_call_sessions")
         .update({
           booking_id: booking.id,
@@ -577,6 +578,9 @@ serve(async (req: Request) => {
           },
         })
         .eq("id", sessionId);
+      if (sessionUpdateErr) {
+        console.error("[create-booking] CRITICAL: Failed to set booking_id on session — duplicate booking may occur:", sessionUpdateErr);
+      }
     }
 
     // For sales-mode tenants, also create a test_drives record
