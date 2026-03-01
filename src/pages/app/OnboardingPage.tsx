@@ -55,7 +55,7 @@ export default function OnboardingPage() {
     goToPhase, resetProgress, clearProgress,
   } = useOnboardingProgress(userId);
 
-  const form = useOnboardingFormState(userId);
+  const form = useOnboardingFormState(userId, user?.user_metadata);
   const submit = useOnboardingSubmit(userId);
 
   const { validateStep, getFieldError, clearErrors } = useOnboardingValidation();

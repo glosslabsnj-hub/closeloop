@@ -41,10 +41,10 @@ const toneLabels: Record<AITone, string> = {
 };
 
 const bookingLabels: Record<AIBookingMode, string> = {
-  auto_book: "Auto-booking enabled",
-  pending_approval: "Book + require approval",
-  suggest_callback: "Suggest + callback",
-  callback_only: "Callback only",
+  auto_book: "Auto-booking enabled — AI books instantly",
+  pending_approval: "AI books, you approve before confirming",
+  suggest_callback: "AI suggests a time, you call back to confirm",
+  callback_only: "AI collects info, you call back to book",
 };
 
 const afterHoursLabels: Record<AfterHoursBehavior, string> = {

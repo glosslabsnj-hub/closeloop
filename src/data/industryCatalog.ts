@@ -2626,6 +2626,7 @@ export function isWorkStyleDeterministic(slug: string): boolean {
   // These categories have a completely predictable work style for 95%+ of businesses
   const deterministicCategories: IndustryCategory[] = [
     "home_services",      // plumbing, HVAC, electrical, pest control → always go_to_customer
+    "dispatch_logistics", // towing, courier, medical transport → always go_to_customer
     "food_hospitality",   // restaurants, pizza → always customer_comes
     "beauty_wellness",    // salons, barbershops, nail salons → always customer_comes
     "health_medical",     // dental, chiropractic, veterinary → always customer_comes

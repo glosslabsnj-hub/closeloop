@@ -84,7 +84,7 @@ export function clearOnboardingData(userId?: string) {
 
 // ─── Hook ───────────────────────────────────────────────────────────────────
 
-export function useOnboardingFormState(userId?: string) {
+export function useOnboardingFormState(userId?: string, userMetadata?: Record<string, unknown>) {
   const saved = useRef(loadOnboardingData(userId));
   const initializedIndustryRef = useRef<string | null>(saved.current?.industrySlug || null);
   const websiteImportActiveRef = useRef(false);
@@ -94,7 +94,7 @@ export function useOnboardingFormState(userId?: string) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // --- All form state ---
-  const initialBusinessName = saved.current?.businessName || sessionStorage.getItem("businessName") || "";
+  const initialBusinessName = saved.current?.businessName || sessionStorage.getItem("businessName") || (userMetadata?.businessName as string) || "";
   const [businessName, setBusinessName] = useState(initialBusinessName);
   const [businessAddress, setBusinessAddress] = useState(saved.current?.businessAddress ?? "");
   const [businessMode, setBusinessMode] = useState<BusinessMode>(saved.current?.businessMode ?? "service");
@@ -186,6 +186,16 @@ export function useOnboardingFormState(userId?: string) {
     setWorkStyle(getIndustryDefaultWorkStyle(industrySlug));
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);
+
+  // Sync scenarioAnswers.operates24Hours → schedulingPrefs.is24x7
+  // so Step 1's 24/7 toggle carries through to Step 3's hours editor
+  useEffect(() => {
+    if (scenarioAnswers.operates24Hours === true && !schedulingPrefs.is24x7) {
+      setSchedulingPrefs(prev => ({ ...prev, is24x7: true }));
+    } else if (scenarioAnswers.operates24Hours === false && schedulingPrefs.is24x7) {
+      setSchedulingPrefs(prev => ({ ...prev, is24x7: false }));
+    }
+  }, [scenarioAnswers.operates24Hours]);
 
   // Derive modules from scenario answers
   useEffect(() => {

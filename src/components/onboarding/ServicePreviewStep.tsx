@@ -197,23 +197,31 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                         </button>
                       ))}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-end">
                       {service.priceType !== "quote_only" && (
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-medium text-muted-foreground">
+                            {service.priceType === "starting_at" ? "Starting price ($)" : "Price ($)"}
+                          </label>
+                          <Input
+                            type="number"
+                            value={service.price}
+                            onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
+                            className="w-28"
+                            aria-label={service.priceType === "starting_at" ? "Starting price" : "Price"}
+                          />
+                        </div>
+                      )}
+                      <div className="space-y-1">
+                        <label className="text-[11px] font-medium text-muted-foreground">Duration (min)</label>
                         <Input
                           type="number"
-                          value={service.price}
-                          onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
+                          value={service.duration}
+                          onChange={(e) => updateService(idx, "duration", parseInt(e.target.value) || 0)}
                           className="w-28"
-                          placeholder={service.priceType === "starting_at" ? "From $" : "Price"}
+                          aria-label="Duration in minutes"
                         />
-                      )}
-                      <Input
-                        type="number"
-                        value={service.duration}
-                        onChange={(e) => updateService(idx, "duration", parseInt(e.target.value) || 0)}
-                        className="w-28"
-                        placeholder="Duration (min)"
-                      />
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
