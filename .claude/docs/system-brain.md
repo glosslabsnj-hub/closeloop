@@ -1,41 +1,44 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-01 4:00 PM ET (receptionist_eng — Dispatch Mode Complete)
+## Last Session: 2026-03-01 4:45 PM ET (receptionist_eng — 3 bugs + 6 edge fn deploys)
 
 ### What Was Done
-- Fixed 5 critical dispatch mode bugs
-- Added industry onboarding configs for 4 dispatch industries
-- Deployed 2 edge functions (dispatch-handoff, elevenlabs-lookup-dispatch-status)
-- Audited all 37 dispatch quality gates → ALL PASSING
+- Fixed 3 critical bugs: Brain save persistence, cross-mode query invalidation, RLS query failures
+- Deployed 6 edge functions: elevenlabs-create-booking, elevenlabs-webhook, booking-handoff, twilio-inbound, dispatch-handoff, order-handoff
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 343/343 passing
 
 ### MODE PROGRESS
-- SERVICE: 37/37 (100%) — COMPLETE
-- DISPATCH: 37/37 (100%) — COMPLETE
-- FOOD: 0/37 (0%) — NEXT TARGET
+- SERVICE: 15/37 (41%) ← FOCUS (3 gates moved to in_progress, awaiting QA)
+- DISPATCH: 0/37 (0%)
+- FOOD: 0/37 (0%)
 - MEDICAL: 0/37 (0%)
 - SALES: 0/37 (0%)
 - GENERAL: 0/37 (0%)
 
-### Key Dispatch Fixes This Session
-1. **dispatch_delivery_settings not created during onboarding** (P0): New dispatch tenants had no row → ALL notifications silently skipped. Added step 9c to useOnboardingSubmit.
-2. **dispatch-handoff silently returned on missing settings** (P0): Same bug as booking-handoff. Restructured: critical actions (audit, observation, workflow, customer SMS) always run; only owner notifications gated.
-3. **No customer-facing SMS** (P1): AI promised "you'll get a text" but nothing sent it. Added customer confirmation SMS as critical action in dispatch-handoff.
-4. **Quick Dispatch button 404** (P1): DispatchDashboardLayout routed to /app/dispatch/new (doesn't exist). Fixed to /app/dispatch.
-5. **lookup-dispatch-status HTTP 500** (P1): ElevenLabs ignores body on 500. Changed to 200 so AI can relay error message.
+### Bugs Fixed This Session
+1. **Brain save reverts on navigation** (P0): BusinessProfileEditor saved to DB but never called refreshTenant(). AuthContext had stale tenant data. Form re-initialized from stale cache on re-render. Fix: added refreshTenant() after save (matching BusinessHoursManager pattern).
+2. **Cross-mode queries not invalidated on tenant switch** (P1): When super admin switched tenant via AdminTenantSwitcher, React Query caches kept data from old tenant. Fix: AppLayout effect watches tenant.id changes and calls queryClient.invalidateQueries().
+3. **60+ RLS errors from wrong-mode queries** (P1): useBusinessCapabilities queried dispatch_delivery_settings, fleet_vehicles, menu_items, food_order_settings, and 7 ai_knowledge_base categories for ALL tenants regardless of mode. Fix: conditionally skip non-relevant queries based on businessMode. Also added businessMode to query key so cache refreshes on mode change.
 
-### Dispatch Architecture Notes
-- Call flow: twilio-inbound → ElevenLabs DISPATCH agent → elevenlabs-create-dispatch-job (during call) → dispatch-handoff → customer SMS + owner notifications
-- Dedup: elevenlabs-webhook checks for existing dispatch_jobs.session_id before creating
-- ETA: compute-distance-eta (tenant-configured, busyness rules) vs eta-route (cached, simpler)
-- Driver assignment: manual via dashboard or trigger-workflow automation (no auto-round-robin)
-- IVR: dispatch_ivr_mode supports towing_only, ivr_routing (press 1/2), impound_only
-- 5 dispatch industries: towing, courier, roadside_assistance, medical_transport, mobile_mechanic
+### Edge Function Deployments
+All 6 critical call-flow edge functions deployed with accumulated bug fixes from prior sessions:
+- elevenlabs-create-booking (date parsing, outcome enum)
+- elevenlabs-webhook (outcome enum, duplicate prevention, intelligence)
+- booking-handoff (notification defaults, timezone fix, SMS enabled by default)
+- twilio-inbound (off-behavior outcome enum fix)
+- dispatch-handoff (customer SMS, missing settings resilience)
+- order-handoff (new - created by receptionist_ux)
+
+### Architecture Notes
+- BusinessProfileEditor writes to `tenants` table → must call refreshTenant() after save (AuthContext caches tenant)
+- BusinessHoursManager already had this pattern (since commit 341073d)
+- useBusinessCapabilities now takes businessMode into account for query filtering
+- AppLayout uses useRef + useEffect to detect tenant.id changes and invalidate all queries
 
 ### Next Priorities
-1. Start FOOD mode quality gates (0/37)
+1. QA verification of 3 gates (brain save, cross-mode, booking flow)
 2. Real end-to-end call test on demo line (855) 329-7357
-3. Test signup flow at app.getfluxdata.com
+3. Remaining BLOCKED onboarding gates need real user flow testing
