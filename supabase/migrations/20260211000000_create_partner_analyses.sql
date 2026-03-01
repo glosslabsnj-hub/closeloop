@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS partner_analyses (
 
 ALTER TABLE partner_analyses ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "tenant_access" ON partner_analyses
+DROP POLICY IF EXISTS "tenant_access" ON partner_analyses;
+CREATE POLICY "tenant_access"
+  ON partner_analyses
   FOR ALL
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));

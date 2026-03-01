@@ -2,7 +2,7 @@
 -- ============================================
 -- 1. customer_vehicles table
 -- ============================================
-CREATE TABLE public.customer_vehicles (
+CREATE TABLE IF NOT EXISTS public.customer_vehicles (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id),
   customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
@@ -18,23 +18,32 @@ CREATE TABLE public.customer_vehicles (
 );
 
 -- Unique VIN per tenant (when VIN is provided)
-CREATE UNIQUE INDEX idx_customer_vehicles_vin_tenant ON public.customer_vehicles (tenant_id, vin) WHERE vin IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_customer_vehicles_vin_tenant ON public.customer_vehicles (tenant_id, vin) WHERE vin IS NOT NULL;
 
 ALTER TABLE public.customer_vehicles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant users can view vehicles" ON public.customer_vehicles
+DROP POLICY IF EXISTS "Tenant users can view vehicles" ON public.customer_vehicles;
+CREATE POLICY "Tenant users can view vehicles"
+  ON public.customer_vehicles
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can insert vehicles" ON public.customer_vehicles
+DROP POLICY IF EXISTS "Tenant users can insert vehicles" ON public.customer_vehicles;
+CREATE POLICY "Tenant users can insert vehicles"
+  ON public.customer_vehicles
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can update vehicles" ON public.customer_vehicles
+DROP POLICY IF EXISTS "Tenant users can update vehicles" ON public.customer_vehicles;
+CREATE POLICY "Tenant users can update vehicles"
+  ON public.customer_vehicles
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can delete vehicles" ON public.customer_vehicles
+DROP POLICY IF EXISTS "Tenant users can delete vehicles" ON public.customer_vehicles;
+CREATE POLICY "Tenant users can delete vehicles"
+  ON public.customer_vehicles
   FOR DELETE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- updated_at trigger
+DROP TRIGGER IF EXISTS update_customer_vehicles_updated_at ON public.customer_vehicles;
 CREATE TRIGGER update_customer_vehicles_updated_at
   BEFORE UPDATE ON public.customer_vehicles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
@@ -42,7 +51,7 @@ CREATE TRIGGER update_customer_vehicles_updated_at
 -- ============================================
 -- 2. active_jobs table
 -- ============================================
-CREATE TABLE public.active_jobs (
+CREATE TABLE IF NOT EXISTS public.active_jobs (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id),
   customer_id UUID REFERENCES public.customers(id),
@@ -67,33 +76,46 @@ CREATE TABLE public.active_jobs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX idx_active_jobs_number_tenant ON public.active_jobs (tenant_id, job_number);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_active_jobs_number_tenant ON public.active_jobs (tenant_id, job_number);
 
 ALTER TABLE public.active_jobs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant users can view jobs" ON public.active_jobs
+DROP POLICY IF EXISTS "Tenant users can view jobs" ON public.active_jobs;
+CREATE POLICY "Tenant users can view jobs"
+  ON public.active_jobs
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can insert jobs" ON public.active_jobs
+DROP POLICY IF EXISTS "Tenant users can insert jobs" ON public.active_jobs;
+CREATE POLICY "Tenant users can insert jobs"
+  ON public.active_jobs
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can update jobs" ON public.active_jobs
+DROP POLICY IF EXISTS "Tenant users can update jobs" ON public.active_jobs;
+CREATE POLICY "Tenant users can update jobs"
+  ON public.active_jobs
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can delete jobs" ON public.active_jobs
+DROP POLICY IF EXISTS "Tenant users can delete jobs" ON public.active_jobs;
+CREATE POLICY "Tenant users can delete jobs"
+  ON public.active_jobs
   FOR DELETE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP TRIGGER IF EXISTS update_active_jobs_updated_at ON public.active_jobs;
 CREATE TRIGGER update_active_jobs_updated_at
   BEFORE UPDATE ON public.active_jobs
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE public.active_jobs;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'active_jobs') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.active_jobs;
+  END IF;
+END $$;
 
 -- ============================================
 -- 3. job_service_items table
 -- ============================================
-CREATE TABLE public.job_service_items (
+CREATE TABLE IF NOT EXISTS public.job_service_items (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   job_id UUID NOT NULL REFERENCES public.active_jobs(id) ON DELETE CASCADE,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id),
@@ -110,19 +132,31 @@ CREATE TABLE public.job_service_items (
 
 ALTER TABLE public.job_service_items ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant users can view job items" ON public.job_service_items
+DROP POLICY IF EXISTS "Tenant users can view job items" ON public.job_service_items;
+CREATE POLICY "Tenant users can view job items"
+  ON public.job_service_items
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can insert job items" ON public.job_service_items
+DROP POLICY IF EXISTS "Tenant users can insert job items" ON public.job_service_items;
+CREATE POLICY "Tenant users can insert job items"
+  ON public.job_service_items
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can update job items" ON public.job_service_items
+DROP POLICY IF EXISTS "Tenant users can update job items" ON public.job_service_items;
+CREATE POLICY "Tenant users can update job items"
+  ON public.job_service_items
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant users can delete job items" ON public.job_service_items
+DROP POLICY IF EXISTS "Tenant users can delete job items" ON public.job_service_items;
+CREATE POLICY "Tenant users can delete job items"
+  ON public.job_service_items
   FOR DELETE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.job_service_items;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'job_service_items') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.job_service_items;
+  END IF;
+END $$;
 
 -- ============================================
 -- 4. generate_job_number function

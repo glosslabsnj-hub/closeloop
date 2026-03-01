@@ -199,6 +199,100 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your pizza shop",
   },
 
+  restaurant: {
+    preAnswers: {
+      offersReservations: true,
+    },
+    setupChecklist: [
+      { label: "Set up your menu", fixPath: "/app/business-brain?section=services", icon: "menu" as const, flagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"] },
+      { label: "Set your hours", fixPath: "/app/business-brain?section=hours", icon: "hours" as const, flagKeys: ["missing_hours"] },
+      { label: "Configure delivery (if offered)", fixPath: "/app/business-brain?section=service-area", icon: "coverage" as const },
+      { label: "Add common guest questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs" as const, flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" as const },
+      { label: "Add your menu items and prices", icon: "book" as const },
+      { label: "Set up delivery zones (if applicable)", icon: "map" as const },
+      { label: "Customize your AI's greeting", icon: "sparkles" as const },
+    ],
+    setupTitle: "your restaurant",
+  },
+
+  bakery: {
+    preAnswers: {
+      offersCatering: true,
+    },
+    setupChecklist: [
+      { label: "Add your bakery items and prices", fixPath: "/app/business-brain?section=services", icon: "menu" as const, flagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"] },
+      { label: "Set your hours", fixPath: "/app/business-brain?section=hours", icon: "hours" as const, flagKeys: ["missing_hours"] },
+      { label: "Add common questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs" as const, flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" as const },
+      { label: "Add your baked goods and prices", icon: "book" as const },
+      { label: "Add FAQs about custom orders and lead times", icon: "book" as const },
+      { label: "Customize your AI's greeting", icon: "sparkles" as const },
+    ],
+    setupTitle: "your bakery",
+  },
+
+  coffee_shop: {
+    preAnswers: {},
+    setupChecklist: [
+      { label: "Set up your menu", fixPath: "/app/business-brain?section=services", icon: "menu" as const, flagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"] },
+      { label: "Set your hours", fixPath: "/app/business-brain?section=hours", icon: "hours" as const, flagKeys: ["missing_hours"] },
+      { label: "Add common questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs" as const, flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" as const },
+      { label: "Add your drinks and food items", icon: "book" as const },
+      { label: "Customize your AI's greeting", icon: "sparkles" as const },
+    ],
+    setupTitle: "your coffee shop",
+  },
+
+  food_truck: {
+    preAnswers: {},
+    setupChecklist: [
+      { label: "Set up your menu", fixPath: "/app/business-brain?section=services", icon: "menu" as const, flagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"] },
+      { label: "Set your hours and location schedule", fixPath: "/app/business-brain?section=hours", icon: "hours" as const, flagKeys: ["missing_hours"] },
+      { label: "Add common questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs" as const, flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" as const },
+      { label: "Add your menu items and prices", icon: "book" as const },
+      { label: "Customize your AI's greeting", icon: "sparkles" as const },
+    ],
+    setupTitle: "your food truck",
+  },
+
+  catering_service: {
+    preAnswers: {
+      offersCatering: true,
+    },
+    setupChecklist: [
+      { label: "Set up your catering packages", fixPath: "/app/business-brain?section=services", icon: "menu" as const, flagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"] },
+      { label: "Set your availability", fixPath: "/app/business-brain?section=hours", icon: "hours" as const, flagKeys: ["missing_hours"] },
+      { label: "Define your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage" as const },
+      { label: "Add common questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs" as const, flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" as const },
+      { label: "Add your catering packages and prices", icon: "book" as const },
+      { label: "Set your delivery/service area", icon: "map" as const },
+      { label: "Customize your AI's greeting", icon: "sparkles" as const },
+    ],
+    setupTitle: "your catering business",
+  },
+
+  bar: {
+    preAnswers: {
+      offersReservations: true,
+      servesAlcohol: true,
+    },
+    setupTitle: "your bar",
+  },
+
   locksmith: {
     preAnswers: {
       offersMobileService: true,
@@ -312,7 +406,7 @@ const categoryConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     },
     setupTitle: "your dispatch company",
   },
-  food_beverage: {
+  food_hospitality: {
     preAnswers: {},
     setupTitle: "your restaurant",
   },

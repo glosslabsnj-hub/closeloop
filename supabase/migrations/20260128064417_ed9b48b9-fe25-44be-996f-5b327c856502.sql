@@ -35,13 +35,15 @@ CREATE TABLE IF NOT EXISTS public.business_faqs (
 ALTER TABLE public.business_faqs ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for business_faqs
+DROP POLICY IF EXISTS "Users can view tenant FAQs" ON public.business_faqs;
 CREATE POLICY "Users can view tenant FAQs"
-ON public.business_faqs
+  ON public.business_faqs
 FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage FAQs" ON public.business_faqs;
 CREATE POLICY "Owners can manage FAQs"
-ON public.business_faqs
+  ON public.business_faqs
 FOR ALL
 USING (
   (tenant_id IN (
@@ -65,13 +67,15 @@ CREATE TABLE IF NOT EXISTS public.objection_responses (
 ALTER TABLE public.objection_responses ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for objection_responses
+DROP POLICY IF EXISTS "Users can view tenant objection responses" ON public.objection_responses;
 CREATE POLICY "Users can view tenant objection responses"
-ON public.objection_responses
+  ON public.objection_responses
 FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage objection responses" ON public.objection_responses;
 CREATE POLICY "Owners can manage objection responses"
-ON public.objection_responses
+  ON public.objection_responses
 FOR ALL
 USING (
   (tenant_id IN (

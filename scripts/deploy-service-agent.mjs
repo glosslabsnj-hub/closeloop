@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const API_KEY = "sk_2b27cfbfbc65aab7bfff4e370c598be68abcbe515e488d68";
 const BASE_API = "https://api.elevenlabs.io/v1/convai";
 const AGENT_ID = "agent_4701kg1vwhzqfxmvzh032nhvx434";
-const SUPABASE_URL = "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1";
+const SUPABASE_URL = "https://yltzlvzgwkidbeqaoevp.supabase.co/functions/v1";
 const SECRET_ID = "9G30VIglbkIoULRKR7xD";
 
 const DRY_RUN = process.argv.includes("--dry-run");

@@ -35,6 +35,17 @@ CREATE TABLE IF NOT EXISTS public.tenant_distance_settings (
   updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+-- Add missing columns from expanded schema (table may have been created by earlier migration with different columns)
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS distance_provider_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_lat numeric(10, 7) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_lng numeric(10, 7) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_place_name text NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS mapbox_route_profile text NOT NULL DEFAULT 'mapbox/driving-traffic';
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_base_minutes integer NOT NULL DEFAULT 0;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_per_mile_minutes numeric(5, 2) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_min_minutes integer NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_max_minutes integer NULL;
+
 -- Add table comment
 COMMENT ON TABLE public.tenant_distance_settings IS 'Stores Mapbox distance/ETA configuration per tenant';
 COMMENT ON COLUMN public.tenant_distance_settings.distance_provider_enabled IS 'Master switch for distance-based ETA calculations';
@@ -55,6 +66,7 @@ ALTER TABLE public.tenant_distance_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_distance_settings FORCE ROW LEVEL SECURITY;
 
 -- Create tenant isolation policy (all operations)
+DROP POLICY IF EXISTS "tenant_isolation_all" ON public.tenant_distance_settings;
 CREATE POLICY "tenant_isolation_all"
   ON public.tenant_distance_settings
   FOR ALL
@@ -63,11 +75,12 @@ CREATE POLICY "tenant_isolation_all"
   WITH CHECK (public.is_tenant_member(tenant_id));
 
 -- Create updated_at trigger using existing function
+DROP TRIGGER IF EXISTS update_tenant_distance_settings_updated_at ON public.tenant_distance_settings;
 CREATE TRIGGER update_tenant_distance_settings_updated_at
   BEFORE UPDATE ON public.tenant_distance_settings
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Create index for faster lookups
+-- CREATE INDEX IF NOT EXISTS for faster lookups
 CREATE INDEX IF NOT EXISTS idx_tenant_distance_settings_tenant_id 
   ON public.tenant_distance_settings(tenant_id);

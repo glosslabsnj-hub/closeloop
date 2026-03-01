@@ -205,91 +205,112 @@ ALTER TABLE public.dispatch_coverage_zones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.response_time_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for service_coverage_settings
+DROP POLICY IF EXISTS "Users can view their tenant service coverage settings" ON public.service_coverage_settings;
 CREATE POLICY "Users can view their tenant service coverage settings"
   ON public.service_coverage_settings FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant service coverage settings" ON public.service_coverage_settings;
 CREATE POLICY "Users can insert their tenant service coverage settings"
   ON public.service_coverage_settings FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant service coverage settings" ON public.service_coverage_settings;
 CREATE POLICY "Users can update their tenant service coverage settings"
   ON public.service_coverage_settings FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for delivery_zones
+DROP POLICY IF EXISTS "Users can view their tenant delivery zones" ON public.delivery_zones;
 CREATE POLICY "Users can view their tenant delivery zones"
   ON public.delivery_zones FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant delivery zones" ON public.delivery_zones;
 CREATE POLICY "Users can insert their tenant delivery zones"
   ON public.delivery_zones FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant delivery zones" ON public.delivery_zones;
 CREATE POLICY "Users can update their tenant delivery zones"
   ON public.delivery_zones FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete their tenant delivery zones" ON public.delivery_zones;
 CREATE POLICY "Users can delete their tenant delivery zones"
   ON public.delivery_zones FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for peak_hours
+DROP POLICY IF EXISTS "Users can view their tenant peak hours" ON public.peak_hours;
 CREATE POLICY "Users can view their tenant peak hours"
   ON public.peak_hours FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant peak hours" ON public.peak_hours;
 CREATE POLICY "Users can insert their tenant peak hours"
   ON public.peak_hours FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant peak hours" ON public.peak_hours;
 CREATE POLICY "Users can update their tenant peak hours"
   ON public.peak_hours FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete their tenant peak hours" ON public.peak_hours;
 CREATE POLICY "Users can delete their tenant peak hours"
   ON public.peak_hours FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for medical_coverage_settings
+DROP POLICY IF EXISTS "Users can view their tenant medical coverage settings" ON public.medical_coverage_settings;
 CREATE POLICY "Users can view their tenant medical coverage settings"
   ON public.medical_coverage_settings FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant medical coverage settings" ON public.medical_coverage_settings;
 CREATE POLICY "Users can insert their tenant medical coverage settings"
   ON public.medical_coverage_settings FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant medical coverage settings" ON public.medical_coverage_settings;
 CREATE POLICY "Users can update their tenant medical coverage settings"
   ON public.medical_coverage_settings FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for dispatch_coverage_zones
+DROP POLICY IF EXISTS "Users can view their tenant dispatch coverage zones" ON public.dispatch_coverage_zones;
 CREATE POLICY "Users can view their tenant dispatch coverage zones"
   ON public.dispatch_coverage_zones FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant dispatch coverage zones" ON public.dispatch_coverage_zones;
 CREATE POLICY "Users can insert their tenant dispatch coverage zones"
   ON public.dispatch_coverage_zones FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant dispatch coverage zones" ON public.dispatch_coverage_zones;
 CREATE POLICY "Users can update their tenant dispatch coverage zones"
   ON public.dispatch_coverage_zones FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can delete their tenant dispatch coverage zones" ON public.dispatch_coverage_zones;
 CREATE POLICY "Users can delete their tenant dispatch coverage zones"
   ON public.dispatch_coverage_zones FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for response_time_settings
+DROP POLICY IF EXISTS "Users can view their tenant response time settings" ON public.response_time_settings;
 CREATE POLICY "Users can view their tenant response time settings"
   ON public.response_time_settings FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their tenant response time settings" ON public.response_time_settings;
 CREATE POLICY "Users can insert their tenant response time settings"
   ON public.response_time_settings FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their tenant response time settings" ON public.response_time_settings;
 CREATE POLICY "Users can update their tenant response time settings"
   ON public.response_time_settings FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
@@ -300,22 +321,27 @@ CREATE INDEX IF NOT EXISTS idx_peak_hours_tenant ON public.peak_hours(tenant_id)
 CREATE INDEX IF NOT EXISTS idx_dispatch_coverage_zones_tenant ON public.dispatch_coverage_zones(tenant_id);
 
 -- Updated_at triggers
+DROP TRIGGER IF EXISTS set_service_coverage_settings_updated_at ON public.service_coverage_settings;
 CREATE TRIGGER set_service_coverage_settings_updated_at
   BEFORE UPDATE ON public.service_coverage_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_medical_coverage_settings_updated_at ON public.medical_coverage_settings;
 CREATE TRIGGER set_medical_coverage_settings_updated_at
   BEFORE UPDATE ON public.medical_coverage_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_delivery_zones_updated_at ON public.delivery_zones;
 CREATE TRIGGER set_delivery_zones_updated_at
   BEFORE UPDATE ON public.delivery_zones
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_dispatch_coverage_zones_updated_at ON public.dispatch_coverage_zones;
 CREATE TRIGGER set_dispatch_coverage_zones_updated_at
   BEFORE UPDATE ON public.dispatch_coverage_zones
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_response_time_settings_updated_at ON public.response_time_settings;
 CREATE TRIGGER set_response_time_settings_updated_at
   BEFORE UPDATE ON public.response_time_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

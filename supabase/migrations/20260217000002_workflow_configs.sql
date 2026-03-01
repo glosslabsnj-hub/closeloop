@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS general_workflow_config (
 -- Dispatch workflow config RLS
 ALTER TABLE dispatch_workflow_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "dispatch_workflow_config_tenant_isolation" ON dispatch_workflow_config;
 CREATE POLICY "dispatch_workflow_config_tenant_isolation"
   ON dispatch_workflow_config
   FOR ALL
@@ -201,6 +202,7 @@ CREATE POLICY "dispatch_workflow_config_tenant_isolation"
 -- Service workflow config RLS
 ALTER TABLE service_workflow_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "service_workflow_config_tenant_isolation" ON service_workflow_config;
 CREATE POLICY "service_workflow_config_tenant_isolation"
   ON service_workflow_config
   FOR ALL
@@ -215,6 +217,7 @@ CREATE POLICY "service_workflow_config_tenant_isolation"
 -- Food workflow config RLS
 ALTER TABLE food_workflow_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "food_workflow_config_tenant_isolation" ON food_workflow_config;
 CREATE POLICY "food_workflow_config_tenant_isolation"
   ON food_workflow_config
   FOR ALL
@@ -229,6 +232,7 @@ CREATE POLICY "food_workflow_config_tenant_isolation"
 -- Medical workflow config RLS
 ALTER TABLE medical_workflow_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "medical_workflow_config_tenant_isolation" ON medical_workflow_config;
 CREATE POLICY "medical_workflow_config_tenant_isolation"
   ON medical_workflow_config
   FOR ALL
@@ -243,6 +247,7 @@ CREATE POLICY "medical_workflow_config_tenant_isolation"
 -- General workflow config RLS
 ALTER TABLE general_workflow_config ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "general_workflow_config_tenant_isolation" ON general_workflow_config;
 CREATE POLICY "general_workflow_config_tenant_isolation"
   ON general_workflow_config
   FOR ALL
@@ -432,11 +437,11 @@ ON CONFLICT (tenant_id) DO NOTHING;
 -- INDEXES FOR PERFORMANCE
 -- =====================================================
 
-CREATE INDEX idx_dispatch_workflow_config_tenant_id ON dispatch_workflow_config(tenant_id);
-CREATE INDEX idx_service_workflow_config_tenant_id ON service_workflow_config(tenant_id);
-CREATE INDEX idx_food_workflow_config_tenant_id ON food_workflow_config(tenant_id);
-CREATE INDEX idx_medical_workflow_config_tenant_id ON medical_workflow_config(tenant_id);
-CREATE INDEX idx_general_workflow_config_tenant_id ON general_workflow_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_dispatch_workflow_config_tenant_id ON dispatch_workflow_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_service_workflow_config_tenant_id ON service_workflow_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_food_workflow_config_tenant_id ON food_workflow_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_medical_workflow_config_tenant_id ON medical_workflow_config(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_general_workflow_config_tenant_id ON general_workflow_config(tenant_id);
 
 -- =====================================================
 -- COMMENTS FOR DOCUMENTATION

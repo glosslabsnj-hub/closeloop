@@ -2,7 +2,7 @@
 -- Automated follow-up system for leads who don't book on first call
 
 -- 1. lead_recovery_sequences - Templates for recovery workflows
-CREATE TABLE public.lead_recovery_sequences (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_sequences (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE public.lead_recovery_sequences (
 );
 
 -- 2. lead_recovery_sequence_steps - Individual steps in a recovery sequence
-CREATE TABLE public.lead_recovery_sequence_steps (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_sequence_steps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sequence_id UUID REFERENCES public.lead_recovery_sequences(id) ON DELETE CASCADE NOT NULL,
     step_order INTEGER NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE public.lead_recovery_sequence_steps (
 );
 
 -- 3. lead_recovery_campaigns - Active recovery efforts for specific leads
-CREATE TABLE public.lead_recovery_campaigns (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_campaigns (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE NOT NULL,
     customer_id UUID REFERENCES public.customers(id),
@@ -69,7 +69,7 @@ CREATE TABLE public.lead_recovery_campaigns (
 );
 
 -- 4. lead_recovery_actions - Log of each action taken in a campaign
-CREATE TABLE public.lead_recovery_actions (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_actions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     campaign_id UUID REFERENCES public.lead_recovery_campaigns(id) ON DELETE CASCADE NOT NULL,
     step_id UUID REFERENCES public.lead_recovery_sequence_steps(id),
@@ -92,7 +92,7 @@ CREATE TABLE public.lead_recovery_actions (
 );
 
 -- 5. lead_recovery_templates - Quick reply templates for manual follow-ups
-CREATE TABLE public.lead_recovery_templates (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES public.tenants(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
@@ -106,7 +106,7 @@ CREATE TABLE public.lead_recovery_templates (
 );
 
 -- 6. lead_recovery_settings - Per-tenant settings for lead recovery
-CREATE TABLE public.lead_recovery_settings (
+CREATE TABLE IF NOT EXISTS public.lead_recovery_settings (
     tenant_id UUID PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
     recovery_enabled BOOLEAN DEFAULT true,
     auto_start_recovery BOOLEAN DEFAULT true,
@@ -146,17 +146,17 @@ ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS preferred_contact_method T
 ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS contact_preferences JSONB DEFAULT '{}';
 
 -- Indexes
-CREATE INDEX idx_lead_recovery_sequences_tenant ON public.lead_recovery_sequences(tenant_id);
-CREATE INDEX idx_lead_recovery_sequences_default ON public.lead_recovery_sequences(tenant_id, is_default) WHERE is_default = true;
-CREATE INDEX idx_sequence_steps_order ON public.lead_recovery_sequence_steps(sequence_id, step_order);
-CREATE INDEX idx_campaigns_tenant_status ON public.lead_recovery_campaigns(tenant_id, status);
-CREATE INDEX idx_campaigns_next_action ON public.lead_recovery_campaigns(next_action_at) WHERE status = 'active';
-CREATE INDEX idx_campaigns_customer ON public.lead_recovery_campaigns(customer_id);
-CREATE INDEX idx_campaigns_scheduler ON public.lead_recovery_campaigns(next_action_at, status) WHERE status = 'active' AND next_action_at IS NOT NULL;
-CREATE INDEX idx_campaigns_active_customer ON public.lead_recovery_campaigns(customer_id, status) WHERE status IN ('active', 'paused');
-CREATE INDEX idx_campaigns_converted ON public.lead_recovery_campaigns(tenant_id, converted_at) WHERE status = 'converted';
-CREATE INDEX idx_actions_campaign ON public.lead_recovery_actions(campaign_id, executed_at);
-CREATE INDEX idx_templates_tenant ON public.lead_recovery_templates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_lead_recovery_sequences_tenant ON public.lead_recovery_sequences(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_lead_recovery_sequences_default ON public.lead_recovery_sequences(tenant_id, is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_sequence_steps_order ON public.lead_recovery_sequence_steps(sequence_id, step_order);
+CREATE INDEX IF NOT EXISTS idx_campaigns_tenant_status ON public.lead_recovery_campaigns(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_campaigns_next_action ON public.lead_recovery_campaigns(next_action_at) WHERE status = 'active';
+CREATE INDEX IF NOT EXISTS idx_campaigns_customer ON public.lead_recovery_campaigns(customer_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_scheduler ON public.lead_recovery_campaigns(next_action_at, status) WHERE status = 'active' AND next_action_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_campaigns_active_customer ON public.lead_recovery_campaigns(customer_id, status) WHERE status IN ('active', 'paused');
+CREATE INDEX IF NOT EXISTS idx_campaigns_converted ON public.lead_recovery_campaigns(tenant_id, converted_at) WHERE status = 'converted';
+CREATE INDEX IF NOT EXISTS idx_actions_campaign ON public.lead_recovery_actions(campaign_id, executed_at);
+CREATE INDEX IF NOT EXISTS idx_templates_tenant ON public.lead_recovery_templates(tenant_id);
 
 -- Enable RLS
 ALTER TABLE public.lead_recovery_sequences ENABLE ROW LEVEL SECURITY;
@@ -167,125 +167,148 @@ ALTER TABLE public.lead_recovery_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_recovery_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for lead_recovery_sequences
+DROP POLICY IF EXISTS "Users can view their tenant sequences" ON public.lead_recovery_sequences;
 CREATE POLICY "Users can view their tenant sequences"
-    ON public.lead_recovery_sequences FOR SELECT
+  ON public.lead_recovery_sequences FOR SELECT
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant sequences" ON public.lead_recovery_sequences;
 CREATE POLICY "Users can insert tenant sequences"
-    ON public.lead_recovery_sequences FOR INSERT
+  ON public.lead_recovery_sequences FOR INSERT
     WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant sequences" ON public.lead_recovery_sequences;
 CREATE POLICY "Users can update tenant sequences"
-    ON public.lead_recovery_sequences FOR UPDATE
+  ON public.lead_recovery_sequences FOR UPDATE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can delete tenant sequences" ON public.lead_recovery_sequences;
 CREATE POLICY "Users can delete tenant sequences"
-    ON public.lead_recovery_sequences FOR DELETE
+  ON public.lead_recovery_sequences FOR DELETE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS Policies for lead_recovery_sequence_steps
+DROP POLICY IF EXISTS "Users can view steps for tenant sequences" ON public.lead_recovery_sequence_steps;
 CREATE POLICY "Users can view steps for tenant sequences"
-    ON public.lead_recovery_sequence_steps FOR SELECT
+  ON public.lead_recovery_sequence_steps FOR SELECT
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_sequences s 
         WHERE s.id = sequence_id AND public.has_tenant_access(auth.uid(), s.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can insert steps for tenant sequences" ON public.lead_recovery_sequence_steps;
 CREATE POLICY "Users can insert steps for tenant sequences"
-    ON public.lead_recovery_sequence_steps FOR INSERT
+  ON public.lead_recovery_sequence_steps FOR INSERT
     WITH CHECK (EXISTS (
         SELECT 1 FROM public.lead_recovery_sequences s 
         WHERE s.id = sequence_id AND public.has_tenant_access(auth.uid(), s.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can update steps for tenant sequences" ON public.lead_recovery_sequence_steps;
 CREATE POLICY "Users can update steps for tenant sequences"
-    ON public.lead_recovery_sequence_steps FOR UPDATE
+  ON public.lead_recovery_sequence_steps FOR UPDATE
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_sequences s 
         WHERE s.id = sequence_id AND public.has_tenant_access(auth.uid(), s.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can delete steps for tenant sequences" ON public.lead_recovery_sequence_steps;
 CREATE POLICY "Users can delete steps for tenant sequences"
-    ON public.lead_recovery_sequence_steps FOR DELETE
+  ON public.lead_recovery_sequence_steps FOR DELETE
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_sequences s 
         WHERE s.id = sequence_id AND public.has_tenant_access(auth.uid(), s.tenant_id)
     ));
 
 -- RLS Policies for lead_recovery_campaigns
+DROP POLICY IF EXISTS "Users can view tenant campaigns" ON public.lead_recovery_campaigns;
 CREATE POLICY "Users can view tenant campaigns"
-    ON public.lead_recovery_campaigns FOR SELECT
+  ON public.lead_recovery_campaigns FOR SELECT
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant campaigns" ON public.lead_recovery_campaigns;
 CREATE POLICY "Users can insert tenant campaigns"
-    ON public.lead_recovery_campaigns FOR INSERT
+  ON public.lead_recovery_campaigns FOR INSERT
     WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant campaigns" ON public.lead_recovery_campaigns;
 CREATE POLICY "Users can update tenant campaigns"
-    ON public.lead_recovery_campaigns FOR UPDATE
+  ON public.lead_recovery_campaigns FOR UPDATE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can delete tenant campaigns" ON public.lead_recovery_campaigns;
 CREATE POLICY "Users can delete tenant campaigns"
-    ON public.lead_recovery_campaigns FOR DELETE
+  ON public.lead_recovery_campaigns FOR DELETE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS Policies for lead_recovery_actions
+DROP POLICY IF EXISTS "Users can view actions for tenant campaigns" ON public.lead_recovery_actions;
 CREATE POLICY "Users can view actions for tenant campaigns"
-    ON public.lead_recovery_actions FOR SELECT
+  ON public.lead_recovery_actions FOR SELECT
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_campaigns c 
         WHERE c.id = campaign_id AND public.has_tenant_access(auth.uid(), c.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can insert actions for tenant campaigns" ON public.lead_recovery_actions;
 CREATE POLICY "Users can insert actions for tenant campaigns"
-    ON public.lead_recovery_actions FOR INSERT
+  ON public.lead_recovery_actions FOR INSERT
     WITH CHECK (EXISTS (
         SELECT 1 FROM public.lead_recovery_campaigns c 
         WHERE c.id = campaign_id AND public.has_tenant_access(auth.uid(), c.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can update actions for tenant campaigns" ON public.lead_recovery_actions;
 CREATE POLICY "Users can update actions for tenant campaigns"
-    ON public.lead_recovery_actions FOR UPDATE
+  ON public.lead_recovery_actions FOR UPDATE
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_campaigns c 
         WHERE c.id = campaign_id AND public.has_tenant_access(auth.uid(), c.tenant_id)
     ));
 
+DROP POLICY IF EXISTS "Users can delete actions for tenant campaigns" ON public.lead_recovery_actions;
 CREATE POLICY "Users can delete actions for tenant campaigns"
-    ON public.lead_recovery_actions FOR DELETE
+  ON public.lead_recovery_actions FOR DELETE
     USING (EXISTS (
         SELECT 1 FROM public.lead_recovery_campaigns c 
         WHERE c.id = campaign_id AND public.has_tenant_access(auth.uid(), c.tenant_id)
     ));
 
 -- RLS Policies for lead_recovery_templates
+DROP POLICY IF EXISTS "Users can view tenant templates" ON public.lead_recovery_templates;
 CREATE POLICY "Users can view tenant templates"
-    ON public.lead_recovery_templates FOR SELECT
+  ON public.lead_recovery_templates FOR SELECT
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant templates" ON public.lead_recovery_templates;
 CREATE POLICY "Users can insert tenant templates"
-    ON public.lead_recovery_templates FOR INSERT
+  ON public.lead_recovery_templates FOR INSERT
     WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant templates" ON public.lead_recovery_templates;
 CREATE POLICY "Users can update tenant templates"
-    ON public.lead_recovery_templates FOR UPDATE
+  ON public.lead_recovery_templates FOR UPDATE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can delete tenant templates" ON public.lead_recovery_templates;
 CREATE POLICY "Users can delete tenant templates"
-    ON public.lead_recovery_templates FOR DELETE
+  ON public.lead_recovery_templates FOR DELETE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS Policies for lead_recovery_settings
+DROP POLICY IF EXISTS "Users can view tenant recovery settings" ON public.lead_recovery_settings;
 CREATE POLICY "Users can view tenant recovery settings"
-    ON public.lead_recovery_settings FOR SELECT
+  ON public.lead_recovery_settings FOR SELECT
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant recovery settings" ON public.lead_recovery_settings;
 CREATE POLICY "Users can insert tenant recovery settings"
-    ON public.lead_recovery_settings FOR INSERT
+  ON public.lead_recovery_settings FOR INSERT
     WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant recovery settings" ON public.lead_recovery_settings;
 CREATE POLICY "Users can update tenant recovery settings"
-    ON public.lead_recovery_settings FOR UPDATE
+  ON public.lead_recovery_settings FOR UPDATE
     USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Trigger to auto-create recovery settings for new tenants
@@ -304,8 +327,9 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_trigger WHERE tgname = 'trigger_create_lead_recovery_settings'
     ) THEN
-        CREATE TRIGGER trigger_create_lead_recovery_settings
-            AFTER INSERT ON public.tenants
+        DROP TRIGGER IF EXISTS trigger_create_lead_recovery_settings ON public.tenants;
+CREATE TRIGGER trigger_create_lead_recovery_settings
+  AFTER INSERT ON public.tenants
             FOR EACH ROW
             EXECUTE FUNCTION public.create_lead_recovery_settings_for_tenant();
     END IF;
@@ -320,22 +344,26 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
+DROP TRIGGER IF EXISTS update_lead_recovery_sequences_updated_at ON public.lead_recovery_sequences;
 CREATE TRIGGER update_lead_recovery_sequences_updated_at
-    BEFORE UPDATE ON public.lead_recovery_sequences
+  BEFORE UPDATE ON public.lead_recovery_sequences
     FOR EACH ROW
     EXECUTE FUNCTION public.update_lead_recovery_updated_at();
 
+DROP TRIGGER IF EXISTS update_lead_recovery_campaigns_updated_at ON public.lead_recovery_campaigns;
 CREATE TRIGGER update_lead_recovery_campaigns_updated_at
-    BEFORE UPDATE ON public.lead_recovery_campaigns
+  BEFORE UPDATE ON public.lead_recovery_campaigns
     FOR EACH ROW
     EXECUTE FUNCTION public.update_lead_recovery_updated_at();
 
+DROP TRIGGER IF EXISTS update_lead_recovery_templates_updated_at ON public.lead_recovery_templates;
 CREATE TRIGGER update_lead_recovery_templates_updated_at
-    BEFORE UPDATE ON public.lead_recovery_templates
+  BEFORE UPDATE ON public.lead_recovery_templates
     FOR EACH ROW
     EXECUTE FUNCTION public.update_lead_recovery_updated_at();
 
+DROP TRIGGER IF EXISTS update_lead_recovery_settings_updated_at ON public.lead_recovery_settings;
 CREATE TRIGGER update_lead_recovery_settings_updated_at
-    BEFORE UPDATE ON public.lead_recovery_settings
+  BEFORE UPDATE ON public.lead_recovery_settings
     FOR EACH ROW
     EXECUTE FUNCTION public.update_lead_recovery_updated_at();

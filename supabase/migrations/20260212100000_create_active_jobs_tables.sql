@@ -74,11 +74,11 @@ COMMENT ON TABLE public.job_status_updates IS 'Audit log of job status transitio
 
 -- ─── 4. Indexes ─────────────────────────────────────────────────────────────
 
-CREATE INDEX idx_active_jobs_tenant ON public.active_jobs (tenant_id);
-CREATE INDEX idx_active_jobs_customer_phone ON public.active_jobs (tenant_id, customer_phone) WHERE is_active = true;
-CREATE INDEX idx_active_jobs_status ON public.active_jobs (tenant_id, status) WHERE is_active = true;
-CREATE INDEX idx_job_items_job ON public.job_service_items (job_id);
-CREATE INDEX idx_job_status_updates_job ON public.job_status_updates (job_id);
+CREATE INDEX IF NOT EXISTS idx_active_jobs_tenant ON public.active_jobs (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_active_jobs_customer_phone ON public.active_jobs (tenant_id, customer_phone) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_active_jobs_status ON public.active_jobs (tenant_id, status) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS idx_job_items_job ON public.job_service_items (job_id);
+CREATE INDEX IF NOT EXISTS idx_job_status_updates_job ON public.job_status_updates (job_id);
 
 -- ─── 5. RLS ─────────────────────────────────────────────────────────────────
 
@@ -87,19 +87,25 @@ ALTER TABLE public.job_service_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.job_status_updates ENABLE ROW LEVEL SECURITY;
 
 -- active_jobs
-CREATE POLICY "active_jobs_tenant_access" ON public.active_jobs
+DROP POLICY IF EXISTS "active_jobs_tenant_access" ON public.active_jobs;
+CREATE POLICY "active_jobs_tenant_access"
+  ON public.active_jobs
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   );
 
 -- job_service_items
-CREATE POLICY "job_service_items_tenant_access" ON public.job_service_items
+DROP POLICY IF EXISTS "job_service_items_tenant_access" ON public.job_service_items;
+CREATE POLICY "job_service_items_tenant_access"
+  ON public.job_service_items
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   );
 
 -- job_status_updates
-CREATE POLICY "job_status_updates_tenant_access" ON public.job_status_updates
+DROP POLICY IF EXISTS "job_status_updates_tenant_access" ON public.job_status_updates;
+CREATE POLICY "job_status_updates_tenant_access"
+  ON public.job_status_updates
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   );
@@ -114,6 +120,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_active_jobs_updated_at ON public.active_jobs;
 CREATE TRIGGER trg_active_jobs_updated_at
   BEFORE UPDATE ON public.active_jobs
   FOR EACH ROW
@@ -132,6 +139,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+DROP TRIGGER IF EXISTS trg_job_status_change ON public.active_jobs;
 CREATE TRIGGER trg_job_status_change
   AFTER UPDATE ON public.active_jobs
   FOR EACH ROW
@@ -164,5 +172,13 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ─── 9. Enable Realtime ─────────────────────────────────────────────────────
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.active_jobs;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.job_service_items;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'active_jobs') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.active_jobs;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'job_service_items') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.job_service_items;
+  END IF;
+END $$;

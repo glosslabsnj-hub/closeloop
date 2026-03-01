@@ -5,7 +5,7 @@ CREATE TYPE public.delivery_entity_type AS ENUM ('order', 'booking', 'dispatch',
 CREATE TYPE public.webhook_auth_mode AS ENUM ('none', 'header', 'basic');
 
 -- Create universal_delivery_settings table (one per tenant)
-CREATE TABLE public.universal_delivery_settings (
+CREATE TABLE IF NOT EXISTS public.universal_delivery_settings (
   tenant_id UUID PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
   internal_enabled BOOLEAN NOT NULL DEFAULT true,
   webhook_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -25,7 +25,7 @@ CREATE TABLE public.universal_delivery_settings (
 );
 
 -- Create delivery_rules table (per entity type per tenant)
-CREATE TABLE public.delivery_rules (
+CREATE TABLE IF NOT EXISTS public.delivery_rules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   entity_type public.delivery_entity_type NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE public.delivery_rules (
 );
 
 -- Create delivery_attempts table (universal tracking)
-CREATE TABLE public.delivery_attempts (
+CREATE TABLE IF NOT EXISTS public.delivery_attempts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   entity_type public.delivery_entity_type NOT NULL,
@@ -52,10 +52,10 @@ CREATE TABLE public.delivery_attempts (
 );
 
 -- Add indexes
-CREATE INDEX idx_delivery_rules_tenant ON public.delivery_rules(tenant_id);
-CREATE INDEX idx_delivery_attempts_tenant ON public.delivery_attempts(tenant_id);
-CREATE INDEX idx_delivery_attempts_entity ON public.delivery_attempts(entity_type, entity_id);
-CREATE INDEX idx_delivery_attempts_status ON public.delivery_attempts(status);
+CREATE INDEX IF NOT EXISTS idx_delivery_rules_tenant ON public.delivery_rules(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_attempts_tenant ON public.delivery_attempts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_attempts_entity ON public.delivery_attempts(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_delivery_attempts_status ON public.delivery_attempts(status);
 
 -- Enable RLS
 ALTER TABLE public.universal_delivery_settings ENABLE ROW LEVEL SECURITY;
@@ -63,49 +63,60 @@ ALTER TABLE public.delivery_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delivery_attempts ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for universal_delivery_settings
+DROP POLICY IF EXISTS "Tenant members can view delivery settings" ON public.universal_delivery_settings;
 CREATE POLICY "Tenant members can view delivery settings"
   ON public.universal_delivery_settings FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can insert delivery settings" ON public.universal_delivery_settings;
 CREATE POLICY "Tenant members can insert delivery settings"
   ON public.universal_delivery_settings FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can update delivery settings" ON public.universal_delivery_settings;
 CREATE POLICY "Tenant members can update delivery settings"
   ON public.universal_delivery_settings FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS Policies for delivery_rules
+DROP POLICY IF EXISTS "Tenant members can view delivery rules" ON public.delivery_rules;
 CREATE POLICY "Tenant members can view delivery rules"
   ON public.delivery_rules FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can insert delivery rules" ON public.delivery_rules;
 CREATE POLICY "Tenant members can insert delivery rules"
   ON public.delivery_rules FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can update delivery rules" ON public.delivery_rules;
 CREATE POLICY "Tenant members can update delivery rules"
   ON public.delivery_rules FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can delete delivery rules" ON public.delivery_rules;
 CREATE POLICY "Tenant members can delete delivery rules"
   ON public.delivery_rules FOR DELETE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS Policies for delivery_attempts
+DROP POLICY IF EXISTS "Tenant members can view delivery attempts" ON public.delivery_attempts;
 CREATE POLICY "Tenant members can view delivery attempts"
   ON public.delivery_attempts FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can insert delivery attempts" ON public.delivery_attempts;
 CREATE POLICY "Tenant members can insert delivery attempts"
   ON public.delivery_attempts FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_universal_delivery_settings_updated_at ON public.universal_delivery_settings;
 CREATE TRIGGER update_universal_delivery_settings_updated_at
   BEFORE UPDATE ON public.universal_delivery_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_delivery_rules_updated_at ON public.delivery_rules;
 CREATE TRIGGER update_delivery_rules_updated_at
   BEFORE UPDATE ON public.delivery_rules
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

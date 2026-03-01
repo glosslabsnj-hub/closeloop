@@ -1,6 +1,13 @@
 -- Session Slot Locking Functions
 -- These functions manage temporary slot locks during AI voice calls
 
+-- Drop existing functions that may have different return types from earlier migration
+DROP FUNCTION IF EXISTS public.fn_release_session_locks(text);
+DROP FUNCTION IF EXISTS public.fn_extend_session_locks(text, integer);
+DROP FUNCTION IF EXISTS public.fn_lock_offered_slots(uuid, text, jsonb, integer);
+DROP FUNCTION IF EXISTS public.fn_confirm_slot_from_session(text, timestamptz, timestamptz, uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.fn_refresh_session_slots();
+
 -- 1. fn_release_session_locks: Release all locks for a session (call ended without booking)
 CREATE OR REPLACE FUNCTION public.fn_release_session_locks(_session_id text)
 RETURNS integer

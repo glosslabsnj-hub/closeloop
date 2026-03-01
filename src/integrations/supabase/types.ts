@@ -222,11 +222,11 @@ export type Database = {
         Row: {
           created_at: string
           cta: string | null
-          descriptions: string[]
-          headlines: string[]
+          descriptions: Json
+          headlines: Json
           id: string
           industry: string | null
-          keywords: string[]
+          keywords: Json
           location: string | null
           name: string
           objective: string | null
@@ -239,16 +239,16 @@ export type Database = {
         Insert: {
           created_at?: string
           cta?: string | null
-          descriptions?: string[]
-          headlines?: string[]
+          descriptions?: Json
+          headlines?: Json
           id?: string
           industry?: string | null
-          keywords?: string[]
+          keywords?: Json
           location?: string | null
-          name?: string
+          name: string
           objective?: string | null
           performance_metrics?: Json
-          platform?: string
+          platform: string
           status?: string
           targeting?: Json
           updated_at?: string
@@ -256,11 +256,11 @@ export type Database = {
         Update: {
           created_at?: string
           cta?: string | null
-          descriptions?: string[]
-          headlines?: string[]
+          descriptions?: Json
+          headlines?: Json
           id?: string
           industry?: string | null
-          keywords?: string[]
+          keywords?: Json
           location?: string | null
           name?: string
           objective?: string | null
@@ -307,11 +307,15 @@ export type Database = {
           auto_discovery_enabled: boolean
           auto_outreach_enabled: boolean
           auto_social_enabled: boolean
+          best_industries: string[]
+          best_locations: string[]
           created_at: string
+          demo_link: string
           discovery_frequency_hours: number
           discovery_industries: string[]
           discovery_locations: string[]
           discovery_max_per_run: number
+          discovery_stats: Json
           id: string
           notification_email: string | null
           notify_on_conversion: boolean
@@ -327,6 +331,7 @@ export type Database = {
           social_platforms: string[]
           social_posts_per_week: number
           social_tone: string
+          trial_link: string
           updated_at: string
         }
         Insert: {
@@ -336,11 +341,15 @@ export type Database = {
           auto_discovery_enabled?: boolean
           auto_outreach_enabled?: boolean
           auto_social_enabled?: boolean
+          best_industries?: string[]
+          best_locations?: string[]
           created_at?: string
+          demo_link?: string
           discovery_frequency_hours?: number
           discovery_industries?: string[]
           discovery_locations?: string[]
           discovery_max_per_run?: number
+          discovery_stats?: Json
           id?: string
           notification_email?: string | null
           notify_on_conversion?: boolean
@@ -356,6 +365,7 @@ export type Database = {
           social_platforms?: string[]
           social_posts_per_week?: number
           social_tone?: string
+          trial_link?: string
           updated_at?: string
         }
         Update: {
@@ -365,11 +375,15 @@ export type Database = {
           auto_discovery_enabled?: boolean
           auto_outreach_enabled?: boolean
           auto_social_enabled?: boolean
+          best_industries?: string[]
+          best_locations?: string[]
           created_at?: string
+          demo_link?: string
           discovery_frequency_hours?: number
           discovery_industries?: string[]
           discovery_locations?: string[]
           discovery_max_per_run?: number
+          discovery_stats?: Json
           id?: string
           notification_email?: string | null
           notify_on_conversion?: boolean
@@ -385,7 +399,71 @@ export type Database = {
           social_platforms?: string[]
           social_posts_per_week?: number
           social_tone?: string
+          trial_link?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      admin_marketing_chats: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_marketing_content: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          metadata: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          metadata?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          metadata?: Json | null
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -404,7 +482,7 @@ export type Database = {
           subject_sent: string | null
         }
         Insert: {
-          action_type?: string
+          action_type: string
           campaign_id: string
           delivery_error?: string | null
           delivery_status?: string
@@ -413,7 +491,7 @@ export type Database = {
           external_message_id?: string | null
           id?: string
           message_sent?: string | null
-          step_order?: number
+          step_order: number
           subject_sent?: string | null
         }
         Update: {
@@ -505,6 +583,7 @@ export type Database = {
           last_action_at: string | null
           lead_email: string | null
           lead_id: string
+          lead_metadata: Json
           lead_name: string
           lead_phone: string | null
           lead_type: string
@@ -522,6 +601,7 @@ export type Database = {
           last_action_at?: string | null
           lead_email?: string | null
           lead_id: string
+          lead_metadata?: Json
           lead_name: string
           lead_phone?: string | null
           lead_type?: string
@@ -539,6 +619,7 @@ export type Database = {
           last_action_at?: string | null
           lead_email?: string | null
           lead_id?: string
+          lead_metadata?: Json
           lead_name?: string
           lead_phone?: string | null
           lead_type?: string
@@ -564,11 +645,14 @@ export type Database = {
           delay_hours: number
           id: string
           message_template: string | null
+          response_rate: number
           sequence_id: string
           skip_if_responded: boolean
           step_order: number
           step_type: string
           subject: string | null
+          total_responded: number
+          total_sent: number
           use_ai_personalization: boolean
         }
         Insert: {
@@ -576,11 +660,14 @@ export type Database = {
           delay_hours?: number
           id?: string
           message_template?: string | null
+          response_rate?: number
           sequence_id: string
           skip_if_responded?: boolean
-          step_order?: number
-          step_type?: string
+          step_order: number
+          step_type: string
           subject?: string | null
+          total_responded?: number
+          total_sent?: number
           use_ai_personalization?: boolean
         }
         Update: {
@@ -588,11 +675,14 @@ export type Database = {
           delay_hours?: number
           id?: string
           message_template?: string | null
+          response_rate?: number
           sequence_id?: string
           skip_if_responded?: boolean
           step_order?: number
           step_type?: string
           subject?: string | null
+          total_responded?: number
+          total_sent?: number
           use_ai_personalization?: boolean
         }
         Relationships: [
@@ -607,6 +697,7 @@ export type Database = {
       }
       admin_outreach_sequences: {
         Row: {
+          avg_response_rate: number
           created_at: string
           description: string | null
           id: string
@@ -614,9 +705,13 @@ export type Database = {
           is_default: boolean
           name: string
           target_type: string
+          total_converted: number
+          total_responded: number
+          total_sent: number
           updated_at: string
         }
         Insert: {
+          avg_response_rate?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -624,9 +719,13 @@ export type Database = {
           is_default?: boolean
           name: string
           target_type?: string
+          total_converted?: number
+          total_responded?: number
+          total_sent?: number
           updated_at?: string
         }
         Update: {
+          avg_response_rate?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -634,6 +733,9 @@ export type Database = {
           is_default?: boolean
           name?: string
           target_type?: string
+          total_converted?: number
+          total_responded?: number
+          total_sent?: number
           updated_at?: string
         }
         Relationships: []
@@ -641,21 +743,23 @@ export type Database = {
       admin_reseller_leads: {
         Row: {
           address: string | null
+          client_base_size: string | null
+          company_type: string | null
           confidence: string | null
           created_at: string
+          email: string | null
           employee_estimate: string | null
-          friction_signals: string[] | null
-          hours: string | null
           id: string
-          industry: string | null
           name: string
           notes: string | null
+          partnership_signals: string[] | null
           phone: string | null
           rating: number | null
           reason: string | null
           review_count: number | null
           score: number | null
           score_reasons: string[] | null
+          services_offered: string[] | null
           status: string
           temperature: string | null
           updated_at: string
@@ -664,21 +768,23 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          client_base_size?: string | null
+          company_type?: string | null
           confidence?: string | null
           created_at?: string
+          email?: string | null
           employee_estimate?: string | null
-          friction_signals?: string[] | null
-          hours?: string | null
           id?: string
-          industry?: string | null
           name: string
           notes?: string | null
+          partnership_signals?: string[] | null
           phone?: string | null
           rating?: number | null
           reason?: string | null
           review_count?: number | null
           score?: number | null
           score_reasons?: string[] | null
+          services_offered?: string[] | null
           status?: string
           temperature?: string | null
           updated_at?: string
@@ -687,21 +793,23 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          client_base_size?: string | null
+          company_type?: string | null
           confidence?: string | null
           created_at?: string
+          email?: string | null
           employee_estimate?: string | null
-          friction_signals?: string[] | null
-          hours?: string | null
           id?: string
-          industry?: string | null
           name?: string
           notes?: string | null
+          partnership_signals?: string[] | null
           phone?: string | null
           rating?: number | null
           reason?: string | null
           review_count?: number | null
           score?: number | null
           score_reasons?: string[] | null
+          services_offered?: string[] | null
           status?: string
           temperature?: string | null
           updated_at?: string
@@ -715,6 +823,7 @@ export type Database = {
           address: string | null
           confidence: string | null
           created_at: string
+          email: string | null
           employee_estimate: string | null
           friction_signals: string[] | null
           hours: string | null
@@ -738,6 +847,7 @@ export type Database = {
           address?: string | null
           confidence?: string | null
           created_at?: string
+          email?: string | null
           employee_estimate?: string | null
           friction_signals?: string[] | null
           hours?: string | null
@@ -761,6 +871,7 @@ export type Database = {
           address?: string | null
           confidence?: string | null
           created_at?: string
+          email?: string | null
           employee_estimate?: string | null
           friction_signals?: string[] | null
           hours?: string | null
@@ -825,41 +936,56 @@ export type Database = {
       }
       admin_social_posts: {
         Row: {
+          clicks: number
+          comments: number
           content: string
           created_at: string
           external_post_id: string | null
           hashtags: string[]
           id: string
+          impressions: number
+          likes: number
           media_url: string | null
           notes: string | null
           platform: string
           scheduled_for: string
+          shares: number
           status: string
           updated_at: string
         }
         Insert: {
-          content?: string
+          clicks?: number
+          comments?: number
+          content: string
           created_at?: string
           external_post_id?: string | null
           hashtags?: string[]
           id?: string
+          impressions?: number
+          likes?: number
           media_url?: string | null
           notes?: string | null
           platform: string
-          scheduled_for?: string
+          scheduled_for: string
+          shares?: number
           status?: string
           updated_at?: string
         }
         Update: {
+          clicks?: number
+          comments?: number
           content?: string
           created_at?: string
           external_post_id?: string | null
           hashtags?: string[]
           id?: string
+          impressions?: number
+          likes?: number
           media_url?: string | null
           notes?: string | null
           platform?: string
           scheduled_for?: string
+          shares?: number
           status?: string
           updated_at?: string
         }
@@ -932,28 +1058,37 @@ export type Database = {
         Row: {
           agency_name: string
           agency_slug: string
-          billing_config_json: Json
-          branding_json: Json
-          created_at: string
+          billing_config_json: Json | null
+          branding_json: Json | null
+          created_at: string | null
           id: string
+          payout_config_json: Json | null
+          stripe_connect_account_id: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           agency_name: string
           agency_slug: string
-          billing_config_json?: Json
-          branding_json?: Json
-          created_at?: string
+          billing_config_json?: Json | null
+          branding_json?: Json | null
+          created_at?: string | null
           id?: string
+          payout_config_json?: Json | null
+          stripe_connect_account_id?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           agency_name?: string
           agency_slug?: string
-          billing_config_json?: Json
-          branding_json?: Json
-          created_at?: string
+          billing_config_json?: Json | null
+          branding_json?: Json | null
+          created_at?: string | null
           id?: string
+          payout_config_json?: Json | null
+          stripe_connect_account_id?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -964,7 +1099,7 @@ export type Database = {
           approved_agency_id: string | null
           company_name: string
           company_website: string | null
-          created_at: string
+          created_at: string | null
           current_client_count: number | null
           email: string
           expected_clients: number
@@ -977,7 +1112,7 @@ export type Database = {
           reviewed_by: string | null
           services_offered: string[] | null
           status: string
-          updated_at: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
@@ -985,10 +1120,10 @@ export type Database = {
           approved_agency_id?: string | null
           company_name: string
           company_website?: string | null
-          created_at?: string
+          created_at?: string | null
           current_client_count?: number | null
           email: string
-          expected_clients: number
+          expected_clients?: number
           full_name: string
           id?: string
           message?: string | null
@@ -998,7 +1133,7 @@ export type Database = {
           reviewed_by?: string | null
           services_offered?: string[] | null
           status?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1006,7 +1141,7 @@ export type Database = {
           approved_agency_id?: string | null
           company_name?: string
           company_website?: string | null
-          created_at?: string
+          created_at?: string | null
           current_client_count?: number | null
           email?: string
           expected_clients?: number
@@ -1019,7 +1154,7 @@ export type Database = {
           reviewed_by?: string | null
           services_offered?: string[] | null
           status?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -1035,44 +1170,56 @@ export type Database = {
       agency_commissions: {
         Row: {
           agency_id: string
+          approved_by: string | null
           commission_cents: number
           commission_rate: number
-          created_at: string
+          created_at: string | null
           id: string
           invoice_amount_cents: number
           paid_at: string | null
+          payout_method: string | null
+          payout_notes: string | null
+          payout_reference: string | null
           period_end: string | null
           period_start: string | null
           status: string
-          stripe_invoice_id: string | null
+          stripe_invoice_id: string
           tenant_id: string
         }
         Insert: {
           agency_id: string
-          commission_cents?: number
-          commission_rate?: number
-          created_at?: string
+          approved_by?: string | null
+          commission_cents: number
+          commission_rate: number
+          created_at?: string | null
           id?: string
-          invoice_amount_cents?: number
+          invoice_amount_cents: number
           paid_at?: string | null
+          payout_method?: string | null
+          payout_notes?: string | null
+          payout_reference?: string | null
           period_end?: string | null
           period_start?: string | null
           status?: string
-          stripe_invoice_id?: string | null
+          stripe_invoice_id: string
           tenant_id: string
         }
         Update: {
           agency_id?: string
+          approved_by?: string | null
           commission_cents?: number
           commission_rate?: number
-          created_at?: string
+          created_at?: string | null
           id?: string
           invoice_amount_cents?: number
           paid_at?: string | null
+          payout_method?: string | null
+          payout_notes?: string | null
+          payout_reference?: string | null
           period_end?: string | null
           period_start?: string | null
           status?: string
-          stripe_invoice_id?: string | null
+          stripe_invoice_id?: string
           tenant_id?: string
         }
         Relationships: [
@@ -1212,24 +1359,33 @@ export type Database = {
           agency_id: string
           id: string
           notes: string | null
-          provisioned_at: string
-          status: string
+          onboarding_status: string | null
+          onboarding_updated_at: string | null
+          provisioned_at: string | null
+          referral_source: string | null
+          status: string | null
           tenant_id: string
         }
         Insert: {
           agency_id: string
           id?: string
           notes?: string | null
-          provisioned_at?: string
-          status?: string
+          onboarding_status?: string | null
+          onboarding_updated_at?: string | null
+          provisioned_at?: string | null
+          referral_source?: string | null
+          status?: string | null
           tenant_id: string
         }
         Update: {
           agency_id?: string
           id?: string
           notes?: string | null
-          provisioned_at?: string
-          status?: string
+          onboarding_status?: string | null
+          onboarding_updated_at?: string | null
+          provisioned_at?: string | null
+          referral_source?: string | null
+          status?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -1300,22 +1456,29 @@ export type Database = {
         Row: {
           booking_id: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
+          call_purpose: string | null
           caller_phone: string | null
           context_json: Json | null
           created_at: string
           customer_id: string | null
+          direction: string | null
           elevenlabs_conversation_id: string | null
           ended_at: string | null
           extracted_payload: Json | null
           followup_status: string | null
+          greeting_variant: string | null
           id: string
           is_recovery_call: boolean | null
+          is_referral_receiving: boolean | null
           lead_id: string | null
           lead_score: string | null
           opportunity_id: string | null
           outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
+          quality_details: Json | null
+          quality_score: number | null
           recovery_campaign_id: string | null
           recovery_context: Json | null
+          referral_transfer_id: string | null
           started_at: string
           summary: string | null
           tenant_id: string
@@ -1326,22 +1489,29 @@ export type Database = {
         Insert: {
           booking_id?: string | null
           call_direction: Database["public"]["Enums"]["ai_call_direction"]
+          call_purpose?: string | null
           caller_phone?: string | null
           context_json?: Json | null
           created_at?: string
           customer_id?: string | null
+          direction?: string | null
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
           followup_status?: string | null
+          greeting_variant?: string | null
           id?: string
           is_recovery_call?: boolean | null
+          is_referral_receiving?: boolean | null
           lead_id?: string | null
           lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
+          quality_details?: Json | null
+          quality_score?: number | null
           recovery_campaign_id?: string | null
           recovery_context?: Json | null
+          referral_transfer_id?: string | null
           started_at?: string
           summary?: string | null
           tenant_id: string
@@ -1352,22 +1522,29 @@ export type Database = {
         Update: {
           booking_id?: string | null
           call_direction?: Database["public"]["Enums"]["ai_call_direction"]
+          call_purpose?: string | null
           caller_phone?: string | null
           context_json?: Json | null
           created_at?: string
           customer_id?: string | null
+          direction?: string | null
           elevenlabs_conversation_id?: string | null
           ended_at?: string | null
           extracted_payload?: Json | null
           followup_status?: string | null
+          greeting_variant?: string | null
           id?: string
           is_recovery_call?: boolean | null
+          is_referral_receiving?: boolean | null
           lead_id?: string | null
           lead_score?: string | null
           opportunity_id?: string | null
           outcome?: Database["public"]["Enums"]["ai_call_outcome"] | null
+          quality_details?: Json | null
+          quality_score?: number | null
           recovery_campaign_id?: string | null
           recovery_context?: Json | null
+          referral_transfer_id?: string | null
           started_at?: string
           summary?: string | null
           tenant_id?: string
@@ -1409,6 +1586,13 @@ export type Database = {
             columns: ["recovery_campaign_id"]
             isOneToOne: false
             referencedRelation: "lead_recovery_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_call_sessions_referral_transfer_id_fkey"
+            columns: ["referral_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "referral_transfers"
             referencedColumns: ["id"]
           },
           {
@@ -1527,6 +1711,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ai_event_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "ai_event_logs_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1626,6 +1817,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "ai_response_quality_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "ai_response_quality_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -1636,7 +1834,7 @@ export type Database = {
       }
       assistant_settings: {
         Row: {
-          ai_behavior_mode: string | null
+          ai_behavior_mode: Database["public"]["Enums"]["ai_behavior_mode"]
           ai_booking_mode: string | null
           ai_callback_delay_minutes: number | null
           booking_url: string | null
@@ -1654,6 +1852,8 @@ export type Database = {
           emergency_surcharge: string | null
           forwarding_phone_e164: string | null
           go_live_enabled: boolean
+          greeting_test_enabled: boolean | null
+          greeting_variant_b: string | null
           impound_agent_id: string | null
           impound_fallback_script: string | null
           impound_greeting_script: string | null
@@ -1685,13 +1885,16 @@ export type Database = {
           tenant_id: string
           twilio_phone_sid: string | null
           twilio_provisioned_at: string | null
+          unknown_question_behavior:
+            | Database["public"]["Enums"]["unknown_question_behavior"]
+            | null
           updated_at: string
           voice_ai_enabled: boolean
           voice_mode: Database["public"]["Enums"]["voice_mode"]
           waitlist_enabled: boolean | null
         }
         Insert: {
-          ai_behavior_mode?: string | null
+          ai_behavior_mode?: Database["public"]["Enums"]["ai_behavior_mode"]
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
@@ -1709,6 +1912,8 @@ export type Database = {
           emergency_surcharge?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
+          greeting_test_enabled?: boolean | null
+          greeting_variant_b?: string | null
           impound_agent_id?: string | null
           impound_fallback_script?: string | null
           impound_greeting_script?: string | null
@@ -1740,13 +1945,16 @@ export type Database = {
           tenant_id: string
           twilio_phone_sid?: string | null
           twilio_provisioned_at?: string | null
+          unknown_question_behavior?:
+            | Database["public"]["Enums"]["unknown_question_behavior"]
+            | null
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
           waitlist_enabled?: boolean | null
         }
         Update: {
-          ai_behavior_mode?: string | null
+          ai_behavior_mode?: Database["public"]["Enums"]["ai_behavior_mode"]
           ai_booking_mode?: string | null
           ai_callback_delay_minutes?: number | null
           booking_url?: string | null
@@ -1764,6 +1972,8 @@ export type Database = {
           emergency_surcharge?: string | null
           forwarding_phone_e164?: string | null
           go_live_enabled?: boolean
+          greeting_test_enabled?: boolean | null
+          greeting_variant_b?: string | null
           impound_agent_id?: string | null
           impound_fallback_script?: string | null
           impound_greeting_script?: string | null
@@ -1795,6 +2005,9 @@ export type Database = {
           tenant_id?: string
           twilio_phone_sid?: string | null
           twilio_provisioned_at?: string | null
+          unknown_question_behavior?:
+            | Database["public"]["Enums"]["unknown_question_behavior"]
+            | null
           updated_at?: string
           voice_ai_enabled?: boolean
           voice_mode?: Database["public"]["Enums"]["voice_mode"]
@@ -2026,6 +2239,7 @@ export type Database = {
           payload_snapshot: Json | null
           retry_count: number
           rule_id: string | null
+          session_id: string | null
           started_at: string
           status: string
           tenant_id: string
@@ -2042,6 +2256,7 @@ export type Database = {
           payload_snapshot?: Json | null
           retry_count?: number
           rule_id?: string | null
+          session_id?: string | null
           started_at?: string
           status?: string
           tenant_id: string
@@ -2058,6 +2273,7 @@ export type Database = {
           payload_snapshot?: Json | null
           retry_count?: number
           rule_id?: string | null
+          session_id?: string | null
           started_at?: string
           status?: string
           tenant_id?: string
@@ -2071,6 +2287,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "automation_rules"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "automation_runs_tenant_id_fkey"
@@ -2256,6 +2486,7 @@ export type Database = {
         Row: {
           confirmation_sent: boolean | null
           created_at: string
+          customer_confirmed_at: string | null
           deposit_paid: boolean
           deposit_required: boolean
           duration_minutes: number | null
@@ -2271,6 +2502,7 @@ export type Database = {
           review_sent: boolean | null
           service_id: string | null
           session_id: string | null
+          staff_id: string | null
           staff_member_id: string | null
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
@@ -2280,6 +2512,7 @@ export type Database = {
         Insert: {
           confirmation_sent?: boolean | null
           created_at?: string
+          customer_confirmed_at?: string | null
           deposit_paid?: boolean
           deposit_required?: boolean
           duration_minutes?: number | null
@@ -2295,6 +2528,7 @@ export type Database = {
           review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
+          staff_id?: string | null
           staff_member_id?: string | null
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -2304,6 +2538,7 @@ export type Database = {
         Update: {
           confirmation_sent?: boolean | null
           created_at?: string
+          customer_confirmed_at?: string | null
           deposit_paid?: boolean
           deposit_required?: boolean
           duration_minutes?: number | null
@@ -2319,6 +2554,7 @@ export type Database = {
           review_sent?: boolean | null
           service_id?: string | null
           session_id?: string | null
+          staff_id?: string | null
           staff_member_id?: string | null
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
@@ -2348,6 +2584,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "bookings_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_staff_member_id_fkey"
             columns: ["staff_member_id"]
             isOneToOne: false
@@ -2366,26 +2616,35 @@ export type Database = {
       business_faqs: {
         Row: {
           answer: string
+          auto_suggested: boolean | null
           created_at: string | null
           id: string
           priority_weight: number | null
           question: string
+          source_gap_ids: string[] | null
+          suggestion_status: string | null
           tenant_id: string
         }
         Insert: {
           answer: string
+          auto_suggested?: boolean | null
           created_at?: string | null
           id?: string
           priority_weight?: number | null
           question: string
+          source_gap_ids?: string[] | null
+          suggestion_status?: string | null
           tenant_id: string
         }
         Update: {
           answer?: string
+          auto_suggested?: boolean | null
           created_at?: string | null
           id?: string
           priority_weight?: number | null
           question?: string
+          source_gap_ids?: string[] | null
+          suggestion_status?: string | null
           tenant_id?: string
         }
         Relationships: [
@@ -2589,6 +2848,7 @@ export type Database = {
           metadata_json: Json | null
           session_id: string | null
           source_connection_id: string | null
+          staff_id: string | null
           start_at: string
           tenant_id: string
         }
@@ -2604,6 +2864,7 @@ export type Database = {
           metadata_json?: Json | null
           session_id?: string | null
           source_connection_id?: string | null
+          staff_id?: string | null
           start_at: string
           tenant_id: string
         }
@@ -2619,6 +2880,7 @@ export type Database = {
           metadata_json?: Json | null
           session_id?: string | null
           source_connection_id?: string | null
+          staff_id?: string | null
           start_at?: string
           tenant_id?: string
         }
@@ -2635,6 +2897,13 @@ export type Database = {
             columns: ["source_connection_id"]
             isOneToOne: false
             referencedRelation: "calendar_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "busy_blocks_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
             referencedColumns: ["id"]
           },
           {
@@ -2656,6 +2925,7 @@ export type Database = {
           last_sync_at: string | null
           provider: string
           scopes_json: Json | null
+          staff_id: string | null
           status: string
           sync_error: string | null
           tenant_id: string
@@ -2670,6 +2940,7 @@ export type Database = {
           last_sync_at?: string | null
           provider: string
           scopes_json?: Json | null
+          staff_id?: string | null
           status?: string
           sync_error?: string | null
           tenant_id: string
@@ -2684,12 +2955,20 @@ export type Database = {
           last_sync_at?: string | null
           provider?: string
           scopes_json?: Json | null
+          staff_id?: string | null
           status?: string
           sync_error?: string | null
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "calendar_connections_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calendar_connections_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -2708,6 +2987,7 @@ export type Database = {
           provider: string
           refresh_token: string | null
           scope: string | null
+          staff_id: string | null
           tenant_id: string
           token_type: string | null
           updated_at: string
@@ -2720,6 +3000,7 @@ export type Database = {
           provider: string
           refresh_token?: string | null
           scope?: string | null
+          staff_id?: string | null
           tenant_id: string
           token_type?: string | null
           updated_at?: string
@@ -2732,11 +3013,19 @@ export type Database = {
           provider?: string
           refresh_token?: string | null
           scope?: string | null
+          staff_id?: string | null
           tenant_id?: string
           token_type?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "calendar_tokens_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "staff_members"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "calendar_tokens_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -2795,7 +3084,129 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "call_outcomes_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "call_outcomes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      callback_delivery_settings: {
+        Row: {
+          email_enabled: boolean
+          email_recipient: string | null
+          id: string
+          sms_enabled: boolean
+          sms_recipient_phone: string | null
+          tenant_id: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          email_enabled?: boolean
+          email_recipient?: string | null
+          id?: string
+          sms_enabled?: boolean
+          sms_recipient_phone?: string | null
+          tenant_id: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          email_enabled?: boolean
+          email_recipient?: string | null
+          id?: string
+          sms_enabled?: boolean
+          sms_recipient_phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "callback_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      callback_requests: {
+        Row: {
+          best_time: string | null
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          message: string | null
+          session_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          best_time?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          best_time?: string | null
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          message?: string | null
+          session_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "callback_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "callback_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "callback_requests_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "callback_requests_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3486,9 +3897,12 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["delivery_entity_type"]
           error_message: string | null
           id: string
+          last_retry_at: string | null
           method: string
+          next_retry_at: string | null
           request_payload: Json | null
           response_body: string | null
+          retry_count: number
           status: string
           tenant_id: string
         }
@@ -3498,9 +3912,12 @@ export type Database = {
           entity_type: Database["public"]["Enums"]["delivery_entity_type"]
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           method: string
+          next_retry_at?: string | null
           request_payload?: Json | null
           response_body?: string | null
+          retry_count?: number
           status?: string
           tenant_id: string
         }
@@ -3510,9 +3927,12 @@ export type Database = {
           entity_type?: Database["public"]["Enums"]["delivery_entity_type"]
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           method?: string
+          next_retry_at?: string | null
           request_payload?: Json | null
           response_body?: string | null
+          retry_count?: number
           status?: string
           tenant_id?: string
         }
@@ -3882,7 +4302,6 @@ export type Database = {
           customer_phone: string | null
           damage_type: string | null
           description: string | null
-          dispatch_distance_miles: number | null
           dispatched_at: string | null
           document_type: string | null
           drivable: boolean | null
@@ -3911,22 +4330,17 @@ export type Database = {
           pickup_address: string | null
           pickup_lat: number | null
           pickup_lng: number | null
-          price_breakdown: Json | null
           price_cents: number | null
-          pricing_note: string | null
           priority: Database["public"]["Enums"]["dispatch_priority"]
           recurring_schedule: Json | null
           requested_at: string | null
           scheduled_at: string | null
           service_category: string | null
-          service_tier: string | null
           session_id: string | null
           signer_count: number | null
           special_requirements: string[] | null
           status: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
-          total_distance_miles: number | null
-          tow_distance_miles: number | null
           updated_at: string
           vehicle_id: string | null
           volume_estimate: string | null
@@ -3945,7 +4359,6 @@ export type Database = {
           customer_phone?: string | null
           damage_type?: string | null
           description?: string | null
-          dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
           drivable?: boolean | null
@@ -3974,22 +4387,17 @@ export type Database = {
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
-          price_breakdown?: Json | null
           price_cents?: number | null
-          pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           recurring_schedule?: Json | null
           requested_at?: string | null
           scheduled_at?: string | null
           service_category?: string | null
-          service_tier?: string | null
           session_id?: string | null
           signer_count?: number | null
           special_requirements?: string[] | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id: string
-          total_distance_miles?: number | null
-          tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
           volume_estimate?: string | null
@@ -4008,7 +4416,6 @@ export type Database = {
           customer_phone?: string | null
           damage_type?: string | null
           description?: string | null
-          dispatch_distance_miles?: number | null
           dispatched_at?: string | null
           document_type?: string | null
           drivable?: boolean | null
@@ -4037,22 +4444,17 @@ export type Database = {
           pickup_address?: string | null
           pickup_lat?: number | null
           pickup_lng?: number | null
-          price_breakdown?: Json | null
           price_cents?: number | null
-          pricing_note?: string | null
           priority?: Database["public"]["Enums"]["dispatch_priority"]
           recurring_schedule?: Json | null
           requested_at?: string | null
           scheduled_at?: string | null
           service_category?: string | null
-          service_tier?: string | null
           session_id?: string | null
           signer_count?: number | null
           special_requirements?: string[] | null
           status?: Database["public"]["Enums"]["dispatch_status"]
           tenant_id?: string
-          total_distance_miles?: number | null
-          tow_distance_miles?: number | null
           updated_at?: string
           vehicle_id?: string | null
           volume_estimate?: string | null
@@ -4079,6 +4481,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dispatch_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "dispatch_jobs_tenant_id_fkey"
@@ -4196,6 +4605,92 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dispatch_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dispatch_workflow_config: {
+        Row: {
+          accepted_methods: string[] | null
+          address_confirmation_script: string | null
+          ask_payment_method: boolean | null
+          awd_detection_enabled: boolean | null
+          confirm_geocoded_address: boolean | null
+          created_at: string | null
+          driver_callback_script: string | null
+          escalation_number: string | null
+          id: string
+          include_direct_contact_info: boolean | null
+          luxury_brands: string[] | null
+          luxury_flatbed_recommendation: boolean | null
+          motorcycle_special_handling: boolean | null
+          payment_due_message: string | null
+          payment_timing: string | null
+          require_payment_confirmation: boolean | null
+          require_zip_code: boolean | null
+          required_vehicle_fields: string[] | null
+          service_dropoff_rules: Json | null
+          tenant_id: string
+          updated_at: string | null
+          vehicle_affects_pricing: boolean | null
+          vehicle_info_timing: string | null
+        }
+        Insert: {
+          accepted_methods?: string[] | null
+          address_confirmation_script?: string | null
+          ask_payment_method?: boolean | null
+          awd_detection_enabled?: boolean | null
+          confirm_geocoded_address?: boolean | null
+          created_at?: string | null
+          driver_callback_script?: string | null
+          escalation_number?: string | null
+          id?: string
+          include_direct_contact_info?: boolean | null
+          luxury_brands?: string[] | null
+          luxury_flatbed_recommendation?: boolean | null
+          motorcycle_special_handling?: boolean | null
+          payment_due_message?: string | null
+          payment_timing?: string | null
+          require_payment_confirmation?: boolean | null
+          require_zip_code?: boolean | null
+          required_vehicle_fields?: string[] | null
+          service_dropoff_rules?: Json | null
+          tenant_id: string
+          updated_at?: string | null
+          vehicle_affects_pricing?: boolean | null
+          vehicle_info_timing?: string | null
+        }
+        Update: {
+          accepted_methods?: string[] | null
+          address_confirmation_script?: string | null
+          ask_payment_method?: boolean | null
+          awd_detection_enabled?: boolean | null
+          confirm_geocoded_address?: boolean | null
+          created_at?: string | null
+          driver_callback_script?: string | null
+          escalation_number?: string | null
+          id?: string
+          include_direct_contact_info?: boolean | null
+          luxury_brands?: string[] | null
+          luxury_flatbed_recommendation?: boolean | null
+          motorcycle_special_handling?: boolean | null
+          payment_due_message?: string | null
+          payment_timing?: string | null
+          require_payment_confirmation?: boolean | null
+          require_zip_code?: boolean | null
+          required_vehicle_fields?: string[] | null
+          service_dropoff_rules?: Json | null
+          tenant_id?: string
+          updated_at?: string | null
+          vehicle_affects_pricing?: boolean | null
+          vehicle_info_timing?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dispatch_workflow_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
@@ -4350,6 +4845,53 @@ export type Database = {
           },
           {
             foreignKeyName: "estimates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eta_routes_cache: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          destination_hash: string
+          distance_miles: number | null
+          duration_minutes: number | null
+          expires_at: string
+          id: string
+          origin_hash: string
+          provider: string
+          tenant_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          destination_hash: string
+          distance_miles?: number | null
+          duration_minutes?: number | null
+          expires_at?: string
+          id?: string
+          origin_hash: string
+          provider?: string
+          tenant_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          destination_hash?: string
+          distance_miles?: number | null
+          duration_minutes?: number | null
+          expires_at?: string
+          id?: string
+          origin_hash?: string
+          provider?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eta_routes_cache_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4643,6 +5185,7 @@ export type Database = {
           customer_name: string | null
           customer_phone: string | null
           delivery_address: string | null
+          delivery_fee_cents: number | null
           handoff_state: Json | null
           id: string
           items_json: Json
@@ -4657,6 +5200,7 @@ export type Database = {
           tax_cents: number | null
           tenant_id: string
           total_cents: number | null
+          totals_breakdown: Json | null
           totals_estimate: Json | null
           updated_at: string
         }
@@ -4667,6 +5211,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          delivery_fee_cents?: number | null
           handoff_state?: Json | null
           id?: string
           items_json?: Json
@@ -4681,6 +5226,7 @@ export type Database = {
           tax_cents?: number | null
           tenant_id: string
           total_cents?: number | null
+          totals_breakdown?: Json | null
           totals_estimate?: Json | null
           updated_at?: string
         }
@@ -4691,6 +5237,7 @@ export type Database = {
           customer_name?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          delivery_fee_cents?: number | null
           handoff_state?: Json | null
           id?: string
           items_json?: Json
@@ -4705,6 +5252,7 @@ export type Database = {
           tax_cents?: number | null
           tenant_id?: string
           total_cents?: number | null
+          totals_breakdown?: Json | null
           totals_estimate?: Json | null
           updated_at?: string
         }
@@ -4722,6 +5270,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "food_orders_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "food_orders_tenant_id_fkey"
@@ -4851,6 +5406,74 @@ export type Database = {
           },
         ]
       }
+      food_workflow_config: {
+        Row: {
+          allow_menu_customizations: boolean | null
+          ask_asap_vs_scheduled: boolean | null
+          ask_pickup_vs_delivery: string | null
+          ask_special_instructions: boolean | null
+          collect_delivery_instructions: boolean | null
+          confirm_total_before_submit: boolean | null
+          created_at: string | null
+          default_order_type: string | null
+          default_prep_time_minutes: number | null
+          id: string
+          min_advance_order_minutes: number | null
+          order_confirmation_script: string | null
+          repeat_order_back: boolean | null
+          require_allergy_check: boolean | null
+          require_buzzer_code: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          allow_menu_customizations?: boolean | null
+          ask_asap_vs_scheduled?: boolean | null
+          ask_pickup_vs_delivery?: string | null
+          ask_special_instructions?: boolean | null
+          collect_delivery_instructions?: boolean | null
+          confirm_total_before_submit?: boolean | null
+          created_at?: string | null
+          default_order_type?: string | null
+          default_prep_time_minutes?: number | null
+          id?: string
+          min_advance_order_minutes?: number | null
+          order_confirmation_script?: string | null
+          repeat_order_back?: boolean | null
+          require_allergy_check?: boolean | null
+          require_buzzer_code?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          allow_menu_customizations?: boolean | null
+          ask_asap_vs_scheduled?: boolean | null
+          ask_pickup_vs_delivery?: string | null
+          ask_special_instructions?: boolean | null
+          collect_delivery_instructions?: boolean | null
+          confirm_total_before_submit?: boolean | null
+          created_at?: string | null
+          default_order_type?: string | null
+          default_prep_time_minutes?: number | null
+          id?: string
+          min_advance_order_minutes?: number | null
+          order_confirmation_script?: string | null
+          repeat_order_back?: boolean | null
+          require_allergy_check?: boolean | null
+          require_buzzer_code?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "food_workflow_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       general_policies: {
         Row: {
           ada_accommodations_text: string | null
@@ -4919,6 +5542,133 @@ export type Database = {
           },
         ]
       }
+      general_workflow_config: {
+        Row: {
+          ask_best_time_to_call: boolean | null
+          ask_callback_reason: boolean | null
+          callback_confirmation_script: string | null
+          created_at: string | null
+          escalate_unknown_questions: boolean | null
+          id: string
+          qualification_questions: Json | null
+          sales_appointment_label: string | null
+          sales_ask_budget: string | null
+          sales_ask_financing: boolean | null
+          sales_ask_timeline: boolean | null
+          sales_ask_trade_in: boolean | null
+          sales_follow_up_script: string | null
+          sales_inventory_presentation: string | null
+          sales_lead_capture_minimum: string | null
+          sales_max_vehicles_to_mention: number | null
+          sales_pricing_strategy: string | null
+          sales_push_intensity: string | null
+          tenant_id: string
+          unknown_question_script: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ask_best_time_to_call?: boolean | null
+          ask_callback_reason?: boolean | null
+          callback_confirmation_script?: string | null
+          created_at?: string | null
+          escalate_unknown_questions?: boolean | null
+          id?: string
+          qualification_questions?: Json | null
+          sales_appointment_label?: string | null
+          sales_ask_budget?: string | null
+          sales_ask_financing?: boolean | null
+          sales_ask_timeline?: boolean | null
+          sales_ask_trade_in?: boolean | null
+          sales_follow_up_script?: string | null
+          sales_inventory_presentation?: string | null
+          sales_lead_capture_minimum?: string | null
+          sales_max_vehicles_to_mention?: number | null
+          sales_pricing_strategy?: string | null
+          sales_push_intensity?: string | null
+          tenant_id: string
+          unknown_question_script?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ask_best_time_to_call?: boolean | null
+          ask_callback_reason?: boolean | null
+          callback_confirmation_script?: string | null
+          created_at?: string | null
+          escalate_unknown_questions?: boolean | null
+          id?: string
+          qualification_questions?: Json | null
+          sales_appointment_label?: string | null
+          sales_ask_budget?: string | null
+          sales_ask_financing?: boolean | null
+          sales_ask_timeline?: boolean | null
+          sales_ask_trade_in?: boolean | null
+          sales_follow_up_script?: string | null
+          sales_inventory_presentation?: string | null
+          sales_lead_capture_minimum?: string | null
+          sales_max_vehicles_to_mention?: number | null
+          sales_pricing_strategy?: string | null
+          sales_push_intensity?: string | null
+          tenant_id?: string
+          unknown_question_script?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "general_workflow_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      geocode_cache: {
+        Row: {
+          address_hash: string
+          confidence: string
+          created_at: string
+          expires_at: string
+          fetched_at: string
+          id: string
+          lat: number
+          lng: number
+          provider: string
+          tenant_id: string
+        }
+        Insert: {
+          address_hash: string
+          confidence?: string
+          created_at?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          lat: number
+          lng: number
+          provider?: string
+          tenant_id: string
+        }
+        Update: {
+          address_hash?: string
+          confidence?: string
+          created_at?: string
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          lat?: number
+          lng?: number
+          provider?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geocode_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       golden_path_runs: {
         Row: {
           created_at: string
@@ -4976,8 +5726,11 @@ export type Database = {
           entity_type: string | null
           error_message: string | null
           id: string
+          last_retry_at: string | null
           method: string
+          next_retry_at: string | null
           order_id: string | null
+          retry_count: number
           status: string
           tenant_id: string
         }
@@ -4987,8 +5740,11 @@ export type Database = {
           entity_type?: string | null
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           method: string
+          next_retry_at?: string | null
           order_id?: string | null
+          retry_count?: number
           status?: string
           tenant_id: string
         }
@@ -4998,8 +5754,11 @@ export type Database = {
           entity_type?: string | null
           error_message?: string | null
           id?: string
+          last_retry_at?: string | null
           method?: string
+          next_retry_at?: string | null
           order_id?: string | null
+          retry_count?: number
           status?: string
           tenant_id?: string
         }
@@ -5566,6 +6325,62 @@ export type Database = {
           },
         ]
       }
+      integration_oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          extra_data: Json | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          status: string
+          tenant_id: string
+          token_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          extra_data?: Json | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          scope?: string | null
+          status?: string
+          tenant_id: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          extra_data?: Json | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          status?: string
+          tenant_id?: string
+          token_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_oauth_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_secrets: {
         Row: {
           created_at: string
@@ -5607,6 +6422,53 @@ export type Database = {
           },
           {
             foreignKeyName: "integration_secrets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_webhook_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_type: string
+          external_id: string | null
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          external_id?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          external_id?: string | null
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_webhook_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6053,6 +6915,57 @@ export type Database = {
           },
         ]
       }
+      job_status_updates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          job_id: string
+          message: string | null
+          new_status: string
+          previous_status: string | null
+          tenant_id: string
+          triggered_notification: boolean
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id: string
+          message?: string | null
+          new_status: string
+          previous_status?: string | null
+          tenant_id: string
+          triggered_notification?: boolean
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          job_id?: string
+          message?: string | null
+          new_status?: string
+          previous_status?: string | null
+          tenant_id?: string
+          triggered_notification?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_status_updates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "active_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_status_updates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_conflicts: {
         Row: {
           conflict_type: Database["public"]["Enums"]["conflict_type"]
@@ -6408,6 +7321,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "lead_recovery_actions_call_session_id_fkey"
+            columns: ["call_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "lead_recovery_actions_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
@@ -6556,6 +7476,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_recovery_campaigns_original_call_id_fkey"
+            columns: ["original_call_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "lead_recovery_campaigns_sequence_id_fkey"
@@ -6820,63 +7747,91 @@ export type Database = {
           created_at: string
           customer_id: string | null
           email: string | null
+          estimated_value_cents: number | null
           full_name: string
           id: string
           last_message_at: string | null
           last_recovery_at: string | null
+          last_session_id: string | null
           phone: string | null
+          pipeline_stage: string | null
           recovery_attempts: number | null
           recovery_campaign_id: string | null
           recovery_status: string | null
           source: Database["public"]["Enums"]["lead_source"]
           status: Database["public"]["Enums"]["lead_status"]
           tags: string[] | null
+          temperature: string | null
+          temperature_score: number | null
+          temperature_signals: string[] | null
           tenant_id: string
+          total_calls: number | null
           vehicle_or_context: string | null
         }
         Insert: {
           created_at?: string
           customer_id?: string | null
           email?: string | null
+          estimated_value_cents?: number | null
           full_name: string
           id?: string
           last_message_at?: string | null
           last_recovery_at?: string | null
+          last_session_id?: string | null
           phone?: string | null
+          pipeline_stage?: string | null
           recovery_attempts?: number | null
           recovery_campaign_id?: string | null
           recovery_status?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[] | null
+          temperature?: string | null
+          temperature_score?: number | null
+          temperature_signals?: string[] | null
           tenant_id: string
+          total_calls?: number | null
           vehicle_or_context?: string | null
         }
         Update: {
           created_at?: string
           customer_id?: string | null
           email?: string | null
+          estimated_value_cents?: number | null
           full_name?: string
           id?: string
           last_message_at?: string | null
           last_recovery_at?: string | null
+          last_session_id?: string | null
           phone?: string | null
+          pipeline_stage?: string | null
           recovery_attempts?: number | null
           recovery_campaign_id?: string | null
           recovery_status?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           status?: Database["public"]["Enums"]["lead_status"]
           tags?: string[] | null
+          temperature?: string | null
+          temperature_score?: number | null
+          temperature_signals?: string[] | null
           tenant_id?: string
+          total_calls?: number | null
           vehicle_or_context?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "leads_customer_id_fkey"
-            columns: ["customer_id"]
+            foreignKeyName: "leads_last_session_id_fkey"
+            columns: ["last_session_id"]
             isOneToOne: false
-            referencedRelation: "customers"
+            referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_last_session_id_fkey"
+            columns: ["last_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "leads_recovery_campaign_id_fkey"
@@ -6929,13 +7884,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "loyalty_balances_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "loyalty_balances_program_id_fkey"
             columns: ["program_id"]
@@ -7089,13 +8037,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "loyalty_transactions_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "loyalty_transactions_program_id_fkey"
             columns: ["program_id"]
             isOneToOne: false
@@ -7192,6 +8133,53 @@ export type Database = {
           },
         ]
       }
+      medical_intake_delivery_settings: {
+        Row: {
+          email_enabled: boolean
+          email_recipient: string | null
+          hipaa_redact: boolean
+          id: string
+          sms_enabled: boolean
+          sms_recipient_phone: string | null
+          tenant_id: string
+          updated_at: string
+          webhook_secret: string | null
+          webhook_url: string | null
+        }
+        Insert: {
+          email_enabled?: boolean
+          email_recipient?: string | null
+          hipaa_redact?: boolean
+          id?: string
+          sms_enabled?: boolean
+          sms_recipient_phone?: string | null
+          tenant_id: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Update: {
+          email_enabled?: boolean
+          email_recipient?: string | null
+          hipaa_redact?: boolean
+          id?: string
+          sms_enabled?: boolean
+          sms_recipient_phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+          webhook_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_intake_delivery_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_intakes: {
         Row: {
           ai_summary: string | null
@@ -7254,6 +8242,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_intakes_call_session_id_fkey"
+            columns: ["call_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "medical_intakes_customer_id_fkey"
@@ -7483,6 +8478,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "medical_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_workflow_config: {
+        Row: {
+          ask_duration_of_symptoms: boolean | null
+          collect_symptom_details: boolean | null
+          consent_script: string | null
+          consent_timing: string | null
+          created_at: string | null
+          detect_emergency_keywords: boolean | null
+          emergency_escalation_script: string | null
+          id: string
+          require_explicit_consent: boolean | null
+          required_intake_questions: Json | null
+          symptom_severity_scale: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ask_duration_of_symptoms?: boolean | null
+          collect_symptom_details?: boolean | null
+          consent_script?: string | null
+          consent_timing?: string | null
+          created_at?: string | null
+          detect_emergency_keywords?: boolean | null
+          emergency_escalation_script?: string | null
+          id?: string
+          require_explicit_consent?: boolean | null
+          required_intake_questions?: Json | null
+          symptom_severity_scale?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ask_duration_of_symptoms?: boolean | null
+          collect_symptom_details?: boolean | null
+          consent_script?: string | null
+          consent_timing?: string | null
+          created_at?: string | null
+          detect_emergency_keywords?: boolean | null
+          emergency_escalation_script?: string | null
+          id?: string
+          require_explicit_consent?: boolean | null
+          required_intake_questions?: Json | null
+          symptom_severity_scale?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_workflow_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
@@ -7817,6 +8868,53 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          channel_email: boolean
+          channel_push: boolean
+          channel_sms: boolean
+          created_at: string
+          enabled: boolean
+          event_type: string
+          id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_email?: boolean
+          channel_push?: boolean
+          channel_sms?: boolean
+          created_at?: string
+          enabled?: boolean
+          event_type: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_email?: boolean
+          channel_push?: boolean
+          channel_sms?: boolean
+          created_at?: string
+          enabled?: boolean
+          event_type?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       objection_responses: {
         Row: {
           created_at: string | null
@@ -7845,6 +8943,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "objection_responses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objection_usage: {
+        Row: {
+          call_outcome: string
+          created_at: string | null
+          id: string
+          objection_response_id: string
+          session_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          call_outcome: string
+          created_at?: string | null
+          id?: string
+          objection_response_id: string
+          session_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          call_outcome?: string
+          created_at?: string | null
+          id?: string
+          objection_response_id?: string
+          session_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objection_usage_objection_response_id_fkey"
+            columns: ["objection_response_id"]
+            isOneToOne: false
+            referencedRelation: "objection_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objection_usage_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "objection_usage_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "objection_usage_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7972,6 +9126,121 @@ export type Database = {
           },
         ]
       }
+      outbound_call_queue: {
+        Row: {
+          attempt_count: number | null
+          call_purpose: string
+          context_json: Json | null
+          created_at: string | null
+          customer_id: string | null
+          customer_phone: string
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          max_attempts: number | null
+          result_session_id: string | null
+          scheduled_at: string
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          attempt_count?: number | null
+          call_purpose: string
+          context_json?: Json | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_phone: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          max_attempts?: number | null
+          result_session_id?: string | null
+          scheduled_at: string
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          attempt_count?: number | null
+          call_purpose?: string
+          context_json?: Json | null
+          created_at?: string | null
+          customer_id?: string | null
+          customer_phone?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          max_attempts?: number | null
+          result_session_id?: string | null
+          scheduled_at?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_call_queue_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_call_queue_result_session_id_fkey"
+            columns: ["result_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outbound_call_queue_result_session_id_fkey"
+            columns: ["result_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "outbound_call_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outbound_opt_outs: {
+        Row: {
+          customer_phone: string
+          id: string
+          opted_out_at: string | null
+          reason: string | null
+          tenant_id: string
+        }
+        Insert: {
+          customer_phone: string
+          id?: string
+          opted_out_at?: string | null
+          reason?: string | null
+          tenant_id: string
+        }
+        Update: {
+          customer_phone?: string
+          id?: string
+          opted_out_at?: string | null
+          reason?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outbound_opt_outs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       owner_notifications: {
         Row: {
           action_path: string | null
@@ -8024,6 +9293,56 @@ export type Database = {
             foreignKeyName: "owner_notifications_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_analyses: {
+        Row: {
+          analysis_json: Json
+          completion_tokens: number | null
+          created_at: string
+          expires_at: string
+          generated_at: string
+          id: string
+          model_used: string
+          prompt_tokens: number | null
+          refresh_count_today: number
+          refresh_date: string
+          tenant_id: string
+        }
+        Insert: {
+          analysis_json: Json
+          completion_tokens?: number | null
+          created_at?: string
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          model_used?: string
+          prompt_tokens?: number | null
+          refresh_count_today?: number
+          refresh_date?: string
+          tenant_id: string
+        }
+        Update: {
+          analysis_json?: Json
+          completion_tokens?: number | null
+          created_at?: string
+          expires_at?: string
+          generated_at?: string
+          id?: string
+          model_used?: string
+          prompt_tokens?: number | null
+          refresh_count_today?: number
+          refresh_date?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_analyses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -8273,6 +9592,219 @@ export type Database = {
           },
         ]
       }
+      referral_network_settings: {
+        Row: {
+          accept_referrals: boolean
+          blocked_tenant_ids: string[] | null
+          created_at: string | null
+          enabled: boolean
+          go_live_ready: boolean | null
+          hipaa_compliant: boolean | null
+          id: string
+          intro_style: string | null
+          max_referrals_per_day: number | null
+          network_categories: string[] | null
+          network_lat: number | null
+          network_lng: number | null
+          network_radius_miles: number | null
+          network_services: string[] | null
+          network_tags: string[] | null
+          preferred_partners: string[] | null
+          quality_score: number | null
+          referrals_today: number | null
+          referrals_today_reset: string | null
+          same_industry_ok: boolean | null
+          send_referrals: boolean
+          tenant_id: string
+          updated_at: string | null
+          voice_ai_active: boolean | null
+        }
+        Insert: {
+          accept_referrals?: boolean
+          blocked_tenant_ids?: string[] | null
+          created_at?: string | null
+          enabled?: boolean
+          go_live_ready?: boolean | null
+          hipaa_compliant?: boolean | null
+          id?: string
+          intro_style?: string | null
+          max_referrals_per_day?: number | null
+          network_categories?: string[] | null
+          network_lat?: number | null
+          network_lng?: number | null
+          network_radius_miles?: number | null
+          network_services?: string[] | null
+          network_tags?: string[] | null
+          preferred_partners?: string[] | null
+          quality_score?: number | null
+          referrals_today?: number | null
+          referrals_today_reset?: string | null
+          same_industry_ok?: boolean | null
+          send_referrals?: boolean
+          tenant_id: string
+          updated_at?: string | null
+          voice_ai_active?: boolean | null
+        }
+        Update: {
+          accept_referrals?: boolean
+          blocked_tenant_ids?: string[] | null
+          created_at?: string | null
+          enabled?: boolean
+          go_live_ready?: boolean | null
+          hipaa_compliant?: boolean | null
+          id?: string
+          intro_style?: string | null
+          max_referrals_per_day?: number | null
+          network_categories?: string[] | null
+          network_lat?: number | null
+          network_lng?: number | null
+          network_radius_miles?: number | null
+          network_services?: string[] | null
+          network_tags?: string[] | null
+          preferred_partners?: string[] | null
+          quality_score?: number | null
+          referrals_today?: number | null
+          referrals_today_reset?: string | null
+          same_industry_ok?: boolean | null
+          send_referrals?: boolean
+          tenant_id?: string
+          updated_at?: string | null
+          voice_ai_active?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_network_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_transfers: {
+        Row: {
+          caller_lat: number | null
+          caller_lng: number | null
+          caller_location: string | null
+          caller_name: string | null
+          caller_phone_e164: string
+          candidates_found: number | null
+          commission_cents: number | null
+          completed_at: string | null
+          created_at: string | null
+          failure_reason: string | null
+          id: string
+          match_scores_json: Json | null
+          referral_depth: number | null
+          referral_reason: string | null
+          service_category: string | null
+          service_requested: string
+          source_session_id: string | null
+          source_tenant_id: string
+          status: string
+          target_business_name: string | null
+          target_outcome: string | null
+          target_session_id: string | null
+          target_tenant_id: string | null
+          twilio_call_sid: string | null
+        }
+        Insert: {
+          caller_lat?: number | null
+          caller_lng?: number | null
+          caller_location?: string | null
+          caller_name?: string | null
+          caller_phone_e164: string
+          candidates_found?: number | null
+          commission_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          match_scores_json?: Json | null
+          referral_depth?: number | null
+          referral_reason?: string | null
+          service_category?: string | null
+          service_requested: string
+          source_session_id?: string | null
+          source_tenant_id: string
+          status?: string
+          target_business_name?: string | null
+          target_outcome?: string | null
+          target_session_id?: string | null
+          target_tenant_id?: string | null
+          twilio_call_sid?: string | null
+        }
+        Update: {
+          caller_lat?: number | null
+          caller_lng?: number | null
+          caller_location?: string | null
+          caller_name?: string | null
+          caller_phone_e164?: string
+          candidates_found?: number | null
+          commission_cents?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          failure_reason?: string | null
+          id?: string
+          match_scores_json?: Json | null
+          referral_depth?: number | null
+          referral_reason?: string | null
+          service_category?: string | null
+          service_requested?: string
+          source_session_id?: string | null
+          source_tenant_id?: string
+          status?: string
+          target_business_name?: string | null
+          target_outcome?: string | null
+          target_session_id?: string | null
+          target_tenant_id?: string | null
+          twilio_call_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_transfers_source_session_id_fkey"
+            columns: ["source_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_transfers_source_session_id_fkey"
+            columns: ["source_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "referral_transfers_source_tenant_id_fkey"
+            columns: ["source_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_transfers_target_session_id_fkey"
+            columns: ["target_session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_transfers_target_session_id_fkey"
+            columns: ["target_session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "referral_transfers_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reservations: {
         Row: {
           created_at: string
@@ -8339,6 +9871,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "reservations_tenant_id_fkey"
@@ -8509,6 +10048,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ai_call_sessions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "revenue_attributions_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "revenue_attributions_tenant_id_fkey"
@@ -8745,6 +10291,62 @@ export type Database = {
           },
         ]
       }
+      route_cache: {
+        Row: {
+          created_at: string
+          dest_lat: number
+          dest_lng: number
+          distance_miles: number
+          drive_time_minutes: number
+          expires_at: string
+          fetched_at: string
+          id: string
+          origin_lat: number
+          origin_lng: number
+          provider: string
+          route_profile: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          dest_lat: number
+          dest_lng: number
+          distance_miles: number
+          drive_time_minutes: number
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          origin_lat: number
+          origin_lng: number
+          provider?: string
+          route_profile?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          dest_lat?: number
+          dest_lng?: number
+          distance_miles?: number
+          drive_time_minutes?: number
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          origin_lat?: number
+          origin_lng?: number
+          provider?: string
+          route_profile?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routing_rules: {
         Row: {
           config_json: Json | null
@@ -8806,30 +10408,26 @@ export type Database = {
           color_exterior: string | null
           color_interior: string | null
           condition: string | null
-          created_at: string
+          created_at: string | null
           days_on_lot: number | null
           description: string | null
           external_id: string | null
           external_source: string | null
           features: string[] | null
-          financing_available: boolean | null
           id: string
           internet_price_cents: number | null
           last_synced_at: string | null
-          listing_url: string | null
           lot_location: string | null
           make: string | null
           mileage: number | null
           model: string | null
           msrp_cents: number | null
           photo_urls: string[] | null
-          special_notes: string | null
-          status: string | null
+          status: string
           stock_number: string | null
           tenant_id: string
-          trade_in_eligible: boolean | null
           trim: string | null
-          updated_at: string
+          updated_at: string | null
           vin: string | null
           year: string | null
         }
@@ -8839,30 +10437,26 @@ export type Database = {
           color_exterior?: string | null
           color_interior?: string | null
           condition?: string | null
-          created_at?: string
+          created_at?: string | null
           days_on_lot?: number | null
           description?: string | null
           external_id?: string | null
           external_source?: string | null
           features?: string[] | null
-          financing_available?: boolean | null
           id?: string
           internet_price_cents?: number | null
           last_synced_at?: string | null
-          listing_url?: string | null
           lot_location?: string | null
           make?: string | null
           mileage?: number | null
           model?: string | null
           msrp_cents?: number | null
           photo_urls?: string[] | null
-          special_notes?: string | null
-          status?: string | null
+          status?: string
           stock_number?: string | null
           tenant_id: string
-          trade_in_eligible?: boolean | null
           trim?: string | null
-          updated_at?: string
+          updated_at?: string | null
           vin?: string | null
           year?: string | null
         }
@@ -8872,36 +10466,130 @@ export type Database = {
           color_exterior?: string | null
           color_interior?: string | null
           condition?: string | null
-          created_at?: string
+          created_at?: string | null
           days_on_lot?: number | null
           description?: string | null
           external_id?: string | null
           external_source?: string | null
           features?: string[] | null
-          financing_available?: boolean | null
           id?: string
           internet_price_cents?: number | null
           last_synced_at?: string | null
-          listing_url?: string | null
           lot_location?: string | null
           make?: string | null
           mileage?: number | null
           model?: string | null
           msrp_cents?: number | null
           photo_urls?: string[] | null
-          special_notes?: string | null
-          status?: string | null
+          status?: string
           stock_number?: string | null
           tenant_id?: string
-          trade_in_eligible?: boolean | null
           trim?: string | null
-          updated_at?: string
+          updated_at?: string | null
           vin?: string | null
           year?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "sales_inventory_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_leads: {
+        Row: {
+          assigned_sales_rep: string | null
+          budget_range: string | null
+          created_at: string | null
+          customer_id: string | null
+          financing_preapproved: boolean | null
+          follow_up_at: string | null
+          has_trade_in: boolean | null
+          id: string
+          interest_type: string | null
+          lead_number: string | null
+          notes: string | null
+          priority: string
+          session_id: string | null
+          source: string | null
+          status: string
+          tenant_id: string
+          timeline: string | null
+          trade_in_details: string | null
+          updated_at: string | null
+          vehicle_interest: string | null
+        }
+        Insert: {
+          assigned_sales_rep?: string | null
+          budget_range?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          financing_preapproved?: boolean | null
+          follow_up_at?: string | null
+          has_trade_in?: boolean | null
+          id?: string
+          interest_type?: string | null
+          lead_number?: string | null
+          notes?: string | null
+          priority?: string
+          session_id?: string | null
+          source?: string | null
+          status?: string
+          tenant_id: string
+          timeline?: string | null
+          trade_in_details?: string | null
+          updated_at?: string | null
+          vehicle_interest?: string | null
+        }
+        Update: {
+          assigned_sales_rep?: string | null
+          budget_range?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          financing_preapproved?: boolean | null
+          follow_up_at?: string | null
+          has_trade_in?: boolean | null
+          id?: string
+          interest_type?: string | null
+          lead_number?: string | null
+          notes?: string | null
+          priority?: string
+          session_id?: string | null
+          source?: string | null
+          status?: string
+          tenant_id?: string
+          timeline?: string | null
+          trade_in_details?: string | null
+          updated_at?: string | null
+          vehicle_interest?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_leads_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
+            foreignKeyName: "sales_leads_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -9305,82 +10993,166 @@ export type Database = {
           },
         ]
       }
-      services: {
+      service_workflow_config: {
         Row: {
-          complexity: string
-          created_at: string
-          deposit_amount: number | null
-          deposit_required: boolean | null
-          description: string | null
-          display_order: number | null
-          duration_minutes: number
+          allow_ai_cancellation: boolean | null
+          allow_ai_rescheduling: boolean | null
+          alternative_suggestion_window_days: number | null
+          ask_for_email_confirmation: boolean | null
+          booking_confirmation_script: string | null
+          cancellation_requires_manager: boolean | null
+          collect_deposit_upfront: boolean | null
+          collect_service_duration: boolean | null
+          created_at: string | null
+          default_deposit_percentage: number | null
+          deposit_amount_behavior: string | null
+          deposit_timing: string | null
           id: string
-          is_active: boolean
-          name: string
-          preparation_instructions: string | null
-          price_amount: number | null
-          price_factors: string | null
-          price_type: Database["public"]["Enums"]["price_type"]
-          pricing_config_json: Json | null
-          requires_dropoff: boolean | null
-          service_category: string | null
-          service_type: string | null
+          max_alternatives_to_suggest: number | null
+          required_intake_questions: Json | null
+          send_sms_confirmation: boolean | null
+          suggest_alternatives_when_unavailable: boolean | null
           tenant_id: string
-          upsell_suggestions: string[] | null
+          updated_at: string | null
         }
         Insert: {
-          complexity?: string
-          created_at?: string
-          deposit_amount?: number | null
-          deposit_required?: boolean | null
-          description?: string | null
-          display_order?: number | null
-          duration_minutes?: number
+          allow_ai_cancellation?: boolean | null
+          allow_ai_rescheduling?: boolean | null
+          alternative_suggestion_window_days?: number | null
+          ask_for_email_confirmation?: boolean | null
+          booking_confirmation_script?: string | null
+          cancellation_requires_manager?: boolean | null
+          collect_deposit_upfront?: boolean | null
+          collect_service_duration?: boolean | null
+          created_at?: string | null
+          default_deposit_percentage?: number | null
+          deposit_amount_behavior?: string | null
+          deposit_timing?: string | null
           id?: string
-          is_active?: boolean
-          name: string
-          preparation_instructions?: string | null
-          price_amount?: number | null
-          price_factors?: string | null
-          price_type?: Database["public"]["Enums"]["price_type"]
-          pricing_config_json?: Json | null
-          requires_dropoff?: boolean | null
-          service_category?: string | null
-          service_type?: string | null
+          max_alternatives_to_suggest?: number | null
+          required_intake_questions?: Json | null
+          send_sms_confirmation?: boolean | null
+          suggest_alternatives_when_unavailable?: boolean | null
           tenant_id: string
-          upsell_suggestions?: string[] | null
+          updated_at?: string | null
         }
         Update: {
-          complexity?: string
-          created_at?: string
-          deposit_amount?: number | null
-          deposit_required?: boolean | null
-          description?: string | null
-          display_order?: number | null
-          duration_minutes?: number
+          allow_ai_cancellation?: boolean | null
+          allow_ai_rescheduling?: boolean | null
+          alternative_suggestion_window_days?: number | null
+          ask_for_email_confirmation?: boolean | null
+          booking_confirmation_script?: string | null
+          cancellation_requires_manager?: boolean | null
+          collect_deposit_upfront?: boolean | null
+          collect_service_duration?: boolean | null
+          created_at?: string | null
+          default_deposit_percentage?: number | null
+          deposit_amount_behavior?: string | null
+          deposit_timing?: string | null
           id?: string
-          is_active?: boolean
-          name?: string
-          preparation_instructions?: string | null
-          price_amount?: number | null
-          price_factors?: string | null
-          price_type?: Database["public"]["Enums"]["price_type"]
-          pricing_config_json?: Json | null
-          requires_dropoff?: boolean | null
-          service_category?: string | null
-          service_type?: string | null
+          max_alternatives_to_suggest?: number | null
+          required_intake_questions?: Json | null
+          send_sms_confirmation?: boolean | null
+          suggest_alternatives_when_unavailable?: boolean | null
           tenant_id?: string
-          upsell_suggestions?: string[] | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "services_tenant_id_fkey"
+            foreignKeyName: "service_workflow_config_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
+      }
+      services: {
+        Row: {
+          booking_type: string
+          complexity: string
+          created_at: string
+          deposit_required: boolean | null
+          description: string | null
+          display_order: number | null
+          duration_max_minutes: number | null
+          duration_min_minutes: number | null
+          duration_minutes: number
+          id: string
+          is_active: boolean
+          name: string
+          payment_timing: string
+          preparation_instructions: string | null
+          prerequisite_note: string | null
+          price_amount: number | null
+          price_factors: string | null
+          price_type: Database["public"]["Enums"]["price_type"]
+          pricing_config_json: Json | null
+          required_booking_fields: string[] | null
+          required_intake_fields: Json | null
+          requires_dropoff: boolean | null
+          service_category: string | null
+          service_type: string | null
+          tenant_id: string | null
+          upsell_suggestions: string[] | null
+        }
+        Insert: {
+          booking_type?: string
+          complexity?: string
+          created_at?: string
+          deposit_required?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          duration_max_minutes?: number | null
+          duration_min_minutes?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_timing?: string
+          preparation_instructions?: string | null
+          prerequisite_note?: string | null
+          price_amount?: number | null
+          price_factors?: string | null
+          price_type?: Database["public"]["Enums"]["price_type"]
+          pricing_config_json?: Json | null
+          required_booking_fields?: string[] | null
+          required_intake_fields?: Json | null
+          requires_dropoff?: boolean | null
+          service_category?: string | null
+          service_type?: string | null
+          tenant_id?: string | null
+          upsell_suggestions?: string[] | null
+        }
+        Update: {
+          booking_type?: string
+          complexity?: string
+          created_at?: string
+          deposit_required?: boolean | null
+          description?: string | null
+          display_order?: number | null
+          duration_max_minutes?: number | null
+          duration_min_minutes?: number | null
+          duration_minutes?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_timing?: string
+          preparation_instructions?: string | null
+          prerequisite_note?: string | null
+          price_amount?: number | null
+          price_factors?: string | null
+          price_type?: Database["public"]["Enums"]["price_type"]
+          pricing_config_json?: Json | null
+          required_booking_fields?: string[] | null
+          required_intake_fields?: Json | null
+          requires_dropoff?: boolean | null
+          service_category?: string | null
+          service_type?: string | null
+          tenant_id?: string | null
+          upsell_suggestions?: string[] | null
+        }
+        Relationships: []
       }
       setup_requests: {
         Row: {
@@ -9447,12 +11219,94 @@ export type Database = {
           },
         ]
       }
+      staff_members: {
+        Row: {
+          calendar_connection_id: string | null
+          color: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          hours_json: Json | null
+          id: string
+          invite_email: string | null
+          invite_status: string | null
+          invited_at: string | null
+          is_active: boolean
+          phone: string | null
+          role: string
+          service_ids: string[] | null
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          calendar_connection_id?: string | null
+          color?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          hours_json?: Json | null
+          id?: string
+          invite_email?: string | null
+          invite_status?: string | null
+          invited_at?: string | null
+          is_active?: boolean
+          phone?: string | null
+          role?: string
+          service_ids?: string[] | null
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          calendar_connection_id?: string | null
+          color?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          hours_json?: Json | null
+          id?: string
+          invite_email?: string | null
+          invite_status?: string | null
+          invited_at?: string | null
+          is_active?: boolean
+          phone?: string | null
+          role?: string
+          service_ids?: string[] | null
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_calendar_connection_id_fkey"
+            columns: ["calendar_connection_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_usage: {
         Row: {
           billing_period_end: string
           billing_period_start: string
           created_at: string | null
+          credit_applied_cents: number
           id: string
+          overage_billed_cents: number
+          overage_settled: boolean
+          settled_invoice_id: string | null
           sms_segments_used: number | null
           tenant_id: string
           updated_at: string | null
@@ -9462,7 +11316,11 @@ export type Database = {
           billing_period_end: string
           billing_period_start: string
           created_at?: string | null
+          credit_applied_cents?: number
           id?: string
+          overage_billed_cents?: number
+          overage_settled?: boolean
+          settled_invoice_id?: string | null
           sms_segments_used?: number | null
           tenant_id: string
           updated_at?: string | null
@@ -9472,7 +11330,11 @@ export type Database = {
           billing_period_end?: string
           billing_period_start?: string
           created_at?: string | null
+          credit_applied_cents?: number
           id?: string
+          overage_billed_cents?: number
+          overage_settled?: boolean
+          settled_invoice_id?: string | null
           sms_segments_used?: number | null
           tenant_id?: string
           updated_at?: string | null
@@ -9491,6 +11353,7 @@ export type Database = {
       subscriptions: {
         Row: {
           created_at: string
+          credit_balance_cents: number
           current_period_end: string | null
           id: string
           included_minutes: number | null
@@ -9502,10 +11365,13 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           tenant_id: string
+          trial_minutes_limit: number | null
+          trial_started_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          credit_balance_cents?: number
           current_period_end?: string | null
           id?: string
           included_minutes?: number | null
@@ -9517,10 +11383,13 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tenant_id: string
+          trial_minutes_limit?: number | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          credit_balance_cents?: number
           current_period_end?: string | null
           id?: string
           included_minutes?: number | null
@@ -9532,6 +11401,8 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tenant_id?: string
+          trial_minutes_limit?: number | null
+          trial_started_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -9731,18 +11602,22 @@ export type Database = {
           distance_provider_enabled: boolean
           dropoff_coverage_mode: string
           dropoff_max_miles: number | null
+          enabled: boolean
           eta_base_minutes: number
           eta_max_minutes: number | null
           eta_min_minutes: number | null
           eta_per_mile_minutes: number | null
           eta_rounding_minutes: number
           eta_rounding_mode: string | null
+          fallback_minutes_per_mile: number
+          fallback_mode: string
           fuel_surcharge_percent: number | null
           geocode_provider: string
           highway_response_faster_minutes: number | null
           holiday_dates: string[] | null
           holiday_multiplier: number | null
           mapbox_route_profile: string
+          max_distance_miles: number | null
           max_eta_minutes: number | null
           minimum_charge_cents: number | null
           provider: string
@@ -9768,18 +11643,22 @@ export type Database = {
           distance_provider_enabled?: boolean
           dropoff_coverage_mode?: string
           dropoff_max_miles?: number | null
+          enabled?: boolean
           eta_base_minutes?: number
           eta_max_minutes?: number | null
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
           eta_rounding_mode?: string | null
+          fallback_minutes_per_mile?: number
+          fallback_mode?: string
           fuel_surcharge_percent?: number | null
           geocode_provider?: string
           highway_response_faster_minutes?: number | null
           holiday_dates?: string[] | null
           holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          max_distance_miles?: number | null
           max_eta_minutes?: number | null
           minimum_charge_cents?: number | null
           provider?: string
@@ -9805,18 +11684,22 @@ export type Database = {
           distance_provider_enabled?: boolean
           dropoff_coverage_mode?: string
           dropoff_max_miles?: number | null
+          enabled?: boolean
           eta_base_minutes?: number
           eta_max_minutes?: number | null
           eta_min_minutes?: number | null
           eta_per_mile_minutes?: number | null
           eta_rounding_minutes?: number
           eta_rounding_mode?: string | null
+          fallback_minutes_per_mile?: number
+          fallback_mode?: string
           fuel_surcharge_percent?: number | null
           geocode_provider?: string
           highway_response_faster_minutes?: number | null
           holiday_dates?: string[] | null
           holiday_multiplier?: number | null
           mapbox_route_profile?: string
+          max_distance_miles?: number | null
           max_eta_minutes?: number | null
           minimum_charge_cents?: number | null
           provider?: string
@@ -9986,6 +11869,7 @@ export type Database = {
           default_service_value_cents: number
           id: string
           send_monthly_report: boolean
+          share_token: string | null
           subscription_cost_override_cents: number | null
           tenant_id: string
           updated_at: string
@@ -9995,6 +11879,7 @@ export type Database = {
           default_service_value_cents?: number
           id?: string
           send_monthly_report?: boolean
+          share_token?: string | null
           subscription_cost_override_cents?: number | null
           tenant_id: string
           updated_at?: string
@@ -10004,6 +11889,7 @@ export type Database = {
           default_service_value_cents?: number
           id?: string
           send_monthly_report?: boolean
+          share_token?: string | null
           subscription_cost_override_cents?: number | null
           tenant_id?: string
           updated_at?: string
@@ -10059,8 +11945,10 @@ export type Database = {
           ai_readiness_score: number | null
           appointment_buffer_minutes: number | null
           auto_send_reviews: boolean | null
+          base_lat: number | null
+          base_lng: number | null
           business_mode: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb: Json | null
+          busyness_rules_jsonb: Json
           calendar_last_synced_at: string | null
           calendar_sync_enabled: boolean | null
           calendar_sync_provider: string | null
@@ -10073,20 +11961,29 @@ export type Database = {
           default_capacity: number
           deposit_policy: string | null
           dispatch_config_json: Json | null
+          distance_provider: string
+          distance_provider_enabled: boolean
           enabled_modules: Json | null
+          eta_base_minutes: number
+          eta_max_minutes: number | null
+          eta_min_minutes: number | null
+          eta_per_mile_minutes: number
+          eta_policy_jsonb: Json | null
           food_settings: Json | null
           google_review_url: string | null
           hipaa_mode: boolean
           hours_json: Json | null
           id: string
           industry: string
+          mapbox_route_profile: string
           max_advance_days: number | null
           min_lead_hours: number | null
           name: string
           onboarding_completed_at: string | null
           payment_methods: string[] | null
           phone_public: string | null
-          pricing_rules_jsonb: Json | null
+          pricing_rules_json: Json | null
+          pricing_rules_jsonb: Json
           refund_policy: string | null
           review_channel: string | null
           review_delay_hours: number | null
@@ -10106,8 +12003,10 @@ export type Database = {
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           auto_send_reviews?: boolean | null
+          base_lat?: number | null
+          base_lng?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb?: Json | null
+          busyness_rules_jsonb?: Json
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -10120,20 +12019,29 @@ export type Database = {
           default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
+          distance_provider?: string
+          distance_provider_enabled?: boolean
           enabled_modules?: Json | null
+          eta_base_minutes?: number
+          eta_max_minutes?: number | null
+          eta_min_minutes?: number | null
+          eta_per_mile_minutes?: number
+          eta_policy_jsonb?: Json | null
           food_settings?: Json | null
           google_review_url?: string | null
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
           industry?: string
+          mapbox_route_profile?: string
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name: string
           onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
-          pricing_rules_jsonb?: Json | null
+          pricing_rules_json?: Json | null
+          pricing_rules_jsonb?: Json
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
@@ -10153,8 +12061,10 @@ export type Database = {
           ai_readiness_score?: number | null
           appointment_buffer_minutes?: number | null
           auto_send_reviews?: boolean | null
+          base_lat?: number | null
+          base_lng?: number | null
           business_mode?: Database["public"]["Enums"]["business_mode"]
-          busyness_rules_jsonb?: Json | null
+          busyness_rules_jsonb?: Json
           calendar_last_synced_at?: string | null
           calendar_sync_enabled?: boolean | null
           calendar_sync_provider?: string | null
@@ -10167,20 +12077,29 @@ export type Database = {
           default_capacity?: number
           deposit_policy?: string | null
           dispatch_config_json?: Json | null
+          distance_provider?: string
+          distance_provider_enabled?: boolean
           enabled_modules?: Json | null
+          eta_base_minutes?: number
+          eta_max_minutes?: number | null
+          eta_min_minutes?: number | null
+          eta_per_mile_minutes?: number
+          eta_policy_jsonb?: Json | null
           food_settings?: Json | null
           google_review_url?: string | null
           hipaa_mode?: boolean
           hours_json?: Json | null
           id?: string
           industry?: string
+          mapbox_route_profile?: string
           max_advance_days?: number | null
           min_lead_hours?: number | null
           name?: string
           onboarding_completed_at?: string | null
           payment_methods?: string[] | null
           phone_public?: string | null
-          pricing_rules_jsonb?: Json | null
+          pricing_rules_json?: Json | null
+          pricing_rules_jsonb?: Json
           refund_policy?: string | null
           review_channel?: string | null
           review_delay_hours?: number | null
@@ -10196,52 +12115,85 @@ export type Database = {
       }
       test_drives: {
         Row: {
-          booking_id: string | null
+          budget_range: string | null
           created_at: string | null
           customer_id: string | null
           duration_minutes: number | null
+          financing_interest: boolean | null
           id: string
           notes: string | null
-          salesperson: string | null
-          scheduled_at: string
+          sales_rep_requested: string | null
+          scheduled_at: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
           session_id: string | null
-          status: string | null
+          status: string
           tenant_id: string
+          trade_in_interest: boolean | null
+          trade_in_vehicle_info: string | null
           updated_at: string | null
-          vehicle_description: string | null
-          vehicle_id: string | null
+          vehicle_color: string | null
+          vehicle_make: string | null
+          vehicle_model: string | null
+          vehicle_stock_number: string | null
+          vehicle_trim: string | null
+          vehicle_type: string | null
+          vehicle_vin: string | null
+          vehicle_year: string | null
         }
         Insert: {
-          booking_id?: string | null
+          budget_range?: string | null
           created_at?: string | null
           customer_id?: string | null
           duration_minutes?: number | null
+          financing_interest?: boolean | null
           id?: string
           notes?: string | null
-          salesperson?: string | null
-          scheduled_at: string
+          sales_rep_requested?: string | null
+          scheduled_at?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           session_id?: string | null
-          status?: string | null
+          status?: string
           tenant_id: string
+          trade_in_interest?: boolean | null
+          trade_in_vehicle_info?: string | null
           updated_at?: string | null
-          vehicle_description?: string | null
-          vehicle_id?: string | null
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_stock_number?: string | null
+          vehicle_trim?: string | null
+          vehicle_type?: string | null
+          vehicle_vin?: string | null
+          vehicle_year?: string | null
         }
         Update: {
-          booking_id?: string | null
+          budget_range?: string | null
           created_at?: string | null
           customer_id?: string | null
           duration_minutes?: number | null
+          financing_interest?: boolean | null
           id?: string
           notes?: string | null
-          salesperson?: string | null
-          scheduled_at?: string
+          sales_rep_requested?: string | null
+          scheduled_at?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           session_id?: string | null
-          status?: string | null
+          status?: string
           tenant_id?: string
+          trade_in_interest?: boolean | null
+          trade_in_vehicle_info?: string | null
           updated_at?: string | null
-          vehicle_description?: string | null
-          vehicle_id?: string | null
+          vehicle_color?: string | null
+          vehicle_make?: string | null
+          vehicle_model?: string | null
+          vehicle_stock_number?: string | null
+          vehicle_trim?: string | null
+          vehicle_type?: string | null
+          vehicle_vin?: string | null
+          vehicle_year?: string | null
         }
         Relationships: [
           {
@@ -10250,6 +12202,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "customers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_drives_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "test_drives_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "test_drives_tenant_id_fkey"
@@ -10660,6 +12626,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "waitlist_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
+          },
+          {
             foreignKeyName: "waitlist_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
@@ -10711,6 +12684,13 @@ export type Database = {
             columns: ["node_id"]
             isOneToOne: false
             referencedRelation: "workflow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "webhook_executions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_failures_monitor"
             referencedColumns: ["id"]
           },
           {
@@ -10871,6 +12851,13 @@ export type Database = {
             foreignKeyName: "workflow_run_steps_run_id_fkey"
             columns: ["run_id"]
             isOneToOne: false
+            referencedRelation: "workflow_failures_monitor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_run_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
             referencedRelation: "workflow_runs"
             referencedColumns: ["id"]
           },
@@ -10878,15 +12865,21 @@ export type Database = {
       }
       workflow_runs: {
         Row: {
+          alerted_at: string | null
           context: Json
           entity_id: string
           entity_type: string
           error: string | null
           finished_at: string | null
           id: string
+          is_critical: boolean
           is_dry_run: boolean | null
+          max_retries: number
+          needs_retry: boolean
+          next_retry_at: string | null
           parent_run_id: string | null
           retry_count: number | null
+          session_id: string | null
           started_at: string
           status: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id: string
@@ -10894,15 +12887,21 @@ export type Database = {
           workflow_id: string
         }
         Insert: {
+          alerted_at?: string | null
           context?: Json
           entity_id: string
           entity_type: string
           error?: string | null
           finished_at?: string | null
           id?: string
+          is_critical?: boolean
           is_dry_run?: boolean | null
+          max_retries?: number
+          needs_retry?: boolean
+          next_retry_at?: string | null
           parent_run_id?: string | null
           retry_count?: number | null
+          session_id?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id: string
@@ -10910,15 +12909,21 @@ export type Database = {
           workflow_id: string
         }
         Update: {
+          alerted_at?: string | null
           context?: Json
           entity_id?: string
           entity_type?: string
           error?: string | null
           finished_at?: string | null
           id?: string
+          is_critical?: boolean
           is_dry_run?: boolean | null
+          max_retries?: number
+          needs_retry?: boolean
+          next_retry_at?: string | null
           parent_run_id?: string | null
           retry_count?: number | null
+          session_id?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["workflow_run_status"]
           tenant_id?: string
@@ -10930,8 +12935,29 @@ export type Database = {
             foreignKeyName: "workflow_runs_parent_run_id_fkey"
             columns: ["parent_run_id"]
             isOneToOne: false
+            referencedRelation: "workflow_failures_monitor"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_parent_run_id_fkey"
+            columns: ["parent_run_id"]
+            isOneToOne: false
             referencedRelation: "workflow_runs"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "ai_call_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_runs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "session_automation_summary"
+            referencedColumns: ["session_id"]
           },
           {
             foreignKeyName: "workflow_runs_tenant_id_fkey"
@@ -10980,6 +13006,13 @@ export type Database = {
             columns: ["node_id"]
             isOneToOne: false
             referencedRelation: "workflow_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workflow_scheduled_steps_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "workflow_failures_monitor"
             referencedColumns: ["id"]
           },
           {
@@ -11194,8 +13227,113 @@ export type Database = {
           },
         ]
       }
+      session_automation_summary: {
+        Row: {
+          automation_runs_count: number | null
+          call_ended_at: string | null
+          call_started_at: string | null
+          caller_phone: string | null
+          outcome: Database["public"]["Enums"]["ai_call_outcome"] | null
+          session_id: string | null
+          successful_automations: number | null
+          successful_workflows: number | null
+          tenant_id: string | null
+          workflow_runs_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_call_sessions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workflow_failures_monitor: {
+        Row: {
+          alerted_at: string | null
+          business_name: string | null
+          entity_id: string | null
+          entity_type: string | null
+          error: string | null
+          finished_at: string | null
+          id: string | null
+          is_critical: boolean | null
+          max_retries: number | null
+          needs_retry: boolean | null
+          next_retry_at: string | null
+          retry_count: number | null
+          started_at: string | null
+          tenant_id: string | null
+          trigger: Database["public"]["Enums"]["workflow_trigger"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workflow_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      admin_get_best_discovery_combos: {
+        Args: { p_limit?: number }
+        Returns: {
+          combo: string
+          conversion_rate: number
+          converted: number
+          enrolled: number
+          found: number
+          responded: number
+        }[]
+      }
+      admin_increment_campaign_converted: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      admin_increment_campaign_enrolled: {
+        Args: { p_campaign_id: string; p_count?: number }
+        Returns: undefined
+      }
+      admin_increment_campaign_responded: {
+        Args: { p_campaign_id: string }
+        Returns: undefined
+      }
+      admin_increment_sequence_responded: {
+        Args: { p_sequence_id: string }
+        Returns: undefined
+      }
+      admin_increment_sequence_sent: {
+        Args: { p_sequence_id: string }
+        Returns: undefined
+      }
+      admin_increment_step_responded: {
+        Args: { p_sequence_id: string; p_step_order: number }
+        Returns: undefined
+      }
+      admin_increment_step_sent: {
+        Args: { p_sequence_id: string; p_step_order: number }
+        Returns: undefined
+      }
+      admin_mark_enrollment_converted: {
+        Args: { p_enrollment_id: string }
+        Returns: undefined
+      }
+      admin_update_discovery_stats: {
+        Args: {
+          p_converted?: number
+          p_enrolled?: number
+          p_found?: number
+          p_industry: string
+          p_location: string
+          p_responded?: number
+        }
+        Returns: undefined
+      }
       calculate_ai_readiness: { Args: { _tenant_id: string }; Returns: number }
       cleanup_expired_holds: { Args: never; Returns: number }
       create_default_recovery_sequence: {
@@ -11203,6 +13341,10 @@ export type Database = {
         Returns: string
       }
       create_default_recovery_templates: {
+        Args: { p_business_mode: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      create_default_workflow_config: {
         Args: { p_business_mode: string; p_tenant_id: string }
         Returns: undefined
       }
@@ -11295,7 +13437,26 @@ export type Database = {
               success: boolean
             }[]
           }
-      fn_refresh_session_slots: { Args: never; Returns: number }
+      fn_refresh_session_slots:
+        | { Args: never; Returns: number }
+        | {
+            Args: {
+              _buffer_minutes?: number
+              _business_hours?: Json
+              _duration_minutes?: number
+              _end_date: string
+              _session_id: string
+              _start_date: string
+              _tenant_id: string
+            }
+            Returns: {
+              is_locked_for_session: boolean
+              slot_date: string
+              slot_end: string
+              slot_start: string
+              slot_time_local: string
+            }[]
+          }
       fn_release_session_locks: {
         Args: { _session_id: string }
         Returns: number
@@ -11306,9 +13467,13 @@ export type Database = {
       }
       generate_job_number: { Args: { p_tenant_id: string }; Returns: string }
       get_ai_readiness: { Args: { tenant_uuid: string }; Returns: Json }
-      get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
+      get_role_permissions: { Args: { p_role: string }; Returns: Json }
       has_active_subscription: {
         Args: { _tenant_id: string }
+        Returns: boolean
+      }
+      has_permission: {
+        Args: { p_permission: string; p_tenant_id: string; p_user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -11321,6 +13486,10 @@ export type Database = {
       has_tenant_access: {
         Args: { _tenant_id: string; _user_id: string }
         Returns: boolean
+      }
+      increment_referrals_today: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
       }
       initialize_assistant_settings: {
         Args: {
@@ -11360,6 +13529,7 @@ export type Database = {
       }
     }
     Enums: {
+      ai_behavior_mode: "full_service" | "callback_only"
       ai_call_direction: "inbound" | "outbound"
       ai_call_outcome:
         | "booked"
@@ -11370,6 +13540,7 @@ export type Database = {
         | "dispatch"
         | "message"
         | "lead_captured"
+        | "referral_transfer"
       ai_knowledge_type: "faq" | "objection" | "policy" | "upsell"
       ai_tone: "friendly" | "professional" | "luxury" | "direct"
       audit_event_type:
@@ -11457,6 +13628,89 @@ export type Database = {
         | "pet_grooming"
         | "towing"
         | "locksmith"
+        | "plumbing"
+        | "painting"
+        | "flooring"
+        | "pressure_washing"
+        | "garage_door"
+        | "appliance_repair"
+        | "handyman"
+        | "junk_removal"
+        | "tree_service"
+        | "fencing"
+        | "window_cleaning"
+        | "chimney_service"
+        | "insulation"
+        | "solar"
+        | "concrete"
+        | "siding"
+        | "gutter"
+        | "irrigation"
+        | "masonry"
+        | "drywall"
+        | "carpet_cleaning"
+        | "auto_detailing"
+        | "auto_repair"
+        | "auto_glass"
+        | "body_shop"
+        | "car_wash"
+        | "window_tinting"
+        | "mobile_mechanic"
+        | "roadside_assistance"
+        | "courier"
+        | "medical_transport"
+        | "delivery_service"
+        | "field_service"
+        | "landscaping_dispatch"
+        | "cleaning_dispatch"
+        | "mobile_detailing"
+        | "pest_control_dispatch"
+        | "nail_salon"
+        | "spa"
+        | "massage"
+        | "tattoo"
+        | "esthetics"
+        | "brow_lash"
+        | "primary_care"
+        | "urgent_care"
+        | "orthodontics"
+        | "optometry"
+        | "chiropractic"
+        | "physical_therapy"
+        | "dermatology"
+        | "mental_health"
+        | "pediatrics"
+        | "veterinary"
+        | "restaurant"
+        | "pizzeria"
+        | "fast_casual"
+        | "bakery"
+        | "coffee_shop"
+        | "food_truck"
+        | "catering_service"
+        | "bar"
+        | "pet_boarding"
+        | "dog_training"
+        | "dog_walking"
+        | "personal_training"
+        | "yoga"
+        | "pilates"
+        | "martial_arts"
+        | "dance_studio"
+        | "golf"
+        | "videography"
+        | "dj"
+        | "event_venue"
+        | "wedding_planner"
+        | "music_lessons"
+        | "accounting"
+        | "legal"
+        | "insurance"
+        | "financial_advisor"
+        | "tutoring"
+        | "real_estate"
+        | "property_management"
+        | "home_inspection"
       intent_rule_type:
         | "time_preference"
         | "upsell_rule"
@@ -11518,6 +13772,11 @@ export type Database = {
         | "both-200-500"
         | "both-600-1500"
         | "both-1500-3500"
+        | "base-200"
+        | "growth-2000"
+        | "scale-5000"
+        | "power-10000"
+        | "enterprise"
       price_type: "fixed" | "starting_at" | "quote_only"
       reservation_status:
         | "pending"
@@ -11526,10 +13785,22 @@ export type Database = {
         | "completed"
         | "cancelled"
         | "no_show"
-      subscription_status: "active" | "trialing" | "past_due" | "canceled"
+      subscription_status:
+        | "active"
+        | "trialing"
+        | "past_due"
+        | "canceled"
+        | "cancelled"
       suggestion_status: "pending_review" | "approved" | "rejected" | "merged"
       suggestion_type: "service" | "faq" | "menu_item" | "policy" | "objection"
-      user_role: "owner" | "staff" | "super_admin" | "driver"
+      unknown_question_behavior: "escalate" | "try_help" | "offer_callback"
+      user_role:
+        | "owner"
+        | "staff"
+        | "super_admin"
+        | "driver"
+        | "manager"
+        | "viewer"
       voice_mode: "always_on" | "busy_mode" | "overflow" | "after_hours_only"
       webhook_auth_mode: "none" | "header" | "basic"
       workflow_node_type:
@@ -11692,6 +13963,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_behavior_mode: ["full_service", "callback_only"],
       ai_call_direction: ["inbound", "outbound"],
       ai_call_outcome: [
         "booked",
@@ -11702,6 +13974,7 @@ export const Constants = {
         "dispatch",
         "message",
         "lead_captured",
+        "referral_transfer",
       ],
       ai_knowledge_type: ["faq", "objection", "policy", "upsell"],
       ai_tone: ["friendly", "professional", "luxury", "direct"],
@@ -11798,6 +14071,89 @@ export const Constants = {
         "pet_grooming",
         "towing",
         "locksmith",
+        "plumbing",
+        "painting",
+        "flooring",
+        "pressure_washing",
+        "garage_door",
+        "appliance_repair",
+        "handyman",
+        "junk_removal",
+        "tree_service",
+        "fencing",
+        "window_cleaning",
+        "chimney_service",
+        "insulation",
+        "solar",
+        "concrete",
+        "siding",
+        "gutter",
+        "irrigation",
+        "masonry",
+        "drywall",
+        "carpet_cleaning",
+        "auto_detailing",
+        "auto_repair",
+        "auto_glass",
+        "body_shop",
+        "car_wash",
+        "window_tinting",
+        "mobile_mechanic",
+        "roadside_assistance",
+        "courier",
+        "medical_transport",
+        "delivery_service",
+        "field_service",
+        "landscaping_dispatch",
+        "cleaning_dispatch",
+        "mobile_detailing",
+        "pest_control_dispatch",
+        "nail_salon",
+        "spa",
+        "massage",
+        "tattoo",
+        "esthetics",
+        "brow_lash",
+        "primary_care",
+        "urgent_care",
+        "orthodontics",
+        "optometry",
+        "chiropractic",
+        "physical_therapy",
+        "dermatology",
+        "mental_health",
+        "pediatrics",
+        "veterinary",
+        "restaurant",
+        "pizzeria",
+        "fast_casual",
+        "bakery",
+        "coffee_shop",
+        "food_truck",
+        "catering_service",
+        "bar",
+        "pet_boarding",
+        "dog_training",
+        "dog_walking",
+        "personal_training",
+        "yoga",
+        "pilates",
+        "martial_arts",
+        "dance_studio",
+        "golf",
+        "videography",
+        "dj",
+        "event_venue",
+        "wedding_planner",
+        "music_lessons",
+        "accounting",
+        "legal",
+        "insurance",
+        "financial_advisor",
+        "tutoring",
+        "real_estate",
+        "property_management",
+        "home_inspection",
       ],
       intent_rule_type: [
         "time_preference",
@@ -11866,6 +14222,11 @@ export const Constants = {
         "both-200-500",
         "both-600-1500",
         "both-1500-3500",
+        "base-200",
+        "growth-2000",
+        "scale-5000",
+        "power-10000",
+        "enterprise",
       ],
       price_type: ["fixed", "starting_at", "quote_only"],
       reservation_status: [
@@ -11876,10 +14237,24 @@ export const Constants = {
         "cancelled",
         "no_show",
       ],
-      subscription_status: ["active", "trialing", "past_due", "canceled"],
+      subscription_status: [
+        "active",
+        "trialing",
+        "past_due",
+        "canceled",
+        "cancelled",
+      ],
       suggestion_status: ["pending_review", "approved", "rejected", "merged"],
       suggestion_type: ["service", "faq", "menu_item", "policy", "objection"],
-      user_role: ["owner", "staff", "super_admin", "driver"],
+      unknown_question_behavior: ["escalate", "try_help", "offer_callback"],
+      user_role: [
+        "owner",
+        "staff",
+        "super_admin",
+        "driver",
+        "manager",
+        "viewer",
+      ],
       voice_mode: ["always_on", "busy_mode", "overflow", "after_hours_only"],
       webhook_auth_mode: ["none", "header", "basic"],
       workflow_node_type: [

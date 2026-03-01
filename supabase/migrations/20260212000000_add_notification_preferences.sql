@@ -18,6 +18,7 @@ CREATE INDEX IF NOT EXISTS idx_notification_prefs_tenant_user
 
 ALTER TABLE notification_preferences ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own notification preferences" ON notification_preferences;
 CREATE POLICY "Users can manage own notification preferences"
   ON notification_preferences FOR ALL
   USING (user_id = auth.uid() AND tenant_id IN (

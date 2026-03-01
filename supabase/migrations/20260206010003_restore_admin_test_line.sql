@@ -44,7 +44,8 @@ BEGIN
   END IF;
 
   IF v_owner_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'No tenants exist - cannot create phone number record';
+    RAISE NOTICE 'No tenants exist - skipping admin test line creation (will be created when first tenant onboards)';
+    RETURN;
   END IF;
 
   -- Insert the admin test line

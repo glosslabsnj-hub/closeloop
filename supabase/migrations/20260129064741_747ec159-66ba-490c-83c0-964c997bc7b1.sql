@@ -34,22 +34,25 @@ CREATE TABLE IF NOT EXISTS public.data_retention_settings (
 ALTER TABLE public.data_retention_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies
+DROP POLICY IF EXISTS "Tenant members can view retention settings" ON public.data_retention_settings;
 CREATE POLICY "Tenant members can view retention settings"
   ON public.data_retention_settings FOR SELECT
   TO authenticated
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can update retention settings" ON public.data_retention_settings;
 CREATE POLICY "Tenant members can update retention settings"
   ON public.data_retention_settings FOR UPDATE
   TO authenticated
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant members can insert retention settings" ON public.data_retention_settings;
 CREATE POLICY "Tenant members can insert retention settings"
   ON public.data_retention_settings FOR INSERT
   TO authenticated
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
--- Create trigger to auto-update updated_at
+DROP TRIGGER IF EXISTS update_data_retention_settings_updated_at ON public.data_retention_settings;
 CREATE TRIGGER update_data_retention_settings_updated_at
   BEFORE UPDATE ON public.data_retention_settings
   FOR EACH ROW

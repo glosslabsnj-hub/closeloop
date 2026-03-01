@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.waitlist (
 ALTER TABLE public.waitlist ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for waitlist
+DROP POLICY IF EXISTS "Users can view their tenant waitlist" ON public.waitlist;
 CREATE POLICY "Users can view their tenant waitlist"
   ON public.waitlist
   FOR SELECT
@@ -54,6 +55,7 @@ CREATE POLICY "Users can view their tenant waitlist"
     )
   );
 
+DROP POLICY IF EXISTS "Users can insert to their tenant waitlist" ON public.waitlist;
 CREATE POLICY "Users can insert to their tenant waitlist"
   ON public.waitlist
   FOR INSERT
@@ -64,6 +66,7 @@ CREATE POLICY "Users can insert to their tenant waitlist"
     )
   );
 
+DROP POLICY IF EXISTS "Users can update their tenant waitlist" ON public.waitlist;
 CREATE POLICY "Users can update their tenant waitlist"
   ON public.waitlist
   FOR UPDATE
@@ -74,6 +77,7 @@ CREATE POLICY "Users can update their tenant waitlist"
     )
   );
 
+DROP POLICY IF EXISTS "Users can delete from their tenant waitlist" ON public.waitlist;
 CREATE POLICY "Users can delete from their tenant waitlist"
   ON public.waitlist
   FOR DELETE
@@ -85,6 +89,7 @@ CREATE POLICY "Users can delete from their tenant waitlist"
   );
 
 -- Service role bypass for edge functions
+DROP POLICY IF EXISTS "Service role has full access to waitlist" ON public.waitlist;
 CREATE POLICY "Service role has full access to waitlist"
   ON public.waitlist
   FOR ALL

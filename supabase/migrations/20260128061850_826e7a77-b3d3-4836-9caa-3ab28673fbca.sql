@@ -30,7 +30,7 @@ EXCEPTION
 END $$;
 
 -- Create ai_assistants table
-CREATE TABLE public.ai_assistants (
+CREATE TABLE IF NOT EXISTS public.ai_assistants (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     name TEXT NOT NULL DEFAULT 'AI Assistant',
@@ -43,7 +43,7 @@ CREATE TABLE public.ai_assistants (
 );
 
 -- Create ai_call_sessions table
-CREATE TABLE public.ai_call_sessions (
+CREATE TABLE IF NOT EXISTS public.ai_call_sessions (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     lead_id UUID REFERENCES public.leads(id) ON DELETE SET NULL,
@@ -58,7 +58,7 @@ CREATE TABLE public.ai_call_sessions (
 );
 
 -- Create ai_knowledge_base table
-CREATE TABLE public.ai_knowledge_base (
+CREATE TABLE IF NOT EXISTS public.ai_knowledge_base (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     type ai_knowledge_type NOT NULL,
@@ -74,12 +74,14 @@ ALTER TABLE public.ai_call_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_knowledge_base ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for ai_assistants
+DROP POLICY IF EXISTS "Users can view tenant AI assistants" ON public.ai_assistants;
 CREATE POLICY "Users can view tenant AI assistants"
-ON public.ai_assistants FOR SELECT
+  ON public.ai_assistants FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage AI assistants" ON public.ai_assistants;
 CREATE POLICY "Owners can manage AI assistants"
-ON public.ai_assistants FOR ALL
+  ON public.ai_assistants FOR ALL
 USING (
     (tenant_id IN (
         SELECT tenant_users.tenant_id FROM tenant_users
@@ -88,21 +90,25 @@ USING (
 );
 
 -- RLS policies for ai_call_sessions
+DROP POLICY IF EXISTS "Users can view tenant AI call sessions" ON public.ai_call_sessions;
 CREATE POLICY "Users can view tenant AI call sessions"
-ON public.ai_call_sessions FOR SELECT
+  ON public.ai_call_sessions FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant AI call sessions" ON public.ai_call_sessions;
 CREATE POLICY "Users can manage tenant AI call sessions"
-ON public.ai_call_sessions FOR ALL
+  ON public.ai_call_sessions FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS policies for ai_knowledge_base
+DROP POLICY IF EXISTS "Users can view tenant AI knowledge base" ON public.ai_knowledge_base;
 CREATE POLICY "Users can view tenant AI knowledge base"
-ON public.ai_knowledge_base FOR SELECT
+  ON public.ai_knowledge_base FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage AI knowledge base" ON public.ai_knowledge_base;
 CREATE POLICY "Owners can manage AI knowledge base"
-ON public.ai_knowledge_base FOR ALL
+  ON public.ai_knowledge_base FOR ALL
 USING (
     (tenant_id IN (
         SELECT tenant_users.tenant_id FROM tenant_users

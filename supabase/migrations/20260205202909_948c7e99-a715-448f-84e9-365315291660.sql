@@ -3,7 +3,7 @@
 -- =====================================================
 
 -- 1. Impound Lots - Tracks impound lot locations
-CREATE TABLE public.impound_lots (
+CREATE TABLE IF NOT EXISTS public.impound_lots (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     
@@ -36,11 +36,11 @@ CREATE TABLE public.impound_lots (
 );
 
 -- Index for tenant lookups
-CREATE INDEX idx_impound_lots_tenant ON public.impound_lots(tenant_id);
-CREATE INDEX idx_impound_lots_default ON public.impound_lots(tenant_id, is_default) WHERE is_default = true;
+CREATE INDEX IF NOT EXISTS idx_impound_lots_tenant ON public.impound_lots(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_impound_lots_default ON public.impound_lots(tenant_id, is_default) WHERE is_default = true;
 
 -- 2. Impound Vehicles - Tracks vehicles currently in impound
-CREATE TABLE public.impound_vehicles (
+CREATE TABLE IF NOT EXISTS public.impound_vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     lot_id UUID REFERENCES public.impound_lots(id),
@@ -97,14 +97,14 @@ CREATE TABLE public.impound_vehicles (
 );
 
 -- Indexes for vehicle lookups
-CREATE INDEX idx_impound_vehicles_tenant ON public.impound_vehicles(tenant_id);
-CREATE INDEX idx_impound_vehicles_plate ON public.impound_vehicles(license_plate);
-CREATE INDEX idx_impound_vehicles_status ON public.impound_vehicles(tenant_id, status);
-CREATE INDEX idx_impound_vehicles_lot ON public.impound_vehicles(lot_id);
-CREATE INDEX idx_impound_vehicles_dispatch ON public.impound_vehicles(dispatch_job_id) WHERE dispatch_job_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_impound_vehicles_tenant ON public.impound_vehicles(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_impound_vehicles_plate ON public.impound_vehicles(license_plate);
+CREATE INDEX IF NOT EXISTS idx_impound_vehicles_status ON public.impound_vehicles(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_impound_vehicles_lot ON public.impound_vehicles(lot_id);
+CREATE INDEX IF NOT EXISTS idx_impound_vehicles_dispatch ON public.impound_vehicles(dispatch_job_id) WHERE dispatch_job_id IS NOT NULL;
 
 -- 3. Impound Settings - Per-tenant configuration
-CREATE TABLE public.impound_settings (
+CREATE TABLE IF NOT EXISTS public.impound_settings (
     tenant_id UUID PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
     
     -- Default fees (in cents)
@@ -151,32 +151,36 @@ ALTER TABLE public.impound_vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.impound_settings ENABLE ROW LEVEL SECURITY;
 
 -- Impound Lots Policies
+DROP POLICY IF EXISTS "Users can view impound lots for their tenants" ON public.impound_lots;
 CREATE POLICY "Users can view impound lots for their tenants"
-ON public.impound_lots FOR SELECT
+  ON public.impound_lots FOR SELECT
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can create impound lots for their tenants" ON public.impound_lots;
 CREATE POLICY "Users can create impound lots for their tenants"
-ON public.impound_lots FOR INSERT
+  ON public.impound_lots FOR INSERT
 WITH CHECK (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can update impound lots for their tenants" ON public.impound_lots;
 CREATE POLICY "Users can update impound lots for their tenants"
-ON public.impound_lots FOR UPDATE
+  ON public.impound_lots FOR UPDATE
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can delete impound lots for their tenants" ON public.impound_lots;
 CREATE POLICY "Users can delete impound lots for their tenants"
-ON public.impound_lots FOR DELETE
+  ON public.impound_lots FOR DELETE
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
@@ -184,32 +188,36 @@ USING (
 );
 
 -- Impound Vehicles Policies
+DROP POLICY IF EXISTS "Users can view impound vehicles for their tenants" ON public.impound_vehicles;
 CREATE POLICY "Users can view impound vehicles for their tenants"
-ON public.impound_vehicles FOR SELECT
+  ON public.impound_vehicles FOR SELECT
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can create impound vehicles for their tenants" ON public.impound_vehicles;
 CREATE POLICY "Users can create impound vehicles for their tenants"
-ON public.impound_vehicles FOR INSERT
+  ON public.impound_vehicles FOR INSERT
 WITH CHECK (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can update impound vehicles for their tenants" ON public.impound_vehicles;
 CREATE POLICY "Users can update impound vehicles for their tenants"
-ON public.impound_vehicles FOR UPDATE
+  ON public.impound_vehicles FOR UPDATE
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can delete impound vehicles for their tenants" ON public.impound_vehicles;
 CREATE POLICY "Users can delete impound vehicles for their tenants"
-ON public.impound_vehicles FOR DELETE
+  ON public.impound_vehicles FOR DELETE
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
@@ -217,24 +225,27 @@ USING (
 );
 
 -- Impound Settings Policies
+DROP POLICY IF EXISTS "Users can view impound settings for their tenants" ON public.impound_settings;
 CREATE POLICY "Users can view impound settings for their tenants"
-ON public.impound_settings FOR SELECT
+  ON public.impound_settings FOR SELECT
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can insert impound settings for their tenants" ON public.impound_settings;
 CREATE POLICY "Users can insert impound settings for their tenants"
-ON public.impound_settings FOR INSERT
+  ON public.impound_settings FOR INSERT
 WITH CHECK (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
     )
 );
 
+DROP POLICY IF EXISTS "Users can update impound settings for their tenants" ON public.impound_settings;
 CREATE POLICY "Users can update impound settings for their tenants"
-ON public.impound_settings FOR UPDATE
+  ON public.impound_settings FOR UPDATE
 USING (
     tenant_id IN (
         SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()
@@ -263,14 +274,16 @@ END;
 $$;
 
 -- Trigger on tenant insert
+DROP TRIGGER IF EXISTS trg_create_impound_settings_on_dispatch_tenant ON public.tenants;
 CREATE TRIGGER trg_create_impound_settings_on_dispatch_tenant
-AFTER INSERT ON public.tenants
+  AFTER INSERT ON public.tenants
 FOR EACH ROW
 EXECUTE FUNCTION public.fn_create_impound_settings_for_dispatch();
 
 -- Trigger on tenant update (in case business_mode changes to dispatch)
+DROP TRIGGER IF EXISTS trg_create_impound_settings_on_dispatch_update ON public.tenants;
 CREATE TRIGGER trg_create_impound_settings_on_dispatch_update
-AFTER UPDATE OF business_mode ON public.tenants
+  AFTER UPDATE OF business_mode ON public.tenants
 FOR EACH ROW
 WHEN (NEW.business_mode = 'dispatch' AND (OLD.business_mode IS DISTINCT FROM 'dispatch'))
 EXECUTE FUNCTION public.fn_create_impound_settings_for_dispatch();
@@ -279,18 +292,21 @@ EXECUTE FUNCTION public.fn_create_impound_settings_for_dispatch();
 -- Updated_at triggers
 -- =====================================================
 
+DROP TRIGGER IF EXISTS set_impound_lots_updated_at ON public.impound_lots;
 CREATE TRIGGER set_impound_lots_updated_at
-BEFORE UPDATE ON public.impound_lots
+  BEFORE UPDATE ON public.impound_lots
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_impound_vehicles_updated_at ON public.impound_vehicles;
 CREATE TRIGGER set_impound_vehicles_updated_at
-BEFORE UPDATE ON public.impound_vehicles
+  BEFORE UPDATE ON public.impound_vehicles
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_impound_settings_updated_at ON public.impound_settings;
 CREATE TRIGGER set_impound_settings_updated_at
-BEFORE UPDATE ON public.impound_settings
+  BEFORE UPDATE ON public.impound_settings
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();
 

@@ -155,7 +155,9 @@ ON CONFLICT (industry_key, field_key) DO UPDATE SET
 ALTER TABLE public.intake_field_templates ENABLE ROW LEVEL SECURITY;
 
 -- Allow read access to all authenticated users (templates are global)
-CREATE POLICY "Anyone can read intake templates" ON public.intake_field_templates
+DROP POLICY IF EXISTS "Anyone can read intake templates" ON public.intake_field_templates;
+CREATE POLICY "Anyone can read intake templates"
+  ON public.intake_field_templates
   FOR SELECT TO authenticated
   USING (true);
 

@@ -91,66 +91,81 @@ ALTER TABLE public.automation_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.automation_run_steps ENABLE ROW LEVEL SECURITY;
 
 -- 7. RLS Policies for integrations
+DROP POLICY IF EXISTS "Tenants can view their own integrations" ON public.integrations;
 CREATE POLICY "Tenants can view their own integrations"
   ON public.integrations FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can insert their own integrations" ON public.integrations;
 CREATE POLICY "Tenants can insert their own integrations"
   ON public.integrations FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can update their own integrations" ON public.integrations;
 CREATE POLICY "Tenants can update their own integrations"
   ON public.integrations FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can delete their own integrations" ON public.integrations;
 CREATE POLICY "Tenants can delete their own integrations"
   ON public.integrations FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- 8. RLS Policies for integration_secrets (read-only from client, managed by edge functions)
+DROP POLICY IF EXISTS "Tenants can view their own integration secrets" ON public.integration_secrets;
 CREATE POLICY "Tenants can view their own integration secrets"
   ON public.integration_secrets FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can insert their own integration secrets" ON public.integration_secrets;
 CREATE POLICY "Tenants can insert their own integration secrets"
   ON public.integration_secrets FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can update their own integration secrets" ON public.integration_secrets;
 CREATE POLICY "Tenants can update their own integration secrets"
   ON public.integration_secrets FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can delete their own integration secrets" ON public.integration_secrets;
 CREATE POLICY "Tenants can delete their own integration secrets"
   ON public.integration_secrets FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- 9. RLS Policies for automation_rules
+DROP POLICY IF EXISTS "Tenants can view their own automation rules" ON public.automation_rules;
 CREATE POLICY "Tenants can view their own automation rules"
   ON public.automation_rules FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can insert their own automation rules" ON public.automation_rules;
 CREATE POLICY "Tenants can insert their own automation rules"
   ON public.automation_rules FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can update their own automation rules" ON public.automation_rules;
 CREATE POLICY "Tenants can update their own automation rules"
   ON public.automation_rules FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can delete their own automation rules" ON public.automation_rules;
 CREATE POLICY "Tenants can delete their own automation rules"
   ON public.automation_rules FOR DELETE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- 10. RLS Policies for automation_runs
+DROP POLICY IF EXISTS "Tenants can view their own automation runs" ON public.automation_runs;
 CREATE POLICY "Tenants can view their own automation runs"
   ON public.automation_runs FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can insert their own automation runs" ON public.automation_runs;
 CREATE POLICY "Tenants can insert their own automation runs"
   ON public.automation_runs FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- 11. RLS Policies for automation_run_steps (via run_id join)
+DROP POLICY IF EXISTS "Tenants can view their own automation run steps" ON public.automation_run_steps;
 CREATE POLICY "Tenants can view their own automation run steps"
   ON public.automation_run_steps FOR SELECT
   USING (run_id IN (
@@ -158,6 +173,7 @@ CREATE POLICY "Tenants can view their own automation run steps"
     WHERE tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   ));
 
+DROP POLICY IF EXISTS "Tenants can insert their own automation run steps" ON public.automation_run_steps;
 CREATE POLICY "Tenants can insert their own automation run steps"
   ON public.automation_run_steps FOR INSERT
   WITH CHECK (run_id IN (
@@ -175,11 +191,13 @@ CREATE INDEX IF NOT EXISTS idx_automation_runs_status ON public.automation_runs(
 CREATE INDEX IF NOT EXISTS idx_automation_run_steps_run ON public.automation_run_steps(run_id);
 
 -- 13. Update trigger for integrations
+DROP TRIGGER IF EXISTS update_integrations_updated_at ON public.integrations;
 CREATE TRIGGER update_integrations_updated_at
   BEFORE UPDATE ON public.integrations
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_automation_rules_updated_at ON public.automation_rules;
 CREATE TRIGGER update_automation_rules_updated_at
   BEFORE UPDATE ON public.automation_rules
   FOR EACH ROW

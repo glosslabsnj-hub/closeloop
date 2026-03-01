@@ -32,7 +32,9 @@ CREATE INDEX IF NOT EXISTS idx_objection_usage_created ON objection_usage(create
 
 ALTER TABLE objection_usage ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "objection_usage_tenant_access" ON objection_usage
+DROP POLICY IF EXISTS "objection_usage_tenant_access" ON objection_usage;
+CREATE POLICY "objection_usage_tenant_access"
+  ON objection_usage
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );
@@ -81,7 +83,9 @@ CREATE INDEX IF NOT EXISTS idx_outbound_queue_purpose ON outbound_call_queue(cal
 
 ALTER TABLE outbound_call_queue ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "outbound_queue_tenant_access" ON outbound_call_queue
+DROP POLICY IF EXISTS "outbound_queue_tenant_access" ON outbound_call_queue;
+CREATE POLICY "outbound_queue_tenant_access"
+  ON outbound_call_queue
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );
@@ -98,7 +102,9 @@ CREATE TABLE IF NOT EXISTS outbound_opt_outs (
 
 ALTER TABLE outbound_opt_outs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "outbound_opt_outs_tenant_access" ON outbound_opt_outs
+DROP POLICY IF EXISTS "outbound_opt_outs_tenant_access" ON outbound_opt_outs;
+CREATE POLICY "outbound_opt_outs_tenant_access"
+  ON outbound_opt_outs
   FOR ALL USING (
     tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );

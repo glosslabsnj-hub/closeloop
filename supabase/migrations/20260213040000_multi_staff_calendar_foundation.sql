@@ -89,5 +89,5 @@ CREATE INDEX IF NOT EXISTS idx_busy_blocks_tenant_staff_time
   WHERE is_active = TRUE;
 
 CREATE INDEX IF NOT EXISTS idx_bookings_tenant_staff_time
-  ON public.bookings(tenant_id, staff_id, scheduled_at)
+  ON public.bookings(tenant_id, staff_id, start_at)
   WHERE staff_id IS NOT NULL;

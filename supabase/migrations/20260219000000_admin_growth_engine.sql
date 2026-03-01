@@ -41,7 +41,9 @@ create table if not exists admin_growth_settings (
 );
 
 alter table admin_growth_settings enable row level security;
-create policy "super_admin_growth_settings" on admin_growth_settings
+DROP POLICY IF EXISTS "super_admin_growth_settings" ON admin_growth_settings;
+CREATE POLICY "super_admin_growth_settings"
+  ON admin_growth_settings
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
@@ -59,7 +61,9 @@ create table if not exists admin_outreach_sequences (
 );
 
 alter table admin_outreach_sequences enable row level security;
-create policy "super_admin_outreach_sequences" on admin_outreach_sequences
+DROP POLICY IF EXISTS "super_admin_outreach_sequences" ON admin_outreach_sequences;
+CREATE POLICY "super_admin_outreach_sequences"
+  ON admin_outreach_sequences
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
@@ -80,7 +84,9 @@ create table if not exists admin_outreach_sequence_steps (
 );
 
 alter table admin_outreach_sequence_steps enable row level security;
-create policy "super_admin_outreach_steps" on admin_outreach_sequence_steps
+DROP POLICY IF EXISTS "super_admin_outreach_steps" ON admin_outreach_sequence_steps;
+CREATE POLICY "super_admin_outreach_steps"
+  ON admin_outreach_sequence_steps
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
@@ -101,7 +107,9 @@ create table if not exists admin_outreach_campaigns (
 );
 
 alter table admin_outreach_campaigns enable row level security;
-create policy "super_admin_outreach_campaigns" on admin_outreach_campaigns
+DROP POLICY IF EXISTS "super_admin_outreach_campaigns" ON admin_outreach_campaigns;
+CREATE POLICY "super_admin_outreach_campaigns"
+  ON admin_outreach_campaigns
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
@@ -127,14 +135,16 @@ create table if not exists admin_outreach_enrollments (
 );
 
 alter table admin_outreach_enrollments enable row level security;
-create policy "super_admin_outreach_enrollments" on admin_outreach_enrollments
+DROP POLICY IF EXISTS "super_admin_outreach_enrollments" ON admin_outreach_enrollments;
+CREATE POLICY "super_admin_outreach_enrollments"
+  ON admin_outreach_enrollments
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
 
-create index idx_enrollments_next_action on admin_outreach_enrollments(status, next_action_at)
+CREATE INDEX IF NOT EXISTS idx_enrollments_next_action on admin_outreach_enrollments(status, next_action_at)
   where status = 'active';
-create index idx_enrollments_campaign on admin_outreach_enrollments(campaign_id);
+CREATE INDEX IF NOT EXISTS idx_enrollments_campaign on admin_outreach_enrollments(campaign_id);
 
 -- 6. admin_outreach_actions — log of every email/SMS sent
 create table if not exists admin_outreach_actions (
@@ -152,12 +162,14 @@ create table if not exists admin_outreach_actions (
 );
 
 alter table admin_outreach_actions enable row level security;
-create policy "super_admin_outreach_actions" on admin_outreach_actions
+DROP POLICY IF EXISTS "super_admin_outreach_actions" ON admin_outreach_actions;
+CREATE POLICY "super_admin_outreach_actions"
+  ON admin_outreach_actions
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
 
-create index idx_outreach_actions_enrollment on admin_outreach_actions(enrollment_id);
+CREATE INDEX IF NOT EXISTS idx_outreach_actions_enrollment on admin_outreach_actions(enrollment_id);
 
 -- 7. admin_ad_campaigns — generated ad copy/targeting
 create table if not exists admin_ad_campaigns (
@@ -179,7 +191,9 @@ create table if not exists admin_ad_campaigns (
 );
 
 alter table admin_ad_campaigns enable row level security;
-create policy "super_admin_ad_campaigns" on admin_ad_campaigns
+DROP POLICY IF EXISTS "super_admin_ad_campaigns" ON admin_ad_campaigns;
+CREATE POLICY "super_admin_ad_campaigns"
+  ON admin_ad_campaigns
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
@@ -200,12 +214,14 @@ create table if not exists admin_social_posts (
 );
 
 alter table admin_social_posts enable row level security;
-create policy "super_admin_social_posts" on admin_social_posts
+DROP POLICY IF EXISTS "super_admin_social_posts" ON admin_social_posts;
+CREATE POLICY "super_admin_social_posts"
+  ON admin_social_posts
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
 
-create index idx_social_posts_scheduled on admin_social_posts(status, scheduled_for)
+CREATE INDEX IF NOT EXISTS idx_social_posts_scheduled on admin_social_posts(status, scheduled_for)
   where status = 'scheduled';
 
 -- 9. admin_growth_activity_log — unified activity stream
@@ -219,12 +235,14 @@ create table if not exists admin_growth_activity_log (
 );
 
 alter table admin_growth_activity_log enable row level security;
-create policy "super_admin_growth_activity_log" on admin_growth_activity_log
+DROP POLICY IF EXISTS "super_admin_growth_activity_log" ON admin_growth_activity_log;
+CREATE POLICY "super_admin_growth_activity_log"
+  ON admin_growth_activity_log
   for all using (
     exists (select 1 from user_roles where user_id = auth.uid() and role = 'super_admin')
   );
 
-create index idx_growth_activity_log_created on admin_growth_activity_log(created_at desc);
+CREATE INDEX IF NOT EXISTS idx_growth_activity_log_created on admin_growth_activity_log(created_at desc);
 
 -- ============================================================
 -- Seed default outreach sequences

@@ -1,5 +1,5 @@
 -- Create industry_demos table for demo recordings
-CREATE TABLE public.industry_demos (
+CREATE TABLE IF NOT EXISTS public.industry_demos (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   industry_key TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
@@ -15,12 +15,14 @@ CREATE TABLE public.industry_demos (
 ALTER TABLE public.industry_demos ENABLE ROW LEVEL SECURITY;
 
 -- Public read access for active demos (visitors can see them)
+DROP POLICY IF EXISTS "Active demos are publicly readable" ON public.industry_demos;
 CREATE POLICY "Active demos are publicly readable"
   ON public.industry_demos
   FOR SELECT
   USING (is_active = true);
 
 -- Super admins can do everything
+DROP POLICY IF EXISTS "Super admins can manage demos" ON public.industry_demos;
 CREATE POLICY "Super admins can manage demos"
   ON public.industry_demos
   FOR ALL
@@ -28,33 +30,39 @@ CREATE POLICY "Super admins can manage demos"
 
 -- Create storage bucket for demo audio files
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('demo-audio', 'demo-audio', true);
+VALUES ('demo-audio', 'demo-audio', true)
+ON CONFLICT (id) DO NOTHING;
 
 -- Storage policy: public read access
+DROP POLICY IF EXISTS "Demo audio is publicly accessible" ON storage.objects;
 CREATE POLICY "Demo audio is publicly accessible"
   ON storage.objects
   FOR SELECT
   USING (bucket_id = 'demo-audio');
 
 -- Storage policy: super admins can upload
+DROP POLICY IF EXISTS "Super admins can upload demo audio" ON storage.objects;
 CREATE POLICY "Super admins can upload demo audio"
   ON storage.objects
   FOR INSERT
   WITH CHECK (bucket_id = 'demo-audio' AND public.has_role(auth.uid(), 'super_admin'));
 
 -- Storage policy: super admins can update
+DROP POLICY IF EXISTS "Super admins can update demo audio" ON storage.objects;
 CREATE POLICY "Super admins can update demo audio"
   ON storage.objects
   FOR UPDATE
   USING (bucket_id = 'demo-audio' AND public.has_role(auth.uid(), 'super_admin'));
 
 -- Storage policy: super admins can delete
+DROP POLICY IF EXISTS "Super admins can delete demo audio" ON storage.objects;
 CREATE POLICY "Super admins can delete demo audio"
   ON storage.objects
   FOR DELETE
   USING (bucket_id = 'demo-audio' AND public.has_role(auth.uid(), 'super_admin'));
 
 -- Updated at trigger
+DROP TRIGGER IF EXISTS update_industry_demos_updated_at ON public.industry_demos;
 CREATE TRIGGER update_industry_demos_updated_at
   BEFORE UPDATE ON public.industry_demos
   FOR EACH ROW

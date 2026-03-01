@@ -98,7 +98,7 @@ export function SalesDashboardLayout() {
             </div>
             <div>
               <p className="text-2xl font-bold">{driveStats.pending}</p>
-              <p className="text-xs text-muted-foreground">Pending Appointments</p>
+              <p className="text-xs text-muted-foreground">Pending Test Drives</p>
             </div>
           </CardContent>
         </Card>

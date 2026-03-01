@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public.calendar_connections (
 ALTER TABLE public.calendar_connections ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Tenants can manage own calendar connections" ON public.calendar_connections;
 CREATE POLICY "Tenants can manage own calendar connections"
   ON public.calendar_connections FOR ALL
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
@@ -58,6 +59,7 @@ CREATE TABLE IF NOT EXISTS public.busy_blocks (
 ALTER TABLE public.busy_blocks ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
+DROP POLICY IF EXISTS "Tenants can manage own busy blocks" ON public.busy_blocks;
 CREATE POLICY "Tenants can manage own busy blocks"
   ON public.busy_blocks FOR ALL
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));

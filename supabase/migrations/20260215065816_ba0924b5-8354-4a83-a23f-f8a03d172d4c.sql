@@ -1,6 +1,6 @@
 
 -- A2P 10DLC Registration tracking table
-CREATE TABLE public.a2p_registrations (
+CREATE TABLE IF NOT EXISTS public.a2p_registrations (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   status TEXT NOT NULL DEFAULT 'pending_data' CHECK (status IN ('pending_data', 'pending_profile', 'pending_brand', 'pending_campaign', 'approved', 'failed')),
@@ -40,19 +40,23 @@ CREATE TABLE public.a2p_registrations (
 ALTER TABLE public.a2p_registrations ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies: tenant-scoped access
+DROP POLICY IF EXISTS "Users can view their own a2p registration" ON public.a2p_registrations;
 CREATE POLICY "Users can view their own a2p registration"
   ON public.a2p_registrations FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can insert their own a2p registration" ON public.a2p_registrations;
 CREATE POLICY "Users can insert their own a2p registration"
   ON public.a2p_registrations FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update their own a2p registration" ON public.a2p_registrations;
 CREATE POLICY "Users can update their own a2p registration"
   ON public.a2p_registrations FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_a2p_registrations_updated_at ON public.a2p_registrations;
 CREATE TRIGGER update_a2p_registrations_updated_at
   BEFORE UPDATE ON public.a2p_registrations
   FOR EACH ROW

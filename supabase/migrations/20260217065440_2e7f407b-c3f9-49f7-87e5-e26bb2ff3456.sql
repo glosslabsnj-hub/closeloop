@@ -13,13 +13,17 @@ CREATE TABLE IF NOT EXISTS public.agency_accounts (
 ALTER TABLE public.agency_accounts ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "Users can view their own agency" ON public.agency_accounts
+  DROP POLICY IF EXISTS "Users can view their own agency" ON public.agency_accounts;
+CREATE POLICY "Users can view their own agency"
+  ON public.agency_accounts
     FOR SELECT USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Users can update their own agency" ON public.agency_accounts
+  DROP POLICY IF EXISTS "Users can update their own agency" ON public.agency_accounts;
+CREATE POLICY "Users can update their own agency"
+  ON public.agency_accounts
     FOR UPDATE USING (auth.uid() = user_id);
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
@@ -38,7 +42,9 @@ CREATE TABLE IF NOT EXISTS public.agency_tenants (
 ALTER TABLE public.agency_tenants ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "Agency owners can view their tenants" ON public.agency_tenants
+  DROP POLICY IF EXISTS "Agency owners can view their tenants" ON public.agency_tenants;
+CREATE POLICY "Agency owners can view their tenants"
+  ON public.agency_tenants
     FOR SELECT USING (
       agency_id IN (SELECT id FROM public.agency_accounts WHERE user_id = auth.uid())
     );
@@ -46,7 +52,9 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Agency owners can insert tenants" ON public.agency_tenants
+  DROP POLICY IF EXISTS "Agency owners can insert tenants" ON public.agency_tenants;
+CREATE POLICY "Agency owners can insert tenants"
+  ON public.agency_tenants
     FOR INSERT WITH CHECK (
       agency_id IN (SELECT id FROM public.agency_accounts WHERE user_id = auth.uid())
     );
@@ -54,7 +62,9 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE POLICY "Agency owners can update their tenants" ON public.agency_tenants
+  DROP POLICY IF EXISTS "Agency owners can update their tenants" ON public.agency_tenants;
+CREATE POLICY "Agency owners can update their tenants"
+  ON public.agency_tenants
     FOR UPDATE USING (
       agency_id IN (SELECT id FROM public.agency_accounts WHERE user_id = auth.uid())
     );
@@ -80,7 +90,9 @@ CREATE TABLE IF NOT EXISTS public.agency_commissions (
 ALTER TABLE public.agency_commissions ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
-  CREATE POLICY "Agency owners can view their commissions" ON public.agency_commissions
+  DROP POLICY IF EXISTS "Agency owners can view their commissions" ON public.agency_commissions;
+CREATE POLICY "Agency owners can view their commissions"
+  ON public.agency_commissions
     FOR SELECT USING (
       agency_id IN (SELECT id FROM public.agency_accounts WHERE user_id = auth.uid())
     );

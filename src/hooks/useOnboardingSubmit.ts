@@ -303,6 +303,22 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
+      // 9d. Order delivery settings (upsert — ensures order-handoff runs for food tenants)
+      // Without this row, order-handoff skips ALL notifications for new food tenants.
+      if (isFoodMode) {
+        await runStep("order delivery settings", async () => {
+          const notifyEmail = user?.email || null;
+          const { error } = await supabase.from("order_delivery_settings").upsert({
+            tenant_id: tenantId!,
+            enabled: true,
+            handoff_methods: notifyEmail ? ["internal", "email"] : ["internal"],
+            notify_email: notifyEmail,
+            notify_phone: notificationPhone || null,
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        });
+      }
+
       // 10. Communication / AI settings (update — naturally idempotent)
       await runStep("AI settings", async () => {
         const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";

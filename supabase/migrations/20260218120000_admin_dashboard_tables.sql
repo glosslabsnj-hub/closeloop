@@ -28,7 +28,9 @@ CREATE TABLE IF NOT EXISTS admin_saved_leads (
 
 ALTER TABLE admin_saved_leads ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "admin_saved_leads_user_access" ON admin_saved_leads
+DROP POLICY IF EXISTS "admin_saved_leads_user_access" ON admin_saved_leads;
+CREATE POLICY "admin_saved_leads_user_access"
+  ON admin_saved_leads
   FOR ALL USING (user_id = auth.uid());
 
 -- 2. admin_reseller_leads — reseller/agency partner leads saved by super_admin
@@ -60,7 +62,9 @@ CREATE TABLE IF NOT EXISTS admin_reseller_leads (
 
 ALTER TABLE admin_reseller_leads ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "admin_reseller_leads_user_access" ON admin_reseller_leads
+DROP POLICY IF EXISTS "admin_reseller_leads_user_access" ON admin_reseller_leads;
+CREATE POLICY "admin_reseller_leads_user_access"
+  ON admin_reseller_leads
   FOR ALL USING (user_id = auth.uid());
 
 -- 3. admin_marketing_chats — AI marketing chat history
@@ -76,10 +80,12 @@ CREATE TABLE IF NOT EXISTS admin_marketing_chats (
 
 ALTER TABLE admin_marketing_chats ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "admin_marketing_chats_user_access" ON admin_marketing_chats
+DROP POLICY IF EXISTS "admin_marketing_chats_user_access" ON admin_marketing_chats;
+CREATE POLICY "admin_marketing_chats_user_access"
+  ON admin_marketing_chats
   FOR ALL USING (user_id = auth.uid());
 
-CREATE INDEX idx_admin_marketing_chats_session ON admin_marketing_chats(session_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_admin_marketing_chats_session ON admin_marketing_chats(session_id, created_at);
 
 -- 4. admin_marketing_content — saved AI marketing outputs
 CREATE TABLE IF NOT EXISTS admin_marketing_content (
@@ -95,5 +101,7 @@ CREATE TABLE IF NOT EXISTS admin_marketing_content (
 
 ALTER TABLE admin_marketing_content ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "admin_marketing_content_user_access" ON admin_marketing_content
+DROP POLICY IF EXISTS "admin_marketing_content_user_access" ON admin_marketing_content;
+CREATE POLICY "admin_marketing_content_user_access"
+  ON admin_marketing_content
   FOR ALL USING (user_id = auth.uid());

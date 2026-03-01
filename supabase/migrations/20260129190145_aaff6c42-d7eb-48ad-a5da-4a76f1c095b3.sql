@@ -26,21 +26,25 @@ CREATE TABLE IF NOT EXISTS public.food_order_settings (
 ALTER TABLE public.food_order_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies
+DROP POLICY IF EXISTS "Tenants can view their food_order_settings" ON public.food_order_settings;
 CREATE POLICY "Tenants can view their food_order_settings"
   ON public.food_order_settings
   FOR SELECT
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can update their food_order_settings" ON public.food_order_settings;
 CREATE POLICY "Tenants can update their food_order_settings"
   ON public.food_order_settings
   FOR UPDATE
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Tenants can insert their food_order_settings" ON public.food_order_settings;
 CREATE POLICY "Tenants can insert their food_order_settings"
   ON public.food_order_settings
   FOR INSERT
   WITH CHECK (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Service role can manage food_order_settings" ON public.food_order_settings;
 CREATE POLICY "Service role can manage food_order_settings"
   ON public.food_order_settings
   FOR ALL

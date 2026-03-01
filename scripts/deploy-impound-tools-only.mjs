@@ -7,7 +7,7 @@
 
 const ELEVENLABS_API_KEY = "sk_2b27cfbfbc65aab7bfff4e370c598be68abcbe515e488d68";
 const IMPOUND_AGENT_ID = "agent_6301kgqscdvyek3a6wgegq8et167";
-const SUPABASE_URL = "https://zsqfzluyylzmmjtfxwgr.supabase.co";
+const SUPABASE_URL = "https://yltzlvzgwkidbeqaoevp.supabase.co";
 
 console.log("=".repeat(80));
 console.log("DEPLOYING IMPOUND TOOLS TO IMPOUND AGENT ONLY");

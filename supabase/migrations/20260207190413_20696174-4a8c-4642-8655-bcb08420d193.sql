@@ -3,7 +3,7 @@
 -- =============================================
 
 -- 1. Menu Knowledge (Food Mode) - Detailed item descriptions, ingredients, allergens
-CREATE TABLE public.menu_knowledge (
+CREATE TABLE IF NOT EXISTS public.menu_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   menu_item_id UUID REFERENCES public.menu_items(id) ON DELETE SET NULL,
@@ -25,7 +25,7 @@ CREATE TABLE public.menu_knowledge (
 );
 
 -- 2. Vehicle Knowledge (Dispatch Mode) - Vehicle-specific towing requirements
-CREATE TABLE public.vehicle_knowledge (
+CREATE TABLE IF NOT EXISTS public.vehicle_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   vehicle_category TEXT NOT NULL, -- Sedan, SUV, Motorcycle, Semi, RV, etc.
@@ -43,7 +43,7 @@ CREATE TABLE public.vehicle_knowledge (
 );
 
 -- 3. Roadside Knowledge (Dispatch Mode) - Emergency situation scripts
-CREATE TABLE public.roadside_knowledge (
+CREATE TABLE IF NOT EXISTS public.roadside_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   situation_type TEXT NOT NULL, -- Flat tire, Dead battery, Lockout, Fuel delivery, etc.
@@ -61,7 +61,7 @@ CREATE TABLE public.roadside_knowledge (
 );
 
 -- 4. Symptom Triage (Medical Mode) - When to escalate, pre-visit prep
-CREATE TABLE public.symptom_triage (
+CREATE TABLE IF NOT EXISTS public.symptom_triage (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   symptom_category TEXT NOT NULL, -- Pain, Respiratory, Skin, Mental Health, etc.
@@ -79,7 +79,7 @@ CREATE TABLE public.symptom_triage (
 );
 
 -- 5. Insurance Knowledge (Medical Mode) - Plan-specific scripts
-CREATE TABLE public.insurance_knowledge (
+CREATE TABLE IF NOT EXISTS public.insurance_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   carrier_name TEXT NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE public.insurance_knowledge (
 );
 
 -- 6. Product Knowledge (Service Mode) - Products used in services
-CREATE TABLE public.product_knowledge (
+CREATE TABLE IF NOT EXISTS public.product_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   product_name TEXT NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE public.product_knowledge (
 );
 
 -- 7. Aftercare Instructions (Service + Medical Mode)
-CREATE TABLE public.aftercare_instructions (
+CREATE TABLE IF NOT EXISTS public.aftercare_instructions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   service_id UUID REFERENCES public.services(id) ON DELETE SET NULL,
@@ -132,7 +132,7 @@ CREATE TABLE public.aftercare_instructions (
 );
 
 -- 8. Competitor Knowledge (All Modes) - Competitive positioning
-CREATE TABLE public.competitor_knowledge (
+CREATE TABLE IF NOT EXISTS public.competitor_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   competitor_name TEXT NOT NULL,
@@ -146,7 +146,7 @@ CREATE TABLE public.competitor_knowledge (
 );
 
 -- 9. Seasonal/Event Knowledge (All Modes) - Holidays, special occasions
-CREATE TABLE public.seasonal_knowledge (
+CREATE TABLE IF NOT EXISTS public.seasonal_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   event_name TEXT NOT NULL, -- "Valentine's Day", "Super Bowl", "Tax Season"
@@ -163,7 +163,7 @@ CREATE TABLE public.seasonal_knowledge (
 );
 
 -- 10. Catering Knowledge (Food Mode) - Event-specific scripts
-CREATE TABLE public.catering_knowledge (
+CREATE TABLE IF NOT EXISTS public.catering_knowledge (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   event_type TEXT NOT NULL, -- Wedding, Corporate, Birthday, etc.
@@ -195,75 +195,115 @@ ALTER TABLE public.seasonal_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.catering_knowledge ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for all tables
-CREATE POLICY "Tenant isolation" ON public.menu_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.menu_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.menu_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.vehicle_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.vehicle_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.vehicle_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.roadside_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.roadside_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.roadside_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.symptom_triage
+DROP POLICY IF EXISTS "Tenant isolation" ON public.symptom_triage;
+CREATE POLICY "Tenant isolation"
+  ON public.symptom_triage
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.insurance_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.insurance_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.insurance_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.product_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.product_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.product_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.aftercare_instructions
+DROP POLICY IF EXISTS "Tenant isolation" ON public.aftercare_instructions;
+CREATE POLICY "Tenant isolation"
+  ON public.aftercare_instructions
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.competitor_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.competitor_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.competitor_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.seasonal_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.seasonal_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.seasonal_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Tenant isolation" ON public.catering_knowledge
+DROP POLICY IF EXISTS "Tenant isolation" ON public.catering_knowledge;
+CREATE POLICY "Tenant isolation"
+  ON public.catering_knowledge
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- Create updated_at triggers
-CREATE TRIGGER update_menu_knowledge_updated_at BEFORE UPDATE ON public.menu_knowledge
+DROP TRIGGER IF EXISTS update_menu_knowledge_updated_at ON public.menu_knowledge;
+CREATE TRIGGER update_menu_knowledge_updated_at
+  BEFORE UPDATE ON public.menu_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_vehicle_knowledge_updated_at BEFORE UPDATE ON public.vehicle_knowledge
+DROP TRIGGER IF EXISTS update_vehicle_knowledge_updated_at ON public.vehicle_knowledge;
+CREATE TRIGGER update_vehicle_knowledge_updated_at
+  BEFORE UPDATE ON public.vehicle_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_roadside_knowledge_updated_at BEFORE UPDATE ON public.roadside_knowledge
+DROP TRIGGER IF EXISTS update_roadside_knowledge_updated_at ON public.roadside_knowledge;
+CREATE TRIGGER update_roadside_knowledge_updated_at
+  BEFORE UPDATE ON public.roadside_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_symptom_triage_updated_at BEFORE UPDATE ON public.symptom_triage
+DROP TRIGGER IF EXISTS update_symptom_triage_updated_at ON public.symptom_triage;
+CREATE TRIGGER update_symptom_triage_updated_at
+  BEFORE UPDATE ON public.symptom_triage
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_insurance_knowledge_updated_at BEFORE UPDATE ON public.insurance_knowledge
+DROP TRIGGER IF EXISTS update_insurance_knowledge_updated_at ON public.insurance_knowledge;
+CREATE TRIGGER update_insurance_knowledge_updated_at
+  BEFORE UPDATE ON public.insurance_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_product_knowledge_updated_at BEFORE UPDATE ON public.product_knowledge
+DROP TRIGGER IF EXISTS update_product_knowledge_updated_at ON public.product_knowledge;
+CREATE TRIGGER update_product_knowledge_updated_at
+  BEFORE UPDATE ON public.product_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_aftercare_instructions_updated_at BEFORE UPDATE ON public.aftercare_instructions
+DROP TRIGGER IF EXISTS update_aftercare_instructions_updated_at ON public.aftercare_instructions;
+CREATE TRIGGER update_aftercare_instructions_updated_at
+  BEFORE UPDATE ON public.aftercare_instructions
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_competitor_knowledge_updated_at BEFORE UPDATE ON public.competitor_knowledge
+DROP TRIGGER IF EXISTS update_competitor_knowledge_updated_at ON public.competitor_knowledge;
+CREATE TRIGGER update_competitor_knowledge_updated_at
+  BEFORE UPDATE ON public.competitor_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_seasonal_knowledge_updated_at BEFORE UPDATE ON public.seasonal_knowledge
+DROP TRIGGER IF EXISTS update_seasonal_knowledge_updated_at ON public.seasonal_knowledge;
+CREATE TRIGGER update_seasonal_knowledge_updated_at
+  BEFORE UPDATE ON public.seasonal_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
   
-CREATE TRIGGER update_catering_knowledge_updated_at BEFORE UPDATE ON public.catering_knowledge
+DROP TRIGGER IF EXISTS update_catering_knowledge_updated_at ON public.catering_knowledge;
+CREATE TRIGGER update_catering_knowledge_updated_at
+  BEFORE UPDATE ON public.catering_knowledge
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Indexes for performance
-CREATE INDEX idx_menu_knowledge_tenant ON public.menu_knowledge(tenant_id);
-CREATE INDEX idx_vehicle_knowledge_tenant ON public.vehicle_knowledge(tenant_id);
-CREATE INDEX idx_roadside_knowledge_tenant ON public.roadside_knowledge(tenant_id);
-CREATE INDEX idx_symptom_triage_tenant ON public.symptom_triage(tenant_id);
-CREATE INDEX idx_insurance_knowledge_tenant ON public.insurance_knowledge(tenant_id);
-CREATE INDEX idx_product_knowledge_tenant ON public.product_knowledge(tenant_id);
-CREATE INDEX idx_aftercare_instructions_tenant ON public.aftercare_instructions(tenant_id);
-CREATE INDEX idx_competitor_knowledge_tenant ON public.competitor_knowledge(tenant_id);
-CREATE INDEX idx_seasonal_knowledge_tenant ON public.seasonal_knowledge(tenant_id);
-CREATE INDEX idx_catering_knowledge_tenant ON public.catering_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_knowledge_tenant ON public.menu_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_vehicle_knowledge_tenant ON public.vehicle_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_roadside_knowledge_tenant ON public.roadside_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_symptom_triage_tenant ON public.symptom_triage(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_insurance_knowledge_tenant ON public.insurance_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_product_knowledge_tenant ON public.product_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_aftercare_instructions_tenant ON public.aftercare_instructions(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_competitor_knowledge_tenant ON public.competitor_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_seasonal_knowledge_tenant ON public.seasonal_knowledge(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_catering_knowledge_tenant ON public.catering_knowledge(tenant_id);

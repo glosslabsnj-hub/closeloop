@@ -3,7 +3,7 @@
 -- =============================================
 
 -- Create customers table (unified customer profiles)
-CREATE TABLE public.customers (
+CREATE TABLE IF NOT EXISTS public.customers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   phone_e164 TEXT NOT NULL, -- E.164 normalized (primary identifier)
@@ -22,17 +22,19 @@ CREATE TABLE public.customers (
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Users can view customers in their tenant
+DROP POLICY IF EXISTS "Users can view tenant customers" ON public.customers;
 CREATE POLICY "Users can view tenant customers"
-ON public.customers FOR SELECT
+  ON public.customers FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS: Users can manage tenant customers
+DROP POLICY IF EXISTS "Users can manage tenant customers" ON public.customers;
 CREATE POLICY "Users can manage tenant customers"
-ON public.customers FOR ALL
+  ON public.customers FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Create opportunities table (jobs/deals/interactions linked to customers)
-CREATE TABLE public.opportunities (
+CREATE TABLE IF NOT EXISTS public.opportunities (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
@@ -51,17 +53,19 @@ CREATE TABLE public.opportunities (
 ALTER TABLE public.opportunities ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Users can view opportunities in their tenant
+DROP POLICY IF EXISTS "Users can view tenant opportunities" ON public.opportunities;
 CREATE POLICY "Users can view tenant opportunities"
-ON public.opportunities FOR SELECT
+  ON public.opportunities FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS: Users can manage tenant opportunities
+DROP POLICY IF EXISTS "Users can manage tenant opportunities" ON public.opportunities;
 CREATE POLICY "Users can manage tenant opportunities"
-ON public.opportunities FOR ALL
+  ON public.opportunities FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Create customer_merge_queue for conflict resolution
-CREATE TABLE public.customer_merge_queue (
+CREATE TABLE IF NOT EXISTS public.customer_merge_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   existing_customer_id UUID NOT NULL REFERENCES public.customers(id) ON DELETE CASCADE,
@@ -81,8 +85,9 @@ CREATE TABLE public.customer_merge_queue (
 ALTER TABLE public.customer_merge_queue ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Owners can manage merge queue
+DROP POLICY IF EXISTS "Owners can manage merge queue" ON public.customer_merge_queue;
 CREATE POLICY "Owners can manage merge queue"
-ON public.customer_merge_queue FOR ALL
+  ON public.customer_merge_queue FOR ALL
 USING (
   (tenant_id IN (
     SELECT tenant_users.tenant_id FROM tenant_users
@@ -91,12 +96,13 @@ USING (
 );
 
 -- RLS: Users can view merge queue
+DROP POLICY IF EXISTS "Users can view merge queue" ON public.customer_merge_queue;
 CREATE POLICY "Users can view merge queue"
-ON public.customer_merge_queue FOR SELECT
+  ON public.customer_merge_queue FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Create knowledge_gaps table for AI gap tracking
-CREATE TABLE public.knowledge_gaps (
+CREATE TABLE IF NOT EXISTS public.knowledge_gaps (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   gap_type TEXT NOT NULL CHECK (gap_type IN ('missing_policy', 'missing_pricing', 'missing_service_area', 'unanswered_question', 'missing_hours', 'missing_faq', 'other')),
@@ -116,13 +122,15 @@ CREATE TABLE public.knowledge_gaps (
 ALTER TABLE public.knowledge_gaps ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Users can view knowledge gaps
+DROP POLICY IF EXISTS "Users can view knowledge gaps" ON public.knowledge_gaps;
 CREATE POLICY "Users can view knowledge gaps"
-ON public.knowledge_gaps FOR SELECT
+  ON public.knowledge_gaps FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS: Owners can manage knowledge gaps
+DROP POLICY IF EXISTS "Owners can manage knowledge gaps" ON public.knowledge_gaps;
 CREATE POLICY "Owners can manage knowledge gaps"
-ON public.knowledge_gaps FOR ALL
+  ON public.knowledge_gaps FOR ALL
 USING (
   (tenant_id IN (
     SELECT tenant_users.tenant_id FROM tenant_users
@@ -146,7 +154,7 @@ ADD COLUMN ai_readiness_score INTEGER DEFAULT 0,
 ADD COLUMN onboarding_completed_at TIMESTAMPTZ;
 
 -- Create sync_events table for CRM/Sheets integration tracking
-CREATE TABLE public.sync_events (
+CREATE TABLE IF NOT EXISTS public.sync_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   event_type TEXT NOT NULL CHECK (event_type IN ('customer_created', 'customer_updated', 'opportunity_created', 'opportunity_updated', 'booking_created', 'booking_updated', 'call_completed')),
@@ -164,25 +172,27 @@ CREATE TABLE public.sync_events (
 ALTER TABLE public.sync_events ENABLE ROW LEVEL SECURITY;
 
 -- RLS: Users can view sync events
+DROP POLICY IF EXISTS "Users can view sync events" ON public.sync_events;
 CREATE POLICY "Users can view sync events"
-ON public.sync_events FOR SELECT
+  ON public.sync_events FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS: System can manage sync events (via service role)
+DROP POLICY IF EXISTS "System can manage sync events" ON public.sync_events;
 CREATE POLICY "System can manage sync events"
-ON public.sync_events FOR ALL
+  ON public.sync_events FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Create indexes for performance
-CREATE INDEX idx_customers_tenant_phone ON public.customers(tenant_id, phone_e164);
-CREATE INDEX idx_customers_tenant_email ON public.customers(tenant_id, email) WHERE email IS NOT NULL;
-CREATE INDEX idx_opportunities_customer ON public.opportunities(customer_id);
-CREATE INDEX idx_opportunities_tenant_status ON public.opportunities(tenant_id, status);
-CREATE INDEX idx_conversations_customer ON public.conversations(customer_id) WHERE customer_id IS NOT NULL;
-CREATE INDEX idx_ai_call_sessions_customer ON public.ai_call_sessions(customer_id) WHERE customer_id IS NOT NULL;
-CREATE INDEX idx_knowledge_gaps_tenant_unresolved ON public.knowledge_gaps(tenant_id, resolved) WHERE resolved = false;
-CREATE INDEX idx_sync_events_unsynced ON public.sync_events(tenant_id, synced) WHERE synced = false;
-CREATE INDEX idx_merge_queue_unresolved ON public.customer_merge_queue(tenant_id, resolved) WHERE resolved = false;
+CREATE INDEX IF NOT EXISTS idx_customers_tenant_phone ON public.customers(tenant_id, phone_e164);
+CREATE INDEX IF NOT EXISTS idx_customers_tenant_email ON public.customers(tenant_id, email) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_opportunities_customer ON public.opportunities(customer_id);
+CREATE INDEX IF NOT EXISTS idx_opportunities_tenant_status ON public.opportunities(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_conversations_customer ON public.conversations(customer_id) WHERE customer_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_ai_call_sessions_customer ON public.ai_call_sessions(customer_id) WHERE customer_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_knowledge_gaps_tenant_unresolved ON public.knowledge_gaps(tenant_id, resolved) WHERE resolved = false;
+CREATE INDEX IF NOT EXISTS idx_sync_events_unsynced ON public.sync_events(tenant_id, synced) WHERE synced = false;
+CREATE INDEX IF NOT EXISTS idx_merge_queue_unresolved ON public.customer_merge_queue(tenant_id, resolved) WHERE resolved = false;
 
 -- Create function to normalize phone to E.164
 CREATE OR REPLACE FUNCTION public.normalize_phone_e164(phone TEXT)
@@ -488,7 +498,23 @@ FOR EACH ROW
 EXECUTE FUNCTION update_tenant_readiness_score();
 
 -- Enable realtime for key tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.customers;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.opportunities;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_gaps;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.customer_merge_queue;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'customers') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.customers;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'opportunities') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.opportunities;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'knowledge_gaps') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_gaps;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'customer_merge_queue') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.customer_merge_queue;
+  END IF;
+END $$;

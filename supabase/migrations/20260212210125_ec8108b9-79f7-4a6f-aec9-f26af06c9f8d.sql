@@ -42,12 +42,15 @@ CREATE INDEX IF NOT EXISTS idx_sales_inventory_tenant_status ON public.sales_inv
 -- RLS
 ALTER TABLE public.sales_inventory ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "tenant_access" ON public.sales_inventory;
 CREATE POLICY "tenant_access" ON public.sales_inventory
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
+DROP POLICY IF EXISTS "service_role_full" ON public.sales_inventory;
 CREATE POLICY "service_role_full" ON public.sales_inventory
   FOR ALL USING (auth.role() = 'service_role');
 
 -- Timestamp trigger using existing function
+DROP TRIGGER IF EXISTS set_updated_at_sales_inventory ON public.sales_inventory;
 CREATE TRIGGER set_updated_at_sales_inventory
   BEFORE UPDATE ON public.sales_inventory
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

@@ -14,6 +14,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
+DROP TRIGGER IF EXISTS trg_validate_service_complexity ON public.services;
 CREATE TRIGGER trg_validate_service_complexity
   BEFORE INSERT OR UPDATE ON public.services
   FOR EACH ROW EXECUTE FUNCTION public.validate_service_complexity();

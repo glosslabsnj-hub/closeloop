@@ -105,18 +105,22 @@ BEGIN
 END;
 $$;
 
--- Fix Blue Boxer min_lead_hours
-UPDATE public.tenants 
+-- Fix Blue Boxer min_lead_hours (skip if tenant doesn't exist)
+UPDATE public.tenants
 SET min_lead_hours = 2
 WHERE id = '3b567b02-eddb-4c4c-a7d5-aeb2e4d0d9c3';
 
--- Insert assistant_settings for Blue Boxer
-INSERT INTO public.assistant_settings (
-  tenant_id, voice_ai_enabled, ai_booking_mode, calendar_provider, same_day_enabled, ai_behavior_mode
-) VALUES (
-  '3b567b02-eddb-4c4c-a7d5-aeb2e4d0d9c3', true, 'pending_approval', 'google', true, 'full_service'
-)
-ON CONFLICT (tenant_id) DO UPDATE SET
-  ai_booking_mode = EXCLUDED.ai_booking_mode,
-  calendar_provider = EXCLUDED.calendar_provider,
-  same_day_enabled = EXCLUDED.same_day_enabled;
+-- Insert assistant_settings for Blue Boxer (skip if tenant doesn't exist)
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM public.tenants WHERE id = '3b567b02-eddb-4c4c-a7d5-aeb2e4d0d9c3') THEN
+    INSERT INTO public.assistant_settings (
+      tenant_id, voice_ai_enabled, ai_booking_mode, calendar_provider, same_day_enabled, ai_behavior_mode
+    ) VALUES (
+      '3b567b02-eddb-4c4c-a7d5-aeb2e4d0d9c3', true, 'pending_approval', 'google', true, 'full_service'
+    )
+    ON CONFLICT (tenant_id) DO UPDATE SET
+      ai_booking_mode = EXCLUDED.ai_booking_mode,
+      calendar_provider = EXCLUDED.calendar_provider,
+      same_day_enabled = EXCLUDED.same_day_enabled;
+  END IF;
+END $$;

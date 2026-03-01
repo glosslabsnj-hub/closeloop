@@ -35,7 +35,9 @@ ALTER TABLE integration_oauth_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Owners and managers can view their tokens (but NOT the raw access/refresh token values
 -- — those are only accessed via service role from edge functions)
-CREATE POLICY "Tenant members can view own oauth tokens" ON integration_oauth_tokens
+DROP POLICY IF EXISTS "Tenant members can view own oauth tokens" ON integration_oauth_tokens;
+CREATE POLICY "Tenant members can view own oauth tokens"
+  ON integration_oauth_tokens
   FOR SELECT USING (
     tenant_id IN (
       SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
@@ -69,7 +71,9 @@ CREATE INDEX IF NOT EXISTS idx_webhook_events_external_id
 -- RLS
 ALTER TABLE integration_webhook_events ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view webhook events" ON integration_webhook_events
+DROP POLICY IF EXISTS "Tenant members can view webhook events" ON integration_webhook_events;
+CREATE POLICY "Tenant members can view webhook events"
+  ON integration_webhook_events
   FOR SELECT USING (
     tenant_id IN (
       SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()

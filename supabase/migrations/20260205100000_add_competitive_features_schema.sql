@@ -68,14 +68,16 @@ CREATE TABLE IF NOT EXISTS estimates (
 );
 
 -- Indexes for estimates
-CREATE INDEX idx_estimates_tenant ON estimates(tenant_id);
-CREATE INDEX idx_estimates_customer ON estimates(customer_id);
-CREATE INDEX idx_estimates_status ON estimates(tenant_id, status);
-CREATE INDEX idx_estimates_number ON estimates(tenant_id, estimate_number);
+CREATE INDEX IF NOT EXISTS idx_estimates_tenant ON estimates(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_estimates_customer ON estimates(customer_id);
+CREATE INDEX IF NOT EXISTS idx_estimates_status ON estimates(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_estimates_number ON estimates(tenant_id, estimate_number);
 
 -- RLS for estimates
 ALTER TABLE estimates ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own estimates" ON estimates
+DROP POLICY IF EXISTS "Tenants can manage own estimates" ON estimates;
+CREATE POLICY "Tenants can manage own estimates"
+  ON estimates
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -140,15 +142,17 @@ CREATE TABLE IF NOT EXISTS service_agreements (
 );
 
 -- Indexes for service_agreements
-CREATE INDEX idx_agreements_tenant ON service_agreements(tenant_id);
-CREATE INDEX idx_agreements_customer ON service_agreements(customer_id);
-CREATE INDEX idx_agreements_status ON service_agreements(tenant_id, status);
-CREATE INDEX idx_agreements_renewal ON service_agreements(renewal_date)
+CREATE INDEX IF NOT EXISTS idx_agreements_tenant ON service_agreements(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_agreements_customer ON service_agreements(customer_id);
+CREATE INDEX IF NOT EXISTS idx_agreements_status ON service_agreements(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_agreements_renewal ON service_agreements(renewal_date)
   WHERE status = 'active' AND auto_renew = TRUE;
 
 -- RLS for service_agreements
 ALTER TABLE service_agreements ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own agreements" ON service_agreements
+DROP POLICY IF EXISTS "Tenants can manage own agreements" ON service_agreements;
+CREATE POLICY "Tenants can manage own agreements"
+  ON service_agreements
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -204,16 +208,18 @@ CREATE TABLE IF NOT EXISTS time_entries (
 );
 
 -- Indexes for time_entries
-CREATE INDEX idx_time_entries_tenant ON time_entries(tenant_id);
-CREATE INDEX idx_time_entries_user ON time_entries(tenant_id, user_id);
-CREATE INDEX idx_time_entries_job ON time_entries(job_id);
-CREATE INDEX idx_time_entries_date ON time_entries(tenant_id, clock_in);
-CREATE INDEX idx_time_entries_pending ON time_entries(tenant_id, status)
+CREATE INDEX IF NOT EXISTS idx_time_entries_tenant ON time_entries(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_user ON time_entries(tenant_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_job ON time_entries(job_id);
+CREATE INDEX IF NOT EXISTS idx_time_entries_date ON time_entries(tenant_id, clock_in);
+CREATE INDEX IF NOT EXISTS idx_time_entries_pending ON time_entries(tenant_id, status)
   WHERE status = 'pending';
 
 -- RLS for time_entries
 ALTER TABLE time_entries ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own time entries" ON time_entries
+DROP POLICY IF EXISTS "Tenants can manage own time entries" ON time_entries;
+CREATE POLICY "Tenants can manage own time entries"
+  ON time_entries
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -250,16 +256,18 @@ CREATE TABLE IF NOT EXISTS technician_locations (
 );
 
 -- Indexes for technician_locations
-CREATE INDEX idx_tech_locations_tenant ON technician_locations(tenant_id);
-CREATE INDEX idx_tech_locations_user ON technician_locations(tenant_id, user_id);
-CREATE INDEX idx_tech_locations_recent ON technician_locations(tenant_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tech_locations_tenant ON technician_locations(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tech_locations_user ON technician_locations(tenant_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_tech_locations_recent ON technician_locations(tenant_id, recorded_at DESC);
 
 -- Keep only recent locations (cleanup policy)
 -- Locations older than 7 days can be archived/deleted
 
 -- RLS for technician_locations
 ALTER TABLE technician_locations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can view own technician locations" ON technician_locations
+DROP POLICY IF EXISTS "Tenants can view own technician locations" ON technician_locations;
+CREATE POLICY "Tenants can view own technician locations"
+  ON technician_locations
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -315,16 +323,18 @@ CREATE TABLE IF NOT EXISTS customer_equipment (
 );
 
 -- Indexes for customer_equipment
-CREATE INDEX idx_equipment_tenant ON customer_equipment(tenant_id);
-CREATE INDEX idx_equipment_customer ON customer_equipment(customer_id);
-CREATE INDEX idx_equipment_warranty ON customer_equipment(warranty_expiry)
+CREATE INDEX IF NOT EXISTS idx_equipment_tenant ON customer_equipment(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_customer ON customer_equipment(customer_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_warranty ON customer_equipment(warranty_expiry)
   WHERE status = 'active';
-CREATE INDEX idx_equipment_service_due ON customer_equipment(next_service_due)
+CREATE INDEX IF NOT EXISTS idx_equipment_service_due ON customer_equipment(next_service_due)
   WHERE status = 'active';
 
 -- RLS for customer_equipment
 ALTER TABLE customer_equipment ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own customer equipment" ON customer_equipment
+DROP POLICY IF EXISTS "Tenants can manage own customer equipment" ON customer_equipment;
+CREATE POLICY "Tenants can manage own customer equipment"
+  ON customer_equipment
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -385,15 +395,17 @@ CREATE TABLE IF NOT EXISTS integration_connections (
 );
 
 -- Indexes for integration_connections
-CREATE INDEX idx_integrations_tenant ON integration_connections(tenant_id);
-CREATE INDEX idx_integrations_type ON integration_connections(integration_type);
-CREATE INDEX idx_integrations_status ON integration_connections(tenant_id, status);
-CREATE INDEX idx_integrations_expiry ON integration_connections(token_expires_at)
+CREATE INDEX IF NOT EXISTS idx_integrations_tenant ON integration_connections(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_integrations_type ON integration_connections(integration_type);
+CREATE INDEX IF NOT EXISTS idx_integrations_status ON integration_connections(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_integrations_expiry ON integration_connections(token_expires_at)
   WHERE status = 'connected';
 
 -- RLS for integration_connections
 ALTER TABLE integration_connections ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own integrations" ON integration_connections
+DROP POLICY IF EXISTS "Tenants can manage own integrations" ON integration_connections;
+CREATE POLICY "Tenants can manage own integrations"
+  ON integration_connections
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));
@@ -440,13 +452,15 @@ CREATE TABLE IF NOT EXISTS review_requests (
 );
 
 -- Indexes for review_requests
-CREATE INDEX idx_reviews_tenant ON review_requests(tenant_id);
-CREATE INDEX idx_reviews_customer ON review_requests(customer_id);
-CREATE INDEX idx_reviews_status ON review_requests(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_reviews_tenant ON review_requests(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_customer ON review_requests(customer_id);
+CREATE INDEX IF NOT EXISTS idx_reviews_status ON review_requests(tenant_id, status);
 
 -- RLS for review_requests
 ALTER TABLE review_requests ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Tenants can manage own review requests" ON review_requests
+DROP POLICY IF EXISTS "Tenants can manage own review requests" ON review_requests;
+CREATE POLICY "Tenants can manage own review requests"
+  ON review_requests
   FOR ALL USING (tenant_id IN (
     SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()
   ));

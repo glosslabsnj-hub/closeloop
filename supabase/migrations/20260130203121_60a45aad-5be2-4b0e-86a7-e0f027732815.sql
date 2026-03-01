@@ -1,5 +1,5 @@
 -- Create golden_path_runs table to persist test results
-CREATE TABLE public.golden_path_runs (
+CREATE TABLE IF NOT EXISTS public.golden_path_runs (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
     started_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
@@ -17,27 +17,30 @@ CREATE TABLE public.golden_path_runs (
 ALTER TABLE public.golden_path_runs ENABLE ROW LEVEL SECURITY;
 
 -- Policy: authenticated users can select (admin page already checks isSuperAdmin in code)
+DROP POLICY IF EXISTS "Authenticated users can view golden_path_runs" ON public.golden_path_runs;
 CREATE POLICY "Authenticated users can view golden_path_runs"
-ON public.golden_path_runs
+  ON public.golden_path_runs
 FOR SELECT
 USING (auth.uid() IS NOT NULL);
 
 -- Policy: authenticated users can insert
+DROP POLICY IF EXISTS "Authenticated users can insert golden_path_runs" ON public.golden_path_runs;
 CREATE POLICY "Authenticated users can insert golden_path_runs"
-ON public.golden_path_runs
+  ON public.golden_path_runs
 FOR INSERT
 WITH CHECK (auth.uid() IS NOT NULL);
 
 -- Policy: authenticated users can update their own runs
+DROP POLICY IF EXISTS "Authenticated users can update golden_path_runs" ON public.golden_path_runs;
 CREATE POLICY "Authenticated users can update golden_path_runs"
-ON public.golden_path_runs
+  ON public.golden_path_runs
 FOR UPDATE
 USING (auth.uid() IS NOT NULL);
 
--- Create index for fast lookups
-CREATE INDEX idx_golden_path_runs_tenant ON public.golden_path_runs(tenant_id);
-CREATE INDEX idx_golden_path_runs_status ON public.golden_path_runs(overall_status);
-CREATE INDEX idx_golden_path_runs_created ON public.golden_path_runs(created_at DESC);
+-- CREATE INDEX IF NOT EXISTS for fast lookups
+CREATE INDEX IF NOT EXISTS idx_golden_path_runs_tenant ON public.golden_path_runs(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_golden_path_runs_status ON public.golden_path_runs(overall_status);
+CREATE INDEX IF NOT EXISTS idx_golden_path_runs_created ON public.golden_path_runs(created_at DESC);
 
 -- Add comment
 COMMENT ON TABLE public.golden_path_runs IS 'Stores Golden Path QA test run results for validating core flows across business modes';

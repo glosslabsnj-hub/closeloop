@@ -13,23 +13,26 @@ CREATE TABLE IF NOT EXISTS public.ai_context_snapshots (
 );
 
 -- Index for fast lookups
-CREATE INDEX idx_ai_context_snapshots_tenant_created ON public.ai_context_snapshots(tenant_id, created_at DESC);
-CREATE INDEX idx_ai_context_snapshots_channel ON public.ai_context_snapshots(channel, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_context_snapshots_tenant_created ON public.ai_context_snapshots(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_context_snapshots_channel ON public.ai_context_snapshots(channel, created_at DESC);
 
 -- Enable RLS
 ALTER TABLE public.ai_context_snapshots ENABLE ROW LEVEL SECURITY;
 
 -- RLS policy: tenant users can view their own snapshots
+DROP POLICY IF EXISTS "Tenant users can view their own context snapshots" ON public.ai_context_snapshots;
 CREATE POLICY "Tenant users can view their own context snapshots"
   ON public.ai_context_snapshots FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Super admins can view all
+DROP POLICY IF EXISTS "Super admins can view all context snapshots" ON public.ai_context_snapshots;
 CREATE POLICY "Super admins can view all context snapshots"
   ON public.ai_context_snapshots FOR SELECT
   USING (public.has_role(auth.uid(), 'super_admin'));
 
 -- Service role can insert (edge functions)
+DROP POLICY IF EXISTS "Service role can insert context snapshots" ON public.ai_context_snapshots;
 CREATE POLICY "Service role can insert context snapshots"
   ON public.ai_context_snapshots FOR INSERT
   WITH CHECK (true);
@@ -50,6 +53,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS trg_cleanup_context_snapshots ON public.ai_context_snapshots;
 CREATE TRIGGER trg_cleanup_context_snapshots
   AFTER INSERT ON public.ai_context_snapshots
   FOR EACH ROW

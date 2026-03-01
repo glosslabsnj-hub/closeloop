@@ -60,10 +60,14 @@ export function BrainSidebarItem({
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full flex items-start gap-2.5 px-3 py-2.5 rounded-md text-left transition-colors",
+        "w-full flex items-start gap-2.5 px-3 py-3 rounded-md text-left transition-colors border-l-2",
         isActive
-          ? "bg-accent text-foreground font-medium"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "bg-primary/10 text-foreground font-medium border-l-primary"
+          : status === "complete"
+          ? "border-l-green-500/40 text-muted-foreground hover:bg-accent hover:text-foreground"
+          : status === "warning" || status === "error"
+          ? "border-l-amber-500/40 text-muted-foreground hover:bg-accent hover:text-foreground"
+          : "border-l-transparent text-muted-foreground hover:bg-accent hover:text-foreground",
       )}
     >
       <Icon className="h-4 w-4 shrink-0 mt-0.5" />

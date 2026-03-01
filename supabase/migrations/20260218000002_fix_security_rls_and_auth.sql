@@ -14,8 +14,9 @@ DROP POLICY IF EXISTS "Service role can manage event logs" ON public.ai_event_lo
 -- The existing SELECT policy "Tenant users can view their event logs" already
 -- uses has_tenant_access, so it stays.  We add an explicit INSERT policy for
 -- edge-function writes that come through with an authenticated JWT (rare but safe).
+DROP POLICY IF EXISTS "Tenant users can insert their event logs" ON public.ai_event_logs;
 CREATE POLICY "Tenant users can insert their event logs"
-ON public.ai_event_logs
+  ON public.ai_event_logs
 FOR INSERT
 WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
@@ -25,20 +26,23 @@ WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 DROP POLICY IF EXISTS "Service role can manage route cache" ON public.eta_routes_cache;
 
 -- Tenant-scoped INSERT for authenticated users
+DROP POLICY IF EXISTS "Tenant users can insert their route cache" ON public.eta_routes_cache;
 CREATE POLICY "Tenant users can insert their route cache"
-ON public.eta_routes_cache
+  ON public.eta_routes_cache
 FOR INSERT
 WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Tenant-scoped UPDATE (e.g., refresh an expired entry)
+DROP POLICY IF EXISTS "Tenant users can update their route cache" ON public.eta_routes_cache;
 CREATE POLICY "Tenant users can update their route cache"
-ON public.eta_routes_cache
+  ON public.eta_routes_cache
 FOR UPDATE
 USING (public.has_tenant_access(auth.uid(), tenant_id))
 WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Tenant-scoped DELETE
+DROP POLICY IF EXISTS "Tenant users can delete their route cache" ON public.eta_routes_cache;
 CREATE POLICY "Tenant users can delete their route cache"
-ON public.eta_routes_cache
+  ON public.eta_routes_cache
 FOR DELETE
 USING (public.has_tenant_access(auth.uid(), tenant_id));

@@ -22,19 +22,21 @@ CREATE TABLE IF NOT EXISTS audit_events (
 );
 
 -- Indexes for common queries
-CREATE INDEX idx_audit_events_tenant ON audit_events(tenant_id);
-CREATE INDEX idx_audit_events_type ON audit_events(event_type);
-CREATE INDEX idx_audit_events_occurred ON audit_events(occurred_at DESC);
-CREATE INDEX idx_audit_events_entity ON audit_events(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_tenant ON audit_events(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_audit_events_type ON audit_events(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_events_occurred ON audit_events(occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_events_entity ON audit_events(entity_type, entity_id);
 
 -- Enable RLS
 ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for audit_events
+DROP POLICY IF EXISTS "Users can view tenant audit events" ON audit_events;
 CREATE POLICY "Users can view tenant audit events"
   ON audit_events FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "System can insert audit events" ON audit_events;
 CREATE POLICY "System can insert audit events"
   ON audit_events FOR INSERT
   WITH CHECK (has_tenant_access(auth.uid(), tenant_id));
@@ -52,17 +54,19 @@ CREATE TABLE IF NOT EXISTS confirmation_receipts (
 );
 
 -- Indexes for confirmation_receipts
-CREATE INDEX idx_confirmation_receipts_tenant ON confirmation_receipts(tenant_id);
-CREATE INDEX idx_confirmation_receipts_entity ON confirmation_receipts(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_confirmation_receipts_tenant ON confirmation_receipts(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_confirmation_receipts_entity ON confirmation_receipts(entity_type, entity_id);
 
 -- Enable RLS
 ALTER TABLE confirmation_receipts ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for confirmation_receipts
+DROP POLICY IF EXISTS "Users can view tenant confirmation receipts" ON confirmation_receipts;
 CREATE POLICY "Users can view tenant confirmation receipts"
   ON confirmation_receipts FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "System can insert confirmation receipts" ON confirmation_receipts;
 CREATE POLICY "System can insert confirmation receipts"
   ON confirmation_receipts FOR INSERT
   WITH CHECK (has_tenant_access(auth.uid(), tenant_id));
@@ -84,6 +88,7 @@ CREATE TABLE IF NOT EXISTS retention_policies (
 ALTER TABLE retention_policies ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for retention_policies
+DROP POLICY IF EXISTS "Owners can manage retention policies" ON retention_policies;
 CREATE POLICY "Owners can manage retention policies"
   ON retention_policies FOR ALL
   USING (
@@ -93,6 +98,7 @@ CREATE POLICY "Owners can manage retention policies"
     )) OR has_role(auth.uid(), 'super_admin'::user_role)
   );
 
+DROP POLICY IF EXISTS "Users can view tenant retention policies" ON retention_policies;
 CREATE POLICY "Users can view tenant retention policies"
   ON retention_policies FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));

@@ -32,11 +32,13 @@ CREATE TABLE IF NOT EXISTS public.subscription_usage (
 ALTER TABLE public.subscription_usage ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for subscription_usage
+DROP POLICY IF EXISTS "Users can view their tenant usage" ON public.subscription_usage;
 CREATE POLICY "Users can view their tenant usage"
   ON public.subscription_usage
   FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Service role can manage usage" ON public.subscription_usage;
 CREATE POLICY "Service role can manage usage"
   ON public.subscription_usage
   FOR ALL
@@ -60,11 +62,13 @@ CREATE TABLE IF NOT EXISTS public.tenant_locations (
 ALTER TABLE public.tenant_locations ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for tenant_locations
+DROP POLICY IF EXISTS "Users can view their tenant locations" ON public.tenant_locations;
 CREATE POLICY "Users can view their tenant locations"
   ON public.tenant_locations
   FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage their tenant locations" ON public.tenant_locations;
 CREATE POLICY "Users can manage their tenant locations"
   ON public.tenant_locations
   FOR ALL
@@ -121,13 +125,11 @@ BEGIN
 END;
 $function$;
 
--- Create trigger for updated_at on subscription_usage
 CREATE OR REPLACE TRIGGER update_subscription_usage_updated_at
   BEFORE UPDATE ON public.subscription_usage
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Create trigger for updated_at on tenant_locations
 CREATE OR REPLACE TRIGGER update_tenant_locations_updated_at
   BEFORE UPDATE ON public.tenant_locations
   FOR EACH ROW

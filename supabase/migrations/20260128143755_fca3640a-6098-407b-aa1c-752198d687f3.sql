@@ -27,10 +27,12 @@ CREATE TABLE IF NOT EXISTS order_delivery_settings (
 ALTER TABLE order_delivery_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for order_delivery_settings
+DROP POLICY IF EXISTS "Users can view their tenant order delivery settings" ON order_delivery_settings;
 CREATE POLICY "Users can view their tenant order delivery settings"
   ON order_delivery_settings FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage order delivery settings" ON order_delivery_settings;
 CREATE POLICY "Owners can manage order delivery settings"
   ON order_delivery_settings FOR ALL
   USING (
@@ -58,10 +60,12 @@ CREATE INDEX IF NOT EXISTS idx_handoff_attempts_tenant ON handoff_attempts(tenan
 -- RLS for handoff_attempts
 ALTER TABLE handoff_attempts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their tenant handoff attempts" ON handoff_attempts;
 CREATE POLICY "Users can view their tenant handoff attempts"
   ON handoff_attempts FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage their tenant handoff attempts" ON handoff_attempts;
 CREATE POLICY "Users can manage their tenant handoff attempts"
   ON handoff_attempts FOR ALL
   USING (has_tenant_access(auth.uid(), tenant_id));

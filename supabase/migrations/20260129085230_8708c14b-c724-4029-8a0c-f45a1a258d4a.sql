@@ -7,8 +7,9 @@ DROP POLICY IF EXISTS "Authenticated users can create tenants during onboarding"
 
 -- Create a simpler policy that allows any authenticated user to create a tenant
 -- The tenant_users link will be created after, which determines ownership
+DROP POLICY IF EXISTS "Authenticated users can create tenants" ON public.tenants;
 CREATE POLICY "Authenticated users can create tenants"
-ON public.tenants
+  ON public.tenants
 FOR INSERT
 TO authenticated
 WITH CHECK (true);

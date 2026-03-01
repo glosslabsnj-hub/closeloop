@@ -4,7 +4,7 @@
 
 -- 1. SERVICE MODE POLICIES
 -- For salons, HVAC, plumbers, cleaners, contractors, etc.
-CREATE TABLE public.service_policies (
+CREATE TABLE IF NOT EXISTS public.service_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -47,7 +47,7 @@ CREATE TABLE public.service_policies (
 
 -- 2. DISPATCH MODE POLICIES
 -- For towing, roadside assistance, emergency services
-CREATE TABLE public.dispatch_policies (
+CREATE TABLE IF NOT EXISTS public.dispatch_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -99,7 +99,7 @@ CREATE TABLE public.dispatch_policies (
 
 -- 3. FOOD MODE POLICIES
 -- For restaurants, cafes, catering, food trucks
-CREATE TABLE public.food_policies (
+CREATE TABLE IF NOT EXISTS public.food_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -155,7 +155,7 @@ CREATE TABLE public.food_policies (
 
 -- 4. MEDICAL MODE POLICIES
 -- For clinics, practices, telehealth
-CREATE TABLE public.medical_policies (
+CREATE TABLE IF NOT EXISTS public.medical_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -209,7 +209,7 @@ CREATE TABLE public.medical_policies (
 );
 
 -- 5. GENERAL POLICIES (applies to all modes as fallback)
-CREATE TABLE public.general_policies (
+CREATE TABLE IF NOT EXISTS public.general_policies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -243,7 +243,7 @@ CREATE TABLE public.general_policies (
 );
 
 -- 6. REQUIRED INTAKE QUESTIONS (Mode-aware intake configuration)
-CREATE TABLE public.intake_requirements (
+CREATE TABLE IF NOT EXISTS public.intake_requirements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -279,98 +279,142 @@ ALTER TABLE public.general_policies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intake_requirements ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for service_policies
-CREATE POLICY "Users can view own tenant service policies" ON public.service_policies
+DROP POLICY IF EXISTS "Users can view own tenant service policies" ON public.service_policies;
+CREATE POLICY "Users can view own tenant service policies"
+  ON public.service_policies
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant service policies" ON public.service_policies
+DROP POLICY IF EXISTS "Users can insert own tenant service policies" ON public.service_policies;
+CREATE POLICY "Users can insert own tenant service policies"
+  ON public.service_policies
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant service policies" ON public.service_policies
+DROP POLICY IF EXISTS "Users can update own tenant service policies" ON public.service_policies;
+CREATE POLICY "Users can update own tenant service policies"
+  ON public.service_policies
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for dispatch_policies
-CREATE POLICY "Users can view own tenant dispatch policies" ON public.dispatch_policies
+DROP POLICY IF EXISTS "Users can view own tenant dispatch policies" ON public.dispatch_policies;
+CREATE POLICY "Users can view own tenant dispatch policies"
+  ON public.dispatch_policies
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant dispatch policies" ON public.dispatch_policies
+DROP POLICY IF EXISTS "Users can insert own tenant dispatch policies" ON public.dispatch_policies;
+CREATE POLICY "Users can insert own tenant dispatch policies"
+  ON public.dispatch_policies
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant dispatch policies" ON public.dispatch_policies
+DROP POLICY IF EXISTS "Users can update own tenant dispatch policies" ON public.dispatch_policies;
+CREATE POLICY "Users can update own tenant dispatch policies"
+  ON public.dispatch_policies
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for food_policies
-CREATE POLICY "Users can view own tenant food policies" ON public.food_policies
+DROP POLICY IF EXISTS "Users can view own tenant food policies" ON public.food_policies;
+CREATE POLICY "Users can view own tenant food policies"
+  ON public.food_policies
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant food policies" ON public.food_policies
+DROP POLICY IF EXISTS "Users can insert own tenant food policies" ON public.food_policies;
+CREATE POLICY "Users can insert own tenant food policies"
+  ON public.food_policies
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant food policies" ON public.food_policies
+DROP POLICY IF EXISTS "Users can update own tenant food policies" ON public.food_policies;
+CREATE POLICY "Users can update own tenant food policies"
+  ON public.food_policies
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for medical_policies
-CREATE POLICY "Users can view own tenant medical policies" ON public.medical_policies
+DROP POLICY IF EXISTS "Users can view own tenant medical policies" ON public.medical_policies;
+CREATE POLICY "Users can view own tenant medical policies"
+  ON public.medical_policies
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant medical policies" ON public.medical_policies
+DROP POLICY IF EXISTS "Users can insert own tenant medical policies" ON public.medical_policies;
+CREATE POLICY "Users can insert own tenant medical policies"
+  ON public.medical_policies
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant medical policies" ON public.medical_policies
+DROP POLICY IF EXISTS "Users can update own tenant medical policies" ON public.medical_policies;
+CREATE POLICY "Users can update own tenant medical policies"
+  ON public.medical_policies
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for general_policies
-CREATE POLICY "Users can view own tenant general policies" ON public.general_policies
+DROP POLICY IF EXISTS "Users can view own tenant general policies" ON public.general_policies;
+CREATE POLICY "Users can view own tenant general policies"
+  ON public.general_policies
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant general policies" ON public.general_policies
+DROP POLICY IF EXISTS "Users can insert own tenant general policies" ON public.general_policies;
+CREATE POLICY "Users can insert own tenant general policies"
+  ON public.general_policies
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant general policies" ON public.general_policies
+DROP POLICY IF EXISTS "Users can update own tenant general policies" ON public.general_policies;
+CREATE POLICY "Users can update own tenant general policies"
+  ON public.general_policies
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- RLS Policies for intake_requirements
-CREATE POLICY "Users can view own tenant intake requirements" ON public.intake_requirements
+DROP POLICY IF EXISTS "Users can view own tenant intake requirements" ON public.intake_requirements;
+CREATE POLICY "Users can view own tenant intake requirements"
+  ON public.intake_requirements
   FOR SELECT USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can insert own tenant intake requirements" ON public.intake_requirements
+DROP POLICY IF EXISTS "Users can insert own tenant intake requirements" ON public.intake_requirements;
+CREATE POLICY "Users can insert own tenant intake requirements"
+  ON public.intake_requirements
   FOR INSERT WITH CHECK (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
   
-CREATE POLICY "Users can update own tenant intake requirements" ON public.intake_requirements
+DROP POLICY IF EXISTS "Users can update own tenant intake requirements" ON public.intake_requirements;
+CREATE POLICY "Users can update own tenant intake requirements"
+  ON public.intake_requirements
   FOR UPDATE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Users can delete own tenant intake requirements" ON public.intake_requirements
+DROP POLICY IF EXISTS "Users can delete own tenant intake requirements" ON public.intake_requirements;
+CREATE POLICY "Users can delete own tenant intake requirements"
+  ON public.intake_requirements
   FOR DELETE USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
 -- Indexes
-CREATE INDEX idx_service_policies_tenant ON public.service_policies(tenant_id);
-CREATE INDEX idx_dispatch_policies_tenant ON public.dispatch_policies(tenant_id);
-CREATE INDEX idx_food_policies_tenant ON public.food_policies(tenant_id);
-CREATE INDEX idx_medical_policies_tenant ON public.medical_policies(tenant_id);
-CREATE INDEX idx_general_policies_tenant ON public.general_policies(tenant_id);
-CREATE INDEX idx_intake_requirements_tenant ON public.intake_requirements(tenant_id);
-CREATE INDEX idx_intake_requirements_active ON public.intake_requirements(tenant_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_service_policies_tenant ON public.service_policies(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_dispatch_policies_tenant ON public.dispatch_policies(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_food_policies_tenant ON public.food_policies(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_medical_policies_tenant ON public.medical_policies(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_general_policies_tenant ON public.general_policies(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_intake_requirements_tenant ON public.intake_requirements(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_intake_requirements_active ON public.intake_requirements(tenant_id, is_active);
 
 -- Updated at triggers
+DROP TRIGGER IF EXISTS update_service_policies_updated_at ON public.service_policies;
 CREATE TRIGGER update_service_policies_updated_at
   BEFORE UPDATE ON public.service_policies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_dispatch_policies_updated_at ON public.dispatch_policies;
 CREATE TRIGGER update_dispatch_policies_updated_at
   BEFORE UPDATE ON public.dispatch_policies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_food_policies_updated_at ON public.food_policies;
 CREATE TRIGGER update_food_policies_updated_at
   BEFORE UPDATE ON public.food_policies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_medical_policies_updated_at ON public.medical_policies;
 CREATE TRIGGER update_medical_policies_updated_at
   BEFORE UPDATE ON public.medical_policies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_general_policies_updated_at ON public.general_policies;
 CREATE TRIGGER update_general_policies_updated_at
   BEFORE UPDATE ON public.general_policies
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_intake_requirements_updated_at ON public.intake_requirements;
 CREATE TRIGGER update_intake_requirements_updated_at
   BEFORE UPDATE ON public.intake_requirements
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

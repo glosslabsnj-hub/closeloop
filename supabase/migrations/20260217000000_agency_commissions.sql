@@ -17,8 +17,8 @@ CREATE TABLE IF NOT EXISTS agency_commissions (
   UNIQUE(agency_id, stripe_invoice_id)
 );
 
-CREATE INDEX idx_agency_commissions_agency_id ON agency_commissions(agency_id);
-CREATE INDEX idx_agency_commissions_status ON agency_commissions(status);
+CREATE INDEX IF NOT EXISTS idx_agency_commissions_agency_id ON agency_commissions(agency_id);
+CREATE INDEX IF NOT EXISTS idx_agency_commissions_status ON agency_commissions(status);
 
 ALTER TABLE agency_commissions ENABLE ROW LEVEL SECURITY;
 

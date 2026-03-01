@@ -1,5 +1,5 @@
 -- Create admin_settings table for persisting admin's active tenant selection
-CREATE TABLE public.admin_settings (
+CREATE TABLE IF NOT EXISTS public.admin_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   admin_active_tenant_id UUID REFERENCES public.tenants(id) ON DELETE SET NULL,
@@ -12,6 +12,7 @@ CREATE TABLE public.admin_settings (
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy: Only super_admins can access their own row
+DROP POLICY IF EXISTS "Super admins manage their own settings" ON public.admin_settings;
 CREATE POLICY "Super admins manage their own settings"
   ON public.admin_settings
   FOR ALL
@@ -24,7 +25,7 @@ CREATE POLICY "Super admins manage their own settings"
     public.has_role(auth.uid(), 'super_admin')
   );
 
--- Create trigger for updated_at
+DROP TRIGGER IF EXISTS update_admin_settings_updated_at ON public.admin_settings;
 CREATE TRIGGER update_admin_settings_updated_at
   BEFORE UPDATE ON public.admin_settings
   FOR EACH ROW

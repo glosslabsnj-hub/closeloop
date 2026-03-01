@@ -139,21 +139,33 @@ ALTER TABLE public.sales_leads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_inventory ENABLE ROW LEVEL SECURITY;
 
 -- test_drives RLS
-CREATE POLICY "tenant_access" ON public.test_drives
+DROP POLICY IF EXISTS "tenant_access" ON public.test_drives;
+CREATE POLICY "tenant_access"
+  ON public.test_drives
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
-CREATE POLICY "service_role_full" ON public.test_drives
+DROP POLICY IF EXISTS "service_role_full" ON public.test_drives;
+CREATE POLICY "service_role_full"
+  ON public.test_drives
   FOR ALL USING (auth.role() = 'service_role');
 
 -- sales_leads RLS
-CREATE POLICY "tenant_access" ON public.sales_leads
+DROP POLICY IF EXISTS "tenant_access" ON public.sales_leads;
+CREATE POLICY "tenant_access"
+  ON public.sales_leads
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
-CREATE POLICY "service_role_full" ON public.sales_leads
+DROP POLICY IF EXISTS "service_role_full" ON public.sales_leads;
+CREATE POLICY "service_role_full"
+  ON public.sales_leads
   FOR ALL USING (auth.role() = 'service_role');
 
 -- sales_inventory RLS
-CREATE POLICY "tenant_access" ON public.sales_inventory
+DROP POLICY IF EXISTS "tenant_access" ON public.sales_inventory;
+CREATE POLICY "tenant_access"
+  ON public.sales_inventory
   FOR ALL USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
-CREATE POLICY "service_role_full" ON public.sales_inventory
+DROP POLICY IF EXISTS "service_role_full" ON public.sales_inventory;
+CREATE POLICY "service_role_full"
+  ON public.sales_inventory
   FOR ALL USING (auth.role() = 'service_role');
 
 -- 6. Revenue attribution triggers (same pattern as bookings/dispatch_jobs/food_orders)
@@ -169,6 +181,7 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_revenue_attribution_test_drive ON public.test_drives;
 CREATE TRIGGER trg_revenue_attribution_test_drive
   AFTER INSERT ON public.test_drives
   FOR EACH ROW EXECUTE FUNCTION public.create_revenue_attribution_test_drive();
@@ -185,19 +198,23 @@ BEGIN
 END;
 $$;
 
+DROP TRIGGER IF EXISTS trg_revenue_attribution_sales_lead ON public.sales_leads;
 CREATE TRIGGER trg_revenue_attribution_sales_lead
   AFTER INSERT ON public.sales_leads
   FOR EACH ROW EXECUTE FUNCTION public.create_revenue_attribution_sales_lead();
 
 -- 7. updated_at triggers
+DROP TRIGGER IF EXISTS set_updated_at_test_drives ON public.test_drives;
 CREATE TRIGGER set_updated_at_test_drives
   BEFORE UPDATE ON public.test_drives
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_updated_at_sales_leads ON public.sales_leads;
 CREATE TRIGGER set_updated_at_sales_leads
   BEFORE UPDATE ON public.sales_leads
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS set_updated_at_sales_inventory ON public.sales_inventory;
 CREATE TRIGGER set_updated_at_sales_inventory
   BEFORE UPDATE ON public.sales_inventory
-  FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

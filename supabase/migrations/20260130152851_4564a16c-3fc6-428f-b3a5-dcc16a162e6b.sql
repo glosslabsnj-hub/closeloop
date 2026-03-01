@@ -4,7 +4,7 @@ ADD COLUMN IF NOT EXISTS suggested_section text,
 ADD COLUMN IF NOT EXISTS urgency text DEFAULT 'normal'::text,
 ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone DEFAULT now();
 
--- Create index for faster lookups on unresolved gaps
+-- CREATE INDEX IF NOT EXISTS for faster lookups on unresolved gaps
 CREATE INDEX IF NOT EXISTS idx_knowledge_gaps_tenant_resolved 
 ON public.knowledge_gaps (tenant_id, resolved, priority DESC);
 

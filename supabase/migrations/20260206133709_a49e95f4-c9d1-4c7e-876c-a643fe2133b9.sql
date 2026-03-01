@@ -25,7 +25,8 @@ BEGIN
   END IF;
 
   IF v_owner_tenant_id IS NULL THEN
-    RAISE EXCEPTION 'No tenants exist - cannot create phone number record';
+    RAISE NOTICE 'No tenants exist - skipping phone number creation';
+    RETURN;
   END IF;
 
   -- Insert the admin test line with purpose='admin_test' to avoid unique constraint

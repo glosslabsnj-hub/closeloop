@@ -39,30 +39,34 @@ DROP POLICY IF EXISTS "Users can update own tenant phone numbers" ON public.phon
 DROP POLICY IF EXISTS "Service role has full access to phone_numbers" ON public.phone_numbers;
 
 -- SELECT: Users can only see their own tenant's phone numbers
-CREATE POLICY "Users can view own tenant phone numbers" 
-ON public.phone_numbers 
+DROP POLICY IF EXISTS "Users can view own tenant phone numbers" ON public.phone_numbers;
+CREATE POLICY "Users can view own tenant phone numbers"
+  ON public.phone_numbers 
 FOR SELECT 
 USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- INSERT: Users can only insert for their own tenant
-CREATE POLICY "Users can insert own tenant phone numbers" 
-ON public.phone_numbers 
+DROP POLICY IF EXISTS "Users can insert own tenant phone numbers" ON public.phone_numbers;
+CREATE POLICY "Users can insert own tenant phone numbers"
+  ON public.phone_numbers 
 FOR INSERT 
 WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- UPDATE: Users can only update their own tenant's phone numbers
-CREATE POLICY "Users can update own tenant phone numbers" 
-ON public.phone_numbers 
+DROP POLICY IF EXISTS "Users can update own tenant phone numbers" ON public.phone_numbers;
+CREATE POLICY "Users can update own tenant phone numbers"
+  ON public.phone_numbers 
 FOR UPDATE 
 USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- DELETE: Users can only delete their own tenant's phone numbers
-CREATE POLICY "Users can delete own tenant phone numbers" 
-ON public.phone_numbers 
+DROP POLICY IF EXISTS "Users can delete own tenant phone numbers" ON public.phone_numbers;
+CREATE POLICY "Users can delete own tenant phone numbers"
+  ON public.phone_numbers 
 FOR DELETE 
 USING (public.has_tenant_access(auth.uid(), tenant_id));
 
--- 6. Create index for fast tenant lookup
+-- 6. CREATE INDEX IF NOT EXISTS for fast tenant lookup
 CREATE INDEX IF NOT EXISTS phone_numbers_tenant_id_idx ON public.phone_numbers (tenant_id);
 CREATE INDEX IF NOT EXISTS phone_numbers_phone_e164_idx ON public.phone_numbers (phone_e164);
 

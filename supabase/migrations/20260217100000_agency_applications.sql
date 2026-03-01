@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS agency_applications (
   updated_at timestamptz DEFAULT now()
 );
 
-CREATE INDEX idx_agency_applications_status ON agency_applications(status);
-CREATE INDEX idx_agency_applications_email ON agency_applications(email);
+CREATE INDEX IF NOT EXISTS idx_agency_applications_status ON agency_applications(status);
+CREATE INDEX IF NOT EXISTS idx_agency_applications_email ON agency_applications(email);
 
 ALTER TABLE agency_applications ENABLE ROW LEVEL SECURITY;
 -- No user-facing policies — insert via service role (public form), read via admin

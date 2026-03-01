@@ -6,7 +6,7 @@
 -- 1. PRICE MODIFIERS TABLE
 -- Allows businesses to define price adjustments based on various factors
 -- ============================================================================
-CREATE TABLE public.price_modifiers (
+CREATE TABLE IF NOT EXISTS public.price_modifiers (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -57,18 +57,22 @@ CREATE TABLE public.price_modifiers (
 -- Enable RLS
 ALTER TABLE public.price_modifiers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view modifiers" ON public.price_modifiers
+DROP POLICY IF EXISTS "Tenant members can view modifiers" ON public.price_modifiers;
+CREATE POLICY "Tenant members can view modifiers"
+  ON public.price_modifiers
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant members can manage modifiers" ON public.price_modifiers
+DROP POLICY IF EXISTS "Tenant members can manage modifiers" ON public.price_modifiers;
+CREATE POLICY "Tenant members can manage modifiers"
+  ON public.price_modifiers
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
 -- 2. SERVICE PACKAGES TABLE
 -- Bundle multiple services/items together with optional discount
 -- ============================================================================
-CREATE TABLE public.service_packages (
+CREATE TABLE IF NOT EXISTS public.service_packages (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -111,11 +115,15 @@ CREATE TABLE public.service_packages (
 -- Enable RLS
 ALTER TABLE public.service_packages ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view packages" ON public.service_packages
+DROP POLICY IF EXISTS "Tenant members can view packages" ON public.service_packages;
+CREATE POLICY "Tenant members can view packages"
+  ON public.service_packages
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant members can manage packages" ON public.service_packages
+DROP POLICY IF EXISTS "Tenant members can manage packages" ON public.service_packages;
+CREATE POLICY "Tenant members can manage packages"
+  ON public.service_packages
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
@@ -135,7 +143,7 @@ ALTER TABLE public.food_order_settings
 -- 4. MENU ITEM SIZE OPTIONS
 -- Allow food items to have size variants
 -- ============================================================================
-CREATE TABLE public.menu_item_sizes (
+CREATE TABLE IF NOT EXISTS public.menu_item_sizes (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   menu_item_id UUID NOT NULL REFERENCES public.menu_items(id) ON DELETE CASCADE,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -152,17 +160,21 @@ CREATE TABLE public.menu_item_sizes (
 -- Enable RLS
 ALTER TABLE public.menu_item_sizes ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view sizes" ON public.menu_item_sizes
+DROP POLICY IF EXISTS "Tenant members can view sizes" ON public.menu_item_sizes;
+CREATE POLICY "Tenant members can view sizes"
+  ON public.menu_item_sizes
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant members can manage sizes" ON public.menu_item_sizes
+DROP POLICY IF EXISTS "Tenant members can manage sizes" ON public.menu_item_sizes;
+CREATE POLICY "Tenant members can manage sizes"
+  ON public.menu_item_sizes
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
 -- 5. DAILY SPECIALS / TIME-LIMITED ITEMS
 -- ============================================================================
-CREATE TABLE public.menu_specials (
+CREATE TABLE IF NOT EXISTS public.menu_specials (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   
@@ -194,11 +206,15 @@ CREATE TABLE public.menu_specials (
 -- Enable RLS
 ALTER TABLE public.menu_specials ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view specials" ON public.menu_specials
+DROP POLICY IF EXISTS "Tenant members can view specials" ON public.menu_specials;
+CREATE POLICY "Tenant members can view specials"
+  ON public.menu_specials
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant members can manage specials" ON public.menu_specials
+DROP POLICY IF EXISTS "Tenant members can manage specials" ON public.menu_specials;
+CREATE POLICY "Tenant members can manage specials"
+  ON public.menu_specials
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
@@ -219,7 +235,7 @@ ALTER TABLE public.tenant_distance_settings
 -- 7. MEDICAL/MEDSPA ENHANCEMENTS
 -- Table for insurance and consultation settings
 -- ============================================================================
-CREATE TABLE public.medical_practice_settings (
+CREATE TABLE IF NOT EXISTS public.medical_practice_settings (
   tenant_id UUID PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
   
   -- Insurance info
@@ -247,40 +263,56 @@ CREATE TABLE public.medical_practice_settings (
 -- Enable RLS
 ALTER TABLE public.medical_practice_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Tenant members can view medical settings" ON public.medical_practice_settings
+DROP POLICY IF EXISTS "Tenant members can view medical settings" ON public.medical_practice_settings;
+CREATE POLICY "Tenant members can view medical settings"
+  ON public.medical_practice_settings
   FOR SELECT TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
-CREATE POLICY "Tenant members can manage medical settings" ON public.medical_practice_settings
+DROP POLICY IF EXISTS "Tenant members can manage medical settings" ON public.medical_practice_settings;
+CREATE POLICY "Tenant members can manage medical settings"
+  ON public.medical_practice_settings
   FOR ALL TO authenticated
   USING (tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid()));
 
 -- 8. Add updated_at trigger for all new tables
 -- ============================================================================
+DROP TRIGGER IF EXISTS update_price_modifiers_updated_at ON public.price_modifiers;
 CREATE TRIGGER update_price_modifiers_updated_at
   BEFORE UPDATE ON public.price_modifiers
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_service_packages_updated_at ON public.service_packages;
 CREATE TRIGGER update_service_packages_updated_at
   BEFORE UPDATE ON public.service_packages
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_menu_specials_updated_at ON public.menu_specials;
 CREATE TRIGGER update_menu_specials_updated_at
   BEFORE UPDATE ON public.menu_specials
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_medical_practice_settings_updated_at ON public.medical_practice_settings;
 CREATE TRIGGER update_medical_practice_settings_updated_at
   BEFORE UPDATE ON public.medical_practice_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- 9. Create indexes for performance
 -- ============================================================================
-CREATE INDEX idx_price_modifiers_tenant ON public.price_modifiers(tenant_id);
-CREATE INDEX idx_price_modifiers_type ON public.price_modifiers(modifier_type);
-CREATE INDEX idx_service_packages_tenant ON public.service_packages(tenant_id);
-CREATE INDEX idx_menu_item_sizes_item ON public.menu_item_sizes(menu_item_id);
-CREATE INDEX idx_menu_specials_tenant ON public.menu_specials(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_price_modifiers_tenant ON public.price_modifiers(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_price_modifiers_type ON public.price_modifiers(modifier_type);
+CREATE INDEX IF NOT EXISTS idx_service_packages_tenant ON public.service_packages(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_menu_item_sizes_item ON public.menu_item_sizes(menu_item_id);
+CREATE INDEX IF NOT EXISTS idx_menu_specials_tenant ON public.menu_specials(tenant_id);
 
 -- Enable realtime for key tables
-ALTER PUBLICATION supabase_realtime ADD TABLE public.price_modifiers;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.service_packages;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'price_modifiers') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.price_modifiers;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'service_packages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.service_packages;
+  END IF;
+END $$;

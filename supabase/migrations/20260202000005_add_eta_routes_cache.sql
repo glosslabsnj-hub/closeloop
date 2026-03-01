@@ -30,14 +30,16 @@ ON public.eta_routes_cache(expires_at);
 ALTER TABLE public.eta_routes_cache ENABLE ROW LEVEL SECURITY;
 
 -- RLS policy: tenant users can view their cache entries
+DROP POLICY IF EXISTS "Tenant users can view their route cache" ON public.eta_routes_cache;
 CREATE POLICY "Tenant users can view their route cache"
-ON public.eta_routes_cache
+  ON public.eta_routes_cache
 FOR SELECT
 USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS policy: service role can manage all entries
+DROP POLICY IF EXISTS "Service role can manage route cache" ON public.eta_routes_cache;
 CREATE POLICY "Service role can manage route cache"
-ON public.eta_routes_cache
+  ON public.eta_routes_cache
 FOR ALL
 USING (true)
 WITH CHECK (true);

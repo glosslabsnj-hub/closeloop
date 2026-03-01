@@ -33,12 +33,14 @@ CREATE TABLE IF NOT EXISTS public.setup_requests (
 ALTER TABLE public.setup_requests ENABLE ROW LEVEL SECURITY;
 
 -- Policies: Tenants can view/create their own requests
+DROP POLICY IF EXISTS "Tenants can view own setup requests" ON public.setup_requests;
 CREATE POLICY "Tenants can view own setup requests"
   ON public.setup_requests FOR SELECT
   USING (
     tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Tenants can create setup requests" ON public.setup_requests;
 CREATE POLICY "Tenants can create setup requests"
   ON public.setup_requests FOR INSERT
   WITH CHECK (
@@ -46,21 +48,22 @@ CREATE POLICY "Tenants can create setup requests"
   );
 
 -- Super admins can do everything (checked via user_roles)
+DROP POLICY IF EXISTS "Super admins can manage all setup requests" ON public.setup_requests;
 CREATE POLICY "Super admins can manage all setup requests"
   ON public.setup_requests FOR ALL
   USING (
     EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'super_admin')
   );
 
--- Create trigger for updated_at
+DROP TRIGGER IF EXISTS update_setup_requests_updated_at ON public.setup_requests;
 CREATE TRIGGER update_setup_requests_updated_at
   BEFORE UPDATE ON public.setup_requests
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Add index for efficient queries
-CREATE INDEX idx_setup_requests_tenant ON public.setup_requests(tenant_id);
-CREATE INDEX idx_setup_requests_status ON public.setup_requests(status);
+CREATE INDEX IF NOT EXISTS idx_setup_requests_tenant ON public.setup_requests(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_setup_requests_status ON public.setup_requests(status);
 
 -- ============================================
 -- Create routing_rules table for simple sentence-based routing
@@ -99,6 +102,7 @@ CREATE TABLE IF NOT EXISTS public.routing_rules (
 ALTER TABLE public.routing_rules ENABLE ROW LEVEL SECURITY;
 
 -- Policies
+DROP POLICY IF EXISTS "Tenants can manage own routing rules" ON public.routing_rules;
 CREATE POLICY "Tenants can manage own routing rules"
   ON public.routing_rules FOR ALL
   USING (
@@ -106,11 +110,12 @@ CREATE POLICY "Tenants can manage own routing rules"
   );
 
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_routing_rules_updated_at ON public.routing_rules;
 CREATE TRIGGER update_routing_rules_updated_at
   BEFORE UPDATE ON public.routing_rules
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Index
-CREATE INDEX idx_routing_rules_tenant ON public.routing_rules(tenant_id);
-CREATE INDEX idx_routing_rules_enabled ON public.routing_rules(tenant_id, enabled) WHERE enabled = TRUE;
+CREATE INDEX IF NOT EXISTS idx_routing_rules_tenant ON public.routing_rules(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_routing_rules_enabled ON public.routing_rules(tenant_id, enabled) WHERE enabled = TRUE;

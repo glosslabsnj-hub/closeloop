@@ -11,38 +11,46 @@
 -- ─── 1. INTELLIGENCE LAYER — ADD WRITE POLICIES ────────────────────────────
 
 -- call_outcomes: edge functions need INSERT (via service role), users need read
+DROP POLICY IF EXISTS "Service role can insert call outcomes" ON public.call_outcomes;
 CREATE POLICY "Service role can insert call outcomes"
   ON public.call_outcomes FOR INSERT
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can update call outcomes" ON public.call_outcomes;
 CREATE POLICY "Users can update call outcomes"
   ON public.call_outcomes FOR UPDATE
   USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- business_patterns: edge functions need INSERT + UPDATE
+DROP POLICY IF EXISTS "Service role can insert business patterns" ON public.business_patterns;
 CREATE POLICY "Service role can insert business patterns"
   ON public.business_patterns FOR INSERT
   WITH CHECK (true);
 
 -- intelligence_insights: edge functions need INSERT, users already have UPDATE
+DROP POLICY IF EXISTS "Service role can insert intelligence insights" ON public.intelligence_insights;
 CREATE POLICY "Service role can insert intelligence insights"
   ON public.intelligence_insights FOR INSERT
   WITH CHECK (true);
 
 -- intelligence_digest: edge functions need INSERT + UPDATE
+DROP POLICY IF EXISTS "Service role can insert intelligence digest" ON public.intelligence_digest;
 CREATE POLICY "Service role can insert intelligence digest"
   ON public.intelligence_digest FOR INSERT
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can update intelligence digest" ON public.intelligence_digest;
 CREATE POLICY "Users can update intelligence digest"
   ON public.intelligence_digest FOR UPDATE
   USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ai_response_quality: edge functions need INSERT
+DROP POLICY IF EXISTS "Service role can insert ai response quality" ON public.ai_response_quality;
 CREATE POLICY "Service role can insert ai response quality"
   ON public.ai_response_quality FOR INSERT
   WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Users can update ai response quality" ON public.ai_response_quality;
 CREATE POLICY "Users can update ai response quality"
   ON public.ai_response_quality FOR UPDATE
   USING (has_tenant_access(auth.uid(), tenant_id));
@@ -71,29 +79,33 @@ CREATE INDEX IF NOT EXISTS idx_geocode_cache_expires
 
 -- ─── 4. STANDARDIZE SUBSCRIPTION STATUS ENUM ───────────────────────────────
 
--- Rename 'canceled' to 'cancelled' in subscription_status enum
--- This requires careful handling since PostgreSQL doesn't support RENAME VALUE directly in all versions
+-- Rename 'canceled' to 'cancelled' in subscription_status enum (if it exists)
 DO $$
 BEGIN
-  -- Check if the enum value 'canceled' exists and 'cancelled' doesn't
-  IF EXISTS (
-    SELECT 1 FROM pg_enum
-    WHERE enumlabel = 'canceled'
-    AND enumtypid = 'public.subscription_status'::regtype
-  ) AND NOT EXISTS (
-    SELECT 1 FROM pg_enum
-    WHERE enumlabel = 'cancelled'
-    AND enumtypid = 'public.subscription_status'::regtype
-  ) THEN
-    -- Add 'cancelled' first
-    ALTER TYPE public.subscription_status ADD VALUE IF NOT EXISTS 'cancelled';
+  -- Only proceed if the subscription_status type exists
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'subscription_status' AND typnamespace = 'public'::regnamespace) THEN
+    -- Check if 'canceled' exists and 'cancelled' doesn't
+    IF EXISTS (
+      SELECT 1 FROM pg_enum
+      WHERE enumlabel = 'canceled'
+      AND enumtypid = 'public.subscription_status'::regtype
+    ) AND NOT EXISTS (
+      SELECT 1 FROM pg_enum
+      WHERE enumlabel = 'cancelled'
+      AND enumtypid = 'public.subscription_status'::regtype
+    ) THEN
+      ALTER TYPE public.subscription_status ADD VALUE IF NOT EXISTS 'cancelled';
+    END IF;
   END IF;
 END $$;
 
--- Update existing records to use 'cancelled'
-UPDATE public.tenants
-SET subscription_status = 'cancelled'::public.subscription_status
-WHERE subscription_status = 'canceled'::public.subscription_status;
+-- Update existing records to use 'cancelled' (skip if column doesn't exist)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='tenants' AND column_name='subscription_status') THEN
+    EXECUTE 'UPDATE public.tenants SET subscription_status = ''cancelled''::public.subscription_status WHERE subscription_status = ''canceled''::public.subscription_status';
+  END IF;
+END $$;
 
 -- Note: Cannot DROP enum value in PostgreSQL. The old 'canceled' value remains
 -- but all code should use 'cancelled' going forward.

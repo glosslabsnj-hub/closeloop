@@ -17,6 +17,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
+DROP TRIGGER IF EXISTS validate_lead_score_trigger ON public.ai_call_sessions;
 CREATE TRIGGER validate_lead_score_trigger
   BEFORE INSERT OR UPDATE ON public.ai_call_sessions
   FOR EACH ROW
@@ -33,10 +34,11 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SET search_path = public;
 
+DROP TRIGGER IF EXISTS validate_followup_status_trigger ON public.ai_call_sessions;
 CREATE TRIGGER validate_followup_status_trigger
   BEFORE INSERT OR UPDATE ON public.ai_call_sessions
   FOR EACH ROW
   EXECUTE FUNCTION public.validate_followup_status();
 
 -- Index for fast lead hub queries
-CREATE INDEX idx_ai_call_sessions_lead_score ON public.ai_call_sessions (tenant_id, lead_score, followup_status);
+CREATE INDEX IF NOT EXISTS idx_ai_call_sessions_lead_score ON public.ai_call_sessions (tenant_id, lead_score, followup_status);

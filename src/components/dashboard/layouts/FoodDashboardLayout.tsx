@@ -11,7 +11,7 @@ export function FoodDashboardLayout() {
       <QuickActionButton
         label="New Order"
         description="Take a new food order"
-        href="/app/orders/new"
+        href="/app/orders"
         icon={ShoppingBag}
       />
 

@@ -16,7 +16,7 @@ CREATE TYPE notification_severity AS ENUM ('info', 'warning', 'critical');
 -- Table: knowledge_sources
 -- Tracks uploaded documents and their processing status
 -- =====================================================
-CREATE TABLE public.knowledge_sources (
+CREATE TABLE IF NOT EXISTS public.knowledge_sources (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   file_name text NOT NULL,
@@ -31,10 +31,12 @@ CREATE TABLE public.knowledge_sources (
 
 ALTER TABLE public.knowledge_sources ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant knowledge sources" ON public.knowledge_sources;
 CREATE POLICY "Users can view tenant knowledge sources"
   ON public.knowledge_sources FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage knowledge sources" ON public.knowledge_sources;
 CREATE POLICY "Owners can manage knowledge sources"
   ON public.knowledge_sources FOR ALL
   USING (
@@ -45,13 +47,17 @@ CREATE POLICY "Owners can manage knowledge sources"
   );
 
 -- Enable realtime for knowledge_sources
-ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_sources;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'knowledge_sources') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_sources;
+  END IF;
+END $$;
 
 -- =====================================================
 -- Table: extracted_knowledge_suggestions
 -- AI-extracted items pending owner review
 -- =====================================================
-CREATE TABLE public.extracted_knowledge_suggestions (
+CREATE TABLE IF NOT EXISTS public.extracted_knowledge_suggestions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   source_id uuid NOT NULL REFERENCES public.knowledge_sources(id) ON DELETE CASCADE,
@@ -65,10 +71,12 @@ CREATE TABLE public.extracted_knowledge_suggestions (
 
 ALTER TABLE public.extracted_knowledge_suggestions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant suggestions" ON public.extracted_knowledge_suggestions;
 CREATE POLICY "Users can view tenant suggestions"
   ON public.extracted_knowledge_suggestions FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage suggestions" ON public.extracted_knowledge_suggestions;
 CREATE POLICY "Owners can manage suggestions"
   ON public.extracted_knowledge_suggestions FOR ALL
   USING (
@@ -82,7 +90,7 @@ CREATE POLICY "Owners can manage suggestions"
 -- Table: knowledge_conflicts
 -- Detected conflicts between uploads and existing data
 -- =====================================================
-CREATE TABLE public.knowledge_conflicts (
+CREATE TABLE IF NOT EXISTS public.knowledge_conflicts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   source_id uuid NOT NULL REFERENCES public.knowledge_sources(id) ON DELETE CASCADE,
@@ -100,10 +108,12 @@ CREATE TABLE public.knowledge_conflicts (
 
 ALTER TABLE public.knowledge_conflicts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant conflicts" ON public.knowledge_conflicts;
 CREATE POLICY "Users can view tenant conflicts"
   ON public.knowledge_conflicts FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage conflicts" ON public.knowledge_conflicts;
 CREATE POLICY "Owners can manage conflicts"
   ON public.knowledge_conflicts FOR ALL
   USING (
@@ -114,13 +124,17 @@ CREATE POLICY "Owners can manage conflicts"
   );
 
 -- Enable realtime for knowledge_conflicts
-ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_conflicts;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'knowledge_conflicts') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_conflicts;
+  END IF;
+END $$;
 
 -- =====================================================
 -- Table: owner_notifications
 -- In-app notifications for business owners
 -- =====================================================
-CREATE TABLE public.owner_notifications (
+CREATE TABLE IF NOT EXISTS public.owner_notifications (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   type notification_type NOT NULL,
@@ -135,20 +149,27 @@ CREATE TABLE public.owner_notifications (
 
 ALTER TABLE public.owner_notifications ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant notifications" ON public.owner_notifications;
 CREATE POLICY "Users can view tenant notifications"
   ON public.owner_notifications FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant notifications" ON public.owner_notifications;
 CREATE POLICY "Users can update tenant notifications"
   ON public.owner_notifications FOR UPDATE
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Service role can insert notifications" ON public.owner_notifications;
 CREATE POLICY "Service role can insert notifications"
   ON public.owner_notifications FOR INSERT
   WITH CHECK (true);
 
 -- Enable realtime for owner_notifications
-ALTER PUBLICATION supabase_realtime ADD TABLE public.owner_notifications;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'owner_notifications') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.owner_notifications;
+  END IF;
+END $$;
 
 -- =====================================================
 -- Trigger Functions
@@ -204,6 +225,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS knowledge_source_status_notify ON public.knowledge_sources;
 CREATE TRIGGER knowledge_source_status_notify
   AFTER UPDATE OF status ON public.knowledge_sources
   FOR EACH ROW
@@ -238,6 +260,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS suggestions_pending_notify ON public.extracted_knowledge_suggestions;
 CREATE TRIGGER suggestions_pending_notify
   AFTER INSERT ON public.extracted_knowledge_suggestions
   FOR EACH ROW
@@ -273,6 +296,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS conflicts_detected_notify ON public.knowledge_conflicts;
 CREATE TRIGGER conflicts_detected_notify
   AFTER INSERT ON public.knowledge_conflicts
   FOR EACH ROW
@@ -310,13 +334,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+DROP TRIGGER IF EXISTS conflicts_resolved_notify ON public.knowledge_conflicts;
 CREATE TRIGGER conflicts_resolved_notify
   AFTER UPDATE OF status ON public.knowledge_conflicts
   FOR EACH ROW
   EXECUTE FUNCTION public.notify_on_conflicts_resolved();
 
 -- Index for performance
-CREATE INDEX idx_knowledge_sources_tenant_status ON public.knowledge_sources(tenant_id, status);
-CREATE INDEX idx_suggestions_tenant_status ON public.extracted_knowledge_suggestions(tenant_id, status);
-CREATE INDEX idx_conflicts_tenant_status ON public.knowledge_conflicts(tenant_id, status);
-CREATE INDEX idx_notifications_tenant_unread ON public.owner_notifications(tenant_id, is_read) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_knowledge_sources_tenant_status ON public.knowledge_sources(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_suggestions_tenant_status ON public.extracted_knowledge_suggestions(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_conflicts_tenant_status ON public.knowledge_conflicts(tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_notifications_tenant_unread ON public.owner_notifications(tenant_id, is_read) WHERE is_read = false;

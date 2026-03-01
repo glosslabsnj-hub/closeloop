@@ -1,5 +1,5 @@
 -- Create booking_delivery_settings table
-CREATE TABLE public.booking_delivery_settings (
+CREATE TABLE IF NOT EXISTS public.booking_delivery_settings (
   tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
   enabled boolean DEFAULT true,
   handoff_methods jsonb DEFAULT '["internal"]'::jsonb,
@@ -12,7 +12,7 @@ CREATE TABLE public.booking_delivery_settings (
 );
 
 -- Create dispatch_delivery_settings table
-CREATE TABLE public.dispatch_delivery_settings (
+CREATE TABLE IF NOT EXISTS public.dispatch_delivery_settings (
   tenant_id uuid PRIMARY KEY REFERENCES public.tenants(id) ON DELETE CASCADE,
   enabled boolean DEFAULT true,
   handoff_methods jsonb DEFAULT '["internal"]'::jsonb,
@@ -43,10 +43,12 @@ ALTER TABLE public.booking_delivery_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dispatch_delivery_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for booking_delivery_settings
+DROP POLICY IF EXISTS "Users can view their tenant booking delivery settings" ON public.booking_delivery_settings;
 CREATE POLICY "Users can view their tenant booking delivery settings"
   ON public.booking_delivery_settings FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage booking delivery settings" ON public.booking_delivery_settings;
 CREATE POLICY "Owners can manage booking delivery settings"
   ON public.booking_delivery_settings FOR ALL
   USING (
@@ -57,10 +59,12 @@ CREATE POLICY "Owners can manage booking delivery settings"
   );
 
 -- RLS Policies for dispatch_delivery_settings
+DROP POLICY IF EXISTS "Users can view their tenant dispatch delivery settings" ON public.dispatch_delivery_settings;
 CREATE POLICY "Users can view their tenant dispatch delivery settings"
   ON public.dispatch_delivery_settings FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage dispatch delivery settings" ON public.dispatch_delivery_settings;
 CREATE POLICY "Owners can manage dispatch delivery settings"
   ON public.dispatch_delivery_settings FOR ALL
   USING (
@@ -71,11 +75,13 @@ CREATE POLICY "Owners can manage dispatch delivery settings"
   );
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_booking_delivery_settings_updated_at ON public.booking_delivery_settings;
 CREATE TRIGGER update_booking_delivery_settings_updated_at
   BEFORE UPDATE ON public.booking_delivery_settings
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_dispatch_delivery_settings_updated_at ON public.dispatch_delivery_settings;
 CREATE TRIGGER update_dispatch_delivery_settings_updated_at
   BEFORE UPDATE ON public.dispatch_delivery_settings
   FOR EACH ROW

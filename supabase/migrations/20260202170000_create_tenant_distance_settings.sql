@@ -67,6 +67,19 @@ CREATE TABLE IF NOT EXISTS public.tenant_distance_settings (
 );
 
 -- ============================================================================
+-- ADD MISSING COLUMNS (table may have been created by earlier migration with different schema)
+-- ============================================================================
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS distance_provider_enabled boolean NOT NULL DEFAULT false;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_lat numeric(10, 7) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_lng numeric(10, 7) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS base_place_name text NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS mapbox_route_profile text NOT NULL DEFAULT 'mapbox/driving-traffic';
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_base_minutes integer NOT NULL DEFAULT 0;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_per_mile_minutes numeric(5, 2) NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_min_minutes integer NULL;
+ALTER TABLE public.tenant_distance_settings ADD COLUMN IF NOT EXISTS eta_max_minutes integer NULL;
+
+-- ============================================================================
 -- COMMENTS
 -- ============================================================================
 COMMENT ON TABLE public.tenant_distance_settings IS
@@ -140,9 +153,7 @@ CREATE POLICY tenant_isolation_all
 -- ============================================================================
 -- TRIGGER: Auto-update updated_at on row modification
 -- ============================================================================
-DROP TRIGGER IF EXISTS update_tenant_distance_settings_updated_at
-  ON public.tenant_distance_settings;
-
+DROP TRIGGER IF EXISTS update_tenant_distance_settings_updated_at ON public.tenant_distance_settings;
 CREATE TRIGGER update_tenant_distance_settings_updated_at
   BEFORE UPDATE ON public.tenant_distance_settings
   FOR EACH ROW

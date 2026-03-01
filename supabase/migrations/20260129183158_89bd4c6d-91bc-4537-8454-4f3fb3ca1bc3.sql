@@ -27,14 +27,16 @@ CREATE INDEX IF NOT EXISTS idx_ai_event_logs_created_at ON public.ai_event_logs(
 ALTER TABLE public.ai_event_logs ENABLE ROW LEVEL SECURITY;
 
 -- RLS policy for tenant access
+DROP POLICY IF EXISTS "Tenant users can view their event logs" ON public.ai_event_logs;
 CREATE POLICY "Tenant users can view their event logs"
-ON public.ai_event_logs
+  ON public.ai_event_logs
 FOR SELECT
 USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Allow service role full access
+DROP POLICY IF EXISTS "Service role can manage event logs" ON public.ai_event_logs;
 CREATE POLICY "Service role can manage event logs"
-ON public.ai_event_logs
+  ON public.ai_event_logs
 FOR ALL
 USING (true)
 WITH CHECK (true);

@@ -1,5 +1,5 @@
 -- Create voice_options table for secure voice configuration
-CREATE TABLE public.voice_options (
+CREATE TABLE IF NOT EXISTS public.voice_options (
   id text PRIMARY KEY,
   name text NOT NULL,
   description text,
@@ -17,7 +17,8 @@ INSERT INTO public.voice_options (id, name, description, provider_voice_id, is_a
 ALTER TABLE public.voice_options ENABLE ROW LEVEL SECURITY;
 
 -- Read-only policy for authenticated users (only active voices)
-CREATE POLICY "Authenticated users can read active voices" 
+DROP POLICY IF EXISTS "Authenticated users can read active voices" ON public.voice_options;
+CREATE POLICY "Authenticated users can read active voices"
   ON public.voice_options 
   FOR SELECT 
   TO authenticated 

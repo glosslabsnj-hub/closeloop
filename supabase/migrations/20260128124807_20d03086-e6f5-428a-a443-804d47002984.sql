@@ -24,7 +24,7 @@ ADD COLUMN hipaa_mode boolean NOT NULL DEFAULT false;
 -- ==========================================
 
 -- Menu items table
-CREATE TABLE public.menu_items (
+CREATE TABLE IF NOT EXISTS public.menu_items (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   name text NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE public.menu_items (
 );
 
 -- Menu documents for PDF storage
-CREATE TABLE public.menu_documents (
+CREATE TABLE IF NOT EXISTS public.menu_documents (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   file_name text NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE public.menu_documents (
 );
 
 -- Food orders table
-CREATE TABLE public.food_orders (
+CREATE TABLE IF NOT EXISTS public.food_orders (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES public.customers(id),
@@ -71,7 +71,7 @@ CREATE TABLE public.food_orders (
 );
 
 -- Reservations table
-CREATE TABLE public.reservations (
+CREATE TABLE IF NOT EXISTS public.reservations (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES public.customers(id),
@@ -89,7 +89,7 @@ CREATE TABLE public.reservations (
 );
 
 -- Catering requests table
-CREATE TABLE public.catering_requests (
+CREATE TABLE IF NOT EXISTS public.catering_requests (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES public.customers(id),
@@ -116,7 +116,7 @@ CREATE TABLE public.catering_requests (
 -- ==========================================
 
 -- Dispatch jobs table
-CREATE TABLE public.dispatch_jobs (
+CREATE TABLE IF NOT EXISTS public.dispatch_jobs (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES public.customers(id),
@@ -161,7 +161,7 @@ CREATE TABLE public.dispatch_jobs (
 -- ==========================================
 
 -- Medical settings per tenant (HIPAA controls)
-CREATE TABLE public.medical_settings (
+CREATE TABLE IF NOT EXISTS public.medical_settings (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL UNIQUE REFERENCES public.tenants(id) ON DELETE CASCADE,
   store_transcripts boolean NOT NULL DEFAULT false,
@@ -175,7 +175,7 @@ CREATE TABLE public.medical_settings (
 );
 
 -- Medical intakes (minimal PHI storage)
-CREATE TABLE public.medical_intakes (
+CREATE TABLE IF NOT EXISTS public.medical_intakes (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id uuid NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   customer_id uuid REFERENCES public.customers(id),
@@ -219,12 +219,14 @@ ALTER TABLE public.medical_intakes ENABLE ROW LEVEL SECURITY;
 -- ==========================================
 -- RLS POLICIES - MENU ITEMS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant menu items" ON public.menu_items;
 CREATE POLICY "Users can view tenant menu items"
-ON public.menu_items FOR SELECT
+  ON public.menu_items FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage menu items" ON public.menu_items;
 CREATE POLICY "Owners can manage menu items"
-ON public.menu_items FOR ALL
+  ON public.menu_items FOR ALL
 USING (
   tenant_id IN (
     SELECT tenant_id FROM tenant_users 
@@ -235,12 +237,14 @@ USING (
 -- ==========================================
 -- RLS POLICIES - MENU DOCUMENTS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant menu documents" ON public.menu_documents;
 CREATE POLICY "Users can view tenant menu documents"
-ON public.menu_documents FOR SELECT
+  ON public.menu_documents FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage menu documents" ON public.menu_documents;
 CREATE POLICY "Owners can manage menu documents"
-ON public.menu_documents FOR ALL
+  ON public.menu_documents FOR ALL
 USING (
   tenant_id IN (
     SELECT tenant_id FROM tenant_users 
@@ -251,56 +255,66 @@ USING (
 -- ==========================================
 -- RLS POLICIES - FOOD ORDERS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant food orders" ON public.food_orders;
 CREATE POLICY "Users can view tenant food orders"
-ON public.food_orders FOR SELECT
+  ON public.food_orders FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant food orders" ON public.food_orders;
 CREATE POLICY "Users can manage tenant food orders"
-ON public.food_orders FOR ALL
+  ON public.food_orders FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ==========================================
 -- RLS POLICIES - RESERVATIONS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant reservations" ON public.reservations;
 CREATE POLICY "Users can view tenant reservations"
-ON public.reservations FOR SELECT
+  ON public.reservations FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant reservations" ON public.reservations;
 CREATE POLICY "Users can manage tenant reservations"
-ON public.reservations FOR ALL
+  ON public.reservations FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ==========================================
 -- RLS POLICIES - CATERING REQUESTS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant catering requests" ON public.catering_requests;
 CREATE POLICY "Users can view tenant catering requests"
-ON public.catering_requests FOR SELECT
+  ON public.catering_requests FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant catering requests" ON public.catering_requests;
 CREATE POLICY "Users can manage tenant catering requests"
-ON public.catering_requests FOR ALL
+  ON public.catering_requests FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ==========================================
 -- RLS POLICIES - DISPATCH JOBS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant dispatch jobs" ON public.dispatch_jobs;
 CREATE POLICY "Users can view tenant dispatch jobs"
-ON public.dispatch_jobs FOR SELECT
+  ON public.dispatch_jobs FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant dispatch jobs" ON public.dispatch_jobs;
 CREATE POLICY "Users can manage tenant dispatch jobs"
-ON public.dispatch_jobs FOR ALL
+  ON public.dispatch_jobs FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ==========================================
 -- RLS POLICIES - MEDICAL SETTINGS
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant medical settings" ON public.medical_settings;
 CREATE POLICY "Users can view tenant medical settings"
-ON public.medical_settings FOR SELECT
+  ON public.medical_settings FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Owners can manage medical settings" ON public.medical_settings;
 CREATE POLICY "Owners can manage medical settings"
-ON public.medical_settings FOR ALL
+  ON public.medical_settings FOR ALL
 USING (
   tenant_id IN (
     SELECT tenant_id FROM tenant_users 
@@ -311,41 +325,50 @@ USING (
 -- ==========================================
 -- RLS POLICIES - MEDICAL INTAKES
 -- ==========================================
+DROP POLICY IF EXISTS "Users can view tenant medical intakes" ON public.medical_intakes;
 CREATE POLICY "Users can view tenant medical intakes"
-ON public.medical_intakes FOR SELECT
+  ON public.medical_intakes FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can manage tenant medical intakes" ON public.medical_intakes;
 CREATE POLICY "Users can manage tenant medical intakes"
-ON public.medical_intakes FOR ALL
+  ON public.medical_intakes FOR ALL
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- ==========================================
 -- TRIGGERS FOR UPDATED_AT
 -- ==========================================
+DROP TRIGGER IF EXISTS update_menu_items_updated_at ON public.menu_items;
 CREATE TRIGGER update_menu_items_updated_at
   BEFORE UPDATE ON public.menu_items
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_food_orders_updated_at ON public.food_orders;
 CREATE TRIGGER update_food_orders_updated_at
   BEFORE UPDATE ON public.food_orders
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_reservations_updated_at ON public.reservations;
 CREATE TRIGGER update_reservations_updated_at
   BEFORE UPDATE ON public.reservations
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_catering_requests_updated_at ON public.catering_requests;
 CREATE TRIGGER update_catering_requests_updated_at
   BEFORE UPDATE ON public.catering_requests
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_dispatch_jobs_updated_at ON public.dispatch_jobs;
 CREATE TRIGGER update_dispatch_jobs_updated_at
   BEFORE UPDATE ON public.dispatch_jobs
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_medical_settings_updated_at ON public.medical_settings;
 CREATE TRIGGER update_medical_settings_updated_at
   BEFORE UPDATE ON public.medical_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_medical_intakes_updated_at ON public.medical_intakes;
 CREATE TRIGGER update_medical_intakes_updated_at
   BEFORE UPDATE ON public.medical_intakes
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

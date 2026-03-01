@@ -60,13 +60,17 @@ CREATE INDEX IF NOT EXISTS idx_busy_blocks_staff
 ALTER TABLE public.staff_members ENABLE ROW LEVEL SECURITY;
 
 -- Tenant members can read staff
-CREATE POLICY "staff_members_select" ON public.staff_members
+DROP POLICY IF EXISTS "staff_members_select" ON public.staff_members;
+CREATE POLICY "staff_members_select"
+  ON public.staff_members
   FOR SELECT USING (
     tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid())
   );
 
 -- Tenant owners/managers can insert staff
-CREATE POLICY "staff_members_insert" ON public.staff_members
+DROP POLICY IF EXISTS "staff_members_insert" ON public.staff_members;
+CREATE POLICY "staff_members_insert"
+  ON public.staff_members
   FOR INSERT WITH CHECK (
     tenant_id IN (
       SELECT tenant_id FROM public.tenant_users
@@ -75,7 +79,9 @@ CREATE POLICY "staff_members_insert" ON public.staff_members
   );
 
 -- Tenant owners/managers can update staff
-CREATE POLICY "staff_members_update" ON public.staff_members
+DROP POLICY IF EXISTS "staff_members_update" ON public.staff_members;
+CREATE POLICY "staff_members_update"
+  ON public.staff_members
   FOR UPDATE USING (
     tenant_id IN (
       SELECT tenant_id FROM public.tenant_users
@@ -84,7 +90,9 @@ CREATE POLICY "staff_members_update" ON public.staff_members
   );
 
 -- Tenant owners can delete staff
-CREATE POLICY "staff_members_delete" ON public.staff_members
+DROP POLICY IF EXISTS "staff_members_delete" ON public.staff_members;
+CREATE POLICY "staff_members_delete"
+  ON public.staff_members
   FOR DELETE USING (
     tenant_id IN (
       SELECT tenant_id FROM public.tenant_users

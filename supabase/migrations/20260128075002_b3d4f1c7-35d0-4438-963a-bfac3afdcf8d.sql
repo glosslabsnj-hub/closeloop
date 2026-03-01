@@ -2,6 +2,7 @@
 DROP POLICY IF EXISTS "Authenticated users can create tenants during onboarding" ON public.tenants;
 
 -- Create a PERMISSIVE INSERT policy for authenticated users during onboarding
+DROP POLICY IF EXISTS "Authenticated users can create tenants during onboarding" ON public.tenants;
 CREATE POLICY "Authenticated users can create tenants during onboarding"
   ON public.tenants
   FOR INSERT

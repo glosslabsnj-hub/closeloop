@@ -12,6 +12,7 @@
 -- 3. The membership link is created afterward via tenant_users
 
 -- Add INSERT-specific policy for tenant creation
+DROP POLICY IF EXISTS "Authenticated users can create tenants" ON public.tenants;
 CREATE POLICY "Authenticated users can create tenants"
 ON public.tenants
 FOR INSERT

@@ -3,7 +3,7 @@
 -- ============================================
 
 -- 1. Call outcomes for conversion tracking
-CREATE TABLE public.call_outcomes (
+CREATE TABLE IF NOT EXISTS public.call_outcomes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   session_id UUID REFERENCES public.ai_call_sessions(id) ON DELETE SET NULL,
@@ -19,15 +19,16 @@ CREATE TABLE public.call_outcomes (
 
 ALTER TABLE public.call_outcomes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view call outcomes" ON public.call_outcomes;
 CREATE POLICY "Users can view call outcomes"
-ON public.call_outcomes FOR SELECT
+  ON public.call_outcomes FOR SELECT
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE INDEX idx_call_outcomes_tenant_created ON public.call_outcomes(tenant_id, created_at DESC);
-CREATE INDEX idx_call_outcomes_outcome_type ON public.call_outcomes(tenant_id, outcome_type);
+CREATE INDEX IF NOT EXISTS idx_call_outcomes_tenant_created ON public.call_outcomes(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_call_outcomes_outcome_type ON public.call_outcomes(tenant_id, outcome_type);
 
 -- 2. Business patterns detected across calls
-CREATE TABLE public.business_patterns (
+CREATE TABLE IF NOT EXISTS public.business_patterns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   pattern_type TEXT NOT NULL CHECK (pattern_type IN ('time_pattern', 'service_trend', 'objection_pattern', 'conversion_pattern', 'capacity_pattern', 'upsell_opportunity')),
@@ -47,19 +48,21 @@ CREATE TABLE public.business_patterns (
 
 ALTER TABLE public.business_patterns ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view business patterns" ON public.business_patterns;
 CREATE POLICY "Users can view business patterns"
-ON public.business_patterns FOR SELECT
+  ON public.business_patterns FOR SELECT
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update business patterns" ON public.business_patterns;
 CREATE POLICY "Users can update business patterns"
-ON public.business_patterns FOR UPDATE
+  ON public.business_patterns FOR UPDATE
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE INDEX idx_business_patterns_tenant ON public.business_patterns(tenant_id, is_dismissed, confidence_score DESC);
-CREATE UNIQUE INDEX idx_business_patterns_key ON public.business_patterns(tenant_id, pattern_type, pattern_key);
+CREATE INDEX IF NOT EXISTS idx_business_patterns_tenant ON public.business_patterns(tenant_id, is_dismissed, confidence_score DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_business_patterns_key ON public.business_patterns(tenant_id, pattern_type, pattern_key);
 
 -- 3. Actionable insights for owner review
-CREATE TABLE public.intelligence_insights (
+CREATE TABLE IF NOT EXISTS public.intelligence_insights (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   insight_type TEXT NOT NULL CHECK (insight_type IN ('knowledge_gap', 'upsell_opportunity', 'capacity_warning', 'conversion_drop', 'time_opportunity', 'service_recommendation', 'policy_needed')),
@@ -79,19 +82,21 @@ CREATE TABLE public.intelligence_insights (
 
 ALTER TABLE public.intelligence_insights ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view intelligence insights" ON public.intelligence_insights;
 CREATE POLICY "Users can view intelligence insights"
-ON public.intelligence_insights FOR SELECT
+  ON public.intelligence_insights FOR SELECT
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
+DROP POLICY IF EXISTS "Users can update intelligence insights" ON public.intelligence_insights;
 CREATE POLICY "Users can update intelligence insights"
-ON public.intelligence_insights FOR UPDATE
+  ON public.intelligence_insights FOR UPDATE
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE INDEX idx_intelligence_insights_tenant ON public.intelligence_insights(tenant_id, is_actioned, severity DESC);
-CREATE INDEX idx_intelligence_insights_unread ON public.intelligence_insights(tenant_id, is_read) WHERE is_read = false;
+CREATE INDEX IF NOT EXISTS idx_intelligence_insights_tenant ON public.intelligence_insights(tenant_id, is_actioned, severity DESC);
+CREATE INDEX IF NOT EXISTS idx_intelligence_insights_unread ON public.intelligence_insights(tenant_id, is_read) WHERE is_read = false;
 
 -- 4. Weekly digest snapshots
-CREATE TABLE public.intelligence_digest (
+CREATE TABLE IF NOT EXISTS public.intelligence_digest (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   period_start DATE NOT NULL,
@@ -107,14 +112,15 @@ CREATE TABLE public.intelligence_digest (
 
 ALTER TABLE public.intelligence_digest ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view intelligence digest" ON public.intelligence_digest;
 CREATE POLICY "Users can view intelligence digest"
-ON public.intelligence_digest FOR SELECT
+  ON public.intelligence_digest FOR SELECT
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE UNIQUE INDEX idx_intelligence_digest_period ON public.intelligence_digest(tenant_id, period_start, period_end, digest_type);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_intelligence_digest_period ON public.intelligence_digest(tenant_id, period_start, period_end, digest_type);
 
 -- 5. AI response quality tracking
-CREATE TABLE public.ai_response_quality (
+CREATE TABLE IF NOT EXISTS public.ai_response_quality (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   session_id UUID REFERENCES public.ai_call_sessions(id) ON DELETE SET NULL,
@@ -129,12 +135,17 @@ CREATE TABLE public.ai_response_quality (
 
 ALTER TABLE public.ai_response_quality ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view ai response quality" ON public.ai_response_quality;
 CREATE POLICY "Users can view ai response quality"
-ON public.ai_response_quality FOR SELECT
+  ON public.ai_response_quality FOR SELECT
 USING (tenant_id IN (SELECT tenant_id FROM public.tenant_users WHERE user_id = auth.uid()));
 
-CREATE INDEX idx_ai_response_quality_tenant ON public.ai_response_quality(tenant_id, created_at DESC);
-CREATE INDEX idx_ai_response_quality_source ON public.ai_response_quality(tenant_id, response_source);
+CREATE INDEX IF NOT EXISTS idx_ai_response_quality_tenant ON public.ai_response_quality(tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_response_quality_source ON public.ai_response_quality(tenant_id, response_source);
 
 -- Enable realtime for insights (so owners see new insights immediately)
-ALTER PUBLICATION supabase_realtime ADD TABLE public.intelligence_insights;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'intelligence_insights') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.intelligence_insights;
+  END IF;
+END $$;

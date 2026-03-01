@@ -20,7 +20,7 @@ CREATE TYPE public.voice_mode AS ENUM ('always_on', 'busy_mode', 'overflow', 'af
 CREATE TYPE public.missed_call_behavior AS ENUM ('text_only', 'ai_callback', 'both');
 
 -- Create subscriptions table
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   stripe_customer_id TEXT,
@@ -34,7 +34,7 @@ CREATE TABLE public.subscriptions (
 );
 
 -- Create assistant_settings table
-CREATE TABLE public.assistant_settings (
+CREATE TABLE IF NOT EXISTS public.assistant_settings (
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE PRIMARY KEY,
   instant_text_enabled BOOLEAN NOT NULL DEFAULT false,
   voice_ai_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -56,14 +56,17 @@ CREATE TABLE public.assistant_settings (
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for subscriptions
+DROP POLICY IF EXISTS "Users can view their tenant subscription" ON public.subscriptions;
 CREATE POLICY "Users can view their tenant subscription"
   ON public.subscriptions FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert their tenant subscription" ON public.subscriptions;
 CREATE POLICY "Users can insert their tenant subscription"
   ON public.subscriptions FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update their tenant subscription" ON public.subscriptions;
 CREATE POLICY "Users can update their tenant subscription"
   ON public.subscriptions FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
@@ -72,14 +75,17 @@ CREATE POLICY "Users can update their tenant subscription"
 ALTER TABLE public.assistant_settings ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for assistant_settings
+DROP POLICY IF EXISTS "Users can view their tenant assistant settings" ON public.assistant_settings;
 CREATE POLICY "Users can view their tenant assistant settings"
   ON public.assistant_settings FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert their tenant assistant settings" ON public.assistant_settings;
 CREATE POLICY "Users can insert their tenant assistant settings"
   ON public.assistant_settings FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update their tenant assistant settings" ON public.assistant_settings;
 CREATE POLICY "Users can update their tenant assistant settings"
   ON public.assistant_settings FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
@@ -134,11 +140,13 @@ AS $$
 $$;
 
 -- Trigger to update updated_at
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON public.subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at
   BEFORE UPDATE ON public.subscriptions
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_assistant_settings_updated_at ON public.assistant_settings;
 CREATE TRIGGER update_assistant_settings_updated_at
   BEFORE UPDATE ON public.assistant_settings
   FOR EACH ROW

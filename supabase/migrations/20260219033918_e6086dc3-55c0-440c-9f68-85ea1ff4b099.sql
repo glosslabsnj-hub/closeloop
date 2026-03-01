@@ -2,7 +2,7 @@
 -- ============================================================
 -- 1. admin_growth_settings (singleton config)
 -- ============================================================
-CREATE TABLE public.admin_growth_settings (
+CREATE TABLE IF NOT EXISTS public.admin_growth_settings (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   auto_discovery_enabled BOOLEAN NOT NULL DEFAULT false,
   discovery_industries TEXT[] NOT NULL DEFAULT '{}',
@@ -34,6 +34,7 @@ CREATE TABLE public.admin_growth_settings (
 
 ALTER TABLE public.admin_growth_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage growth settings" ON public.admin_growth_settings;
 CREATE POLICY "Super admins can manage growth settings"
   ON public.admin_growth_settings FOR ALL
   USING (
@@ -46,7 +47,7 @@ CREATE POLICY "Super admins can manage growth settings"
 -- ============================================================
 -- 2. admin_social_posts
 -- ============================================================
-CREATE TABLE public.admin_social_posts (
+CREATE TABLE IF NOT EXISTS public.admin_social_posts (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   platform TEXT NOT NULL,
   content TEXT NOT NULL DEFAULT '',
@@ -62,6 +63,7 @@ CREATE TABLE public.admin_social_posts (
 
 ALTER TABLE public.admin_social_posts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage social posts" ON public.admin_social_posts;
 CREATE POLICY "Super admins can manage social posts"
   ON public.admin_social_posts FOR ALL
   USING (
@@ -74,7 +76,7 @@ CREATE POLICY "Super admins can manage social posts"
 -- ============================================================
 -- 3. admin_growth_activity_log
 -- ============================================================
-CREATE TABLE public.admin_growth_activity_log (
+CREATE TABLE IF NOT EXISTS public.admin_growth_activity_log (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   activity_type TEXT NOT NULL,
   title TEXT NOT NULL,
@@ -85,12 +87,14 @@ CREATE TABLE public.admin_growth_activity_log (
 
 ALTER TABLE public.admin_growth_activity_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can view activity log" ON public.admin_growth_activity_log;
 CREATE POLICY "Super admins can view activity log"
   ON public.admin_growth_activity_log FOR SELECT
   USING (
     EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'super_admin')
   );
 
+DROP POLICY IF EXISTS "Super admins can insert activity log" ON public.admin_growth_activity_log;
 CREATE POLICY "Super admins can insert activity log"
   ON public.admin_growth_activity_log FOR INSERT
   WITH CHECK (
@@ -100,7 +104,7 @@ CREATE POLICY "Super admins can insert activity log"
 -- ============================================================
 -- 4. admin_outreach_sequences
 -- ============================================================
-CREATE TABLE public.admin_outreach_sequences (
+CREATE TABLE IF NOT EXISTS public.admin_outreach_sequences (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT DEFAULT NULL,
@@ -113,6 +117,7 @@ CREATE TABLE public.admin_outreach_sequences (
 
 ALTER TABLE public.admin_outreach_sequences ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage outreach sequences" ON public.admin_outreach_sequences;
 CREATE POLICY "Super admins can manage outreach sequences"
   ON public.admin_outreach_sequences FOR ALL
   USING (
@@ -125,7 +130,7 @@ CREATE POLICY "Super admins can manage outreach sequences"
 -- ============================================================
 -- 5. admin_outreach_sequence_steps
 -- ============================================================
-CREATE TABLE public.admin_outreach_sequence_steps (
+CREATE TABLE IF NOT EXISTS public.admin_outreach_sequence_steps (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   sequence_id UUID NOT NULL REFERENCES public.admin_outreach_sequences(id) ON DELETE CASCADE,
   step_order INT NOT NULL DEFAULT 1,
@@ -140,6 +145,7 @@ CREATE TABLE public.admin_outreach_sequence_steps (
 
 ALTER TABLE public.admin_outreach_sequence_steps ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage sequence steps" ON public.admin_outreach_sequence_steps;
 CREATE POLICY "Super admins can manage sequence steps"
   ON public.admin_outreach_sequence_steps FOR ALL
   USING (
@@ -152,7 +158,7 @@ CREATE POLICY "Super admins can manage sequence steps"
 -- ============================================================
 -- 6. admin_outreach_campaigns
 -- ============================================================
-CREATE TABLE public.admin_outreach_campaigns (
+CREATE TABLE IF NOT EXISTS public.admin_outreach_campaigns (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   sequence_id UUID NOT NULL REFERENCES public.admin_outreach_sequences(id),
@@ -168,6 +174,7 @@ CREATE TABLE public.admin_outreach_campaigns (
 
 ALTER TABLE public.admin_outreach_campaigns ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage outreach campaigns" ON public.admin_outreach_campaigns;
 CREATE POLICY "Super admins can manage outreach campaigns"
   ON public.admin_outreach_campaigns FOR ALL
   USING (
@@ -180,7 +187,7 @@ CREATE POLICY "Super admins can manage outreach campaigns"
 -- ============================================================
 -- 7. admin_outreach_enrollments
 -- ============================================================
-CREATE TABLE public.admin_outreach_enrollments (
+CREATE TABLE IF NOT EXISTS public.admin_outreach_enrollments (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   campaign_id UUID NOT NULL REFERENCES public.admin_outreach_campaigns(id) ON DELETE CASCADE,
   lead_type TEXT NOT NULL DEFAULT 'business',
@@ -200,6 +207,7 @@ CREATE TABLE public.admin_outreach_enrollments (
 
 ALTER TABLE public.admin_outreach_enrollments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage outreach enrollments" ON public.admin_outreach_enrollments;
 CREATE POLICY "Super admins can manage outreach enrollments"
   ON public.admin_outreach_enrollments FOR ALL
   USING (
@@ -212,7 +220,7 @@ CREATE POLICY "Super admins can manage outreach enrollments"
 -- ============================================================
 -- 8. admin_outreach_actions
 -- ============================================================
-CREATE TABLE public.admin_outreach_actions (
+CREATE TABLE IF NOT EXISTS public.admin_outreach_actions (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   enrollment_id UUID NOT NULL REFERENCES public.admin_outreach_enrollments(id) ON DELETE CASCADE,
   campaign_id UUID NOT NULL REFERENCES public.admin_outreach_campaigns(id) ON DELETE CASCADE,
@@ -228,6 +236,7 @@ CREATE TABLE public.admin_outreach_actions (
 
 ALTER TABLE public.admin_outreach_actions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage outreach actions" ON public.admin_outreach_actions;
 CREATE POLICY "Super admins can manage outreach actions"
   ON public.admin_outreach_actions FOR ALL
   USING (
@@ -260,6 +269,7 @@ CREATE TABLE IF NOT EXISTS public.admin_ad_campaigns (
 
 ALTER TABLE public.admin_ad_campaigns ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Super admins can manage ad campaigns" ON public.admin_ad_campaigns;
 CREATE POLICY "Super admins can manage ad campaigns"
   ON public.admin_ad_campaigns FOR ALL
   USING (
@@ -272,26 +282,32 @@ CREATE POLICY "Super admins can manage ad campaigns"
 -- ============================================================
 -- Updated_at triggers for mutable tables
 -- ============================================================
+DROP TRIGGER IF EXISTS update_admin_growth_settings_updated_at ON public.admin_growth_settings;
 CREATE TRIGGER update_admin_growth_settings_updated_at
   BEFORE UPDATE ON public.admin_growth_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_admin_social_posts_updated_at ON public.admin_social_posts;
 CREATE TRIGGER update_admin_social_posts_updated_at
   BEFORE UPDATE ON public.admin_social_posts
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_admin_outreach_sequences_updated_at ON public.admin_outreach_sequences;
 CREATE TRIGGER update_admin_outreach_sequences_updated_at
   BEFORE UPDATE ON public.admin_outreach_sequences
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_admin_outreach_campaigns_updated_at ON public.admin_outreach_campaigns;
 CREATE TRIGGER update_admin_outreach_campaigns_updated_at
   BEFORE UPDATE ON public.admin_outreach_campaigns
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_admin_outreach_enrollments_updated_at ON public.admin_outreach_enrollments;
 CREATE TRIGGER update_admin_outreach_enrollments_updated_at
   BEFORE UPDATE ON public.admin_outreach_enrollments
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_admin_ad_campaigns_updated_at ON public.admin_ad_campaigns;
 CREATE TRIGGER update_admin_ad_campaigns_updated_at
   BEFORE UPDATE ON public.admin_ad_campaigns
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

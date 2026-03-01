@@ -96,9 +96,7 @@ CREATE POLICY tenant_isolation_all
 -- TRIGGER: Auto-update updated_at on row modification
 -- ============================================================================
 -- Uses existing update_updated_at_column() function from earlier migrations
-DROP TRIGGER IF EXISTS update_tenant_distance_settings_updated_at
-  ON public.tenant_distance_settings;
-
+DROP TRIGGER IF EXISTS update_tenant_distance_settings_updated_at ON public.tenant_distance_settings;
 CREATE TRIGGER update_tenant_distance_settings_updated_at
   BEFORE UPDATE ON public.tenant_distance_settings
   FOR EACH ROW

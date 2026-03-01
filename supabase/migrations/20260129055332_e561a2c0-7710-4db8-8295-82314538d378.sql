@@ -42,15 +42,15 @@ CREATE TABLE workflows (
 );
 
 -- Unique constraint: only one default per trigger per tenant (optionally per location)
-CREATE UNIQUE INDEX workflows_default_idx 
+CREATE UNIQUE INDEX IF NOT EXISTS workflows_default_idx 
   ON workflows(tenant_id, trigger) 
   WHERE is_default = true AND location_id IS NULL;
 
-CREATE UNIQUE INDEX workflows_default_location_idx 
+CREATE UNIQUE INDEX IF NOT EXISTS workflows_default_location_idx 
   ON workflows(tenant_id, trigger, location_id) 
   WHERE is_default = true AND location_id IS NOT NULL;
 
-CREATE INDEX workflows_tenant_trigger_idx ON workflows(tenant_id, trigger, status);
+CREATE INDEX IF NOT EXISTS workflows_tenant_trigger_idx ON workflows(tenant_id, trigger, status);
 
 -- Workflow Nodes table
 CREATE TABLE workflow_nodes (
@@ -63,7 +63,7 @@ CREATE TABLE workflow_nodes (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX workflow_nodes_workflow_idx ON workflow_nodes(workflow_id);
+CREATE INDEX IF NOT EXISTS workflow_nodes_workflow_idx ON workflow_nodes(workflow_id);
 
 -- Workflow Edges table
 CREATE TABLE workflow_edges (
@@ -76,8 +76,8 @@ CREATE TABLE workflow_edges (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX workflow_edges_workflow_idx ON workflow_edges(workflow_id);
-CREATE INDEX workflow_edges_from_idx ON workflow_edges(from_node_id);
+CREATE INDEX IF NOT EXISTS workflow_edges_workflow_idx ON workflow_edges(workflow_id);
+CREATE INDEX IF NOT EXISTS workflow_edges_from_idx ON workflow_edges(from_node_id);
 
 -- Workflow Runs table
 CREATE TABLE workflow_runs (
@@ -94,9 +94,9 @@ CREATE TABLE workflow_runs (
   error TEXT
 );
 
-CREATE INDEX workflow_runs_entity_idx ON workflow_runs(tenant_id, entity_type, entity_id);
-CREATE INDEX workflow_runs_status_idx ON workflow_runs(tenant_id, status, started_at DESC);
-CREATE INDEX workflow_runs_workflow_idx ON workflow_runs(workflow_id);
+CREATE INDEX IF NOT EXISTS workflow_runs_entity_idx ON workflow_runs(tenant_id, entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS workflow_runs_status_idx ON workflow_runs(tenant_id, status, started_at DESC);
+CREATE INDEX IF NOT EXISTS workflow_runs_workflow_idx ON workflow_runs(workflow_id);
 
 -- Workflow Run Steps table
 CREATE TABLE workflow_run_steps (
@@ -111,7 +111,7 @@ CREATE TABLE workflow_run_steps (
   error TEXT
 );
 
-CREATE INDEX workflow_run_steps_run_idx ON workflow_run_steps(run_id);
+CREATE INDEX IF NOT EXISTS workflow_run_steps_run_idx ON workflow_run_steps(run_id);
 
 -- Scheduled steps for delay nodes
 CREATE TABLE workflow_scheduled_steps (
@@ -123,7 +123,7 @@ CREATE TABLE workflow_scheduled_steps (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX workflow_scheduled_due_idx ON workflow_scheduled_steps(scheduled_for, executed) WHERE NOT executed;
+CREATE INDEX IF NOT EXISTS workflow_scheduled_due_idx ON workflow_scheduled_steps(scheduled_for, executed) WHERE NOT executed;
 
 -- Enable RLS
 ALTER TABLE workflows ENABLE ROW LEVEL SECURITY;
@@ -134,15 +134,18 @@ ALTER TABLE workflow_run_steps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workflow_scheduled_steps ENABLE ROW LEVEL SECURITY;
 
 -- Workflows policies
+DROP POLICY IF EXISTS "Tenant users can view workflows" ON workflows;
 CREATE POLICY "Tenant users can view workflows"
   ON workflows FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant users can manage workflows" ON workflows;
 CREATE POLICY "Tenant users can manage workflows"
   ON workflows FOR ALL
   USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Nodes policies (via workflow)
+DROP POLICY IF EXISTS "Tenant users can view nodes" ON workflow_nodes;
 CREATE POLICY "Tenant users can view nodes"
   ON workflow_nodes FOR SELECT
   USING (EXISTS (
@@ -151,6 +154,7 @@ CREATE POLICY "Tenant users can view nodes"
     AND has_tenant_access(auth.uid(), w.tenant_id)
   ));
 
+DROP POLICY IF EXISTS "Tenant users can manage nodes" ON workflow_nodes;
 CREATE POLICY "Tenant users can manage nodes"
   ON workflow_nodes FOR ALL
   USING (EXISTS (
@@ -160,6 +164,7 @@ CREATE POLICY "Tenant users can manage nodes"
   ));
 
 -- Edges policies (via workflow)
+DROP POLICY IF EXISTS "Tenant users can view edges" ON workflow_edges;
 CREATE POLICY "Tenant users can view edges"
   ON workflow_edges FOR SELECT
   USING (EXISTS (
@@ -168,6 +173,7 @@ CREATE POLICY "Tenant users can view edges"
     AND has_tenant_access(auth.uid(), w.tenant_id)
   ));
 
+DROP POLICY IF EXISTS "Tenant users can manage edges" ON workflow_edges;
 CREATE POLICY "Tenant users can manage edges"
   ON workflow_edges FOR ALL
   USING (EXISTS (
@@ -177,19 +183,23 @@ CREATE POLICY "Tenant users can manage edges"
   ));
 
 -- Runs policies
+DROP POLICY IF EXISTS "Tenant users can view runs" ON workflow_runs;
 CREATE POLICY "Tenant users can view runs"
   ON workflow_runs FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant users can insert runs" ON workflow_runs;
 CREATE POLICY "Tenant users can insert runs"
   ON workflow_runs FOR INSERT
   WITH CHECK (has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Tenant users can update runs" ON workflow_runs;
 CREATE POLICY "Tenant users can update runs"
   ON workflow_runs FOR UPDATE
   USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Run Steps policies (via run)
+DROP POLICY IF EXISTS "Tenant users can view run steps" ON workflow_run_steps;
 CREATE POLICY "Tenant users can view run steps"
   ON workflow_run_steps FOR SELECT
   USING (EXISTS (
@@ -198,6 +208,7 @@ CREATE POLICY "Tenant users can view run steps"
     AND has_tenant_access(auth.uid(), r.tenant_id)
   ));
 
+DROP POLICY IF EXISTS "Tenant users can manage run steps" ON workflow_run_steps;
 CREATE POLICY "Tenant users can manage run steps"
   ON workflow_run_steps FOR ALL
   USING (EXISTS (
@@ -207,6 +218,7 @@ CREATE POLICY "Tenant users can manage run steps"
   ));
 
 -- Scheduled steps policies (via run)
+DROP POLICY IF EXISTS "Tenant users can view scheduled steps" ON workflow_scheduled_steps;
 CREATE POLICY "Tenant users can view scheduled steps"
   ON workflow_scheduled_steps FOR SELECT
   USING (EXISTS (
@@ -215,6 +227,7 @@ CREATE POLICY "Tenant users can view scheduled steps"
     AND has_tenant_access(auth.uid(), r.tenant_id)
   ));
 
+DROP POLICY IF EXISTS "Tenant users can manage scheduled steps" ON workflow_scheduled_steps;
 CREATE POLICY "Tenant users can manage scheduled steps"
   ON workflow_scheduled_steps FOR ALL
   USING (EXISTS (

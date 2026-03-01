@@ -55,27 +55,31 @@ CREATE TABLE IF NOT EXISTS public.callback_requests (
 COMMENT ON TABLE public.callback_requests IS
   'Persisted callback requests from AI calls. Ensures no callback intent is lost.';
 
-CREATE INDEX idx_callback_requests_tenant
+CREATE INDEX IF NOT EXISTS idx_callback_requests_tenant
   ON public.callback_requests(tenant_id, created_at DESC);
-CREATE INDEX idx_callback_requests_status
+CREATE INDEX IF NOT EXISTS idx_callback_requests_status
   ON public.callback_requests(tenant_id, status);
 
 -- RLS
 ALTER TABLE public.callback_requests ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant callback requests" ON public.callback_requests;
 CREATE POLICY "Users can view tenant callback requests"
   ON public.callback_requests FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant callback requests" ON public.callback_requests;
 CREATE POLICY "Users can insert tenant callback requests"
   ON public.callback_requests FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant callback requests" ON public.callback_requests;
 CREATE POLICY "Users can update tenant callback requests"
   ON public.callback_requests FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS update_callback_requests_updated_at ON public.callback_requests;
 CREATE TRIGGER update_callback_requests_updated_at
   BEFORE UPDATE ON public.callback_requests
   FOR EACH ROW
@@ -104,18 +108,22 @@ COMMENT ON TABLE public.medical_intake_delivery_settings IS
 -- RLS
 ALTER TABLE public.medical_intake_delivery_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant medical intake delivery settings" ON public.medical_intake_delivery_settings;
 CREATE POLICY "Users can view tenant medical intake delivery settings"
   ON public.medical_intake_delivery_settings FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant medical intake delivery settings" ON public.medical_intake_delivery_settings;
 CREATE POLICY "Users can insert tenant medical intake delivery settings"
   ON public.medical_intake_delivery_settings FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant medical intake delivery settings" ON public.medical_intake_delivery_settings;
 CREATE POLICY "Users can update tenant medical intake delivery settings"
   ON public.medical_intake_delivery_settings FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP TRIGGER IF EXISTS update_medical_intake_delivery_settings_updated_at ON public.medical_intake_delivery_settings;
 CREATE TRIGGER update_medical_intake_delivery_settings_updated_at
   BEFORE UPDATE ON public.medical_intake_delivery_settings
   FOR EACH ROW
@@ -143,18 +151,22 @@ COMMENT ON TABLE public.callback_delivery_settings IS
 -- RLS
 ALTER TABLE public.callback_delivery_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant callback delivery settings" ON public.callback_delivery_settings;
 CREATE POLICY "Users can view tenant callback delivery settings"
   ON public.callback_delivery_settings FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant callback delivery settings" ON public.callback_delivery_settings;
 CREATE POLICY "Users can insert tenant callback delivery settings"
   ON public.callback_delivery_settings FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant callback delivery settings" ON public.callback_delivery_settings;
 CREATE POLICY "Users can update tenant callback delivery settings"
   ON public.callback_delivery_settings FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP TRIGGER IF EXISTS update_callback_delivery_settings_updated_at ON public.callback_delivery_settings;
 CREATE TRIGGER update_callback_delivery_settings_updated_at
   BEFORE UPDATE ON public.callback_delivery_settings
   FOR EACH ROW

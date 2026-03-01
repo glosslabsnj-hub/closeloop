@@ -20,7 +20,9 @@ CREATE TABLE IF NOT EXISTS public.capability_definitions (
 ALTER TABLE public.capability_definitions ENABLE ROW LEVEL SECURITY;
 
 -- Create read policy
-CREATE POLICY "capability_definitions_select" ON public.capability_definitions
+DROP POLICY IF EXISTS "capability_definitions_select" ON public.capability_definitions;
+CREATE POLICY "capability_definitions_select"
+  ON public.capability_definitions
   FOR SELECT TO authenticated USING (true);
 
 -- Insert capability definitions

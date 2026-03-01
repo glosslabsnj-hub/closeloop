@@ -6,6 +6,7 @@
 -- ─── 1. RLS Policies for agency_applications ───
 
 -- Admin can read all applications
+DROP POLICY IF EXISTS "admin_select_agency_applications" ON agency_applications;
 CREATE POLICY "admin_select_agency_applications"
   ON agency_applications FOR SELECT
   USING (
@@ -14,6 +15,7 @@ CREATE POLICY "admin_select_agency_applications"
   );
 
 -- Admin can update applications
+DROP POLICY IF EXISTS "admin_update_agency_applications" ON agency_applications;
 CREATE POLICY "admin_update_agency_applications"
   ON agency_applications FOR UPDATE
   USING (has_role(auth.uid(), 'super_admin'));

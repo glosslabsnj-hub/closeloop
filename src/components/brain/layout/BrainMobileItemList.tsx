@@ -76,15 +76,15 @@ export function BrainMobileItemList({
 
         return (
           <div key={group.groupKey}>
-            <div className="flex items-center justify-between px-4 py-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
+            <div className="flex items-center justify-between px-4 py-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/80">
                 {group.groupLabel}
               </span>
-              <span className="text-[10px] tabular-nums text-muted-foreground/60">
+              <span className="text-[10px] tabular-nums text-muted-foreground/50 font-medium">
                 {doneCount} of {group.items.length}
               </span>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const statusInfo = statuses[item.id];
@@ -97,9 +97,11 @@ export function BrainMobileItemList({
                     key={item.id}
                     type="button"
                     onClick={() => onItemSelect(item.id)}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 bg-card rounded-xl hover:bg-muted/30 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 min-h-[56px] py-3.5 bg-card border border-border/20 rounded-xl hover:bg-muted/30 hover:border-border/40 transition-all active:scale-[0.98]"
                   >
-                    <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted shrink-0">
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                    </div>
                     <div className="flex-1 text-left min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-medium truncate">{item.title}</span>
@@ -115,7 +117,7 @@ export function BrainMobileItemList({
                     </div>
                     {badge && (
                       <span className={cn(
-                        "text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0",
+                        "text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0",
                         badge.className
                       )}>
                         {badge.label}

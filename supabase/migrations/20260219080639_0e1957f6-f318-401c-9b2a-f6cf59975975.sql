@@ -30,31 +30,36 @@ CREATE INDEX IF NOT EXISTS idx_agency_applications_status ON public.agency_appli
 ALTER TABLE public.agency_applications ENABLE ROW LEVEL SECURITY;
 
 -- Anon users can insert (public application form)
+DROP POLICY IF EXISTS "Anyone can submit agency applications" ON public.agency_applications;
 CREATE POLICY "Anyone can submit agency applications"
-ON public.agency_applications FOR INSERT
+  ON public.agency_applications FOR INSERT
 TO anon, authenticated
 WITH CHECK (true);
 
 -- Authenticated users can view their own applications
+DROP POLICY IF EXISTS "Users can view own applications" ON public.agency_applications;
 CREATE POLICY "Users can view own applications"
-ON public.agency_applications FOR SELECT
+  ON public.agency_applications FOR SELECT
 TO authenticated
 USING (user_id = auth.uid());
 
 -- Super admins can view all applications
+DROP POLICY IF EXISTS "Admins can view all applications" ON public.agency_applications;
 CREATE POLICY "Admins can view all applications"
-ON public.agency_applications FOR SELECT
+  ON public.agency_applications FOR SELECT
 TO authenticated
 USING (public.has_role(auth.uid(), 'super_admin'));
 
 -- Super admins can update applications
+DROP POLICY IF EXISTS "Admins can update applications" ON public.agency_applications;
 CREATE POLICY "Admins can update applications"
-ON public.agency_applications FOR UPDATE
+  ON public.agency_applications FOR UPDATE
 TO authenticated
 USING (public.has_role(auth.uid(), 'super_admin'));
 
 -- Trigger for updated_at
+DROP TRIGGER IF EXISTS update_agency_applications_updated_at ON public.agency_applications;
 CREATE TRIGGER update_agency_applications_updated_at
-BEFORE UPDATE ON public.agency_applications
+  BEFORE UPDATE ON public.agency_applications
 FOR EACH ROW
 EXECUTE FUNCTION public.update_updated_at_column();

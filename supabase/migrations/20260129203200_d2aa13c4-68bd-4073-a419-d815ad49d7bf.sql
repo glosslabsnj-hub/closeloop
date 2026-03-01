@@ -20,14 +20,14 @@ ALTER TABLE public.calendar_tokens ENABLE ROW LEVEL SECURITY;
 -- No policies = no access for anon/authenticated users
 -- Only service_role bypasses RLS
 
--- Create trigger for updated_at
+DROP TRIGGER IF EXISTS update_calendar_tokens_updated_at ON public.calendar_tokens;
 CREATE TRIGGER update_calendar_tokens_updated_at
   BEFORE UPDATE ON public.calendar_tokens
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Add index
-CREATE INDEX idx_calendar_tokens_tenant ON public.calendar_tokens(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_calendar_tokens_tenant ON public.calendar_tokens(tenant_id);
 
 -- Add expires_at column to busy_blocks if not exists (for hold expiration)
 DO $$
@@ -51,7 +51,7 @@ BEGIN
   END IF;
 END $$;
 
--- Create index for hold cleanup
+-- CREATE INDEX IF NOT EXISTS for hold cleanup
 CREATE INDEX IF NOT EXISTS idx_busy_blocks_expires_at ON public.busy_blocks(expires_at) WHERE expires_at IS NOT NULL;
 
 -- Update fn_place_hold to include session_id for idempotency

@@ -1,5 +1,5 @@
 -- Create table: knowledge_uploads
-CREATE TABLE public.knowledge_uploads (
+CREATE TABLE IF NOT EXISTS public.knowledge_uploads (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   file_url TEXT NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE public.knowledge_uploads (
 );
 
 -- Create table: knowledge_merge_queue
-CREATE TABLE public.knowledge_merge_queue (
+CREATE TABLE IF NOT EXISTS public.knowledge_merge_queue (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   upload_id UUID REFERENCES public.knowledge_uploads(id) ON DELETE CASCADE,
@@ -29,17 +29,18 @@ CREATE TABLE public.knowledge_merge_queue (
 );
 
 -- Create indexes
-CREATE INDEX idx_knowledge_uploads_tenant_id ON public.knowledge_uploads(tenant_id);
-CREATE INDEX idx_knowledge_uploads_status ON public.knowledge_uploads(status);
-CREATE INDEX idx_knowledge_merge_queue_tenant_id ON public.knowledge_merge_queue(tenant_id);
-CREATE INDEX idx_knowledge_merge_queue_upload_id ON public.knowledge_merge_queue(upload_id);
-CREATE INDEX idx_knowledge_merge_queue_status ON public.knowledge_merge_queue(status);
+CREATE INDEX IF NOT EXISTS idx_knowledge_uploads_tenant_id ON public.knowledge_uploads(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_uploads_status ON public.knowledge_uploads(status);
+CREATE INDEX IF NOT EXISTS idx_knowledge_merge_queue_tenant_id ON public.knowledge_merge_queue(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_merge_queue_upload_id ON public.knowledge_merge_queue(upload_id);
+CREATE INDEX IF NOT EXISTS idx_knowledge_merge_queue_status ON public.knowledge_merge_queue(status);
 
 -- Enable RLS
 ALTER TABLE public.knowledge_uploads ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_merge_queue ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for knowledge_uploads
+DROP POLICY IF EXISTS "Tenant isolation for knowledge_uploads" ON public.knowledge_uploads;
 CREATE POLICY "Tenant isolation for knowledge_uploads"
   ON public.knowledge_uploads
   FOR ALL
@@ -57,6 +58,7 @@ CREATE POLICY "Tenant isolation for knowledge_uploads"
   );
 
 -- RLS policies for knowledge_merge_queue
+DROP POLICY IF EXISTS "Tenant isolation for knowledge_merge_queue" ON public.knowledge_merge_queue;
 CREATE POLICY "Tenant isolation for knowledge_merge_queue"
   ON public.knowledge_merge_queue
   FOR ALL
@@ -74,10 +76,15 @@ CREATE POLICY "Tenant isolation for knowledge_merge_queue"
   );
 
 -- Trigger for updated_at on knowledge_uploads
+DROP TRIGGER IF EXISTS update_knowledge_uploads_updated_at ON public.knowledge_uploads;
 CREATE TRIGGER update_knowledge_uploads_updated_at
   BEFORE UPDATE ON public.knowledge_uploads
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Enable realtime for merge queue (for live updates)
-ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_merge_queue;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'knowledge_merge_queue') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.knowledge_merge_queue;
+  END IF;
+END $$;

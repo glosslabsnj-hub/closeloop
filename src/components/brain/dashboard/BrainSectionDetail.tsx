@@ -13,7 +13,8 @@ import React from "react";
 
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import { BrainSectionSidebar } from "@/components/brain/layout/BrainSectionSidebar";
 import { BrainMobileItemList } from "@/components/brain/layout/BrainMobileItemList";
@@ -85,9 +86,12 @@ export const BrainSectionDetail = React.memo(function BrainSectionDetail({
 
   return (
     <div className="space-y-5">
+      {/* Top accent border */}
+      <div className="h-0.5 rounded-full bg-gradient-to-r from-primary/40 via-primary/20 to-transparent" />
+
       {/* Breadcrumb + editorial header */}
-      <div className="space-y-3">
-        {/* Back button + breadcrumb + progress */}
+      <div className="space-y-1">
+        {/* Back button + breadcrumb + completion badge */}
         <div className="flex items-center gap-2 text-sm">
           <button
             type="button"
@@ -98,13 +102,20 @@ export const BrainSectionDetail = React.memo(function BrainSectionDetail({
             Business Brain
           </button>
           <span className="text-muted-foreground/50">/</span>
+          <_Icon className="h-4 w-4 text-primary shrink-0" />
           <span className="text-foreground font-medium flex-1">{displayTitle}</span>
-          <span className="text-xs font-medium tabular-nums text-muted-foreground">
-            {completion.percentage}%
-          </span>
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs tabular-nums font-medium",
+              completion.percentage === 100
+                ? "border-primary/30 text-primary bg-primary/5"
+                : "border-border/50 text-muted-foreground",
+            )}
+          >
+            {completion.percentage}% complete
+          </Badge>
         </div>
-
-        <Progress value={completion.percentage} className="h-1" />
       </div>
 
       {/* Banner content */}

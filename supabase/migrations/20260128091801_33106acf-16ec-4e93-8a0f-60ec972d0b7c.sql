@@ -40,8 +40,9 @@ ALTER TABLE availability_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blocked_times ENABLE ROW LEVEL SECURITY;
 
 -- RLS policies for availability_slots
+DROP POLICY IF EXISTS "Owners can manage availability slots" ON availability_slots;
 CREATE POLICY "Owners can manage availability slots"
-ON availability_slots FOR ALL
+  ON availability_slots FOR ALL
 USING (
   tenant_id IN (
     SELECT tenant_id FROM tenant_users 
@@ -49,13 +50,15 @@ USING (
   ) OR has_role(auth.uid(), 'super_admin')
 );
 
+DROP POLICY IF EXISTS "Users can view availability slots" ON availability_slots;
 CREATE POLICY "Users can view availability slots"
-ON availability_slots FOR SELECT
+  ON availability_slots FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- RLS policies for blocked_times
+DROP POLICY IF EXISTS "Owners can manage blocked times" ON blocked_times;
 CREATE POLICY "Owners can manage blocked times"
-ON blocked_times FOR ALL
+  ON blocked_times FOR ALL
 USING (
   tenant_id IN (
     SELECT tenant_id FROM tenant_users 
@@ -63,8 +66,9 @@ USING (
   ) OR has_role(auth.uid(), 'super_admin')
 );
 
+DROP POLICY IF EXISTS "Users can view blocked times" ON blocked_times;
 CREATE POLICY "Users can view blocked times"
-ON blocked_times FOR SELECT
+  ON blocked_times FOR SELECT
 USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Update fn_build_business_context to include booking mode

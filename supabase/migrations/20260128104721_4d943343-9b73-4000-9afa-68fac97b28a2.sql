@@ -1,5 +1,5 @@
 -- Create phone_numbers table for tracking provisioned Twilio numbers
-CREATE TABLE public.phone_numbers (
+CREATE TABLE IF NOT EXISTS public.phone_numbers (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   phone_e164 TEXT NOT NULL UNIQUE,
@@ -9,21 +9,23 @@ CREATE TABLE public.phone_numbers (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Create index for tenant lookup
-CREATE INDEX idx_phone_numbers_tenant_id ON public.phone_numbers(tenant_id);
+-- CREATE INDEX IF NOT EXISTS for tenant lookup
+CREATE INDEX IF NOT EXISTS idx_phone_numbers_tenant_id ON public.phone_numbers(tenant_id);
 
--- Create index for phone lookup (used by inbound webhook)
-CREATE INDEX idx_phone_numbers_phone_e164 ON public.phone_numbers(phone_e164);
+-- CREATE INDEX IF NOT EXISTS for phone lookup (used by inbound webhook)
+CREATE INDEX IF NOT EXISTS idx_phone_numbers_phone_e164 ON public.phone_numbers(phone_e164);
 
 -- Enable RLS
 ALTER TABLE public.phone_numbers ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their tenant's phone numbers
+DROP POLICY IF EXISTS "Users can view their tenant phone numbers" ON public.phone_numbers;
 CREATE POLICY "Users can view their tenant phone numbers"
   ON public.phone_numbers FOR SELECT
   USING (has_tenant_access(auth.uid(), tenant_id));
 
 -- Only service role can insert/update (edge functions)
+DROP POLICY IF EXISTS "Service role can manage phone numbers" ON public.phone_numbers;
 CREATE POLICY "Service role can manage phone numbers"
   ON public.phone_numbers FOR ALL
   USING (auth.role() = 'service_role');

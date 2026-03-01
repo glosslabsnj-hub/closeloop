@@ -124,18 +124,21 @@ ALTER TABLE ai_call_sessions
 -- referral_network_settings: tenant members can read/write their own
 ALTER TABLE referral_network_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "referral_network_settings_select" ON referral_network_settings;
 CREATE POLICY "referral_network_settings_select"
   ON referral_network_settings FOR SELECT
   USING (
     tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "referral_network_settings_insert" ON referral_network_settings;
 CREATE POLICY "referral_network_settings_insert"
   ON referral_network_settings FOR INSERT
   WITH CHECK (
     tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "referral_network_settings_update" ON referral_network_settings;
 CREATE POLICY "referral_network_settings_update"
   ON referral_network_settings FOR UPDATE
   USING (
@@ -143,6 +146,7 @@ CREATE POLICY "referral_network_settings_update"
   );
 
 -- Service role bypass for edge functions (matching engine reads all opted-in tenants)
+DROP POLICY IF EXISTS "referral_network_settings_service_role" ON referral_network_settings;
 CREATE POLICY "referral_network_settings_service_role"
   ON referral_network_settings FOR SELECT
   USING (auth.role() = 'service_role');
@@ -150,12 +154,14 @@ CREATE POLICY "referral_network_settings_service_role"
 -- referral_transfers: both source AND target tenants can read their transfers
 ALTER TABLE referral_transfers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "referral_transfers_select_source" ON referral_transfers;
 CREATE POLICY "referral_transfers_select_source"
   ON referral_transfers FOR SELECT
   USING (
     source_tenant_id IN (SELECT tenant_id FROM tenant_users WHERE user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "referral_transfers_select_target" ON referral_transfers;
 CREATE POLICY "referral_transfers_select_target"
   ON referral_transfers FOR SELECT
   USING (
@@ -163,6 +169,7 @@ CREATE POLICY "referral_transfers_select_target"
   );
 
 -- Service role for edge function writes
+DROP POLICY IF EXISTS "referral_transfers_service_role" ON referral_transfers;
 CREATE POLICY "referral_transfers_service_role"
   ON referral_transfers FOR ALL
   USING (auth.role() = 'service_role');

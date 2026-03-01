@@ -30,24 +30,27 @@ CREATE TABLE IF NOT EXISTS public.revenue_attributions (
 COMMENT ON TABLE public.revenue_attributions IS
   'Denormalized revenue attribution records linking AI calls to revenue entities.';
 
-CREATE INDEX idx_revenue_attr_tenant_date
+CREATE INDEX IF NOT EXISTS idx_revenue_attr_tenant_date
   ON public.revenue_attributions(tenant_id, attributed_at DESC);
-CREATE INDEX idx_revenue_attr_session
+CREATE INDEX IF NOT EXISTS idx_revenue_attr_session
   ON public.revenue_attributions(session_id) WHERE session_id IS NOT NULL;
-CREATE INDEX idx_revenue_attr_status
+CREATE INDEX IF NOT EXISTS idx_revenue_attr_status
   ON public.revenue_attributions(tenant_id, status);
 
 -- RLS
 ALTER TABLE public.revenue_attributions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant revenue attributions" ON public.revenue_attributions;
 CREATE POLICY "Users can view tenant revenue attributions"
   ON public.revenue_attributions FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant revenue attributions" ON public.revenue_attributions;
 CREATE POLICY "Users can insert tenant revenue attributions"
   ON public.revenue_attributions FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant revenue attributions" ON public.revenue_attributions;
 CREATE POLICY "Users can update tenant revenue attributions"
   ON public.revenue_attributions FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
@@ -78,20 +81,23 @@ CREATE TABLE IF NOT EXISTS public.revenue_stats_monthly (
 COMMENT ON TABLE public.revenue_stats_monthly IS
   'Pre-aggregated monthly revenue stats for fast historical dashboard queries.';
 
-CREATE INDEX idx_revenue_stats_tenant_month
+CREATE INDEX IF NOT EXISTS idx_revenue_stats_tenant_month
   ON public.revenue_stats_monthly(tenant_id, month DESC);
 
 -- RLS
 ALTER TABLE public.revenue_stats_monthly ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant revenue stats" ON public.revenue_stats_monthly;
 CREATE POLICY "Users can view tenant revenue stats"
   ON public.revenue_stats_monthly FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant revenue stats" ON public.revenue_stats_monthly;
 CREATE POLICY "Users can insert tenant revenue stats"
   ON public.revenue_stats_monthly FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant revenue stats" ON public.revenue_stats_monthly;
 CREATE POLICY "Users can update tenant revenue stats"
   ON public.revenue_stats_monthly FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
@@ -118,14 +124,17 @@ COMMENT ON COLUMN public.tenant_revenue_settings.subscription_cost_override_cent
 -- RLS
 ALTER TABLE public.tenant_revenue_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view tenant revenue settings" ON public.tenant_revenue_settings;
 CREATE POLICY "Users can view tenant revenue settings"
   ON public.tenant_revenue_settings FOR SELECT
   USING (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can insert tenant revenue settings" ON public.tenant_revenue_settings;
 CREATE POLICY "Users can insert tenant revenue settings"
   ON public.tenant_revenue_settings FOR INSERT
   WITH CHECK (public.has_tenant_access(auth.uid(), tenant_id));
 
+DROP POLICY IF EXISTS "Users can update tenant revenue settings" ON public.tenant_revenue_settings;
 CREATE POLICY "Users can update tenant revenue settings"
   ON public.tenant_revenue_settings FOR UPDATE
   USING (public.has_tenant_access(auth.uid(), tenant_id));
