@@ -164,13 +164,14 @@ export function AppSidebar({
 
   const coreItems: NavItem[] = [
     { href: "/app/dashboard", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
-    { href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
+    { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
+    { href: "/app/inbox?tab=calls", label: "Calls", icon: <AudioWaveform className={iconClass} /> },
+    { href: "/app/inbox?tab=leads", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
     ...(caps.hasLeadFollowUp ? [{ href: "/app/leads/recovery", label: "Lead Recovery", icon: <UserSearch className={iconClass} /> }] : []),
   ];
 
   const aiCenterItems: NavItem[] = [
-    { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
     { href: "/app/simulator", label: "Test Your AI", icon: <FlaskConical className={iconClass} /> },
     { href: "/app/partner", label: "AI Insights", icon: <Sparkles className={iconClass} /> },
   ];
@@ -187,8 +188,12 @@ export function AppSidebar({
   ];
 
   const renderLink = (item: NavItem) => {
-    const isActive = location.pathname === item.href;
-    const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => item.href.startsWith(route));
+    // Support query-param-aware active state (e.g. /app/inbox?tab=calls)
+    const [itemPath, itemQuery] = item.href.split("?");
+    const isActive = itemQuery
+      ? location.pathname === itemPath && location.search === `?${itemQuery}`
+      : location.pathname === item.href;
+    const isLocked = !effectiveHasSubscription && !alwaysAccessibleRoutes.some(route => itemPath.startsWith(route));
     return (
       <SidebarLink
         key={item.href}

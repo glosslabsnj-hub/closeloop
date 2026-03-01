@@ -529,17 +529,17 @@ serve(async (req) => {
 
     const { data: session, error: sessionError } = await supabase
       .from("ai_call_sessions")
-      .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid")
+      .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid, booking_id")
       .eq("elevenlabs_conversation_id", payload.conversation_id)
       .single();
 
     if (sessionError || !session) {
       console.error("Session not found for conversation:", payload.conversation_id);
-      
+
       if (payload.dynamic_variables?.caller_phone && payload.dynamic_variables?.tenant_id) {
         const { data: fallbackSession } = await supabase
           .from("ai_call_sessions")
-          .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid")
+          .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid, booking_id")
           .eq("tenant_id", payload.dynamic_variables.tenant_id)
           .eq("caller_phone", normalizeToE164(payload.dynamic_variables.caller_phone))
           .is("elevenlabs_conversation_id", null)
@@ -601,6 +601,7 @@ interface SessionData {
   customer_id: string | null;
   caller_phone: string | null;
   twilio_call_sid: string | null;
+  booking_id?: string | null;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -1205,10 +1206,22 @@ async function processCallData(
   // Skip entity creation for referral transfers — the referring agent's call
   // was terminated by the TwiML switch, so there's no booking/dispatch to create.
   // The RECEIVING agent's session will go through normal processing when it ends.
+  //
+  // Also skip booking creation if the session already has a booking_id — this means
+  // the ElevenLabs agent used the create_booking tool during the call, which already
+  // created the booking and called booking-handoff. Avoid duplicate bookings.
+  const existingToolBookingId = session.booking_id ?? null;
   if (outcome === "referral_transfer") {
     console.log(`[elevenlabs-webhook] Skipping entity creation for referral_transfer session ${sessionId.substring(0, 8)}...`);
     await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "derived_entity_skipped", {
       reason: "referral_transfer",
+      intent: validatedPayload.intent,
+    });
+  } else if (existingToolBookingId) {
+    console.log(`[elevenlabs-webhook] Skipping booking creation — booking already created via tool call: ${existingToolBookingId}`);
+    await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "derived_entity_skipped", {
+      reason: "tool_booking_exists",
+      booking_id: existingToolBookingId,
       intent: validatedPayload.intent,
     });
   } else {

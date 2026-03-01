@@ -294,7 +294,9 @@ serve(async (req: Request) => {
 
     const timezone = tenant?.timezone || "America/New_York";
     const bufferMinutes = tenant?.appointment_buffer_minutes || 15;
-    const bookingMode = assistantSettings?.ai_booking_mode || "pending"; // pending | auto_confirm | hybrid
+    const rawMode = assistantSettings?.ai_booking_mode || "pending";
+    // Normalize: accept both "auto_book" and "auto_confirm" as auto-confirm
+    const bookingMode = (rawMode === "auto_book" || rawMode === "auto_confirm") ? "auto_confirm" : rawMode;
 
     // Parse date and time
     const targetDate = parseDate(rawDate, timezone);
@@ -490,7 +492,7 @@ serve(async (req: Request) => {
         .from("ai_call_sessions")
         .update({
           booking_id: booking.id,
-          outcome: "booking",
+          outcome: "booked",
           extracted_payload: {
             booking_id: booking.id,
             confirmation_number: confirmationNumber,

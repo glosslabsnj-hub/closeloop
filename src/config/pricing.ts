@@ -85,7 +85,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     includedSmsSegments: null,
     overageMinuteRate: 0.55,
     overageSmsRate: 0,
-    stripePriceId: null,
+    stripePriceId: "price_1T2NqQDb4MCv003YApJCRdiM",
     isDefault: true,
   },
   {
@@ -99,7 +99,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     includedSmsSegments: null,
     overageMinuteRate: 0.45,
     overageSmsRate: 0,
-    stripePriceId: null,
+    stripePriceId: "price_1T2NscDb4MCv003Y1PCBnZyj",
   },
   {
     sku: "scale-5000",
@@ -112,7 +112,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     includedSmsSegments: null,
     overageMinuteRate: 0.35,
     overageSmsRate: 0,
-    stripePriceId: null,
+    stripePriceId: "price_1T2NuQDb4MCv003YOXc10yoj",
   },
   {
     sku: "power-10000",
@@ -125,7 +125,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     includedSmsSegments: null,
     overageMinuteRate: 0.29,
     overageSmsRate: 0,
-    stripePriceId: null,
+    stripePriceId: "price_1T2NvMDb4MCv003YPpbnOx5j",
   },
   {
     sku: "enterprise",

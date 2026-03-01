@@ -472,7 +472,7 @@ serve(async (req: Request) => {
         await supabase
           .from("ai_call_sessions")
           .update({
-            outcome: "dispatch",
+            outcome: "dispatched",
             extracted_payload: {
               dispatch_id: dispatch.id,
               job_number: dispatch.job_number,

@@ -154,11 +154,40 @@ export function useBookings() {
         .select()
         .single();
       if (error) throw error;
+
+      // Update busy_blocks: convert temporary hold to permanent confirmed booking
+      supabase
+        .from("busy_blocks")
+        .update({ block_type: "confirmed_booking", expires_at: null })
+        .eq("booking_id", id)
+        .then(({ error: bbErr }) => {
+          if (bbErr) console.error("busy_blocks update error:", bbErr);
+        });
+
+      // Call booking-handoff to notify customer (SMS, email) and create calendar event
+      if (tenant?.id) {
+        supabase.functions.invoke("booking-handoff", {
+          body: { booking_id: id, tenant_id: tenant.id },
+        }).catch((err) => console.error("booking-handoff error:", err));
+      }
+
+      // Fire booking.confirmed workflow trigger for automations
+      if (tenant?.id) {
+        supabase.functions.invoke("trigger-workflow", {
+          body: {
+            tenant_id: tenant.id,
+            trigger: "booking.confirmed",
+            entity_type: "booking",
+            entity_id: id,
+          },
+        }).catch((err) => console.error("trigger-workflow error:", err));
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking confirmed", description: "Appointment approved." });
+      toast({ title: "Booking confirmed", description: "Customer has been notified." });
     },
     onError: () => {
       toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
