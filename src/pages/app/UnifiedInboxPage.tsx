@@ -381,6 +381,8 @@ export default function UnifiedInboxPage() {
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
                   <SelectItem value="booked">Booked</SelectItem>
+                  {caps.isFoodBusiness && <SelectItem value="order">Ordered</SelectItem>}
+                  {caps.isDispatchBusiness && <SelectItem value="dispatch">Dispatched</SelectItem>}
                   <SelectItem value="followup">Follow-up</SelectItem>
                   <SelectItem value="lead_captured">Lead</SelectItem>
                   <SelectItem value="lost">Lost</SelectItem>

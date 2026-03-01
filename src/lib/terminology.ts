@@ -67,8 +67,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
     bookingsMetricLabel: "Bookings",
-    inboxPageTitle: "Leads",
-    inboxPageSubtitle: "Every customer interaction, organized.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every customer call and lead, organized.",
   },
   dispatch: {
     booking: "job",
@@ -91,8 +91,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending jobs",
     bookingConfirmed: "Job assigned",
     bookingsMetricLabel: "Jobs",
-    inboxPageTitle: "Call Log",
-    inboxPageSubtitle: "Every call, organized by priority.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every call and dispatch request, organized.",
   },
   food: {
     booking: "order",
@@ -115,8 +115,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "new orders",
     bookingConfirmed: "Order confirmed",
     bookingsMetricLabel: "Orders",
-    inboxPageTitle: "Leads",
-    inboxPageSubtitle: "Every customer interaction, organized.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every guest call and order, organized.",
   },
   medical: {
     booking: "appointment",
@@ -139,8 +139,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
     bookingsMetricLabel: "Appointments",
-    inboxPageTitle: "Leads",
-    inboxPageSubtitle: "Every patient interaction, organized.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every patient call and inquiry, organized.",
   },
   general: {
     booking: "booking",
@@ -163,8 +163,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
     bookingsMetricLabel: "Bookings",
-    inboxPageTitle: "Leads",
-    inboxPageSubtitle: "Every customer interaction, organized.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every customer call and inquiry, organized.",
   },
   sales: {
     booking: "appointment",
@@ -187,8 +187,8 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
     bookingsMetricLabel: "Appointments",
-    inboxPageTitle: "Leads",
-    inboxPageSubtitle: "Every prospect interaction, organized.",
+    inboxPageTitle: "Inbox",
+    inboxPageSubtitle: "Every prospect call and lead, organized.",
   },
 };
 

@@ -91,7 +91,7 @@ function AppLayoutContent() {
   const mobileNavItems = useMemo(() => {
     const items: NavItem[] = [
       { href: "/app/dashboard", label: "Home", icon: LayoutDashboard },
-      { href: "/app/inbox", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? Phone : Users },
+      { href: "/app/inbox", label: "Inbox", icon: caps.isDispatchBusiness ? Phone : Users },
     ];
     if (caps.isFoodBusiness && caps.hasFoodOrders) {
       items.push({ href: "/app/orders", label: "Orders", icon: UtensilsCrossed });

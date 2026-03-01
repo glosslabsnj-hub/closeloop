@@ -166,7 +166,7 @@ export function AppSidebar({
     { href: "/app/dashboard", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
     { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
     { href: "/app/inbox?tab=calls", label: "Calls", icon: <AudioWaveform className={iconClass} /> },
-    { href: "/app/inbox?tab=leads", label: (terms.inboxPageTitle as string) || "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
+    { href: "/app/inbox?tab=leads", label: "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
     ...(caps.hasLeadFollowUp ? [{ href: "/app/leads/recovery", label: "Lead Recovery", icon: <UserSearch className={iconClass} /> }] : []),
   ];

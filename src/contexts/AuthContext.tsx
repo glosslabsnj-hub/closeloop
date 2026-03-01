@@ -270,10 +270,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     // Listener for ONGOING auth changes (does NOT control isLoading)
+    let hadSession = false;
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
-        
+
+        // Detect session expiry: had a session before, now it's gone
+        if (hadSession && !session && event === "SIGNED_OUT") {
+          toast.info("Your session has expired. Please sign in again.");
+        }
+        if (session) hadSession = true;
+
         setSession(session);
         setUser(session?.user ?? null);
 
