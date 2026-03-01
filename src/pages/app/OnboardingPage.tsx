@@ -1,7 +1,7 @@
 /**
  * OnboardingPage — 5-phase industry-first onboarding flow.
  * Consolidated from 7 phases: work style merged into Phase 1 (Identity),
- * connect tools merged into Phase 5 (Review). Estimated ~7 min total.
+ * connect tools merged into Phase 5 (Review). Estimated ~5 min total.
  * Form state extracted to useOnboardingFormState, submission to useOnboardingSubmit.
  */
 import { useState, useEffect } from "react";

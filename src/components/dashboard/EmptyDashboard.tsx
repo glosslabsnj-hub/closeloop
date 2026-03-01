@@ -85,7 +85,8 @@ export function EmptyDashboard() {
   const [forwardingOpen, setForwardingOpen] = useState(false);
 
   const businessName = (tenant?.name as string) || "your business";
-  const phoneNumber = (tenant?.closeloop_number as string) || null;
+  // closeloop_number lives in assistant_settings, not the tenant record
+  const phoneNumber = assistantSettings?.forwarding_phone_e164 || assistantSettings?.closeloop_number || null;
   const isReady = readiness.score >= 80;
   const ModeIcon = getModeIcon(mode);
 

@@ -35,8 +35,14 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
   const [quickStartDismissed, setQuickStartDismissed] = useState(false);
 
-  // Determine completion status from assistant_settings
-  const phoneComplete = assistantSettings?.setup_step_phone || assistantSettings?.phone_connected || false;
+  // Determine completion status from assistant_settings.
+  // A provisioned Twilio number (closeloop_number / forwarding_phone_e164) counts as connected —
+  // onboarding provisions it in Step 15, so most users arrive here with a number already.
+  const phoneComplete =
+    assistantSettings?.setup_step_phone ||
+    assistantSettings?.phone_connected ||
+    !!(assistantSettings?.closeloop_number || assistantSettings?.forwarding_phone_e164) ||
+    false;
   const aiKnowledgeComplete = score >= 85 && p0Flags.length === 0;
   const goLiveComplete = assistantSettings?.go_live_enabled || false;
 
