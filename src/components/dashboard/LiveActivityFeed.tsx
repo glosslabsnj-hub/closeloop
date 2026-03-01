@@ -92,16 +92,17 @@ export function LiveActivityFeed() {
       calls?.forEach((call) => {
         const phone = call.caller_phone || "Unknown";
         const displayPhone = phone.length > 8 ? `${phone.slice(0, 3)}...${phone.slice(-4)}` : phone;
+        // Outcome values match the ai_call_outcome DB enum:
+        // booked, followup, lost, escalated, order, dispatch, message, lead_captured, referral_transfer
         const outcomeLabel = call.outcome === 'booked' ? 'Appointment Booked'
-          : call.outcome === 'voicemail' ? 'Voicemail'
-          : call.outcome === 'transferred' ? 'Transferred to Staff'
-          : call.outcome === 'cancelled' ? 'Cancelled'
-          : call.outcome === 'dispatched' ? 'Job Dispatched'
+          : call.outcome === 'dispatch' ? 'Job Dispatched'
           : call.outcome === 'order' ? 'Order Taken'
           : call.outcome === 'lead_captured' ? 'Lead Captured'
           : call.outcome === 'followup' ? 'Follow-up Needed'
           : call.outcome === 'escalated' ? 'Escalated'
-          : call.outcome === 'lost' ? 'Lost'
+          : call.outcome === 'lost' ? 'Missed'
+          : call.outcome === 'message' ? 'Message Left'
+          : call.outcome === 'referral_transfer' ? 'Transferred'
           : 'Call Handled';
         const keyDetail = extractKeyDetail(call.extracted_payload as Record<string, unknown> | null);
         const dur = formatCallDuration(call.started_at, call.ended_at);
@@ -114,8 +115,8 @@ export function LiveActivityFeed() {
           duration: dur,
           time: formatDistanceToNow(new Date(call.started_at), { addSuffix: true }),
           timestamp: new Date(call.started_at),
-          status: call.outcome === 'booked' || call.outcome === 'dispatched' || call.outcome === 'order' ? 'success'
-            : call.outcome === 'voicemail' || call.outcome === 'followup' || call.outcome === 'lead_captured' ? 'warning'
+          status: call.outcome === 'booked' || call.outcome === 'dispatch' || call.outcome === 'order' ? 'success'
+            : call.outcome === 'followup' || call.outcome === 'lead_captured' || call.outcome === 'message' ? 'warning'
             : call.outcome === 'lost' ? 'warning'
             : 'info',
         });

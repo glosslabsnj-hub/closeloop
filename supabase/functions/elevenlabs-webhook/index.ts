@@ -872,7 +872,7 @@ async function processCallData(
       customer_id: customerId,
       extracted_payload: validatedPayload as unknown as Record<string, unknown>,
       lead_score: leadScore,
-      followup_status: outcome === "booked" || outcome === "order" ? "completed" : "new",
+      followup_status: outcome === "booked" || outcome === "order" || outcome === "dispatch" ? "completed" : "new",
     })
     .eq("id", sessionId);
 
