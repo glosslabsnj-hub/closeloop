@@ -462,8 +462,11 @@ serve(async (req) => {
 
         const smsTemplates = (assistSettings?.settings_json as any)?.sms_templates;
         const confirmationConfig = smsTemplates?.appointment_confirmation;
+        // Default to enabled=true if the tenant hasn't configured SMS settings yet
+        // (matches the default in the Settings UI which shows confirmation as enabled by default)
+        const confirmationEnabled = confirmationConfig ? confirmationConfig.enabled : true;
 
-        if (confirmationConfig?.enabled) {
+        if (confirmationEnabled) {
           const startTime = new Date(booking.start_at).toLocaleTimeString("en-US", {
             hour: "numeric",
             minute: "2-digit",
@@ -474,7 +477,7 @@ serve(async (req) => {
             day: "numeric",
           });
 
-          const template = confirmationConfig.message ||
+          const template = confirmationConfig?.message ||
             "Hi {{customer_name}}! Your appointment with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.";
 
           const message = template
