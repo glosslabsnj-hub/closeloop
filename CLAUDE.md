@@ -81,9 +81,10 @@ Phone Call → Twilio → twilio-inbound (resolve tenant from phone#)
 ## CURRENT STATUS
 
 - **Build**: Clean (0 TypeScript errors, 0 ESLint errors)
-- **Tests**: 329 passing (8 test files)
+- **Tests**: 329 passing (9 test files)
 - **ESLint warnings**: ~1,752 (mostly `any` types from stale Supabase type generation)
 - **BusinessBrainPage**: 117 kB (was 876 kB — 87% reduction via code-splitting)
+- **AIAssistantPage**: 34 kB (was 546 kB — 94% reduction via code-splitting, 2026-03-01)
 - **Brand**: Fully rebranded to "Flux Receptionist" (brand.ts, all UI components, all 28 edge functions updated)
 
 ## BUSINESS MODE READINESS (update each session)
