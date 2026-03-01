@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,14 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import AIReadinessScore from "@/components/knowledge/AIReadinessScore";
-import KnowledgeGapQueue from "@/components/knowledge/KnowledgeGapQueue";
 import VoiceSelector from "@/components/ai/VoiceSelector";
-import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import BookingBehaviorSettings from "@/components/ai/BookingBehaviorSettings";
 import AppointmentReminderSettings from "@/components/ai/AppointmentReminderSettings";
 import ServiceCallFlowSettings from "@/components/ai/ServiceCallFlowSettings";
 import CalendarSyncSettings from "@/components/ai/CalendarSyncSettings";
-import ElevenLabsSetupGuide from "@/components/ai/ElevenLabsSetupGuide";
 import VoiceModeSelector from "@/components/ai/VoiceModeSelector";
 import AIBehaviorModeSelector from "@/components/ai/AIBehaviorModeSelector";
 import {
@@ -32,8 +29,22 @@ import {
   Settings2,
   Brain,
   PhoneForwarded,
+  Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// Lazy-load heavy tabs — ElevenLabs SDK (@elevenlabs/react) is ~400 kB;
+// only pull it in when the user actually clicks "Test Agent" or "ElevenLabs Setup".
+const VoiceAgentTest = lazy(() => import("@/components/ai/VoiceAgentTest"));
+const ElevenLabsSetupGuide = lazy(() => import("@/components/ai/ElevenLabsSetupGuide"));
+const KnowledgeGapQueue = lazy(() => import("@/components/knowledge/KnowledgeGapQueue"));
+
+const TabLoader = () => (
+  <div className="flex items-center justify-center py-16 text-muted-foreground">
+    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+    Loading...
+  </div>
+);
 
 export default function AIAssistantPage() {
   const { tenant } = useAuth();
@@ -47,6 +58,14 @@ export default function AIAssistantPage() {
   const [fallback, setFallback] = useState("");
   const [testing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("voice");
+  // Track which heavy tabs have been mounted once (don't unmount on tab switch)
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(["voice"]));
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setMountedTabs(prev => new Set([...prev, tab]));
+  };
 
   // Load AI assistant settings
   useEffect(() => {
@@ -199,7 +218,7 @@ export default function AIAssistantPage() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="voice" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="voice" className="gap-2">
             <Mic className="h-4 w-4" />
@@ -332,21 +351,33 @@ export default function AIAssistantPage() {
           </Card>
         </TabsContent>
 
-        {/* Knowledge Gaps Tab */}
+        {/* Knowledge Gaps Tab — lazy-loaded on first open */}
         <TabsContent value="gaps" className="space-y-6">
-          <KnowledgeGapQueue />
+          {mountedTabs.has("gaps") && (
+            <Suspense fallback={<TabLoader />}>
+              <KnowledgeGapQueue />
+            </Suspense>
+          )}
         </TabsContent>
 
-        {/* ElevenLabs Setup Tab */}
+        {/* ElevenLabs Setup Tab — lazy-loaded on first open (contains setup docs) */}
         <TabsContent value="setup" className="space-y-6">
-          <ElevenLabsSetupGuide />
+          {mountedTabs.has("setup") && (
+            <Suspense fallback={<TabLoader />}>
+              <ElevenLabsSetupGuide />
+            </Suspense>
+          )}
         </TabsContent>
 
-        {/* Test Agent Tab */}
+        {/* Test Agent Tab — lazy-loaded on first open (@elevenlabs/react is ~400 kB) */}
         <TabsContent value="test" className="space-y-6">
-          <div className="max-w-md">
-            <VoiceAgentTest />
-          </div>
+          {mountedTabs.has("test") && (
+            <Suspense fallback={<TabLoader />}>
+              <div className="max-w-md">
+                <VoiceAgentTest />
+              </div>
+            </Suspense>
+          )}
         </TabsContent>
       </Tabs>
 
