@@ -8,6 +8,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useCapabilities } from "@/hooks/useCapabilities";
 import { formatDistanceToNow } from "date-fns";
 import {
   Phone,
@@ -61,20 +62,25 @@ export function LiveActivityFeed() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
   const { terms } = useIndustryContext();
+  const caps = useCapabilities();
 
-  // Realtime subscription
+  // Realtime subscription — only subscribe to tables relevant to this tenant's mode
   useEffect(() => {
     if (!tenant?.id) return;
     const invalidate = () => queryClient.invalidateQueries({ queryKey: ["live-activity-feed", tenant.id] });
-    const channel = supabase
+    let channel = supabase
       .channel('activity-feed-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'ai_call_sessions', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_jobs', filter: `tenant_id=eq.${tenant.id}` }, invalidate)
-      .subscribe();
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'bookings', filter: `tenant_id=eq.${tenant.id}` }, invalidate);
+    if (caps.hasFoodOrders) {
+      channel = channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'food_orders', filter: `tenant_id=eq.${tenant.id}` }, invalidate);
+    }
+    if (caps.hasDispatchQueue) {
+      channel = channel.on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_jobs', filter: `tenant_id=eq.${tenant.id}` }, invalidate);
+    }
+    channel.subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [tenant?.id, queryClient]);
+  }, [tenant?.id, queryClient, caps.hasFoodOrders, caps.hasDispatchQueue]);
 
   const { data: activities, isLoading } = useQuery({
     queryKey: ["live-activity-feed", tenant?.id],
@@ -143,43 +149,49 @@ export function LiveActivityFeed() {
         });
       });
 
-      const { data: orders } = await supabase
-        .from("food_orders")
-        .select("id, order_number, status, order_type, customer_name, created_at")
-        .eq("tenant_id", tenant.id)
-        .order("created_at", { ascending: false })
-        .limit(4);
+      // Only query food_orders for food-mode tenants (avoids RLS 403 errors)
+      if (caps.hasFoodOrders) {
+        const { data: orders } = await supabase
+          .from("food_orders")
+          .select("id, order_number, status, order_type, customer_name, created_at")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(4);
 
-      orders?.forEach((order) => {
-        results.push({
-          id: `order-${order.id}`,
-          type: "order",
-          title: `Order #${order.order_number}`,
-          subtitle: `${order.customer_name || "Customer"} · ${order.order_type?.replace("_", " ")}`,
-          time: formatDistanceToNow(new Date(order.created_at), { addSuffix: true }),
-          timestamp: new Date(order.created_at),
-          status: order.status === 'completed' ? 'success' : 'info',
+        orders?.forEach((order) => {
+          results.push({
+            id: `order-${order.id}`,
+            type: "order",
+            title: `Order #${order.order_number}`,
+            subtitle: `${order.customer_name || "Customer"} · ${order.order_type?.replace("_", " ")}`,
+            time: formatDistanceToNow(new Date(order.created_at), { addSuffix: true }),
+            timestamp: new Date(order.created_at),
+            status: order.status === 'completed' ? 'success' : 'info',
+          });
         });
-      });
+      }
 
-      const { data: jobs } = await supabase
-        .from("dispatch_jobs")
-        .select("id, status, customer_name, job_type, created_at")
-        .eq("tenant_id", tenant.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
+      // Only query dispatch_jobs for dispatch-mode tenants (avoids RLS 403 errors)
+      if (caps.hasDispatchQueue) {
+        const { data: jobs } = await supabase
+          .from("dispatch_jobs")
+          .select("id, status, customer_name, job_type, created_at")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(3);
 
-      jobs?.forEach((job) => {
-        results.push({
-          id: `dispatch-${job.id}`,
-          type: "dispatch",
-          title: `${job.job_type || 'Job'} ${job.status}`,
-          subtitle: job.customer_name || "Customer",
-          time: formatDistanceToNow(new Date(job.created_at), { addSuffix: true }),
-          timestamp: new Date(job.created_at),
-          status: job.status === 'completed' ? 'success' : 'info',
+        jobs?.forEach((job) => {
+          results.push({
+            id: `dispatch-${job.id}`,
+            type: "dispatch",
+            title: `${job.job_type || 'Job'} ${job.status}`,
+            subtitle: job.customer_name || "Customer",
+            time: formatDistanceToNow(new Date(job.created_at), { addSuffix: true }),
+            timestamp: new Date(job.created_at),
+            status: job.status === 'completed' ? 'success' : 'info',
+          });
         });
-      });
+      }
 
       return results.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
     },

@@ -325,10 +325,10 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Create subscription
+      // Create subscription (trialing on base plan — gives full access for testing)
       await serviceClient.from("subscriptions").insert({
         tenant_id: tenantId,
-        plan_code: "voice",
+        plan_code: "base-200",
         status: "trialing",
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       });
@@ -455,16 +455,19 @@ async function seedTenantData(
   }
 
   // Seed sample call sessions
+  const outcomes: ("booked" | "followup" | "lost" | "escalated" | "message")[] =
+    ["booked", "booked", "lost", "followup", "message"];
   const calls = Array.from({ length: seedData.callCount }, (_, i) => {
     const hoursAgo = i * 2 + 1;
     const startedAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
     return {
       tenant_id: tenantId,
+      call_direction: "inbound" as const,
       started_at: startedAt.toISOString(),
       ended_at: new Date(startedAt.getTime() + (60 + i * 30) * 1000).toISOString(),
-      status: ["completed", "completed", "missed", "completed", "voicemail"][i % 5],
+      outcome: outcomes[i % outcomes.length],
       caller_phone: `+1555000${String(i).padStart(4, "0")}`,
-      duration_seconds: 60 + i * 30,
+      summary: `Sample ${outcomes[i % outcomes.length]} call from test data`,
     };
   });
 
