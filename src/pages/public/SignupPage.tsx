@@ -89,7 +89,7 @@ export default function SignupPage() {
     } catch (err: any) {
       const message = err.message?.toLowerCase() || "";
       if (message.includes("already registered") || message.includes("already exists")) {
-        setErrors({ email: "An account with this email already exists." });
+        setErrors({ email: "An account with this email already exists. Try signing in instead." });
       } else if (message.includes("email")) {
         setErrors({ email: "Please enter a valid email address." });
       } else if (message.includes("password")) {

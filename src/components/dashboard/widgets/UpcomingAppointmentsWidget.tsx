@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock } from "lucide-react";
 import { format, startOfDay, addDays, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 interface UpcomingBooking {
   id: string;
@@ -17,6 +20,7 @@ interface UpcomingBooking {
 
 export default function UpcomingAppointmentsWidget() {
   const { tenant } = useAuth();
+  const { terms } = useIndustryContext();
 
   const todayStart = startOfDay(new Date()).toISOString();
   const weekEnd = addDays(new Date(), 7).toISOString();
@@ -70,13 +74,13 @@ export default function UpcomingAppointmentsWidget() {
             <span className="text-sm font-medium">Next 7 Days</span>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {total} appointment{total !== 1 ? "s" : ""}
+            {total} {total !== 1 ? terms.bookings : terms.booking}
           </Badge>
         </div>
 
         {total === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No upcoming appointments this week
+            No upcoming {terms.bookings} this week
           </p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -102,7 +106,7 @@ export default function UpcomingAppointmentsWidget() {
                           {format(parseISO(b.start_at), "h:mm a")}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
-                          {b.leads?.full_name || "Customer"} — {b.services?.name || "Service"}
+                          {b.leads?.full_name || capitalize(terms.customer)} — {b.services?.name || capitalize(terms.service)}
                         </span>
                       </div>
                     ))}

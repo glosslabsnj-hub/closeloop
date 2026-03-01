@@ -13,6 +13,7 @@ import { TestCallCard } from "./TestCallCard";
 import { SmartChecklist } from "./SmartChecklist";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { type IndustryCatalogEntry } from "@/data/industryCatalog";
 import { WebsiteImportWizard } from "@/components/brain/uploads/WebsiteImportWizard";
 
@@ -32,6 +33,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
   const { tenant, assistantSettings } = useAuth();
   const { score, p0Flags, canGoLive: _aiReady, stepProgress } = useAIReadinessV2();
   const { _businessMode } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const [quickStartQuery, setQuickStartQuery] = useState("");
   const [websiteImportOpen, setWebsiteImportOpen] = useState(false);
   const [quickStartDismissed, setQuickStartDismissed] = useState(false);
@@ -61,7 +63,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     {
       id: "phone",
       title: "Connect Phone",
-      subtitle: phoneComplete ? "Phone connected" : "Get an AI phone number",
+      subtitle: phoneComplete ? "Phone connected" : "Get your AI phone number",
       icon: Phone,
       isComplete: phoneComplete,
     },
@@ -77,7 +79,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
     {
       id: "golive",
       title: "Go Live",
-      subtitle: goLiveComplete ? "Your AI is live!" : "Activate your AI",
+      subtitle: goLiveComplete ? "Your AI is live!" : `Start handling ${terms.bookings}`,
       icon: Power,
       isComplete: goLiveComplete,
     },

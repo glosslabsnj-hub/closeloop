@@ -85,9 +85,9 @@ export function BrainSectionSidebar({
 
     return (
       <div key={group.groupKey}>
-        <div className="text-xs font-medium px-3 py-1.5 text-muted-foreground flex items-center justify-between">
+        <div className="text-[11px] font-semibold uppercase tracking-wider px-3 py-1.5 text-muted-foreground/80 flex items-center justify-between">
           <span>{group.groupLabel}</span>
-          <span className="text-[10px] tabular-nums text-muted-foreground/60">
+          <span className="text-[10px] tabular-nums text-muted-foreground/50 font-medium normal-case tracking-normal">
             {doneCount} of {totalCount}
           </span>
         </div>
@@ -113,8 +113,8 @@ export function BrainSectionSidebar({
   };
 
   return (
-    <aside className="w-64 shrink-0 border-r border-border/10 hidden md:block">
-      <nav className="sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto py-4 px-2 space-y-5">
+    <aside className="w-72 shrink-0 border-r border-border/10 hidden md:block bg-card/30">
+      <nav className="sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto py-4 px-2 space-y-6">
         {mainGroups.map(renderGroup)}
 
         {hasAdvanced && (
@@ -129,7 +129,7 @@ export function BrainSectionSidebar({
               ) : (
                 <ChevronRight className="h-3 w-3" />
               )}
-              Advanced ({advancedGroups.reduce((n, g) => n + g.items.length, 0)})
+              Advanced ({advancedGroups.reduce((n, g) => n + g.items.length, 0)}) — fine-tune edge cases
             </button>
             {effectiveShowAdvanced && advancedGroups.map(renderGroup)}
           </>

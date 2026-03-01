@@ -60,7 +60,7 @@ export function BrainContentPanel({
   onMobileBack,
   children,
 }: BrainContentPanelProps) {
-  const [aiUsageOpen, setAiUsageOpen] = useState(false);
+  const [aiUsageOpen, setAiUsageOpen] = useState(true);
   const { tenant } = useAuth();
 
   if (!activeItem) return null;
@@ -88,19 +88,24 @@ export function BrainContentPanel({
           Back
         </Button>
 
-        {/* Header: icon + title + status badge */}
-        <div className="flex items-start gap-2.5">
-          <Icon className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+        {/* Header: icon in colored circle + title + status badge */}
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 shrink-0">
+            <Icon className="h-6 w-6 text-primary" />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-semibold tracking-tight">{activeItem.title}</h2>
               {badge && (
-                <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", badge.className)}>
+                <span className={cn("text-xs font-medium px-2.5 py-1 rounded-full", badge.className)}>
                   {badge.label}
                 </span>
               )}
               {isSmartDefault && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                <span
+                  className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary cursor-help"
+                  title="Pre-filled based on your industry. Feel free to customize."
+                >
                   <Zap className="h-3 w-3" />
                   Auto-configured
                 </span>
@@ -116,7 +121,7 @@ export function BrainContentPanel({
 
         {/* Why this matters */}
         {guidance?.whyText && (
-          <div className="flex items-start gap-2 rounded-lg border border-primary/10 bg-primary/5 px-3 py-2.5">
+          <div className="flex items-start gap-2.5 rounded-xl border border-primary/10 bg-card/60 backdrop-blur-sm px-4 py-3 shadow-sm">
             <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">Why this matters: </span>
@@ -161,6 +166,9 @@ export function BrainContentPanel({
             )}
           </div>
         )}
+
+        {/* Divider */}
+        <div className="border-t border-border/20" />
 
         {/* Editor content */}
         <div>{children}</div>
