@@ -1,10 +1,13 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-01 4:45 PM ET (receptionist_eng — 3 bugs + 6 edge fn deploys)
+## Last Session: 2026-03-01 4:52 PM ET (receptionist_ux — 3 UX fixes)
 
 ### What Was Done
-- Fixed 3 critical bugs: Brain save persistence, cross-mode query invalidation, RLS query failures
-- Deployed 6 edge functions: elevenlabs-create-booking, elevenlabs-webhook, booking-handoff, twilio-inbound, dispatch-handoff, order-handoff
+- Fixed Inbox page header: "Leads" → "Inbox" across all 6 modes with mode-specific subtitles
+- Added mode-aware outcome filters: "Ordered" for food, "Dispatched" for dispatch
+- Added session expiry toast in AuthContext (no more silent redirect to login)
+- Decoupled sidebar nav label from page title (sidebar says "Leads", mobile nav says "Inbox")
+- Filed backend bug handoff: outcome "booked" set before persistence confirmed → misleading badges
 
 ### Build Status
 - Build: Clean (0 errors)
@@ -39,6 +42,7 @@ All 6 critical call-flow edge functions deployed with accumulated bug fixes from
 - AppLayout uses useRef + useEffect to detect tenant.id changes and invalidate all queries
 
 ### Next Priorities
-1. QA verification of 3 gates (brain save, cross-mode, booking flow)
-2. Real end-to-end call test on demo line (855) 329-7357
-3. Remaining BLOCKED onboarding gates need real user flow testing
+1. QA verification of 5 gates (brain save, cross-mode, booking flow, dashboard terminology, error recovery)
+2. Backend fix: outcome "booked" must be downgraded to "followup" when persistBooking() fails
+3. Real end-to-end call test on demo line (855) 329-7357
+4. Remaining BLOCKED onboarding gates need real user flow testing
