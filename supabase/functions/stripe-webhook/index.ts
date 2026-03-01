@@ -615,6 +615,46 @@ serve(async (req) => {
       }
     }
 
+    // Handle payment failures — mark subscription as past_due so frontend blocks access
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object;
+      const stripeSubscriptionId = invoice.subscription;
+
+      if (stripeSubscriptionId) {
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("tenant_id, status")
+          .eq("stripe_subscription_id", stripeSubscriptionId)
+          .maybeSingle();
+
+        if (sub && sub.status !== "canceled") {
+          console.log(`PaymentFailed: tenant=${sub.tenant_id} subscription=${stripeSubscriptionId}`);
+
+          await supabase
+            .from("subscriptions")
+            .update({
+              status: "past_due",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("tenant_id", sub.tenant_id);
+
+          // Log audit event
+          await supabase.from("audit_events").insert({
+            tenant_id: sub.tenant_id,
+            event_type: "payment_failed",
+            entity_type: "subscription",
+            actor_type: "system",
+            payload: {
+              stripe_invoice_id: invoice.id,
+              stripe_subscription_id: stripeSubscriptionId,
+              amount_due: invoice.amount_due,
+              attempt_count: invoice.attempt_count,
+            },
+          });
+        }
+      }
+    }
+
     // Handle subscription cancellation
     if (event.type === "customer.subscription.deleted") {
       const subscription = event.data.object;

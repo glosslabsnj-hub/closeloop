@@ -178,16 +178,16 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
       <WebsiteImportWizard open={websiteImportOpen} onOpenChange={setWebsiteImportOpen} />
 
       {/* Readiness Ring + Progress */}
-      <div className="flex items-center gap-6 justify-center">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 justify-center">
         <ReadinessRing score={score} size={100} strokeWidth={7} />
-        <div className="space-y-2 text-left">
+        <div className="space-y-2 text-center sm:text-left">
           <p className="text-sm font-medium">
             {completedCount === steps.length
               ? "You're all set!"
               : `${completedCount} of ${steps.length} steps complete`
             }
           </p>
-          <Progress value={progress} className="h-2 w-40" />
+          <Progress value={progress} className="h-2 w-32 sm:w-40" />
           {score < 85 && (
             <p className="text-xs text-muted-foreground">
               Need 85% readiness to go live

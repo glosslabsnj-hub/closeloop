@@ -236,7 +236,7 @@ export default function OnboardingPage() {
         )}
 
         {/* Step Content */}
-        <div className={`flex-1 flex justify-center p-6 overflow-y-auto ${phase === 0 ? "items-center" : "items-start"}`}>
+        <div className={`flex-1 flex justify-center p-4 sm:p-6 overflow-y-auto ${phase === 0 ? "items-center" : "items-start"}`}>
           <div className="w-full max-w-2xl">
             <AnimatePresence mode="wait">
               {phase === 0 ? (
@@ -395,7 +395,7 @@ export default function OnboardingPage() {
 
         {/* Footer Navigation — hidden during quick start and review */}
         {!submit.isComplete && phase >= 1 && phase < REVIEW_PHASE && (
-          <div className="border-t bg-card p-6">
+          <div className="border-t bg-card p-4 sm:p-6">
             <div className="max-w-2xl mx-auto space-y-3">
               {submit.completionError && (
                 <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">

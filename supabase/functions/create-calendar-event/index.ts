@@ -84,7 +84,7 @@ serve(async (req) => {
       .select("*")
       .eq("tenant_id", tenant_id)
       .eq("provider", "google")
-      .eq("status", "active")
+      .eq("status", "connected")
       .single();
 
     if (connError || !connection) {
@@ -167,8 +167,16 @@ serve(async (req) => {
     const tenantTimezone = tenantData?.timezone || "America/New_York";
 
     // Get the calendar ID to create events in
-    const config = connection.config_json as { calendar_ids?: string[]; primary_calendar_id?: string } | null;
-    const calendarId = config?.primary_calendar_id || config?.calendar_ids?.[0] || "primary";
+    const config = connection.config_json as {
+      available_calendars?: { id: string; name: string; primary?: boolean }[];
+      selected_calendar_ids?: string[];
+    } | null;
+    let calendarId = config?.selected_calendar_ids?.[0];
+    if (!calendarId && config?.available_calendars) {
+      const primaryCal = config.available_calendars.find(c => c.primary);
+      calendarId = primaryCal?.id;
+    }
+    if (!calendarId) calendarId = "primary";
 
     // Build event payload
     const customerName = booking.lead?.full_name || "Customer";

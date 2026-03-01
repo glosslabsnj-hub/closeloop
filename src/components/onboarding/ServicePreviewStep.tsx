@@ -176,7 +176,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       autoFocus
                     />
                     {/* Price type selector */}
-                    <div className="flex gap-1">
+                    <div className="flex flex-wrap gap-1">
                       {([
                         { value: "fixed", label: "Exact price" },
                         { value: "starting_at", label: "Starting at" },

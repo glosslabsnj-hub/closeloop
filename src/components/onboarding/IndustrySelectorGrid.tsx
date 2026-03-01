@@ -61,7 +61,7 @@
        </div>
  
        {/* Industry Grid */}
-       <ScrollArea className="h-[320px]">
+       <ScrollArea className="h-[280px] sm:h-[320px]">
          <div className="grid grid-cols-2 gap-3 pr-4">
            {displayedIndustries.map((industry) => {
              const isSelected = value === industry.slug;

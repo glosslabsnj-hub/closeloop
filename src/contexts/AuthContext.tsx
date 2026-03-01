@@ -348,6 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check isSuperAdmin first to prevent any race conditions during initialization
   const hasActiveSubscription = React.useMemo(() => {
     if (isSuperAdmin) return true;
+    if (subscription?.status === "past_due") return false;
     return subscription?.status === "active" || subscription?.status === "trialing";
   }, [isSuperAdmin, subscription?.status]);
 

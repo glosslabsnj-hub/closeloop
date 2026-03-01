@@ -134,7 +134,7 @@ export function EmptyDashboard() {
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {getModeCapabilities(mode).map((cap) => (
                     <div key={cap} className="flex items-center gap-2 text-sm">
                       <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
