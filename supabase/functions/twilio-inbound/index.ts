@@ -480,7 +480,10 @@ Deno.serve(async (req) => {
                 call_direction: "inbound",
                 started_at: new Date().toISOString(),
                 ended_at: new Date().toISOString(),
-                outcome: "forwarded",
+                outcome: offBehavior === "FORWARD_OWNER" ? "escalated"
+                  : offBehavior === "VOICEMAIL" ? "message"
+                  : offBehavior === "CALLBACK_ONLY" ? "followup"
+                  : "lost",
                 summary: `Call handled via ${offBehavior} (${reason})`,
               }),
             },
