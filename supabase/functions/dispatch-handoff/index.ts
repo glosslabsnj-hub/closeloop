@@ -181,20 +181,27 @@ serve(async (req) => {
       .from("dispatch_delivery_settings")
       .select("*")
       .eq("tenant_id", tenant_id)
-      .single();
+      .maybeSingle();
 
-    if (!settings?.enabled) {
-      return jsonResponse({ success: true, message: "Handoff disabled" });
-    }
-
-    // Fetch tenant info
+    // Fetch tenant info + assistant settings (timezone) for customer SMS
     const { data: tenantData } = await supabase
       .from("tenants")
       .select("name")
       .eq("id", tenant_id)
       .single();
 
-    const methods = Array.isArray(settings.handoff_methods) ? settings.handoff_methods : ["internal"];
+    const { data: assistSettingsRow } = await supabase
+      .from("assistant_settings")
+      .select("settings_json")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
+    const tenantTimezone = (assistSettingsRow?.settings_json as any)?.timezone || "America/New_York";
+
+    // Owner notification methods are gated by delivery settings;
+    // critical post-dispatch actions (audit, workflow, customer SMS) always run
+    const ownerMethods = settings?.enabled && Array.isArray(settings.handoff_methods)
+      ? settings.handoff_methods.filter((m: string) => m !== "internal")
+      : [];
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Build payload
@@ -231,6 +238,8 @@ serve(async (req) => {
     };
 
     const isUrgent = dispatch.priority === "high" || dispatch.priority === "urgent";
+
+    // ── CRITICAL ACTIONS (always run, regardless of delivery settings) ──
 
     // Record audit event for dispatch created
     try {
@@ -283,18 +292,46 @@ serve(async (req) => {
       }
     }
 
+    // Customer confirmation SMS (always send if we have a customer phone)
+    const customerPhone = dispatch.customer?.phone_e164 || dispatch.customer_phone;
+    if (customerPhone) {
+      try {
+        const businessName = tenantData?.name || "us";
+        const jobType = dispatch.job_type || "your service request";
+        const smsBody = `Thank you for calling ${businessName}! Your ${jobType} request has been received. We're assigning a driver now and will update you when they're on the way.`;
+
+        const customerSmsResult = await sendTenantSms({
+          tenantId: tenant_id,
+          to: customerPhone,
+          body: smsBody,
+        });
+
+        if (customerSmsResult.success) {
+          results.customer_sms = { success: true };
+        } else if (!customerSmsResult.skipped) {
+          console.error(`[dispatch-handoff] Customer SMS failed: ${customerSmsResult.error}`);
+          results.customer_sms = { success: false, error: customerSmsResult.error };
+        }
+      } catch (e) {
+        console.error("[dispatch-handoff] Customer SMS error:", e);
+        results.customer_sms = { success: false, error: e instanceof Error ? e.message : "Unknown" };
+      }
+    }
+
+    // ── OWNER NOTIFICATIONS (gated by delivery settings) ──
+
     // Execute each enabled method
-    for (const handoffMethod of methods) {
+    for (const handoffMethod of ownerMethods) {
       if (handoffMethod === "internal") continue;
 
       try {
-        if (handoffMethod === "webhook" && settings.webhook_url) {
+        if (handoffMethod === "webhook" && settings?.webhook_url) {
           const payloadString = JSON.stringify(payload);
           const headers: Record<string, string> = {
             "Content-Type": "application/json",
           };
-          
-          if (settings.webhook_secret) {
+
+          if (settings?.webhook_secret) {
             headers["X-CloseLoop-Signature"] = await createHmacSignature(payloadString, settings.webhook_secret);
           }
 
@@ -319,7 +356,7 @@ serve(async (req) => {
           });
         }
 
-        if (handoffMethod === "email" && settings.notify_email) {
+        if (handoffMethod === "email" && settings?.notify_email) {
           const customerName = payload.customer.name;
           const jobType = payload.job_type || "Job";
           const pickupAddress = payload.location.pickup_address || "Location TBD";
@@ -355,7 +392,7 @@ serve(async (req) => {
           });
         }
 
-        if (handoffMethod === "sms" && settings.notify_phone) {
+        if (handoffMethod === "sms" && settings?.notify_phone) {
           const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
           const jobType = dispatch.job_type || "Job";
           const location = dispatch.pickup_address || "Location TBD";
@@ -399,8 +436,8 @@ serve(async (req) => {
       }
     }
 
-    // Handle urgent SMS separately
-    if (isUrgent && settings.urgent_sms_phone) {
+    // Handle urgent SMS separately (gated by settings)
+    if (isUrgent && settings?.urgent_sms_phone) {
       try {
         const customerName = dispatch.customer?.full_name || dispatch.customer_name || "Customer";
         const jobType = dispatch.job_type || "Job";

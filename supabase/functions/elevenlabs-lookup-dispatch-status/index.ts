@@ -275,13 +275,15 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[lookup-dispatch-status] Error:", error);
+    // Return 200 so ElevenLabs can parse the response body and relay the message to the caller.
+    // A 500 would cause ElevenLabs to ignore the body, leaving the AI with no context.
     return new Response(
       JSON.stringify({
         found: false,
         status_message: "I'm having trouble looking up your job right now. Can I take a message and have someone call you back with an update?",
         error: error instanceof Error ? error.message : "Unknown error",
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

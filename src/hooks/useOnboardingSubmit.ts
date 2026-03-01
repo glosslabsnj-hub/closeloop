@@ -287,6 +287,22 @@ export function useOnboardingSubmit(userId?: string) {
         if (error) throw error;
       });
 
+      // 9c. Dispatch delivery settings (upsert — ensures dispatch-handoff runs for dispatch tenants)
+      // Without this row, dispatch-handoff skips ALL notifications for new dispatch tenants.
+      if (businessMode === "dispatch" || enabledModules.includes("dispatch_queue")) {
+        await runStep("dispatch delivery settings", async () => {
+          const notifyEmail = user?.email || null;
+          const { error } = await supabase.from("dispatch_delivery_settings").upsert({
+            tenant_id: tenantId!,
+            enabled: true,
+            handoff_methods: notifyEmail ? ["internal", "email"] : ["internal"],
+            notify_email: notifyEmail,
+            notify_phone: notificationPhone || null,
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        });
+      }
+
       // 10. Communication / AI settings (update — naturally idempotent)
       await runStep("AI settings", async () => {
         const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";

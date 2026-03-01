@@ -206,6 +206,86 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     },
     setupTitle: "your locksmith business",
   },
+
+  // ── Dispatch industries ──
+
+  courier: {
+    preAnswers: {
+      needsDistancePricing: true,
+      offersPhoneQuotes: true,
+    },
+    setupChecklist: [
+      { label: "Set your delivery rates", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_dispatch_services", "missing_pricing"] },
+      { label: "Define your delivery area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your hours of operation", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set up your delivery zones", icon: "map" },
+      { label: "Add FAQs about your delivery services", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your courier service",
+  },
+
+  roadside_assistance: {
+    preAnswers: {
+      operates24Hours: true,
+      offersLockoutJumpstart: true,
+      offersPhoneQuotes: true,
+    },
+    setupChecklist: [
+      { label: "Set your service rates", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_dispatch_services", "missing_pricing"] },
+      { label: "Define your coverage area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Configure your fleet", fixPath: "/app/business-brain?section=services", icon: "team" },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set up your coverage area", icon: "map" },
+      { label: "Add FAQs about your roadside services", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your roadside assistance company",
+  },
+
+  medical_transport: {
+    preAnswers: {
+      needsDistancePricing: true,
+      offersPhoneQuotes: true,
+    },
+    setupChecklist: [
+      { label: "Set your transport rates", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_dispatch_services", "missing_pricing"] },
+      { label: "Define your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your hours of operation", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set up your service area", icon: "map" },
+      { label: "Add FAQs about your transport services", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your medical transport service",
+  },
+
+  mobile_mechanic: {
+    preAnswers: {
+      needsDistancePricing: true,
+      offersPhoneQuotes: true,
+      offersSameDayEmergency: true,
+    },
+    setupChecklist: [
+      { label: "Set your service rates", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_dispatch_services", "missing_pricing"] },
+      { label: "Define your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set up your service area", icon: "map" },
+      { label: "Add FAQs about your mobile repair services", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your mobile mechanic service",
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -226,8 +306,11 @@ const categoryConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your shop",
   },
   dispatch_logistics: {
-    preAnswers: {},
-    setupTitle: "your company",
+    preAnswers: {
+      needsDistancePricing: true,
+      offersPhoneQuotes: true,
+    },
+    setupTitle: "your dispatch company",
   },
   food_beverage: {
     preAnswers: {},
