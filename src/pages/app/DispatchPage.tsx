@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Truck, Plus, Loader2, Map, AlertTriangle } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent } from "@/components/ui/card";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
@@ -359,6 +360,7 @@ export default function DispatchPage() {
   return (
     <TooltipProvider>
       <PageContainer maxWidth="full">
+        <ErrorBoundary>
         <div className="space-y-6">
           <PageHeader
             title="Dispatch Command Center"
@@ -523,6 +525,8 @@ export default function DispatchPage() {
           onAssign={handleAssignSubmit}
           isLoading={updateJobMutation.isPending}
         />
+
+        </ErrorBoundary>
 
         {/* New Job Dialog */}
         <Dialog open={newJobOpen} onOpenChange={setNewJobOpen}>

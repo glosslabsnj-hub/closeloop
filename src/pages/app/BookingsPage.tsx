@@ -15,6 +15,7 @@ import {
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Calendar as CalendarIcon, Plus, Loader2, List, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
@@ -197,6 +198,7 @@ export default function BookingsPage() {
 
   return (
     <PageContainer maxWidth="xl">
+      <ErrorBoundary>
       <div className="space-y-6">
         <PageHeader
           title={terms.bookingsPageTitle || "Schedule"}
@@ -356,6 +358,7 @@ export default function BookingsPage() {
           onCancel={(b) => { setDetailsOpen(false); handleCancelBooking(b); }}
         />
       </div>
+      </ErrorBoundary>
     </PageContainer>
   );
 }

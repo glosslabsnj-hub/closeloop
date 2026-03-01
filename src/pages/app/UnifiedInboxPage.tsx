@@ -26,7 +26,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Phone, Users, Search, Loader2, MoreHorizontal, Flame, Thermometer, Snowflake } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Phone, Users, Search, Loader2, MoreHorizontal, Flame, Thermometer, Snowflake, AlertTriangle } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useTerminology } from "@/hooks/useTerminology";
 import { InboxCallCard } from "@/components/calls/InboxCallCard";
 import { CallDetailPanel } from "@/components/calls/CallDetailPanel";
@@ -308,6 +310,28 @@ export default function UnifiedInboxPage() {
     toast.success(`Lead moved to ${newStage}`);
   };
 
+  if (!callsLoading && !calls) {
+    return (
+      <PageContainer maxWidth="xl">
+        <PageHeader title={terms.inboxPageTitle} description={terms.inboxPageSubtitle} />
+        <div className="mx-auto max-w-lg py-16">
+          <Card className="border-border/30">
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                We couldn't load your inbox. Please refresh the page or try again later.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>Refresh Page</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
+    );
+  }
+
   return (
     <PageContainer maxWidth="xl">
       <PageHeader
@@ -315,6 +339,7 @@ export default function UnifiedInboxPage() {
         description={terms.inboxPageSubtitle}
       />
 
+      <ErrorBoundary>
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <TabsList>
@@ -531,6 +556,7 @@ export default function UnifiedInboxPage() {
           )}
         </TabsContent>
       </Tabs>
+      </ErrorBoundary>
 
       {/* Call Detail Slide-over */}
       <CallDetailPanel

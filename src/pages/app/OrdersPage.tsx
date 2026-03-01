@@ -23,6 +23,7 @@ import type { Database } from "@/integrations/supabase/types";
    ChevronRight,
    AlertTriangle,
  } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
  import { useToast } from "@/hooks/use-toast";
  import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
  import { OrderCard } from "@/components/orders/OrderCard";
@@ -218,6 +219,7 @@ import type { Database } from "@/integrations/supabase/types";
 
    return (
      <PageContainer maxWidth="xl">
+       <ErrorBoundary>
        <div className="space-y-6">
          <PageHeader
            icon={<UtensilsCrossed className="h-5 w-5" />}
@@ -328,6 +330,8 @@ import type { Database } from "@/integrations/supabase/types";
          )}
        </div>
  
+       </ErrorBoundary>
+
        {/* Order Details Drawer */}
        <OrderDetailsDrawer
          order={selectedOrder}
