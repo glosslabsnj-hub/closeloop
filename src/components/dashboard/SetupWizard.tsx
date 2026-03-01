@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -151,8 +152,8 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
             </button>
 
             {/* Industry Template */}
-            <a
-              href="/app/business-brain?section=about"
+            <Link
+              to="/app/business-brain?section=about"
               className="flex items-center gap-3 rounded-lg border bg-card p-3 text-left hover:border-primary/40 transition-colors"
             >
               <Search className="h-5 w-5 text-primary shrink-0" />
@@ -160,7 +161,7 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
                 <p className="text-sm font-medium">Pick Your Industry</p>
                 <p className="text-xs text-muted-foreground">Auto-fill from 100+ templates</p>
               </div>
-            </a>
+            </Link>
           </div>
 
           <button
