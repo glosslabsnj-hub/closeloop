@@ -292,12 +292,24 @@ export function useBusinessCapabilities(): BusinessCapabilities {
   const { settings: foodSettings, isLoading: foodLoading } = useFoodOrderSettings();
 
   // Fetch additional data needed to derive capabilities
+  // Only query mode-relevant tables to avoid RLS errors on unrelated tables
+  const isDispatch = businessMode === "dispatch";
+  const isFood = businessMode === "food";
+  const isMedical = businessMode === "medical";
+  const isService = businessMode === "service";
+  const isSales = businessMode === "sales";
+  const isGeneral = businessMode === "general";
+  const hasBookingMode = isService || isMedical || isSales;
+
+  const noCount = Promise.resolve({ data: null, error: null, count: 0 } as any);
+  const noSingle = Promise.resolve({ data: null, error: null } as any);
+
   const { data: additionalData, isLoading: dataLoading } = useQuery({
-    queryKey: ["business-capabilities", tenant?.id],
+    queryKey: ["business-capabilities", tenant?.id, businessMode],
     queryFn: async () => {
       if (!tenant?.id) return null;
 
-      // Parallel fetch all needed data
+      // Parallel fetch — mode-irrelevant queries use dummy results
       const [
         servicesResult,
         assistantResult,
@@ -336,16 +348,12 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .select("id, status")
           .eq("tenant_id", tenant.id)
           .eq("status", "connected"),
-        supabase
-          .from("booking_delivery_settings")
-          .select("enabled, notify_email, webhook_url")
-          .eq("tenant_id", tenant.id)
-          .single(),
-        supabase
-          .from("dispatch_delivery_settings")
-          .select("enabled, notify_email")
-          .eq("tenant_id", tenant.id)
-          .single(),
+        hasBookingMode
+          ? supabase.from("booking_delivery_settings").select("enabled, notify_email, webhook_url").eq("tenant_id", tenant.id).single()
+          : noSingle,
+        isDispatch
+          ? supabase.from("dispatch_delivery_settings").select("enabled, notify_email").eq("tenant_id", tenant.id).single()
+          : noSingle,
         supabase
           .from("business_faqs")
           .select("id", { count: "exact", head: true })
@@ -354,10 +362,9 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .from("ai_knowledge_base")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id),
-        supabase
-          .from("fleet_vehicles")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id),
+        isDispatch
+          ? supabase.from("fleet_vehicles").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
+          : noCount,
         // Knowledge-table head counts
         supabase
           .from("price_modifiers")
@@ -369,50 +376,33 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .eq("tenant_id", tenant.id)
           .eq("is_active", true)
           .not("category", "is", null),
-        supabase
-          .from("menu_items")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "catering"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "vehicle"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "roadside"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "symptom_triage"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "insurance"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "aftercare"),
-        (supabase as any)
-          .from("ai_knowledge_base")
-          .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("category", "product"),
-        (supabase as any)
-          .from("food_order_settings")
-          .select("estimated_prep_minutes")
-          .eq("tenant_id", tenant.id)
-          .maybeSingle(),
+        isFood
+          ? supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
+          : noCount,
+        isFood
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "catering")
+          : noCount,
+        isDispatch
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "vehicle")
+          : noCount,
+        isDispatch
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "roadside")
+          : noCount,
+        isMedical
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "symptom_triage")
+          : noCount,
+        isMedical
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "insurance")
+          : noCount,
+        isService || isMedical
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "aftercare")
+          : noCount,
+        isService || isSales || isGeneral
+          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "product")
+          : noCount,
+        isFood
+          ? (supabase as any).from("food_order_settings").select("estimated_prep_minutes").eq("tenant_id", tenant.id).maybeSingle()
+          : noSingle,
       ]);
 
       // Parse context_fields_json for scenario answers (using existing JSONB column)

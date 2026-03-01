@@ -36,7 +36,8 @@ import {
   Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -70,6 +71,7 @@ function AppLayoutContent() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const queryClient = useQueryClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isAgency, isLoading: isAgencyLoading } = useIsAgencyUser();
   const { data: myAgencyApp } = useMyAgencyApplication();
@@ -104,6 +106,15 @@ function AppLayoutContent() {
     items.push({ href: "/app/settings", label: "Settings", icon: Settings });
     return items.slice(0, 5);
   }, [enabledModules, caps, terms]);
+
+  // Invalidate all queries when super admin switches tenant so data reloads
+  const prevTenantIdRef = useRef(tenant?.id);
+  useEffect(() => {
+    if (prevTenantIdRef.current && tenant?.id && prevTenantIdRef.current !== tenant.id) {
+      queryClient.invalidateQueries();
+    }
+    prevTenantIdRef.current = tenant?.id;
+  }, [tenant?.id, queryClient]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/login");

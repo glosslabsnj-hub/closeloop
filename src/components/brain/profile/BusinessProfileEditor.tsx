@@ -61,7 +61,7 @@ function combineAddress(components: { line1: string; city: string; state: string
 }
 
 export function BusinessProfileEditor() {
-  const { tenant } = useAuth();
+  const { tenant, refreshTenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
   
@@ -136,6 +136,11 @@ export function BusinessProfileEditor() {
 
       toast.success("Profile saved");
       invalidateBrainQueries(queryClient, tenant?.id);
+
+      // Refresh the tenant in AuthContext so profile changes persist across navigation
+      if (refreshTenant) {
+        await refreshTenant();
+      }
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : "Failed to save");
     } finally {

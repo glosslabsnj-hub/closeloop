@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useBrainCompletion, type CompletionStats } from "./useBrainCompletion";
+import { useTenantConfig } from "./useTenantConfig";
 
 interface BrainSummaries {
   // Profile
@@ -66,6 +67,7 @@ interface BrainSummaries {
 
 export function useBrainSummaries(): BrainSummaries {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const fullCompletionStats = useBrainCompletion();
 
   // Fetch tenant data for multiple sections
@@ -169,7 +171,7 @@ export function useBrainSummaries(): BrainSummaries {
         .single();
       return data;
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && businessMode === "dispatch",
     staleTime: 30000,
   });
 
