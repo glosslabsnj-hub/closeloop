@@ -180,12 +180,11 @@ export function useDispatchMutations() {
   /** Mark a job as paid */
   const markPaid = useMutation({
     mutationFn: async ({ jobId, paymentMethod }: { jobId: string; paymentMethod?: string }) => {
+      // dispatch_jobs has no payment_status/payment_method columns yet;
+      // mark the job as completed to indicate it's been paid.
       const { error } = await supabase
         .from("dispatch_jobs")
-        .update({
-          payment_status: "paid",
-          payment_method: paymentMethod || "cash",
-        } as any)
+        .update({ status: "completed" as any, completed_at: new Date().toISOString() })
         .eq("id", jobId);
       if (error) throw error;
     },

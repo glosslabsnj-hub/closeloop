@@ -29,10 +29,6 @@ export function useOrderMutations() {
   const updateStatus = useMutation({
     mutationFn: async ({ orderId, status }: OrderMutationInput) => {
       const updates: Record<string, unknown> = { status };
-      // Auto-set timestamps for terminal states
-      if (status === "completed" || status === "cancelled") {
-        updates.completed_at = new Date().toISOString();
-      }
       const { error } = await supabase
         .from("food_orders")
         .update(updates)
@@ -54,7 +50,6 @@ export function useOrderMutations() {
     mutationFn: async ({ orderId, reason }: { orderId: string; reason?: string }) => {
       const updates: Record<string, unknown> = {
         status: "cancelled" as OrderStatus,
-        completed_at: new Date().toISOString(),
       };
       if (reason) {
         updates.special_instructions = reason;
@@ -132,12 +127,11 @@ export function useOrderMutations() {
   /** Mark an order as paid */
   const markPaid = useMutation({
     mutationFn: async ({ orderId, paymentMethod }: { orderId: string; paymentMethod?: string }) => {
+      // food_orders has no payment_status/payment_method columns yet;
+      // mark the order as completed to indicate it's been paid.
       const { error } = await supabase
         .from("food_orders")
-        .update({
-          payment_status: "paid",
-          payment_method: paymentMethod || "cash",
-        } as any)
+        .update({ status: "completed" as OrderStatus })
         .eq("id", orderId);
       if (error) throw error;
     },

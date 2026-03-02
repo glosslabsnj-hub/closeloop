@@ -32,6 +32,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Phase sub-components (5 phases: Identity, Offerings, Hours, AI, Review)
 import { OnboardingIdentity } from "@/components/onboarding/phases/OnboardingIdentity";
@@ -238,6 +239,7 @@ export default function OnboardingPage() {
         {/* Step Content */}
         <div className={`flex-1 flex justify-center p-4 sm:p-6 overflow-y-auto ${phase === 0 ? "items-center" : "items-start"}`}>
           <div className="w-full max-w-2xl">
+            <ErrorBoundary>
             <AnimatePresence mode="wait">
               {phase === 0 ? (
                 <motion.div
@@ -390,6 +392,7 @@ export default function OnboardingPage() {
                 </motion.div>
               )}
             </AnimatePresence>
+            </ErrorBoundary>
           </div>
         </div>
 

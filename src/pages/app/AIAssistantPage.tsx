@@ -32,6 +32,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy-load heavy tabs — ElevenLabs SDK (@elevenlabs/react) is ~400 kB;
 // only pull it in when the user actually clicks "Test Agent" or "ElevenLabs Setup".
@@ -218,6 +219,7 @@ export default function AIAssistantPage() {
         </CardContent>
       </Card>
 
+      <ErrorBoundary>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="voice" className="gap-2">
@@ -380,6 +382,8 @@ export default function AIAssistantPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      </ErrorBoundary>
 
       {/* Save Button */}
       <div className="flex justify-end">

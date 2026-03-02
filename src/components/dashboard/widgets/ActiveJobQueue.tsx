@@ -57,7 +57,7 @@ export function ActiveJobQueue() {
         </div>
         <div className="space-y-2">
           {data.activeJobs.map((job) => {
-            const isUrgent = job.priority === "urgent" || job.priority === "emergency";
+            const isUrgent = job.priority === "urgent" || job.priority === "high";
             return (
               <div
                 key={job.id}

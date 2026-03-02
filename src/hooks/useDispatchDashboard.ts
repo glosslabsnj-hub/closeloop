@@ -62,7 +62,7 @@ export function useDispatchDashboard(): {
 
       return {
         activeJobs: activeJobs.slice(0, 6),
-        urgentCount: activeJobs.filter(j => j.priority === "urgent" || j.priority === "emergency").length,
+        urgentCount: activeJobs.filter(j => j.priority === "urgent" || j.priority === "high").length,
         pendingCount: activeJobs.filter(j => j.status === "pending").length,
         assignedCount: activeJobs.filter(j => j.status === "assigned").length,
         inProgressCount: activeJobs.filter(j => j.status === "en_route" || j.status === "on_site").length,

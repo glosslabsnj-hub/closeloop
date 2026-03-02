@@ -3,6 +3,7 @@ import { SetupWizard } from "@/components/dashboard/SetupWizard";
 import { LiveDashboard } from "@/components/dashboard/LiveDashboard";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function DashboardPage() {
   const { _tenant, _subscription, assistantSettings, refreshTenant, isSuperAdmin, hasActiveSubscription } = useAuth();
@@ -18,7 +19,9 @@ export default function DashboardPage() {
     return (
       <PageContainer maxWidth="xl">
         <div className="pt-8">
-          <LiveDashboard />
+          <ErrorBoundary>
+            <LiveDashboard />
+          </ErrorBoundary>
         </div>
       </PageContainer>
     );
@@ -27,11 +30,13 @@ export default function DashboardPage() {
   return (
     <PageContainer maxWidth="xl">
       <div className="pt-8">
-        {setupComplete ? (
-          <LiveDashboard />
-        ) : (
-          <SetupWizard onSetupComplete={refreshTenant} />
-        )}
+        <ErrorBoundary>
+          {setupComplete ? (
+            <LiveDashboard />
+          ) : (
+            <SetupWizard onSetupComplete={refreshTenant} />
+          )}
+        </ErrorBoundary>
       </div>
     </PageContainer>
   );
