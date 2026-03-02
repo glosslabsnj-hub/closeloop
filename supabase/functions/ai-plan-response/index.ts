@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-type Intent = 'booking' | 'quote' | 'service_info' | 'pricing' | 'hours' | 'location' | 
+type Intent = 'booking' | 'quote' | 'service_info' | 'pricing' | 'hours' | 'location' |
               'cancel' | 'reschedule' | 'objection' | 'urgent' | 'greeting' | 'other';
 
 interface ResponsePlan {
@@ -24,10 +24,18 @@ interface ResponsePlan {
   gap_description?: string;
 }
 
+interface KnowledgeSnippet {
+  source_type: string;
+  id: string;
+  title: string;
+  content: string;
+  relevance_score: number;
+}
+
 // Detect intent from message
 function detectIntent(message: string): Intent {
   const lower = message.toLowerCase();
-  
+
   if (/\b(book|schedule|appointment|reserve|slot)\b/.test(lower)) return 'booking';
   if (/\b(price|cost|how much|quote|estimate|pricing)\b/.test(lower)) return 'quote';
   if (/\b(cancel|cancellation)\b/.test(lower)) return 'cancel';
@@ -38,14 +46,165 @@ function detectIntent(message: string): Intent {
   if (/\b(hi|hello|hey|good morning|good afternoon)\b/.test(lower) && lower.length < 30) return 'greeting';
   if (/\b(what.*service|do you|can you|offer)\b/.test(lower)) return 'service_info';
   if (/\b(too expensive|too much|competitor|elsewhere|think about it)\b/.test(lower)) return 'objection';
-  
+
   return 'other';
+}
+
+// Simple keyword-based relevance scoring
+function calculateRelevance(query: string, text: string): number {
+  const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const textLower = text.toLowerCase();
+
+  let score = 0;
+  let exactMatches = 0;
+
+  for (const word of queryWords) {
+    if (textLower.includes(word)) {
+      score += 1;
+      if (new RegExp(`\\b${word}\\b`).test(textLower)) {
+        exactMatches += 1;
+      }
+    }
+  }
+
+  const baseScore = queryWords.length > 0 ? score / queryWords.length : 0;
+  const exactBonus = exactMatches * 0.1;
+  return Math.min(baseScore + exactBonus, 1);
+}
+
+// Intent-based boosting
+function getIntentBoost(intent: string, sourceType: string): number {
+  const boosts: Record<string, Record<string, number>> = {
+    booking: { service: 0.3, intake: 0.2 },
+    quote: { service: 0.4, policy: 0.1 },
+    service_info: { service: 0.4, faq: 0.2 },
+    pricing: { service: 0.5 },
+    cancel: { policy: 0.5 },
+    reschedule: { policy: 0.3, service: 0.2 },
+    hours: { faq: 0.3 },
+    location: { faq: 0.3 },
+    objection: { objection: 0.5 },
+    urgent: { policy: 0.3 },
+  };
+  return boosts[intent]?.[sourceType] || 0;
+}
+
+// Retrieve relevant knowledge snippets directly from DB
+function retrieveKnowledge(
+  queryText: string,
+  intent: string,
+  faqs: any[],
+  objections: any[],
+  services: any[],
+  knowledgeBase: any[],
+  tenant: any,
+  topK: number = 8,
+): { snippets: KnowledgeSnippet[]; confidence: string } {
+  const snippets: KnowledgeSnippet[] = [];
+
+  for (const faq of faqs) {
+    const searchText = `${faq.question} ${faq.answer}`;
+    const baseScore = calculateRelevance(queryText, searchText);
+    const intentBoost = getIntentBoost(intent, 'faq');
+    const priorityBoost = (faq.priority_weight || 0) * 0.05;
+    snippets.push({
+      source_type: 'faq',
+      id: faq.id,
+      title: faq.question,
+      content: faq.answer,
+      relevance_score: baseScore + intentBoost + priorityBoost,
+    });
+  }
+
+  for (const obj of objections) {
+    const searchText = `${obj.objection} ${obj.response}`;
+    const baseScore = calculateRelevance(queryText, searchText);
+    const intentBoost = getIntentBoost(intent, 'objection');
+    const priorityBoost = (obj.priority_weight || 0) * 0.05;
+    snippets.push({
+      source_type: 'objection',
+      id: obj.id,
+      title: obj.objection,
+      content: obj.response,
+      relevance_score: baseScore + intentBoost + priorityBoost,
+    });
+  }
+
+  for (const svc of services) {
+    const searchText = `${svc.name} ${svc.description || ''} ${svc.preparation_instructions || ''}`;
+    const baseScore = calculateRelevance(queryText, searchText);
+    const intentBoost = getIntentBoost(intent, 'service');
+    let content = `${svc.description || 'No description available'}`;
+    if (svc.price_type === 'fixed' && svc.price_amount) {
+      content += ` Price: $${svc.price_amount}.`;
+    } else if (svc.price_type === 'starting_at' && svc.price_amount) {
+      content += ` Starting at $${svc.price_amount}.`;
+    } else {
+      content += ` Price: Quote required.`;
+    }
+    content += ` Duration: ${svc.duration_minutes} minutes.`;
+    if (svc.deposit_required && svc.deposit_amount) {
+      content += ` Deposit: $${svc.deposit_amount} required.`;
+    }
+    snippets.push({
+      source_type: 'service',
+      id: svc.id,
+      title: svc.name,
+      content,
+      relevance_score: baseScore + intentBoost,
+    });
+  }
+
+  for (const kb of knowledgeBase) {
+    const searchText = `${kb.title} ${kb.content}`;
+    const baseScore = calculateRelevance(queryText, searchText);
+    const intentBoost = getIntentBoost(intent, kb.type);
+    const priorityBoost = (kb.priority_weight || 0) * 0.05;
+    snippets.push({
+      source_type: kb.type,
+      id: kb.id,
+      title: kb.title,
+      content: kb.content,
+      relevance_score: baseScore + intentBoost + priorityBoost,
+    });
+  }
+
+  if (tenant?.cancellation_policy) {
+    const score = calculateRelevance(queryText, `cancel cancellation policy ${tenant.cancellation_policy}`);
+    snippets.push({
+      source_type: 'policy',
+      id: 'cancellation_policy',
+      title: 'Cancellation Policy',
+      content: tenant.cancellation_policy,
+      relevance_score: score + getIntentBoost(intent, 'policy'),
+    });
+  }
+  if (tenant?.deposit_policy) {
+    const score = calculateRelevance(queryText, `deposit payment policy ${tenant.deposit_policy}`);
+    snippets.push({
+      source_type: 'policy',
+      id: 'deposit_policy',
+      title: 'Deposit Policy',
+      content: tenant.deposit_policy,
+      relevance_score: score + getIntentBoost(intent, 'policy'),
+    });
+  }
+
+  const rankedSnippets = snippets
+    .filter(s => s.relevance_score > 0.1)
+    .sort((a, b) => b.relevance_score - a.relevance_score)
+    .slice(0, topK);
+
+  const topScore = rankedSnippets[0]?.relevance_score || 0;
+  const confidence = topScore > 0.6 ? 'high' : topScore > 0.3 ? 'medium' : 'low';
+
+  return { snippets: rankedSnippets, confidence };
 }
 
 // Generate draft reply using AI (Anthropic Claude API)
 async function generateReply(
   brain: any,
-  snippets: any[],
+  snippets: KnowledgeSnippet[],
   userMessage: string,
   intent: Intent,
   channel: string,
@@ -205,49 +364,97 @@ serve(async (req) => {
     // SECURITY: Validate user has access to the requested tenant
     const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabase = serviceClient();
-
-    // Get the authorization header to pass to sub-functions
-    const authHeader = req.headers.get("authorization") || "";
 
     // Detect intent
     const intent = detectIntent(userMessage);
 
-    // Fetch business brain (pass user's auth header for tenant validation)
-    const brainResponse = await fetch(`${supabaseUrl}/functions/v1/build-business-brain`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
-      },
-      body: JSON.stringify({ tenantId }),
-    });
+    // Fetch all data directly using service client (no function-to-function HTTP calls)
+    const [
+      tenantResult,
+      servicesResult,
+      faqsResult,
+      objectionsResult,
+      assistantResult,
+      assistantSettingsResult,
+      knowledgeBaseResult,
+    ] = await Promise.all([
+      supabase.from("tenants").select("*").eq("id", tenantId).single(),
+      supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
+      supabase.from("business_faqs").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
+      supabase.from("objection_responses").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
+      supabase.from("ai_assistants").select("*").eq("tenant_id", tenantId).single(),
+      supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).single(),
+      supabase.from("ai_knowledge_base").select("*").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }),
+    ]);
 
-    if (!brainResponse.ok) {
-      throw new Error("Failed to fetch business brain");
+    if (tenantResult.error || !tenantResult.data) {
+      console.error("Tenant not found:", tenantResult.error);
+      return new Response(
+        JSON.stringify({ error: "Tenant not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const { brain } = await brainResponse.json();
+    const tenant = tenantResult.data;
+    const services = servicesResult.data || [];
+    const faqs = faqsResult.data || [];
+    const objections = objectionsResult.data || [];
+    const assistant = assistantResult.data;
+    const assistantSettings = assistantSettingsResult.data;
+    const knowledgeBase = knowledgeBaseResult.data || [];
 
-    // Retrieve relevant knowledge (pass user's auth header for tenant validation)
-    const knowledgeResponse = await fetch(`${supabaseUrl}/functions/v1/retrieve-knowledge`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": authHeader,
+    // Build a lightweight brain object for the AI prompt
+    const brain = {
+      business: {
+        name: tenant.name,
+        tagline: tenant.tagline,
+        industry: tenant.industry,
+        phone: tenant.phone_public,
+        address: tenant.address,
       },
-      body: JSON.stringify({ tenantId, queryText: userMessage, intent, topK: 8 }),
-    });
+      services: services.map((s: any) => ({
+        name: s.name,
+        description: s.description,
+        duration_minutes: s.duration_minutes,
+        price_type: s.price_type,
+        price_amount: s.price_amount,
+        deposit_required: s.deposit_required,
+        deposit_amount: s.deposit_amount,
+      })),
+      policies: {
+        cancellation: tenant.cancellation_policy,
+        deposit: tenant.deposit_policy,
+        refund: tenant.refund_policy,
+      },
+      booking_rules: {
+        min_lead_hours: tenant.min_lead_hours,
+        max_advance_days: tenant.max_advance_days,
+        booking_mode: assistantSettings?.ai_booking_mode || 'auto_book',
+      },
+      guardrails: {
+        never_promise: tenant.ai_never_promise || [],
+      },
+      faqs: faqs.map((f: any) => ({
+        question: f.question,
+        answer: f.answer,
+        priority: f.priority_weight || 0,
+      })),
+      intake_fields: Array.isArray(tenant.context_fields_json) ? tenant.context_fields_json : [],
+      ai_settings: assistant ? {
+        tone: assistant.tone,
+        greeting: assistant.greeting_script,
+        fallback: assistant.fallback_script,
+      } : null,
+    };
 
-    if (!knowledgeResponse.ok) {
-      throw new Error("Failed to retrieve knowledge");
-    }
-
-    const { snippets, confidence } = await knowledgeResponse.json();
+    // Retrieve knowledge directly (no HTTP call to retrieve-knowledge)
+    const { snippets, confidence } = retrieveKnowledge(
+      userMessage, intent, faqs, objections, services, knowledgeBase, tenant
+    );
 
     // Build response plan
-    const factsToUse = snippets.slice(0, 5).map((s: any) => ({
+    const factsToUse = snippets.slice(0, 5).map((s) => ({
       source: s.source_type,
       content: s.content,
     }));
@@ -287,18 +494,18 @@ serve(async (req) => {
 
     if (knowledgeGapDetected) {
       gapDescription = `No confident answer for: "${userMessage}" (intent: ${intent})`;
-      
-      // Log the knowledge gap
-      await supabase.from('knowledge_gaps').upsert({
+
+      // Log the knowledge gap (fire and forget)
+      supabase.from('knowledge_gaps').upsert({
         tenant_id: tenantId,
-        gap_type: intent === 'quote' ? 'missing_pricing' : 
+        gap_type: intent === 'quote' ? 'missing_pricing' :
                   intent === 'service_info' ? 'missing_faq' : 'unanswered_question',
         description: gapDescription,
         customer_question: userMessage,
         priority: intent === 'urgent' ? 3 : 2,
       }, {
-        onConflict: 'id', // Will create new if no match
-      });
+        onConflict: 'id',
+      }).then(() => {}).catch((e: any) => console.warn("knowledge_gaps upsert failed:", e));
     }
 
     const plan: ResponsePlan = {
@@ -310,13 +517,13 @@ serve(async (req) => {
       guardrails_applied: guardrailsApplied,
       next_action: next_action as any,
       draft_reply: reply,
-      sources_used: snippets.slice(0, 5).map((s: any) => ({ type: s.source_type, id: s.id })),
+      sources_used: snippets.slice(0, 5).map((s) => ({ type: s.source_type, id: s.id })),
       knowledge_gap_detected: knowledgeGapDetected,
       gap_description: gapDescription,
     };
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         plan,
         brain_summary: {
           business_name: brain.business.name,
@@ -328,9 +535,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in ai-plan-response:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : '';
+    console.error("Error in ai-plan-response:", errMsg, errStack);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: errMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

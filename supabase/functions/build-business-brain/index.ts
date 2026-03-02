@@ -279,6 +279,37 @@ serve(async (req) => {
       );
     }
 
+    // Log any table-level errors for debugging (non-fatal — use empty arrays)
+    const queryResults = [
+      ['services', servicesResult],
+      ['business_faqs', faqsResult],
+      ['objection_responses', objectionsResult],
+      ['ai_assistants', assistantResult],
+      ['assistant_settings', assistantSettingsResult],
+      ['availability_slots', availabilitySlotsResult],
+      ['ai_knowledge_base', knowledgeBaseResult],
+      ['tenant_intelligence_settings', intelligenceSettingsResult],
+      ['business_memory', memoryResult],
+      ['business_intent_rules', intentRulesResult],
+      ['menu_knowledge', menuKnowledgeResult],
+      ['catering_knowledge', cateringKnowledgeResult],
+      ['vehicle_knowledge', vehicleKnowledgeResult],
+      ['roadside_knowledge', roadsideKnowledgeResult],
+      ['symptom_triage', symptomTriageResult],
+      ['insurance_knowledge', insuranceKnowledgeResult],
+      ['product_knowledge', productKnowledgeResult],
+      ['aftercare_instructions', aftercareResult],
+      ['competitor_knowledge', competitorResult],
+      ['seasonal_knowledge', seasonalResult],
+      ['intake_requirements', intakeRequirementsResult],
+      ['intake_field_templates', intakeTemplatesResult],
+    ] as const;
+    for (const [name, result] of queryResults) {
+      if ((result as any).error) {
+        console.warn(`Non-fatal query error for ${name}:`, (result as any).error.message || (result as any).error);
+      }
+    }
+
     const tenant = tenantResult.data;
     const services = servicesResult.data || [];
     const faqs = faqsResult.data || [];
@@ -592,9 +623,11 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in build-business-brain:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : '';
+    console.error("Error in build-business-brain:", errMsg, errStack);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: errMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
