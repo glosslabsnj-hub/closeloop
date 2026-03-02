@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { bookingStatusColors, bookingStatusLabels } from "./BookingCard";
 import type { BookingWithDetails } from "@/hooks/useBookings";
 import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
@@ -59,6 +60,7 @@ export function BookingDetailsSheet({
   onCancel,
 }: BookingDetailsSheetProps) {
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
   const [smsOpen, setSmsOpen] = useState(false);
 
   if (!booking) return null;
@@ -95,7 +97,7 @@ export function BookingDetailsSheet({
         <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
           <SheetHeader className="space-y-3 pb-4">
             <div className="flex items-center justify-between">
-              <SheetTitle className="text-lg">Booking Details</SheetTitle>
+              <SheetTitle className="text-lg">{terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)} Details</SheetTitle>
               <Badge
                 variant="outline"
                 className={cn("text-xs", bookingStatusColors[booking.status])}
@@ -123,7 +125,7 @@ export function BookingDetailsSheet({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                Appointment
+                {terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}
               </div>
               <div className="rounded-lg border p-3 space-y-1">
                 <p className="font-medium">
@@ -172,7 +174,7 @@ export function BookingDetailsSheet({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" />
-                Customer
+                {terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)}
               </div>
               <div className="rounded-lg border p-3 space-y-2">
                 <p className="font-medium">{customerName}</p>

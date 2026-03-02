@@ -121,7 +121,7 @@ function WidgetSkeleton() {
           <Skeleton className="h-5 w-64" />
           <Skeleton className="h-5 w-20" />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-6">
           <div className="space-y-2">
             <Skeleton className="h-8 w-8 rounded-lg" />
             <Skeleton className="h-8 w-20" />

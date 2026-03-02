@@ -217,7 +217,7 @@ export default function CateringPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Event Date</TableHead>
-                <TableHead>Customer</TableHead>
+                <TableHead>Guest</TableHead>
                 <TableHead>Event Type</TableHead>
                 <TableHead>Guests</TableHead>
                 <TableHead>Location</TableHead>
@@ -236,7 +236,7 @@ export default function CateringPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {statusFilter !== "all"
                           ? "Try adjusting your filters."
-                          : "When customers inquire about catering, their requests will appear here."}
+                          : "When guests inquire about catering, their requests will appear here."}
                       </p>
                     </div>
                   </TableCell>
@@ -320,8 +320,8 @@ export default function CateringPage() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="cat-name">Customer Name</Label>
-              <Input id="cat-name" placeholder="Customer name" value={newReq.customer_name} onChange={(e) => setNewReq(prev => ({ ...prev, customer_name: e.target.value }))} />
+              <Label htmlFor="cat-name">Guest Name</Label>
+              <Input id="cat-name" placeholder="Guest name" value={newReq.customer_name} onChange={(e) => setNewReq(prev => ({ ...prev, customer_name: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="cat-phone">Phone (optional)</Label>

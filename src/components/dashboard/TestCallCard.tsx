@@ -153,7 +153,7 @@ export function TestCallCard({ variant = "full" }: TestCallCardProps) {
           <div className="space-y-6 py-4">
             {/* Phone number */}
             <div className="text-center p-6 rounded-xl bg-muted/50 border">
-              <p className="text-3xl font-bold tracking-tight">{displayNumber}</p>
+              <p className="text-xl sm:text-3xl font-bold tracking-tight">{displayNumber}</p>
               <p className="text-sm text-muted-foreground mt-2">Your AI phone number</p>
               <Button className="mt-4 gap-2" size="lg" asChild>
                 <a href={`tel:${aiNumber}`}>

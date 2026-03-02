@@ -141,7 +141,7 @@ export function TodayQueueCard() {
       <CardContent>
         <Link to={getMainLink()}>
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer group">
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
               {/* Pending */}
               <div className="flex items-center gap-2">
                 <div className={`flex items-center justify-center h-8 w-8 rounded-lg ${

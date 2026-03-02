@@ -24,6 +24,7 @@ import {
   Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -42,6 +43,7 @@ interface CalendarSyncSettingsProps {
 export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSettingsProps) {
   const { tenant, assistantSettings } = useAuth();
   const { toast } = useToast();
+  const { terminology } = useIndustryContext();
   
   const [provider, setProvider] = useState<string>('closeloop');
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
@@ -183,7 +185,7 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
           Your Availability
         </CardTitle>
         <CardDescription>
-          Set when you're available for appointments. AI will only book during these times.
+          Set when you're available. AI will only schedule {terminology.appointmentLabel}s during these times.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -254,9 +256,9 @@ export default function CalendarSyncSettings({ onSyncComplete }: CalendarSyncSet
           <p className="text-sm font-medium">AI booking behavior:</p>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
             <li>AI only offers times during your available hours</li>
-            <li>AI respects buffer time between appointments</li>
-            <li>AI checks for conflicts with existing bookings</li>
-            <li>AI books directly into Flux Receptionist's booking system</li>
+            <li>AI respects buffer time between {terminology.appointmentLabel}s</li>
+            <li>AI checks for conflicts with existing {terminology.appointmentLabel}s</li>
+            <li>AI schedules directly into your Flux Receptionist calendar</li>
           </ul>
         </div>
 

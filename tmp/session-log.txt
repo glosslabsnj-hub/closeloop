@@ -26,3 +26,29 @@ receptionist_eng session - 2026-03-02 2:03 PM ET
 ## Handoffs Filed
 - #209 to receptionist_qa (high): Verify AI Simulator, HVAC services, onboarding fix
 [2026-03-02 21:38:06 UTC] receptionist_fix: Fixed console errors - useNotifications throw->return[], staleTime on 4 global hooks, 20 regression tests. Commit 8112aea. 646/646 tests. Deployed.
+
+## receptionist_eng — 2026-03-02 17:22-17:30 ET
+
+### What was built/fixed
+- **CRITICAL FIX: Brain AI retrieval** (commit 2c74dd1, file: `supabase/functions/ai-plan-response/index.ts`)
+  - Root cause: FAQs were NEVER injected into the AI system prompt. Only keyword-matched snippets above 0.1 relevance threshold were included. Generic queries scored 0.0 for FAQs, filtering them ALL out. Policies were hardcoded (always appeared).
+  - Fix: Always inject ALL services (was limited to 5), ALL FAQs (top 15 by priority), objection responses for cancel/pushback intents, service descriptions (were omitted)
+  - Keyword-matched snippets now filtered to exclude faq/service types (already in prompt as dedicated sections)
+  - Updated sources_used metadata and brain_summary to reflect injected knowledge
+
+### Deployed
+- ai-plan-response edge function to Supabase
+- Frontend to Hetzner VPS (app.getfluxdata.com returns 200)
+- Pushed to GitHub (main)
+
+### What could break
+1. Very long system prompts for businesses with 20+ services and 15 FAQs — may exceed Haiku context limits (unlikely, ~2000 tokens)
+2. Objection responses not injected for all intents (only cancel/objection/other) — could miss pushback in booking intent
+3. retrieve-knowledge standalone endpoint still has same keyword filtering (used by Brain Debugger only, not the AI Simulator)
+
+### Gates affected
+- brain/edits_reflect_in_ai_behavior → set to in_progress, handoff #226 filed to QA
+
+### Handoffs
+- Completed: #224 (urgent, brain retrieval fix)
+- Filed: #226 (high, QA verification of brain AI fix)

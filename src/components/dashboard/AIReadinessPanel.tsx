@@ -154,7 +154,7 @@ export function AIReadinessPanel({ compact = false, alwaysShow = false }: AIRead
             </div>
           </div>
           <div className="text-right">
-            <div className={`text-4xl font-bold ${getScoreColor()}`}>{score}%</div>
+            <div className={`text-2xl sm:text-4xl font-bold ${getScoreColor()}`}>{score}%</div>
             <div className="text-sm text-muted-foreground">
               {canGoLive ? "Ready to go live!" : "Need 85% + no blockers"}
             </div>

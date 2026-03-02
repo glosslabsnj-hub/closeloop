@@ -122,7 +122,7 @@ export function GoLiveChecklist() {
           </div>
         </div>
         <div className="text-right">
-          <div className={`text-3xl font-bold ${getScoreColor()}`}>{score}%</div>
+          <div className={`text-xl sm:text-3xl font-bold ${getScoreColor()}`}>{score}%</div>
           <div className="text-xs text-muted-foreground">readiness</div>
         </div>
       </div>

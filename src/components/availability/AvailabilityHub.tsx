@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { addDays, startOfDay, endOfDay, format } from "date-fns";
 import { Clock, ChevronRight } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface BusinessHours {
   [key: string]: any;
@@ -40,6 +41,7 @@ const DAY_MAP: Record<number, string> = {
 
 export function AvailabilityHub() {
   const { _tenant } = useAuth();
+  const { terms } = useIndustryContext();
   const { tenant: tenantData, updateTenant } = useTenantSettings();
   const tenantLoading = updateTenant.isPending;
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
@@ -184,9 +186,9 @@ export function AvailabilityHub() {
       <div className="p-4 rounded-lg bg-muted/30 border text-sm text-muted-foreground">
         <p className="font-medium text-foreground mb-1">💡 How this works</p>
         <p>
-          Your AI uses this schedule to answer "Are you open?" and to only offer appointments 
-          during available hours. Connect your calendar above so it can see your real-time 
-          meetings and automatically block those times.
+          Your AI uses this schedule to answer "Are you open?" and to only offer {terms.bookings}
+          during available hours. Connect your calendar above so it can see your real-time
+          schedule and automatically block busy times.
         </p>
       </div>
 

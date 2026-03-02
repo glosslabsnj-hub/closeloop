@@ -16,6 +16,7 @@ import { formatDistanceToNow, parseISO } from "date-fns";
 import { useState } from "react";
 import { CalendarConnectionWizard } from "@/components/settings/CalendarConnectionWizard";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 // Helper to get contextual sync status messaging
 function getSyncStatus(lastSyncAt: string | null) {
@@ -47,6 +48,7 @@ export function CalendarConnectionStatus() {
   const { sync, isSyncing } = useCalendarSync();
   const [wizardOpen, setWizardOpen] = useState(false);
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
 
   const isInternalCalendar = assistantSettings?.calendar_provider === 'closeloop';
 
@@ -116,8 +118,8 @@ export function CalendarConnectionStatus() {
                 <div>
                   <h3 className="font-semibold text-lg">Calendar not connected</h3>
                   <p className="text-muted-foreground">
-                    Your AI only knows your basic business hours. Connect your calendar 
-                    so it can see your meetings, appointments, and busy times in real-time.
+                    Your AI only knows your basic business hours. Connect your calendar
+                    so it can see your schedule and busy times in real-time.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -150,7 +152,7 @@ export function CalendarConnectionStatus() {
             <div className="flex-1 space-y-1.5">
               <h3 className="font-semibold">Using Flux Receptionist Calendar</h3>
               <p className="text-sm text-muted-foreground">
-                Your AI books appointments based on your configured business hours and availability slots.
+                Your AI schedules {terms.bookings} based on your configured business hours and availability.
               </p>
             </div>
           </div>
