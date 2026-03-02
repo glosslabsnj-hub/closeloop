@@ -1,19 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 2:15 PM ET (receptionist_eng — edge fn deploy, duplicate services fix)
+## Last Session: 2026-03-02 3:33 PM ET (receptionist_fix — dispatch column bugs, error boundaries, regression tests)
 
 ### What Was Done
-- **Edge functions deployed**: ai-plan-response, build-business-brain, retrieve-knowledge all redeployed. Functions had been rewritten in code (commit edd0e7c) but never deployed to production — this was the root cause of AI Simulator failures.
-- **Duplicate HVAC services fixed**: Cleaned 7 inactive duplicate services from Cool Comfort HVAC tenant (2403d98e). Root cause: onboarding Step 5b applied legacy industryTemplates on top of industryCatalog data.
-- **Onboarding duplicate prevention**: Added guard in useOnboardingSubmit.ts Step 5b — skips legacy template merge when `getIndustryBySlug()` finds a catalog entry (Steps 2-5 already seed from authoritative catalog).
-- **Console errors (#208)**: Confirmed already fixed in prior commits (bc70552, be71625). All 3 global hooks return safe defaults.
+- **7 wrong-column bugs fixed in dispatch edge functions**: elevenlabs-create-dispatch-job removed 6 non-existent columns from dispatch_jobs INSERT (dispatch_distance_miles, tow_distance_miles, total_distance_miles, service_tier, pricing_note, price_breakdown). elevenlabs-webhook changed vehicle_category→service_category and removed dispatch_distance_miles. These caused silent data loss.
+- **3 error boundaries added**: GoLivePage, TestAIPage, AutomationsPage. All 18 critical pages now protected.
+- **67 new regression tests**: edge-fn-schema-safety.test.ts (20), error-boundary-coverage.test.ts (36), mutation-schema-safety.test.ts (+11).
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 536/536 passing
-- Commit: f2e51fa
+- Tests: 626/626 passing
+- Commit: b9b0f1d
 - Pushed to main, deployed to app.getfluxdata.com
-- Edge functions deployed: ai-plan-response, build-business-brain, retrieve-knowledge
+- Edge functions deployed: elevenlabs-create-dispatch-job, elevenlabs-webhook
 
 ### MODE PROGRESS
 - SERVICE: 23/42 QA-verified (55%) ← FOCUS

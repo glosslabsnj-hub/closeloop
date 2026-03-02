@@ -60,6 +60,16 @@ export async function requireAuthedTenant(req: Request, requestedTenantId?: stri
     auth: { persistSession: false },
   });
 
+  // Check if user is a super_admin (can access any tenant)
+  const { data: roleData } = await svc
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "super_admin")
+    .maybeSingle();
+
+  const isSuperAdmin = !!roleData;
+
   const { data: memberships, error: memErr } = await svc
     .from("tenant_users")
     .select("tenant_id")
@@ -68,7 +78,7 @@ export async function requireAuthedTenant(req: Request, requestedTenantId?: stri
   if (memErr) throw new Error("Failed to read tenant membership");
   const allowedTenantIds = (memberships ?? []).map((m: { tenant_id: string }) => m.tenant_id).filter(Boolean);
 
-  if (allowedTenantIds.length === 0) throw new Error("User has no tenant membership");
+  if (allowedTenantIds.length === 0 && !isSuperAdmin) throw new Error("User has no tenant membership");
 
   // Resolve tenant_id
   const tenantId =
@@ -77,7 +87,7 @@ export async function requireAuthedTenant(req: Request, requestedTenantId?: stri
       : (allowedTenantIds.length === 1 ? allowedTenantIds[0] : "");
 
   if (!tenantId) throw new Error("Missing tenant_id");
-  if (!allowedTenantIds.includes(tenantId)) throw new Error("Forbidden tenant");
+  if (!isSuperAdmin && !allowedTenantIds.includes(tenantId)) throw new Error("Forbidden tenant");
 
   return { userId, allowedTenantIds, tenantId };
 }
