@@ -1,22 +1,23 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 10:25 AM ET (receptionist_fix — tenant_id critical fix)
+## Last Session: 2026-03-02 10:52 AM ET (receptionist_eng — 3 critical fixes)
 
 ### What Was Done
-- **CRITICAL: tenant_id required:true on all agent tools**: 14 of 26 tenant_id parameters in agentToolsConfig.ts were `required: false`. This was the root cause of `booking_creates_correctly` gate failure — ElevenLabs could omit tenant_id, causing create-booking to silently fail. All 26 now `required: true`.
-- **Regression test**: New `tests/agent-tools-config.test.ts` (5 tests) validates tenant_id is always required:true with dynamicValue.
-- **QA config fix**: Added `test-consultant-callback` slug alias in lenard QA config for Apex Consulting Group.
-- **Unblocked 5 gates**: All test tenants confirmed existing in Supabase. BLOCKED status was stale.
+- **Bookings route redirect fix**: `useModuleRequired` now checks both resolved `enabledModules` AND mode defaults (`defaultModulesByMode`). Service mode tenants can navigate directly to `/app/bookings` without being redirected to dashboard.
+- **Transfer-to-human fix**: `twilio_call_sid` and `reason` now `required: true` on `transfer_to_owner` tool in agentToolsConfig.ts. Previously `required: false`, letting ElevenLabs call the tool without the call SID, causing silent transfer failure.
+- **Opportunities RLS fix**: Added `service_role` bypass policy + `WITH CHECK` clause on opportunities table. Unblocks CallSimulator and edge functions (elevenlabs-create-callback, universal-delivery).
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 365/365 passing (5 new)
-- Commit: 714d90e
-- Edge functions deployed: elevenlabs-init, get-agent-tools-config
-- Handoff #184 filed to QA (8 gates to verify)
+- Tests: 365/365 passing
+- Commit: fa8a462
+- Edge functions deployed: elevenlabs-transfer-call, get-agent-tools-config, elevenlabs-init
+- Frontend deployed to VPS (app.getfluxdata.com)
+- Migration 20260302150000 applied via Management API
+- Handoff #189 filed to QA (3 gates to verify)
 
 ### MODE PROGRESS
-- SERVICE: 15/42 QA-verified (36%) ← FOCUS (8 gates moved from FAIL/BLOCKED → in_progress)
+- SERVICE: 18/42 QA-verified (43%) ← FOCUS (3 gates moved to in_progress)
 - DISPATCH: 0/42 (0%)
 - FOOD: 0/42 (0%)
 - MEDICAL: 0/42 (0%)
@@ -25,18 +26,19 @@
 
 ### Key Architecture Patterns
 - **tenant_id in agent tools**: MUST be `required: true` on ALL tools. Regression test guards this.
-- **booking_status enum**: Has BOTH 'canceled' (American) and 'cancelled' (British). Use either, but prefer 'canceled' for new code.
-- **revenue_attributions.status**: CHECK constraint allows only 'pending', 'completed', 'cancelled'. The trigger maps booking statuses to these.
-- **Two HVAC tenants**: "Comfort Zone HVAC" (1c5cf729, QA test tenant) and "Cool Comfort HVAC" (2403d98e, seed script target).
+- **twilio_call_sid in transfer tool**: MUST be `required: true` — without it, transfer silently fails.
+- **booking_status enum**: Has BOTH 'canceled' (American) and 'cancelled' (British). Use either.
+- **revenue_attributions.status**: CHECK constraint allows only 'pending', 'completed', 'cancelled'.
+- **Two HVAC tenants**: "Comfort Zone HVAC" (1c5cf729, QA) and "Cool Comfort HVAC" (2403d98e, seed).
 - **RLS policy pattern**: All tenant-scoped tables need explicit SELECT/INSERT/UPDATE/DELETE policies + service_role bypass.
-- **Service deletion FK constraint**: Services linked to bookings can't be deleted. Use `is_active=false` to deactivate instead.
-- **Dialog layering**: When opening a dialog after closing a Sheet, use 250ms setTimeout delay to avoid backdrop overlap.
-- **Migration push**: Supabase CLI has version mismatch issues. Use Management API `/database/query` endpoint as fallback.
+- **useModuleRequired**: Checks both enabledModules AND mode defaults — safe against capabilities resolution edge cases.
+- **Dialog layering**: When opening a dialog after closing a Sheet, use 250ms setTimeout delay.
+- **Migration push**: Supabase CLI has version mismatch issues. Use Management API `/database/query` as fallback.
 
 ### Remaining Work
 - Plan/Billing page: payment method integration with Stripe Customer Portal (needs edge function)
 - Developer Tools Last Call Context shows empty values (low priority)
 
 ### Next Priorities
-1. QA re-verification of 8 functional gates (handoff #184)
+1. QA re-verification of 3 gates (handoff #189): transfer_to_human, call_history_real_data, bookings route
 2. Stripe Customer Portal edge function (future eng session)

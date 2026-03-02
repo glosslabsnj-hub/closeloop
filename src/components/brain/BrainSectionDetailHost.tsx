@@ -2,12 +2,13 @@
  * BrainSectionDetailHost — Thin wrapper that adds completion stats and renders the editor.
  * Extracted from BusinessBrainPage.tsx for maintainability.
  */
-import { useCategoryCompletion } from "@/hooks/useCategoryCompletion";
+import { useMemo } from "react";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { resolveCardTitle } from "@/data/industryTerminology";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { groupSectionItems, type BrainSectionItem } from "@/config/brainSectionRegistry";
+import { getModeTabDef } from "@/config/brainModeLayout";
 import { type CategoryConfig } from "@/components/brain/layout";
 import { BrainSectionDetail } from "@/components/brain/dashboard/BrainSectionDetail";
 import { BrainEditorRenderer } from "@/components/brain/layout/BrainEditorRenderer";
@@ -54,7 +55,35 @@ export function BrainSectionDetailHost({
   isFoodMode,
   isDispatchMode,
 }: BrainSectionDetailHostProps) {
-  const completion = useCategoryCompletion(activeSection);
+  // Compute completion from item statuses (same method as BrainDashboard cards)
+  // instead of essentialFields, so the breadcrumb % matches the overview card %.
+  const tabDef = getModeTabDef(businessMode as any, activeSection);
+  const completion = useMemo(() => {
+    if (!tabDef) {
+      return { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false };
+    }
+    let total = 0;
+    let completed = 0;
+    let hasRequiredIncomplete = false;
+    for (const group of tabDef.groups) {
+      for (const itemId of group.itemIds) {
+        const info = statuses[itemId];
+        if (!info || info.status === "optional") continue;
+        total++;
+        if (info.status === "complete") {
+          completed++;
+        } else if (info.status === "error") {
+          hasRequiredIncomplete = true;
+        }
+      }
+    }
+    return {
+      totalFields: total,
+      completedFields: completed,
+      percentage: total > 0 ? Math.round((completed / total) * 100) : 100,
+      hasRequiredIncomplete,
+    };
+  }, [tabDef, statuses]);
   const ic = useIndustryContext();
 
   const categoryTitle = resolveCardTitle(

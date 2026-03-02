@@ -68,25 +68,35 @@ interface ServiceFormData {
   payment_timing: PaymentTiming;
 }
 
-const BASE_INTAKE_FIELDS = [
-  "address",
+// Essential intake fields shown for all non-food modes (minimal, always relevant)
+const ESSENTIAL_INTAKE_FIELDS = ["address", "preferred_date"];
+
+// Additional fields shown when complexity is "complex" (ask detailed questions)
+const ADVANCED_INTAKE_FIELDS = [
   "property_type",
   "urgency",
-  "budget_range",
   "scope_of_work",
   "access_instructions",
-  "preferred_date",
+  "budget_range",
   "photos",
   "warranty_status",
 ];
 
-// Fields only relevant to specific modes
-const MODE_SPECIFIC_INTAKE_FIELDS: Record<string, string[]> = {
-  dispatch: ["vehicle_info", "pickup_location", "dropoff_location"],
+// Mode-specific overrides: which advanced fields are relevant per mode
+const MODE_ADVANCED_FIELDS: Record<string, string[]> = {
+  service: ["property_type", "urgency", "scope_of_work", "access_instructions", "photos"],
+  dispatch: ["vehicle_info", "pickup_location", "dropoff_location", "urgency"],
+  medical: ["urgency", "photos"],
+  sales: ["budget_range"],
+  general: ["urgency"],
 };
 
-function getIntakeFieldsForMode(mode: string): string[] {
-  return [...BASE_INTAKE_FIELDS, ...(MODE_SPECIFIC_INTAKE_FIELDS[mode] || [])];
+function getIntakeFieldsForMode(mode: string, complexity: "simple" | "complex"): string[] {
+  if (complexity === "simple") {
+    return ESSENTIAL_INTAKE_FIELDS;
+  }
+  const advancedForMode = MODE_ADVANCED_FIELDS[mode] ?? ADVANCED_INTAKE_FIELDS;
+  return [...ESSENTIAL_INTAKE_FIELDS, ...advancedForMode];
 }
 
 const defaultFormData: ServiceFormData = {
@@ -280,13 +290,17 @@ function ServiceForm({
         </div>
       )}
 
-      {/* Required Intake Fields */}
+      {/* Required Intake Fields — adapts to complexity */}
       {businessMode !== "food" && (
         <div className="space-y-2">
           <Label className="text-xs">Required info to collect before booking</Label>
-          <p className="text-[11px] text-muted-foreground">AI will ask for these before scheduling this service</p>
+          <p className="text-[11px] text-muted-foreground">
+            {formData.complexity === "simple"
+              ? "Essentials only — toggle to \"Ask detailed questions\" above for more options"
+              : "AI will ask for these before scheduling this service"}
+          </p>
           <div className="flex flex-wrap gap-1.5">
-            {getIntakeFieldsForMode(businessMode).map((field) => {
+            {getIntakeFieldsForMode(businessMode, formData.complexity).map((field) => {
               const selected = formData.required_intake_fields.includes(field);
               return (
                 <Badge
