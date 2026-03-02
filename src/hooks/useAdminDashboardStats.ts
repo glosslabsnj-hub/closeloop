@@ -93,31 +93,35 @@ export function useAgencySummary() {
   return useQuery({
     queryKey: ["admin-agency-summary"],
     queryFn: async () => {
-      const { data: agencies } = await supabase
-        .from("agency_accounts" as any)
-        .select("id");
+      try {
+        const { data: agencies } = await supabase
+          .from("agency_accounts" as any)
+          .select("id");
 
-      const agencyList = (agencies ?? []) as unknown as Array<{ id: string }>;
-      const totalAgencies = agencyList.length;
+        const agencyList = (agencies ?? []) as unknown as Array<{ id: string }>;
+        const totalAgencies = agencyList.length;
 
-      // Sum commissions from agency_commissions table
-      const { data: commissions } = await supabase
-        .from("agency_commissions" as any)
-        .select("commission_cents");
-      const totalCommission = ((commissions ?? []) as unknown as Array<{ commission_cents: number }>)
-        .reduce((sum, c) => sum + (c.commission_cents ?? 0), 0) / 100;
+        // Sum commissions from agency_commissions table
+        const { data: commissions } = await supabase
+          .from("agency_commissions" as any)
+          .select("commission_cents");
+        const totalCommission = ((commissions ?? []) as unknown as Array<{ commission_cents: number }>)
+          .reduce((sum, c) => sum + (c.commission_cents ?? 0), 0) / 100;
 
-      // Count agency-provisioned clients
-      const { count: agencyClients } = await supabase
-        .from("tenants")
-        .select("id", { count: "exact", head: true })
-        .not("provisioned_by_agency_id" as any, "is", null);
+        // Count agency-provisioned clients
+        const { count: agencyClients } = await supabase
+          .from("tenants")
+          .select("id", { count: "exact", head: true })
+          .not("provisioned_by_agency_id" as any, "is", null);
 
-      return {
-        totalAgencies,
-        agencyClients: agencyClients ?? 0,
-        totalCommission,
-      };
+        return {
+          totalAgencies,
+          agencyClients: agencyClients ?? 0,
+          totalCommission,
+        };
+      } catch {
+        return { totalAgencies: 0, agencyClients: 0, totalCommission: 0 };
+      }
     },
     staleTime: 60_000,
     retry: false,
@@ -128,20 +132,24 @@ export function usePendingActions() {
   return useQuery({
     queryKey: ["admin-pending-actions"],
     queryFn: async () => {
-      const [appsRes, setupRes] = await Promise.all([
-        supabase
-          .from("agency_applications" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("status", "new"),
-        supabase
-          .from("setup_requests" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("status", "new"),
-      ]);
-      return {
-        newApplications: appsRes.count ?? 0,
-        newSetupRequests: setupRes.count ?? 0,
-      };
+      try {
+        const [appsRes, setupRes] = await Promise.all([
+          supabase
+            .from("agency_applications" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("status", "new"),
+          supabase
+            .from("setup_requests" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("status", "new"),
+        ]);
+        return {
+          newApplications: appsRes.count ?? 0,
+          newSetupRequests: setupRes.count ?? 0,
+        };
+      } catch {
+        return { newApplications: 0, newSetupRequests: 0 };
+      }
     },
     staleTime: 30_000,
     retry: false,

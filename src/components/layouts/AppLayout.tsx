@@ -60,7 +60,9 @@ interface NavItem {
 
 // Routes that are always accessible (even without subscription)
 // Brain + dashboard + AI assistant are config/setup tools — users must configure before paying
-const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live", "/app/agency", "/app/business-brain", "/app/dashboard", "/app/ai-assistant", "/app/onboarding"];
+// All /app/ routes are included since the inline paywall card (line 246) handles non-subscribers
+// gracefully without hard-redirecting, which broke direct URL navigation.
+const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live", "/app/agency", "/app/business-brain", "/app/dashboard", "/app/ai-assistant", "/app/onboarding", "/app/customers", "/app/estimates", "/app/bookings", "/app/inbox", "/app/orders", "/app/dispatch", "/app/sales-pipeline", "/app/leads", "/app/reports", "/app/integrations", "/app/help"];
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin, assistantSettings } = useAuth();

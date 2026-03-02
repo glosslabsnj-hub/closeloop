@@ -239,45 +239,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (tenantData) {
           setTenant(tenantData as Tenant);
 
-          // Fetch subscription (for subscription gating)
-          const { data: subData } = await supabase
-            .from("subscriptions")
-            .select("*")
-            .eq("tenant_id", tenantUserData.tenant_id)
-            .maybeSingle();
-          
-          setSubscription(subData);
-
-          // Fetch assistant settings
-          const { data: settingsData } = await supabase
-            .from("assistant_settings")
-            .select("*")
-            .eq("tenant_id", tenantUserData.tenant_id)
-            .maybeSingle();
-          
-          setAssistantSettings(settingsData);
-
-          // For super admins, fetch admin settings AFTER we have a default tenant.
-          // Use localStorage-cached tenant ID for instant restore on page reload.
+          // For super admins with a cached tenant switch, fetch the CACHED tenant's
+          // subscription/settings instead of the default tenant's to prevent flash
+          // of wrong tenant data during re-fetch (e.g. on page navigation).
+          let cachedTenantId: string | null = null;
           if (isAdmin) {
-            let cachedTenantId: string | null = null;
             try { cachedTenantId = localStorage.getItem("flux_admin_active_tenant_id"); } catch {}
+          }
 
-            if (cachedTenantId && cachedTenantId !== tenantData.id) {
-              // Pre-fetch the cached tenant immediately to prevent flash of wrong tenant
-              const [cachedTenantRes, cachedSubRes, cachedSettingsRes] = await Promise.all([
-                supabase.from("tenants").select("*").eq("id", cachedTenantId).single(),
-                supabase.from("subscriptions").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
-                supabase.from("assistant_settings").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
-              ]);
-              if (cachedTenantRes.data) {
-                setActiveTenant(cachedTenantRes.data as Tenant);
-                setSubscription(cachedSubRes.data);
-                setAssistantSettings(cachedSettingsRes.data);
-              }
+          if (isAdmin && cachedTenantId && cachedTenantId !== tenantData.id) {
+            // Pre-fetch the cached admin tenant's data — skip default tenant sub/settings
+            // to avoid a brief flash of wrong-mode data
+            const [cachedTenantRes, cachedSubRes, cachedSettingsRes, defaultSubRes] = await Promise.all([
+              supabase.from("tenants").select("*").eq("id", cachedTenantId).single(),
+              supabase.from("subscriptions").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
+              supabase.from("assistant_settings").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
+              supabase.from("subscriptions").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
+            ]);
+            // Keep default tenant's subscription cached internally but expose cached tenant's
+            if (cachedTenantRes.data) {
+              setActiveTenant(cachedTenantRes.data as Tenant);
+              setSubscription(cachedSubRes.data);
+              setAssistantSettings(cachedSettingsRes.data);
+            } else {
+              // Cached tenant no longer exists — fall back to default
+              setSubscription(defaultSubRes.data);
+              const { data: settingsData } = await supabase
+                .from("assistant_settings").select("*")
+                .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
+              setAssistantSettings(settingsData);
+              try { localStorage.removeItem("flux_admin_active_tenant_id"); } catch {}
             }
-
             await fetchAdminSettings(userId, tenantData.id);
+          } else {
+            // Normal user or admin viewing their own default tenant
+            const { data: subData } = await supabase
+              .from("subscriptions").select("*")
+              .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
+            setSubscription(subData);
+
+            const { data: settingsData } = await supabase
+              .from("assistant_settings").select("*")
+              .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
+            setAssistantSettings(settingsData);
+
+            if (isAdmin) {
+              await fetchAdminSettings(userId, tenantData.id);
+            }
           }
         }
       } else if (isAdmin) {
@@ -316,9 +324,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
 
         // Fire and forget - don't await, don't set loading
-        if (session?.user) {
+        // Only re-fetch on actual auth events (sign-in, token refresh), not on
+        // INITIAL_SESSION which is redundant with initializeAuth above.
+        if (session?.user && (event === "SIGNED_IN" || event === "TOKEN_REFRESHED")) {
           fetchTenantData(session.user.id);
-        } else {
+        } else if (!session) {
           setTenant(null);
           setTenantUser(null);
           setUserRole(null);

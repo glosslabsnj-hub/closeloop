@@ -25,6 +25,7 @@ export interface CategoryCompletionStats {
   completedFields: number;
   percentage: number;
   hasRequiredIncomplete: boolean;
+  isLoading?: boolean;
 }
 
 // ── Capability flags builder (shared) ──────────────────────────────────────
@@ -72,6 +73,12 @@ export function useCategoryCompletion(categorySection: string): CategoryCompleti
   const { businessMode } = useTenantConfig();
 
   return useMemo(() => {
+    // While capabilities are still loading, return a loading state instead of 0%
+    // which would misleadingly show incomplete progress
+    if (capabilities.isLoading) {
+      return { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false, isLoading: true };
+    }
+
     const essentialSections = getCompletionSections(businessMode, categorySection);
     if (essentialSections.length === 0) {
       return { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false };
@@ -80,8 +87,11 @@ export function useCategoryCompletion(categorySection: string): CategoryCompleti
     const allFields = getFieldsForMode(capabilities.mode);
     const capFlags = buildCapabilityFlags(capabilities);
 
+    // Only count required and recommended fields for completion percentage.
+    // Optional fields should not drag down the score.
     const sectionFields = allFields.filter(
-      (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags),
+      (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags)
+        && f.priority !== "optional",
     );
 
     let completed = 0;
@@ -115,10 +125,19 @@ export function useAllCategoriesCompletion(
   const { businessMode } = useTenantConfig();
 
   return useMemo(() => {
+    const result: Record<string, CategoryCompletionStats> = {};
+
+    // While capabilities are still loading, return loading state for all categories
+    if (capabilities.isLoading) {
+      const keys = sectionKeys ?? ["about", "services", "operations", "training"];
+      for (const k of keys) {
+        result[k] = { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false, isLoading: true };
+      }
+      return result;
+    }
+
     const allFields = getFieldsForMode(capabilities.mode);
     const capFlags = buildCapabilityFlags(capabilities);
-
-    const result: Record<string, CategoryCompletionStats> = {};
 
     // Default section keys: the standard mode tabs
     const keys = sectionKeys ?? ["about", "services", "operations", "training"];
@@ -131,8 +150,11 @@ export function useAllCategoriesCompletion(
         continue;
       }
 
+      // Only count required and recommended fields for completion percentage.
+      // Optional fields should not drag down the score.
       const sectionFields = allFields.filter(
-        (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags),
+        (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags)
+          && f.priority !== "optional",
       );
 
       let completed = 0;

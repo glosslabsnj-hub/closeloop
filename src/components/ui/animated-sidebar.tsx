@@ -151,11 +151,12 @@ export const SidebarLink = ({
   isLocked?: boolean;
   props?: LinkProps;
 }) => {
-  const { open, animate } = useAnimatedSidebar();
+  const { open, setOpen, animate } = useAnimatedSidebar();
   return (
     <Link
       to={isLocked ? "/app/go-live" : link.href}
       title={!open ? link.label : undefined}
+      onClick={() => { if (window.innerWidth < 768) setOpen(false); }}
       className={cn(
         "flex items-center gap-3 group/sidebar rounded-lg px-3 py-2 h-9 transition-all duration-150",
         isActive
@@ -166,7 +167,7 @@ export const SidebarLink = ({
       )}
       {...props}
     >
-      <span className={cn("shrink-0 transition-colors", isActive && "text-primary")}>{link.icon}</span>
+      <span className={cn("shrink-0 transition-colors pointer-events-none", isActive && "text-primary")}>{link.icon}</span>
       <motion.span
         animate={{
           display: animate ? (open ? "inline-block" : "none") : "inline-block",
