@@ -245,15 +245,18 @@ export function useBookings() {
         .eq("id", id)
         .select()
         .single();
-      if (error) throw error;
+      if (error) {
+        console.error("[cancelBooking] Supabase error:", error.code, error.message, error.details, error.hint);
+        throw error;
+      }
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking cancelled" });
     },
-    onError: () => {
-      toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
+    onError: (error) => {
+      console.error("[cancelBooking] mutation error:", error);
+      toast({ title: "Failed to cancel booking", description: "Please try again.", variant: "destructive" });
     },
   });
 

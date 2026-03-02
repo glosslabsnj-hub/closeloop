@@ -52,7 +52,7 @@ function groupBookingsByDate(bookings: BookingWithDetails[]) {
 
 export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
-  const { bookings, isLoading, error: bookingsError, _updateBooking, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
+  const { bookings, isLoading, error: bookingsError, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
   const [searchParams] = useSearchParams();
 
@@ -104,6 +104,10 @@ export default function BookingsPage() {
     setCancelDialogOpen(true);
   };
 
+  const handleCancelConfirm = async (bookingId: string) => {
+    await cancelBooking.mutateAsync(bookingId);
+  };
+
   const handleViewBooking = (booking: BookingWithDetails) => {
     setSelectedBooking(booking);
     setDetailsOpen(true);
@@ -119,11 +123,6 @@ export default function BookingsPage() {
 
   const handleNoShowBooking = (booking: BookingWithDetails) => {
     noShowBooking.mutate(booking.id);
-    setDetailsOpen(false);
-  };
-
-  const _handleCancelBookingConfirmed = (booking: BookingWithDetails) => {
-    cancelBooking.mutate(booking.id);
     setDetailsOpen(false);
   };
 
@@ -345,6 +344,7 @@ export default function BookingsPage() {
           booking={selectedBooking}
           open={cancelDialogOpen}
           onOpenChange={setCancelDialogOpen}
+          onConfirm={handleCancelConfirm}
         />
 
         <BookingDetailsSheet
@@ -355,7 +355,11 @@ export default function BookingsPage() {
           onConfirm={(b) => { handleApproveBooking(b); setDetailsOpen(false); }}
           onComplete={(b) => { handleCompleteBooking(b); setDetailsOpen(false); }}
           onNoShow={handleNoShowBooking}
-          onCancel={(b) => { setDetailsOpen(false); handleCancelBooking(b); }}
+          onCancel={(b) => {
+            setDetailsOpen(false);
+            // Delay cancel dialog to avoid backdrop overlap with Sheet closing animation
+            setTimeout(() => handleCancelBooking(b), 250);
+          }}
         />
       </div>
       </ErrorBoundary>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import {
   AlertDialog,
@@ -9,30 +10,32 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useBookings, type BookingWithDetails } from "@/hooks/useBookings";
+import type { BookingWithDetails } from "@/hooks/useBookings";
 import { toast } from "sonner";
 
 interface CancelBookingDialogProps {
   booking: BookingWithDetails | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onConfirm: (bookingId: string) => Promise<void>;
 }
 
-export function CancelBookingDialog({ booking, open, onOpenChange }: CancelBookingDialogProps) {
-  const { updateBooking } = useBookings();
+export function CancelBookingDialog({ booking, open, onOpenChange, onConfirm }: CancelBookingDialogProps) {
+  const [isPending, setIsPending] = useState(false);
 
   const handleConfirm = async () => {
     if (!booking) return;
 
+    setIsPending(true);
     try {
-      await updateBooking.mutateAsync({
-        id: booking.id,
-        status: "canceled",
-      });
+      await onConfirm(booking.id);
       toast.success("Booking cancelled");
       onOpenChange(false);
-    } catch {
+    } catch (err) {
+      console.error("[CancelBookingDialog] cancel failed:", err);
       toast.error("Failed to cancel booking");
+    } finally {
+      setIsPending(false);
     }
   };
 
@@ -44,7 +47,7 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: CancelBooki
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="z-[60]">
         <AlertDialogHeader>
           <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
           <AlertDialogDescription>
@@ -53,12 +56,13 @@ export function CancelBookingDialog({ booking, open, onOpenChange }: CancelBooki
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Keep Booking</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>Keep Booking</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
+            disabled={isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {updateBooking.isPending ? "Cancelling..." : "Cancel Booking"}
+            {isPending ? "Cancelling..." : "Cancel Booking"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
