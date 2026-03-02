@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Plus, ArrowRight, Check, Copy, Loader2 } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import type { AssistantSettings } from "@/types/database";
 
 interface ConnectPhoneDialogProps {
@@ -31,6 +32,7 @@ export function ConnectPhoneDialog({
 }: ConnectPhoneDialogProps) {
   const { tenant } = useAuth();
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
   const [loading, setLoading] = useState(false);
   const [existingNumber, setExistingNumber] = useState("");
   const [copied, setCopied] = useState(false);
@@ -208,7 +210,7 @@ export function ConnectPhoneDialog({
               <p className="font-medium">Get a Flux Receptionist Number</p>
               <p className="text-sm text-muted-foreground mt-1">
                 We'll provision a new local number for your business. 
-                Customers call this number and your AI answers.
+                {terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1)} call this number and your AI answers.
               </p>
             </div>
 

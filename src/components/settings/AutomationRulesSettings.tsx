@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Calendar, Truck, UtensilsCrossed, Stethoscope, Users, ClipboardList, Info } from "lucide-react";
 import { useDeliveryRules, type EntityType, type DeliveryRule } from "@/hooks/useUniversalDelivery";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ReviewRequestSettings } from "./ReviewRequestSettings";
 
@@ -172,17 +173,28 @@ function RuleCard({ config, rule, onUpdate, isUpdating }: RuleCardProps) {
 export function AutomationRulesSettings() {
   const { _rules, isLoading, updateRule, getRuleForEntity, isUpdating } = useDeliveryRules();
   const { enabledModules } = useTenantConfig();
+  const { terms, terminology } = useIndustryContext();
 
   const handleUpdate = (entityType: EntityType, updates: Partial<DeliveryRule>) => {
     updateRule.mutate({ entityType, updates });
   };
 
-  // Filter entities by enabled modules
+  // Filter entities by enabled modules and apply mode-aware labels
+  const bookingsLabel = terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1);
+  const customerLabel = terminology.customerLabel;
   const enabledEntities = ENTITY_CONFIGS.filter((config) => {
     if (Array.isArray(config.module)) {
       return config.module.some((m) => enabledModules.includes(m));
     }
     return enabledModules.includes(config.module);
+  }).map((config) => {
+    if (config.type === "booking") {
+      return { ...config, label: bookingsLabel, description: `${bookingsLabel} scheduled by ${customerLabel}s` };
+    }
+    if (config.type === "intake") {
+      return { ...config, description: `${terminology.customerLabel.charAt(0).toUpperCase() + terminology.customerLabel.slice(1)} intake and scheduling requests` };
+    }
+    return config;
   });
 
   if (isLoading) {
@@ -199,8 +211,8 @@ export function AutomationRulesSettings() {
     return (
       <Card>
         <CardContent className="py-8 text-center text-muted-foreground">
-          <p>No outcome types are enabled for your business mode.</p>
-          <p className="text-sm mt-2">Enable modules in your business settings to configure automation rules.</p>
+          <p>No automation categories are set up yet.</p>
+          <p className="text-sm mt-2">Complete your business setup to unlock automation rules.</p>
         </CardContent>
       </Card>
     );

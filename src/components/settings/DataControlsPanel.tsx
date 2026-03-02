@@ -88,7 +88,7 @@ export function DataControlsPanel() {
             </span>
             <span className="ml-2 text-muted-foreground">
               {hipaaMode 
-                ? "Strict data isolation is enforced. PHI is minimized by default." 
+                ? "Patient data is protected. Sensitive information is removed by default."
                 : "Standard data retention policies apply."}
             </span>
           </div>
@@ -182,7 +182,7 @@ export function DataControlsPanel() {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Storing recordings in HIPAA mode requires BAA compliance and increases security obligations.
+                Storing recordings with patient data requires a signed agreement with your provider and extra security measures.
               </AlertDescription>
             </Alert>
           )}
@@ -258,7 +258,7 @@ export function DataControlsPanel() {
             </div>
             <div className="flex items-center gap-2">
               {hipaaMode && formValues.allow_customer_memory && (
-                <Badge variant="destructive" className="text-xs">PHI risk</Badge>
+                <Badge variant="destructive" className="text-xs">Sensitive data risk</Badge>
               )}
               <Switch
                 id="allow-memory"
@@ -273,7 +273,7 @@ export function DataControlsPanel() {
 
           {hipaaMode && (
             <p className="text-xs text-muted-foreground">
-              {terminology.customerLabel.charAt(0).toUpperCase() + terminology.customerLabel.slice(1)}-specific memory is disabled in HIPAA mode to prevent PHI storage.
+              {terminology.customerLabel.charAt(0).toUpperCase() + terminology.customerLabel.slice(1)}-specific memory is disabled in HIPAA mode to protect patient privacy.
             </p>
           )}
 

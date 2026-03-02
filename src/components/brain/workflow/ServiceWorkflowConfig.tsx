@@ -10,9 +10,17 @@ import { useServiceWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import type { ServiceWorkflowConfig } from "@/hooks/useWorkflowConfig";
 import { AlertCircle, CheckCircle2, Loader2, Info } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+
+/** Capitalize first letter */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default function ServiceWorkflowConfig() {
   const { config, isLoading, update, isUpdating } = useServiceWorkflowConfig();
+  const { terminology, terms } = useIndustryContext();
+  const appt = terminology.appointmentLabel; // "appointment", "job", "visit", etc.
+  const Appt = cap(appt);
+  const cust = terminology.customerLabel;    // "customer", "patient", "guest", etc.
   const [localConfig, setLocalConfig] = useState<Partial<ServiceWorkflowConfig>>({});
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -83,16 +91,16 @@ export default function ServiceWorkflowConfig() {
         <CardHeader>
           <CardTitle>Service Intake</CardTitle>
           <CardDescription>
-            Configure what information the agent collects during booking
+            Configure what information the agent collects during scheduling
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Collect Duration */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Collect service duration from customer</Label>
+              <Label>Collect service duration from {cust}</Label>
               <p className="text-sm text-muted-foreground">
-                Ask customers how long they expect the service to take
+                Ask {cust}s how long they expect the service to take
               </p>
             </div>
             <Switch
@@ -108,16 +116,16 @@ export default function ServiceWorkflowConfig() {
         <CardHeader>
           <CardTitle>Deposit Collection</CardTitle>
           <CardDescription>
-            Configure if and when to collect deposits for appointments
+            Configure if and when to collect deposits for {appt}s
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Collect Deposit */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Collect deposit for bookings</Label>
+              <Label>Collect deposit for {appt}s</Label>
               <p className="text-sm text-muted-foreground">
-                Require a deposit to secure appointments
+                Require a deposit to secure {appt}s
               </p>
             </div>
             <Switch
@@ -140,31 +148,31 @@ export default function ServiceWorkflowConfig() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="before_booking">
-                      Before Booking (must pay to reserve)
+                      Before {Appt} (must pay to reserve)
                     </SelectItem>
                     <SelectItem value="at_confirmation">
                       At Confirmation (sent via text/email)
                     </SelectItem>
-                    <SelectItem value="day_before">Day Before Appointment</SelectItem>
+                    <SelectItem value="day_before">Day Before {Appt}</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
                   {localConfig.deposit_timing === "before_booking" && (
                     <>
                       <Info className="inline h-3 w-3 mr-1" />
-                      Agent will not create booking until deposit is paid
+                      Agent will not create {appt} until deposit is paid
                     </>
                   )}
                   {localConfig.deposit_timing === "at_confirmation" && (
                     <>
                       <Info className="inline h-3 w-3 mr-1" />
-                      Booking is created, deposit link sent immediately
+                      {Appt} is created, deposit link sent immediately
                     </>
                   )}
                   {localConfig.deposit_timing === "day_before" && (
                     <>
                       <Info className="inline h-3 w-3 mr-1" />
-                      System will send deposit request 24 hours before appointment
+                      System will send deposit request 24 hours before {appt}
                     </>
                   )}
                 </p>
@@ -289,15 +297,15 @@ export default function ServiceWorkflowConfig() {
       {/* Booking Confirmation */}
       <Card>
         <CardHeader>
-          <CardTitle>Booking Confirmation</CardTitle>
+          <CardTitle>{Appt} Confirmation</CardTitle>
           <CardDescription>
-            Configure how bookings are confirmed with customers
+            Configure how {appt}s are confirmed with {cust}s
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Confirmation Script */}
           <div className="space-y-2">
-            <Label>Booking confirmation script</Label>
+            <Label>{Appt} confirmation script</Label>
             <Textarea
               value={localConfig.booking_confirmation_script || ""}
               onChange={(e) => handleUpdate("booking_confirmation_script", e.target.value)}
@@ -307,7 +315,7 @@ export default function ServiceWorkflowConfig() {
             <p className="text-xs text-muted-foreground">
               Use {"{"}
               {"{"}date{"}"}{"}"}and {"{"}
-              {"{"}time{"}"}{"}"}to insert booking details
+              {"{"}time{"}"}{"}"}to insert {appt} details
             </p>
           </div>
 
@@ -316,7 +324,7 @@ export default function ServiceWorkflowConfig() {
             <div className="space-y-0.5">
               <Label>Send SMS confirmation</Label>
               <p className="text-sm text-muted-foreground">
-                Automatically send text message confirmation after booking
+                Automatically send text message confirmation after {appt}
               </p>
             </div>
             <Switch
@@ -353,9 +361,9 @@ export default function ServiceWorkflowConfig() {
           {/* Allow Rescheduling */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Allow AI to reschedule appointments</Label>
+              <Label>Allow AI to reschedule {appt}s</Label>
               <p className="text-sm text-muted-foreground">
-                Agent can move existing bookings to new times
+                Agent can move existing {appt}s to new times
               </p>
             </div>
             <Switch
@@ -367,9 +375,9 @@ export default function ServiceWorkflowConfig() {
           {/* Allow Cancellation */}
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label>Allow AI to cancel appointments</Label>
+              <Label>Allow AI to cancel {appt}s</Label>
               <p className="text-sm text-muted-foreground">
-                Agent can cancel bookings without manager approval
+                Agent can cancel {appt}s without manager approval
               </p>
             </div>
             <Switch

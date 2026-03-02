@@ -53,7 +53,7 @@ export function HowToGuide() {
       </div>
 
       <Tabs defaultValue="connect-number" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
+        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
           <TabsTrigger value="connect-number" className="flex flex-col gap-1 py-3 h-auto">
             <PhoneForwarded className="h-5 w-5" />
             <span className="text-xs">Connect Number</span>
@@ -631,7 +631,7 @@ export function HowToGuide() {
                         Choose how long to wait before sending the text. This gives you time to call 
                         back first if you prefer.
                       </p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-3 sm:gap-2 gap-1.5">
                         <div className="p-3 rounded-lg border text-center">
                           <span className="text-lg font-bold text-primary">0s</span>
                           <p className="text-xs text-muted-foreground">Instant</p>

@@ -23,6 +23,7 @@ import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle, Flame, The
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { CallCard } from "@/components/calls/CallCard";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -65,6 +66,7 @@ export default function CallsPage() {
   
   const { tenant } = useAuth();
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [leadFilter, setLeadFilter] = useState<LeadFilter>("all");
@@ -390,7 +392,7 @@ export default function CallsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[70px] text-center">Lead</TableHead>
-                      <TableHead className="w-[160px]">Customer</TableHead>
+                      <TableHead className="w-[160px]">{terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)}</TableHead>
                       <TableHead className="w-[100px]">Time</TableHead>
                       <TableHead className="w-[130px]">Phone</TableHead>
                       <TableHead className="w-[180px]">Service</TableHead>

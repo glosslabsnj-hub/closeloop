@@ -151,7 +151,7 @@ export function MedicalHIPAASettings() {
                 </Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Audio recordings contain PHI and require extra security measures
+                Audio recordings contain patient information and need extra protection
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -174,8 +174,8 @@ export function MedicalHIPAASettings() {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Storing recordings increases compliance requirements. Ensure your 
-                organization has proper BAAs and security measures in place.
+                Storing recordings increases your legal obligations. Make sure you have
+                signed agreements with all providers who handle patient data.
               </AlertDescription>
             </Alert>
           )}

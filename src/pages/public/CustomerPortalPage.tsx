@@ -28,6 +28,8 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { getTerminology } from "@/lib/terminology";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface TenantInfo {
   id: string;
@@ -35,6 +37,7 @@ interface TenantInfo {
   phone_public: string | null;
   address: string | null;
   website_url: string | null;
+  business_mode: BusinessMode | null;
 }
 
 interface CustomerData {
@@ -106,6 +109,9 @@ export default function CustomerPortalPage() {
   const [estimates, setEstimates] = useState<Estimate[]>([]);
   const [agreements, setAgreements] = useState<Agreement[]>([]);
 
+  // Mode-aware terminology for public portal
+  const portalTerms = getTerminology((tenant?.business_mode as BusinessMode) || "service");
+
   // Booking action dialogs
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [rescheduleDialogOpen, setRescheduleDialogOpen] = useState(false);
@@ -132,7 +138,7 @@ export default function CustomerPortalPage() {
     try {
       const { data, error } = await supabase
         .from("tenants")
-        .select("id, name, phone_public, address, website_url")
+        .select("id, name, phone_public, address, website_url, business_mode")
         .eq("id", tenantId)
         .single();
 
@@ -255,7 +261,9 @@ export default function CustomerPortalPage() {
 
       setActionMessage({
         type: "success",
-        text: action === "cancel" ? "Booking cancelled successfully." : "Booking rescheduled. Awaiting confirmation.",
+        text: action === "cancel"
+          ? `${portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)} cancelled successfully.`
+          : `${portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)} rescheduled. Awaiting confirmation.`,
       });
       setCancelDialogOpen(false);
       setRescheduleDialogOpen(false);
@@ -384,7 +392,7 @@ export default function CustomerPortalPage() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="bookings" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Bookings
+                  {portalTerms.bookings.charAt(0).toUpperCase() + portalTerms.bookings.slice(1)}
                 </TabsTrigger>
                 <TabsTrigger value="estimates" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -400,12 +408,12 @@ export default function CustomerPortalPage() {
               <TabsContent value="bookings" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Your Appointments</CardTitle>
+                    <CardTitle className="text-lg">Your {portalTerms.bookings.charAt(0).toUpperCase() + portalTerms.bookings.slice(1)}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {bookings.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
-                        No appointments found.
+                        No {portalTerms.bookings} found.
                       </p>
                     ) : (
                       <div className="space-y-3">
@@ -432,7 +440,7 @@ export default function CustomerPortalPage() {
                                   <Calendar className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                  <p className="font-medium">Appointment</p>
+                                  <p className="font-medium">{portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)}</p>
                                   <p className="text-sm text-muted-foreground">
                                     {format(new Date(booking.start_at), "EEEE, MMMM d 'at' h:mm a")}
                                   </p>
@@ -609,9 +617,9 @@ export default function CustomerPortalPage() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Cancel Appointment</DialogTitle>
+            <DialogTitle>Cancel {portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel your appointment
+              Are you sure you want to cancel your {portalTerms.booking}
               {selectedBooking
                 ? ` on ${format(new Date(selectedBooking.start_at), "EEEE, MMMM d 'at' h:mm a")}`
                 : ""}
@@ -624,7 +632,7 @@ export default function CustomerPortalPage() {
               onClick={() => setCancelDialogOpen(false)}
               disabled={actionLoading}
             >
-              Keep Appointment
+              Keep {portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)}
             </Button>
             <Button
               variant="destructive"
@@ -634,7 +642,7 @@ export default function CustomerPortalPage() {
               {actionLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : null}
-              Cancel Appointment
+              Cancel {portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,9 +652,9 @@ export default function CustomerPortalPage() {
       <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogTitle>Reschedule {portalTerms.booking.charAt(0).toUpperCase() + portalTerms.booking.slice(1)}</DialogTitle>
             <DialogDescription>
-              Choose a new date and time for your appointment.
+              Choose a new date and time for your {portalTerms.booking}.
               {selectedBooking && (
                 <span className="block mt-1 text-foreground font-medium">
                   Current: {format(new Date(selectedBooking.start_at), "EEEE, MMMM d 'at' h:mm a")}

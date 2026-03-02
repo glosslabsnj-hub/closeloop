@@ -6,11 +6,13 @@ import { Zap, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWorkflows } from "@/hooks/useWorkflows";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { getAutomationTogglesForMode } from "@/lib/createDefaultWorkflows";
 
 export function AutomationStatusCard() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const tenantId = tenant?.id ?? null;
 
   const { data: workflows, isLoading } = useWorkflows(tenantId);
@@ -75,7 +77,7 @@ export function AutomationStatusCard() {
           {stats.hasCriticalOff ? (
             <div className="flex items-center gap-1 text-xs text-accent-foreground">
               <AlertCircle className="h-3 w-3" />
-              Customer notifications may be off
+              {terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)} notifications may be off
             </div>
           ) : stats.active === 0 ? (
             <p className="text-xs text-muted-foreground">

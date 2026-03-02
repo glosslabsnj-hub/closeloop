@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { KnowledgeSection } from "@/components/brain/shared/KnowledgeSection";
 import { KnowledgeItem } from "@/components/brain/shared/KnowledgeItem";
 import { AIPreviewCard } from "@/components/brain/AIPreviewCard";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface SeasonalKnowledge {
   id: string;
@@ -40,6 +41,8 @@ const COMMON_EVENTS = ["Valentine's Day", "Mother's Day", "Father's Day", "Thank
 
 export function SeasonalKnowledgeEditor() {
   const { tenant } = useAuth();
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel.charAt(0).toUpperCase() + terminology.appointmentLabel.slice(1);
   const [items, setItems] = useState<SeasonalKnowledge[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -312,7 +315,7 @@ export function SeasonalKnowledgeEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label>Booking Tips</Label>
+              <Label>{apptLabel} Tips</Label>
               <Input
                 placeholder="e.g., Book 2 weeks ahead for best availability"
                 value={formBookingTips}

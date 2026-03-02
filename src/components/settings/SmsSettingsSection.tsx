@@ -213,7 +213,7 @@ export function SmsSettingsSection() {
       {/* Registration Status Banner */}
       <SettingsCard
         title="SMS Registration Status"
-        description="Your number must be registered for A2P 10DLC compliance before sending SMS."
+        description="Your phone number needs to be verified with carriers before sending text messages."
       >
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -222,11 +222,11 @@ export function SmsSettingsSection() {
           {canSend && (
             <div className="flex items-center gap-2 text-sm">
               <Badge variant={isApproved ? "default" : "secondary"} className="text-xs">
-                {isApproved ? "Sending via 10DLC" : "Sending via Toll-Free"}
+                {isApproved ? "Verified sender" : "Sending via backup number"}
               </Badge>
               {isTollFreeActive && (
                 <span className="text-muted-foreground text-xs">
-                  Messages route via toll-free while 10DLC registration completes
+                  Messages sent from a backup number while your number is being verified
                 </span>
               )}
             </div>
