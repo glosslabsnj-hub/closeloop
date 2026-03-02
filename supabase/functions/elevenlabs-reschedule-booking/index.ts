@@ -134,15 +134,19 @@ serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Resolve tenant
+    // Resolve tenant + caller phone from session
     let resolvedTenantId = tenantId;
-    if (conversationId && !resolvedTenantId) {
+    let callerPhone: string | null = null;
+    if (conversationId) {
       const { data: session } = await supabase
         .from("ai_call_sessions")
-        .select("tenant_id")
+        .select("tenant_id, caller_phone")
         .eq("elevenlabs_conversation_id", conversationId)
         .maybeSingle();
-      resolvedTenantId = session?.tenant_id || "";
+      if (session) {
+        resolvedTenantId = resolvedTenantId || session.tenant_id || "";
+        callerPhone = session.caller_phone || null;
+      }
     }
 
     if (!resolvedTenantId) {
@@ -174,22 +178,22 @@ serve(async (req: Request) => {
     }
 
     if (!booking) {
-      // Find by customer phone
-      const phoneE164 = normalizePhoneE164(customerPhone);
+      // Find by customer phone → leads → bookings (bookings link via lead_id, not customer_id)
+      const phoneE164 = normalizePhoneE164(customerPhone) || callerPhone || "";
       if (phoneE164) {
-        const { data: customer } = await supabase
-          .from("customers")
+        const { data: leads } = await supabase
+          .from("leads")
           .select("id")
           .eq("tenant_id", resolvedTenantId)
-          .eq("phone_e164", phoneE164)
-          .maybeSingle();
+          .eq("phone", phoneE164);
 
-        if (customer) {
+        if (leads && leads.length > 0) {
+          const leadIds = leads.map((l: { id: string }) => l.id);
           const { data } = await supabase
             .from("bookings")
             .select("id, start_at, end_at, service_id")
             .eq("tenant_id", resolvedTenantId)
-            .eq("customer_id", customer.id)
+            .in("lead_id", leadIds)
             .in("status", ["pending", "confirmed"])
             .gte("start_at", new Date().toISOString())
             .order("start_at", { ascending: true })
@@ -197,6 +201,30 @@ serve(async (req: Request) => {
             .maybeSingle();
           booking = data;
         }
+      }
+    }
+
+    // Strategy 3: Find by customer name
+    if (!booking && customerName) {
+      const { data: leads } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("tenant_id", resolvedTenantId)
+        .ilike("full_name", `%${customerName}%`);
+
+      if (leads && leads.length > 0) {
+        const leadIds = leads.map((l: { id: string }) => l.id);
+        const { data } = await supabase
+          .from("bookings")
+          .select("id, start_at, end_at, service_id")
+          .eq("tenant_id", resolvedTenantId)
+          .in("lead_id", leadIds)
+          .in("status", ["pending", "confirmed"])
+          .gte("start_at", new Date().toISOString())
+          .order("start_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        booking = data;
       }
     }
 
