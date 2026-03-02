@@ -1,16 +1,16 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 6:20 PM ET (receptionist_ux — terminology + responsive + plain language)
+## Last Session: 2026-03-02 6:27 PM ET (receptionist_fix — test_drives schema bug + test expansion)
 
 ### What Was Done
-- **30+ terminology fixes**: Hardcoded "Appointment/Booking/Customer" strings made mode-aware across 7 files using `useIndustryContext()` and `getTerminology()`.
-- **Responsive fixes**: HowToGuide TabsList (`grid-cols-1 sm:grid-cols-3`), BookingsPage filters (`w-full sm:w-36/44` + `flex-wrap`).
-- **Plain language**: SMS "A2P 10DLC" → "phone number verification", medical "PHI" → "patient data", "BAA" → "signed agreements".
+- **Fixed test_drives.vehicle_interest bug**: `elevenlabs-webhook` persistTestDrive() used non-existent `vehicle_interest` column. PostgREST silently dropped it = data loss. Moved to `notes` field.
+- **Expanded schema safety tests**: 20→25 tests. Now covers test_drives, food_orders, medical_intakes, sales_leads with allowlist validation (not just banned column lists).
+- **Deployed**: elevenlabs-webhook edge function + frontend. Live 200.
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 656/656 passing
-- Commit: c0325c9
+- Tests: 661/661 passing
+- Commit: 648955e
 - Pushed to main
 
 ### MODE PROGRESS
@@ -33,6 +33,7 @@
 - **RLS policy pattern**: All tenant-scoped tables need explicit SELECT/INSERT/UPDATE/DELETE policies + service_role bypass.
 - **Global hooks must fail silently**: useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts, useNotifications all run on every page via AppLayout. They MUST NOT throw — return null/[] on error. All must have `retry: false` and `staleTime > 0`. Regression test enforces this.
 - **Mode-aware terminology pattern**: Use `useIndustryContext()` → `terms` for UI labels. For public pages (no auth), use `getTerminology(mode)` directly.
+- **test_drives vs sales_leads**: `vehicle_interest` is a valid column on `sales_leads` but NOT on `test_drives`. PostgREST silently drops unknown INSERT columns (no error, just data loss). Schema safety tests guard all 5 entity tables with allowlists.
 - **Edge function deployment**: Functions MUST be deployed after code changes. Use: `SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env | cut -d'"' -f2) npx supabase functions deploy [name] --project-ref yltzlvzgwkidbeqaoevp`
 - **_shared/tenant.ts redeploy**: When modifying `_shared/tenant.ts`, ALL 29 edge functions that import from it need redeployment.
 

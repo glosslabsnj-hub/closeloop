@@ -68,6 +68,7 @@ interface BusinessBrain {
     emergency: string | null;
     warranties: string | null;
     payment_methods: string[] | null;
+    custom: { title: string; content: string }[];
   };
   booking_rules: {
     min_lead_hours: number | null;
@@ -416,6 +417,10 @@ serve(async (req) => {
     const policyItems = knowledgeBase.filter(k => k.type === 'policy');
     const emergencyPolicy = policyItems.find(p => p.title?.toLowerCase()?.includes('emergency'))?.content || null;
     const warrantyPolicy = policyItems.find(p => p.title?.toLowerCase()?.includes('warranty'))?.content || null;
+    // Collect all other custom policies (not emergency/warranty which have dedicated fields)
+    const customPolicies = policyItems
+      .filter(p => !p.title?.toLowerCase()?.includes('emergency') && !p.title?.toLowerCase()?.includes('warranty'))
+      .map(p => ({ title: p.title || 'Policy', content: p.content || '' }));
 
     // Build escalation rules
     const escalationRules = [
@@ -465,6 +470,7 @@ serve(async (req) => {
         emergency: emergencyPolicy,
         warranties: warrantyPolicy,
         payment_methods: tenant.payment_methods,
+        custom: customPolicies,
       },
       booking_rules: {
         min_lead_hours: tenant.min_lead_hours,

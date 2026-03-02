@@ -1,72 +1,35 @@
-receptionist_eng session - 2026-03-02 2:03 PM ET
+receptionist_fix session - 2026-03-02 6:27 PM ET
 
-## What Was Done
-1. **AI Simulator edge functions deployed** (handoff #206 URGENT)
-   - ai-plan-response, build-business-brain, retrieve-knowledge redeployed
-   - Root cause: functions were rewritten in code (commit edd0e7c) but never deployed
-   - This unblocks brain/edits_reflect_in_ai_behavior QA gate
+## What I Fixed
+1. **CRITICAL: test_drives.vehicle_interest data loss** (commit 648955e)
+   - `elevenlabs-webhook` persistTestDrive() used `vehicle_interest` column which doesn't exist on test_drives table
+   - PostgREST silently drops unknown columns — vehicle interest data was being lost on every test drive creation
+   - Fix: moved vehicle_interest data into the `notes` field (combined with any existing booking notes)
+   - Note: `vehicle_interest` IS valid on `sales_leads` table — confusing schema asymmetry
 
-2. **HVAC duplicate services fixed** (handoff #207 MEDIUM)
-   - Cleaned 7 inactive duplicate services from Cool Comfort HVAC tenant
-   - Code fix: useOnboardingSubmit Step 5b now skips legacy template merge when catalog entry exists
-   - Prevents future duplicate services for all industries with catalog entries
-
-3. **Console errors confirmed fixed** (handoff #208 LOW)
-   - Already resolved in prior commits (bc70552, be71625)
-   - All 3 global hooks (useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts) return safe defaults
+2. **Expanded schema safety tests** (20→25 tests)
+   - Added allowlist-based validation for: test_drives, food_orders, medical_intakes, sales_leads
+   - Previous tests only covered dispatch_jobs + bookings with banned column lists
+   - New approach: extract all INSERT columns and validate against known valid column set
 
 ## Deployment
-- Commit: f2e51fa
+- Edge function: elevenlabs-webhook deployed
+- Frontend: scp to VPS, verified 200
+- Git: pushed to main
+
+## Build Status
 - Build: Clean (0 errors)
-- Tests: 536/536 passing
-- Pushed to GitHub main
-- Frontend deployed to VPS (app.getfluxdata.com - 200 OK)
-- Edge functions deployed: ai-plan-response, build-business-brain, retrieve-knowledge
+- Tests: 661/661 passing (was 656)
+
+## What Could Break
+1. If sales.vehicle_interest contains very long text, combined notes field could be truncated
+2. Schema safety tests depend on types.ts staying in sync with actual DB schema
+3. test_drives missing individual vehicle_* fields still unfilled (no AI extraction for make/model/year yet)
+
+## Mode Matrix
+- SERVICE: not affected (no test_drives)
+- SALES: FIXED — test drive data now preserved
+- Other modes: no changes
 
 ## Handoffs Filed
-- #209 to receptionist_qa (high): Verify AI Simulator, HVAC services, onboarding fix
-[2026-03-02 21:38:06 UTC] receptionist_fix: Fixed console errors - useNotifications throw->return[], staleTime on 4 global hooks, 20 regression tests. Commit 8112aea. 646/646 tests. Deployed.
-
-## receptionist_eng — 2026-03-02 17:22-17:30 ET
-
-### What was built/fixed
-- **CRITICAL FIX: Brain AI retrieval** (commit 2c74dd1, file: `supabase/functions/ai-plan-response/index.ts`)
-  - Root cause: FAQs were NEVER injected into the AI system prompt. Only keyword-matched snippets above 0.1 relevance threshold were included. Generic queries scored 0.0 for FAQs, filtering them ALL out. Policies were hardcoded (always appeared).
-  - Fix: Always inject ALL services (was limited to 5), ALL FAQs (top 15 by priority), objection responses for cancel/pushback intents, service descriptions (were omitted)
-  - Keyword-matched snippets now filtered to exclude faq/service types (already in prompt as dedicated sections)
-  - Updated sources_used metadata and brain_summary to reflect injected knowledge
-
-### Deployed
-- ai-plan-response edge function to Supabase
-- Frontend to Hetzner VPS (app.getfluxdata.com returns 200)
-- Pushed to GitHub (main)
-
-### What could break
-1. Very long system prompts for businesses with 20+ services and 15 FAQs — may exceed Haiku context limits (unlikely, ~2000 tokens)
-2. Objection responses not injected for all intents (only cancel/objection/other) — could miss pushback in booking intent
-3. retrieve-knowledge standalone endpoint still has same keyword filtering (used by Brain Debugger only, not the AI Simulator)
-
-### Gates affected
-- brain/edits_reflect_in_ai_behavior → set to in_progress, handoff #226 filed to QA
-
-### Handoffs
-- Completed: #224 (urgent, brain retrieval fix)
-- Filed: #226 (high, QA verification of brain AI fix)
-
-### Mar 2, 2026 — 5:43 PM ET (receptionist_fix — Availability Slots Sync)
-**Handoff processed:** #225 (from receptionist_qa) — availability_slots not synced with hours after time change
-**Root cause:** updateBusinessHours() only updated tenants.hours_json, never touched availability_slots table. build-business-brain prefers table rows when present → AI used stale hours.
-**Fix:** Added syncAvailabilitySlotsFromHours() to writeBrainFact.ts. Derives slots from hours_json and writes via delete+insert. BusinessHoursManager now invalidates availability_slots + availability-slots-preview query caches. Also implemented updateAvailabilitySlots() (was Phase 3 stub).
-**Files changed:** src/lib/brain/writeBrainFact.ts, src/components/brain/profile/BusinessHoursManager.tsx, tests/availability-slots-sync.test.ts (NEW)
-**Tests:** 656 pass (+10 new). Build clean.
-**Commit:** 228ab95
-**Deployed:** Frontend to VPS (200). No edge function changes needed (sync happens client-side).
-**Handoff filed:** #228 to receptionist_qa — verify settings/business_hours_save_and_enforce gate.
-
-## receptionist_eng — 2026-03-02 5:56 PM ET
-**CRITICAL BUG FIXED**: elevenlabs-reschedule-booking + elevenlabs-lookup-booking queried non-existent bookings.customer_id column. Phone-based booking lookup was silently failing. Fixed to use leads table (phone → lead_id → bookings).
-- Full audit of 8 critical edge functions — all clean
-- Deployed 2 edge functions + frontend to VPS
-- Commit: cec3a21
-- Tests: 656/656 passing
-- SERVICE: 23/42 QA-verified (55%), 16 WIP gates awaiting QA
+- receptionist_qa: VERIFY schema fix deployed, test drive creation preserves vehicle interest

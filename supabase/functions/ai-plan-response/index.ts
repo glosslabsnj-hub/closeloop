@@ -312,9 +312,9 @@ BUSINESS INFORMATION:
     systemPrompt += '\n';
   }
 
-  // Add query-specific knowledge snippets (keyword-matched from knowledge base)
+  // Add query-specific knowledge snippets (exclude policies — promoted to POLICIES section below)
   const nonFaqNonServiceSnippets = snippets.filter(
-    s => s.source_type !== 'faq' && s.source_type !== 'service'
+    s => s.source_type !== 'faq' && s.source_type !== 'service' && s.source_type !== 'policy'
   );
   if (nonFaqNonServiceSnippets.length > 0) {
     systemPrompt += `ADDITIONAL KNOWLEDGE:\n`;
@@ -323,12 +323,19 @@ BUSINESS INFORMATION:
     }
   }
 
-  // Add policies
-  systemPrompt += `POLICIES:\n`;
-  if (brain.policies.cancellation) systemPrompt += `- Cancellation: ${brain.policies.cancellation}\n`;
-  if (brain.policies.deposit) systemPrompt += `- Deposit: ${brain.policies.deposit}\n`;
-  if (brain.policies.refund) systemPrompt += `- Refund: ${brain.policies.refund}\n`;
-  systemPrompt += '\n';
+  // Add policies (tenant-level + all policy-type knowledge base entries)
+  const policySnippets = snippets.filter(s => s.source_type === 'policy');
+  const hasAnyPolicy = brain.policies.cancellation || brain.policies.deposit || brain.policies.refund || policySnippets.length > 0;
+  if (hasAnyPolicy) {
+    systemPrompt += `POLICIES (MUST FOLLOW — these are hard rules set by the business owner):\n`;
+    if (brain.policies.cancellation) systemPrompt += `- Cancellation: ${brain.policies.cancellation}\n`;
+    if (brain.policies.deposit) systemPrompt += `- Deposit: ${brain.policies.deposit}\n`;
+    if (brain.policies.refund) systemPrompt += `- Refund: ${brain.policies.refund}\n`;
+    for (const s of policySnippets) {
+      systemPrompt += `- ${s.title}: ${s.content}\n`;
+    }
+    systemPrompt += '\n';
+  }
 
   // Add guardrails
   if (brain.guardrails.never_promise.length > 0) {
@@ -540,6 +547,11 @@ serve(async (req) => {
     const policyConstraints: string[] = [];
     if (brain.policies.cancellation) policyConstraints.push(`Cancellation: ${brain.policies.cancellation}`);
     if (brain.policies.deposit) policyConstraints.push(`Deposit: ${brain.policies.deposit}`);
+    // Include all policy-type knowledge base entries as hard constraints
+    const customPolicies = knowledgeBase.filter((k: any) => k.type === 'policy');
+    for (const p of customPolicies) {
+      policyConstraints.push(`${p.title}: ${p.content}`);
+    }
 
     const guardrailsApplied = brain.guardrails.never_promise.slice(0, 3);
 

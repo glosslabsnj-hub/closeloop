@@ -3362,14 +3362,19 @@ Do NOT claim you cannot take orders if menu IS available above.
     prompt += `\\nIMPORTANT: When customers ask about hours, you HAVE this information. Tell them the hours directly. Never say "I don't have access to hours" when hours are listed above.\\n\\n`;
   }
 
-  // Policies
-  if (ctx.policies.cancellation || ctx.policies.deposit || ctx.policies.refund) {
-    prompt += `POLICIES:\\n`;
+  // Policies (tenant-level + all policy-type knowledge base entries)
+  const customPolicies = ctx.knowledge.supplementary.filter(item => item.type === 'policy');
+  const hasAnyPolicy = ctx.policies.cancellation || ctx.policies.deposit || ctx.policies.refund || customPolicies.length > 0;
+  if (hasAnyPolicy) {
+    prompt += `POLICIES (MUST FOLLOW — these are hard rules set by the business owner):\\n`;
     if (ctx.policies.cancellation) prompt += `- Cancellation: ${ctx.policies.cancellation}\\n`;
     if (ctx.policies.deposit) prompt += `- Deposit: ${ctx.policies.deposit}\\n`;
     if (ctx.policies.refund) prompt += `- Refund: ${ctx.policies.refund}\\n`;
     if (ctx.policies.payment_methods.length > 0) prompt += `- Payment methods: ${ctx.policies.payment_methods.join(", ")}\\n`;
     if (ctx.policies.payment_timing) prompt += `- Payment timing: ${ctx.policies.payment_timing}\\n`;
+    for (const p of customPolicies) {
+      prompt += `- ${p.title}: ${p.content}\\n`;
+    }
     prompt += `\\n`;
   }
 
@@ -3389,10 +3394,11 @@ Do NOT claim you cannot take orders if menu IS available above.
     }
   }
 
-  // Supplementary knowledge (from ai_knowledge_base - policies, upsells, custom info)
-  if (ctx.knowledge.supplementary.length > 0) {
+  // Supplementary knowledge (from ai_knowledge_base - upsells, custom info; policies already in POLICIES section)
+  const nonPolicySupplementary = ctx.knowledge.supplementary.filter(item => item.type !== 'policy');
+  if (nonPolicySupplementary.length > 0) {
     prompt += `ADDITIONAL BUSINESS KNOWLEDGE:\\n`;
-    for (const item of ctx.knowledge.supplementary.slice(0, 10)) {
+    for (const item of nonPolicySupplementary.slice(0, 10)) {
       prompt += `[${item.type.toUpperCase()}] ${item.title}: ${item.content}\\n\\n`;
     }
   }
