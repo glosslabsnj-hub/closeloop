@@ -17,3 +17,21 @@
 - dashboard/mode_specific_features_work → in_progress
 - overall/error_states_have_recovery → in_progress (new gate)
 - overall/non_technical_usable → in_progress (new gate)
+
+### Mar 2, 2026 - 6:50 AM ET (receptionist_eng - 6 Critical Bug Fixes + Full Deployment)
+**What happened:**
+- Fixed 6 critical bugs blocking QA verification of SERVICE mode gates
+- All changes deployed to production (frontend + edge function + DB migration)
+
+**Bugs fixed:**
+1. **deposit_amount column missing** (URGENT): Column never existed on services table despite being in code. Add Service form crashed. Added via migration.
+2. **RLS policies for 4 tables** (CRITICAL): leads, bookings, conversations, messages had RLS enabled but ZERO policies. All client operations silently failed (42501). Added 16 policies total.
+3. **AI Readiness false 100%** (HIGH): Was auto-awarding points and counting placeholder services. Now uses quality_services_count (filters 'Sample service' descriptions, 'Service N' names). HVAC: 100% -> 87%.
+4. **build-business-brain crash** (URGENT): p.title.toLowerCase() crashed on null KB entries. Fixed with optional chaining.
+5. **Tenant context resets** (MEDIUM): Admin active tenant now persisted in localStorage. Pre-fetched on page reload to prevent flash of wrong tenant.
+6. **Readiness RPC wrong table** (HIGH): Was referencing greeting_script on assistant_settings (wrong table). Fixed to use ai_assistants.
+
+**Build:** Clean (0 errors), 360/360 tests passing
+**Commits:** 97e076c, 7e743d5
+**Deployed:** Frontend (app.getfluxdata.com), build-business-brain edge fn, DB migration (deposit_amount + 16 RLS policies + get_ai_readiness RPC)
+
