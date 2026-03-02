@@ -33,6 +33,15 @@ export interface GuidedSetupStep {
   icon: LucideIcon;
   /** P0 flag keys that this step resolves */
   resolvesFlagKeys: string[];
+  /**
+   * Subset of resolvesFlagKeys used for the completion counter.
+   * If provided, the step is "complete" when ALL of these are absent — even if
+   * other resolvesFlagKeys are still present (e.g. missing_pricing).
+   * This prevents the counter from regressing when a user adds content that
+   * introduces a secondary flag.
+   * Defaults to resolvesFlagKeys when not specified.
+   */
+  completionFlagKeys?: string[];
   /** Priority order (lower = earlier in flow) */
   order: number;
   /** Which business modes this step applies to. Empty = all modes. */
@@ -112,6 +121,7 @@ const SERVICE_STEPS: GuidedSetupStep[] = [
     why: "Your AI recommends services and quotes prices based on this list. Without services, it can't help callers book.",
     icon: Tag,
     resolvesFlagKeys: ["no_services", "few_services", "missing_pricing"],
+    completionFlagKeys: ["no_services", "few_services"],
     order: 30,
     modes: ["service"],
     skippable: false,
@@ -141,6 +151,7 @@ const DISPATCH_STEPS: GuidedSetupStep[] = [
     why: "Your AI quotes prices and dispatches jobs based on this list. Include every service type you offer.",
     icon: Truck,
     resolvesFlagKeys: ["no_dispatch_services", "no_services", "few_services", "missing_pricing"],
+    completionFlagKeys: ["no_dispatch_services", "no_services", "few_services"],
     order: 30,
     modes: ["dispatch"],
     skippable: false,
@@ -170,6 +181,7 @@ const FOOD_STEPS: GuidedSetupStep[] = [
     why: "Your AI takes orders from this menu. Without items, it can't help callers place orders.",
     icon: UtensilsCrossed,
     resolvesFlagKeys: ["no_menu_items", "few_menu_items", "missing_menu_prices"],
+    completionFlagKeys: ["no_menu_items", "few_menu_items"],
     order: 30,
     modes: ["food"],
     skippable: false,
@@ -228,6 +240,7 @@ const GENERAL_STEPS: GuidedSetupStep[] = [
     why: "Your AI needs to know what you offer so it can help callers with the right information.",
     icon: Tag,
     resolvesFlagKeys: ["no_services", "few_services", "missing_pricing"],
+    completionFlagKeys: ["no_services", "few_services"],
     order: 30,
     modes: ["general"],
     skippable: false,
@@ -245,6 +258,7 @@ const SALES_STEPS: GuidedSetupStep[] = [
     why: "Your AI discusses your products and helps qualify leads. Add your key products or services.",
     icon: DollarSign,
     resolvesFlagKeys: ["no_services", "few_services", "missing_pricing"],
+    completionFlagKeys: ["no_services", "few_services"],
     order: 30,
     modes: ["sales"],
     skippable: false,
@@ -310,7 +324,11 @@ export function computeStepProgress(
   let nextStep: GuidedSetupStep | null = null;
 
   for (const step of requiredSteps) {
-    const isComplete = step.resolvesFlagKeys.every((fk) => !flagSet.has(fk));
+    // Use completionFlagKeys (core requirements) for the counter if available,
+    // falling back to resolvesFlagKeys. This prevents secondary flags (like
+    // missing_pricing) from regressing the counter when the user adds content.
+    const keysForCompletion = step.completionFlagKeys ?? step.resolvesFlagKeys;
+    const isComplete = keysForCompletion.every((fk) => !flagSet.has(fk));
     if (isComplete) {
       completedCount++;
     } else if (!nextStep) {

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServices } from "@/hooks/useServices";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,7 @@ export function CreateBookingDialog({
 }: CreateBookingDialogProps) {
   const { services } = useServices();
   const { effectiveTenantId } = useAuth();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [customerName, setCustomerName] = useState(initialCustomerName);
@@ -118,6 +120,10 @@ export function CreateBookingDialog({
       });
 
       if (bookingError) throw bookingError;
+
+      // Invalidate both list and calendar queries so UI updates immediately
+      queryClient.invalidateQueries({ queryKey: ["bookings", effectiveTenantId] });
+      queryClient.invalidateQueries({ queryKey: ["schedule-bookings"] });
 
       toast.success("Booking created successfully");
       onOpenChange(false);

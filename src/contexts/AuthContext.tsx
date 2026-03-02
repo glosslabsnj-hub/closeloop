@@ -237,51 +237,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (tenantData) {
-          setTenant(tenantData as Tenant);
-
           // For super admins with a cached tenant switch, fetch the CACHED tenant's
-          // subscription/settings instead of the default tenant's to prevent flash
-          // of wrong tenant data during re-fetch (e.g. on page navigation).
+          // subscription/settings BEFORE calling setTenant to prevent an intermediate
+          // render where effectiveTenant briefly shows the wrong tenant (the default
+          // tenant_users[0] instead of the admin's cached selection).
           let cachedTenantId: string | null = null;
           if (isAdmin) {
             try { cachedTenantId = localStorage.getItem("flux_admin_active_tenant_id"); } catch {}
           }
 
           if (isAdmin && cachedTenantId && cachedTenantId !== tenantData.id) {
-            // Pre-fetch the cached admin tenant's data — skip default tenant sub/settings
-            // to avoid a brief flash of wrong-mode data
-            const [cachedTenantRes, cachedSubRes, cachedSettingsRes, defaultSubRes] = await Promise.all([
+            // Pre-fetch the cached admin tenant's data BEFORE setting any state
+            const [cachedTenantRes, cachedSubRes, cachedSettingsRes] = await Promise.all([
               supabase.from("tenants").select("*").eq("id", cachedTenantId).single(),
               supabase.from("subscriptions").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
               supabase.from("assistant_settings").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
-              supabase.from("subscriptions").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
             ]);
-            // Keep default tenant's subscription cached internally but expose cached tenant's
+
+            // Set default tenant AND cached tenant in the same synchronous block
+            // so React 18 batches them into a single render — no intermediate flash
+            setTenant(tenantData as Tenant);
             if (cachedTenantRes.data) {
               setActiveTenant(cachedTenantRes.data as Tenant);
               setSubscription(cachedSubRes.data);
               setAssistantSettings(cachedSettingsRes.data);
             } else {
               // Cached tenant no longer exists — fall back to default
-              setSubscription(defaultSubRes.data);
-              const { data: settingsData } = await supabase
-                .from("assistant_settings").select("*")
-                .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
-              setAssistantSettings(settingsData);
               try { localStorage.removeItem("flux_admin_active_tenant_id"); } catch {}
+              setAdminSettings(null);
+              const [defaultSubRes, defaultSettingsRes] = await Promise.all([
+                supabase.from("subscriptions").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
+                supabase.from("assistant_settings").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
+              ]);
+              setSubscription(defaultSubRes.data);
+              setAssistantSettings(defaultSettingsRes.data);
             }
             await fetchAdminSettings(userId, tenantData.id);
           } else {
             // Normal user or admin viewing their own default tenant
-            const { data: subData } = await supabase
-              .from("subscriptions").select("*")
-              .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
-            setSubscription(subData);
+            // Set tenant first, then fetch subscription/settings
+            setTenant(tenantData as Tenant);
 
-            const { data: settingsData } = await supabase
-              .from("assistant_settings").select("*")
-              .eq("tenant_id", tenantUserData.tenant_id).maybeSingle();
-            setAssistantSettings(settingsData);
+            const [subRes, settingsRes] = await Promise.all([
+              supabase.from("subscriptions").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
+              supabase.from("assistant_settings").select("*").eq("tenant_id", tenantUserData.tenant_id).maybeSingle(),
+            ]);
+            setSubscription(subRes.data);
+            setAssistantSettings(settingsRes.data);
 
             if (isAdmin) {
               await fetchAdminSettings(userId, tenantData.id);
