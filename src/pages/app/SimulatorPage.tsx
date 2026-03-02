@@ -8,6 +8,7 @@ import SMSSimulator from "@/components/simulator/SMSSimulator";
 import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import { SuggestedTestsBanner } from "@/components/simulator/SuggestedTestsBanner";
 import { Phone, MessageSquare, Brain } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function SimulatorPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -53,15 +54,21 @@ export default function SimulatorPage() {
         </TabsList>
 
         <TabsContent value="call" className="mt-4">
-          <CallSimulator />
+          <ErrorBoundary>
+            <CallSimulator />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="sms" className="mt-4">
-          <SMSSimulator />
+          <ErrorBoundary>
+            <SMSSimulator />
+          </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="brain" className="mt-4">
-          <AIBrainDebugger />
+          <ErrorBoundary>
+            <AIBrainDebugger />
+          </ErrorBoundary>
         </TabsContent>
       </Tabs>
     </PageContainer>

@@ -90,10 +90,10 @@ export function QuickStatsCard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {[1, 2, 3].map((i) => (
               <div key={i} className="text-center">
-                <Skeleton className="h-10 w-10 rounded-xl mx-auto mb-2" />
+                <Skeleton className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl mx-auto mb-2" />
                 <Skeleton className="h-6 w-12 mx-auto mb-1" />
                 <Skeleton className="h-3 w-16 mx-auto" />
               </div>
@@ -113,14 +113,14 @@ export function QuickStatsCard() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           {statItems.map((stat) => (
             <div key={stat.label} className="text-center">
-              <div className={`inline-flex items-center justify-center h-10 w-10 rounded-xl ${stat.bgColor} mb-2`}>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              <div className={`inline-flex items-center justify-center h-8 w-8 sm:h-10 sm:w-10 rounded-xl ${stat.bgColor} mb-2`}>
+                <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
               </div>
-              <p className="text-xl font-bold">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
+              <p className="text-lg sm:text-xl font-bold">{stat.value}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground truncate">{stat.label}</p>
             </div>
           ))}
         </div>

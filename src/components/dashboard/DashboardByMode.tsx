@@ -22,6 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { startOfDay, endOfDay } from "date-fns";
 import { AutomationStatusCard } from "./AutomationStatusCard";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface TodayStats {
   callsToday: number;
@@ -154,7 +155,7 @@ export function DashboardByMode() {
 
       {/* Mode-specific Today View */}
       {caps.derivedPrimaryMode === "service" && (
-        <ServiceTodayView stats={stats} />
+        <ServiceTodayView stats={stats} mode={caps.derivedPrimaryMode} />
       )}
 
       {caps.derivedPrimaryMode === "dispatch" && (
@@ -176,7 +177,8 @@ export function DashboardByMode() {
   );
 }
 
-function ServiceTodayView({ stats }: { stats?: TodayStats }) {
+function ServiceTodayView({ stats, mode: _mode }: { stats?: TodayStats; mode?: string }) {
+  const { terms } = useIndustryContext();
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Today's Overview</h3>
@@ -188,7 +190,7 @@ function ServiceTodayView({ stats }: { stats?: TodayStats }) {
           href="/app/calls"
         />
         <StatCard
-          title="Pending Bookings"
+          title={terms.pendingBookings.charAt(0).toUpperCase() + terms.pendingBookings.slice(1)}
           value={stats?.pendingItems || 0}
           icon={Clock}
           variant={stats?.pendingItems ? "warning" : "default"}
@@ -203,8 +205,8 @@ function ServiceTodayView({ stats }: { stats?: TodayStats }) {
         />
         <AutomationStatusCard />
         <QuickActionCard
-          title="Schedule Booking"
-          description="Create a new appointment"
+          title={terms.newBooking}
+          description={`Create a new ${terms.booking}`}
           icon={Calendar}
           href="/app/bookings"
         />

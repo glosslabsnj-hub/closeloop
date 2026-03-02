@@ -139,13 +139,13 @@ export function MetricsGrid() {
         return [
           { label: "Orders Today", value: ordersToday, icon: UtensilsCrossed, href: "/app/orders" },
           ...base,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
+          { label: terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1), value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "dispatch":
         return [
           { label: "Active Jobs", value: jobsPending, icon: Truck, href: "/app/dispatch" },
           ...base,
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
+          { label: terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1), value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
       case "medical":
         return [
@@ -158,13 +158,13 @@ export function MetricsGrid() {
           return [
             ...base,
             { label: "New Leads", value: newLeadsCount, icon: Users, href: "/app/inbox?tab=leads" },
-            { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
+            { label: terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1), value: totalCustomers, icon: Users, href: "/app/customers" },
           ];
         }
         return [
           ...base,
           { label: terms.bookingsMetricLabel, value: bookingsWeek, icon: Calendar, href: "/app/bookings" },
-          { label: "Customers", value: totalCustomers, icon: Users, href: "/app/customers" },
+          { label: terms.customers.charAt(0).toUpperCase() + terms.customers.slice(1), value: totalCustomers, icon: Users, href: "/app/customers" },
         ];
     }
   };

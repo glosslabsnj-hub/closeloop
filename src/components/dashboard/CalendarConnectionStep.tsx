@@ -15,6 +15,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface CalendarConnectionStepProps {
   onComplete: () => void;
@@ -60,6 +61,7 @@ const calendarOptions = [
 export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: CalendarConnectionStepProps) {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
   
   const [selectedOption, setSelectedOption] = useState<CalendarOption>('closeloop');
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(() => {
@@ -162,7 +164,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
       await refreshTenant();
       toast({
         title: "Calendar Set Up! ✅",
-        description: "Your AI can now book appointments based on your business hours.",
+        description: `Your AI can now schedule ${terms.bookings} based on your business hours.`,
       });
       onComplete();
     } catch (error: any) {
@@ -242,7 +244,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
           Set Up Your Calendar
         </CardTitle>
         <CardDescription>
-          Your AI will book appointments directly into your calendar when customers call or text
+          Your AI will schedule {terms.bookings} directly into your calendar when {terms.customers} call or text
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -295,7 +297,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         {/* Booking Mode Selection - only show for built-in calendar */}
         {selectedOption === 'closeloop' && (
           <div className="space-y-3 pt-4 border-t">
-            <Label className="font-medium">When AI books an appointment:</Label>
+            <Label className="font-medium">When AI schedules a {terms.booking}:</Label>
             <RadioGroup 
               value={bookingMode} 
               onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
@@ -313,7 +315,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
                     <Badge variant="default" className="text-[10px]">Recommended</Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    AI confirms appointments instantly - customer gets immediate confirmation
+                    AI confirms {terms.bookings} instantly - {terms.customer} gets immediate confirmation
                   </p>
                 </div>
               </label>
@@ -327,7 +329,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
                 <div className="flex-1">
                   <span className="font-medium text-sm">Require My Approval</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    AI schedules as pending - you must confirm each booking manually
+                    AI schedules as pending - you must confirm each {terms.booking} manually
                   </p>
                 </div>
               </label>
@@ -337,7 +339,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/30">
                 <AlertCircle className="h-4 w-4 text-warning flex-shrink-0 mt-0.5" />
                 <p className="text-xs text-muted-foreground">
-                  Pending bookings appear in your Bookings page. You must confirm before the customer receives confirmation.
+                  Pending {terms.bookings} appear in your {terms.bookingsPageTitle} page. You must confirm before the {terms.customer} receives confirmation.
                 </p>
               </div>
             )}
@@ -347,7 +349,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         {/* What AI Does - only show for built-in calendar */}
         {selectedOption === 'closeloop' && (
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
-            <p className="font-medium mb-2">How AI books appointments:</p>
+            <p className="font-medium mb-2">How AI schedules {terms.bookings}:</p>
             <ul className="space-y-1 text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -355,15 +357,15 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span>Offers available times to customers on calls or via text</span>
+                <span>Offers available times to {terms.customers} on calls or via text</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span>Books the appointment directly into your calendar</span>
+                <span>Schedules the {terms.booking} directly into your calendar</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span>Sends confirmation to the customer</span>
+                <span>Sends confirmation to the {terms.customer}</span>
               </li>
             </ul>
           </div>

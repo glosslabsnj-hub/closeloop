@@ -21,6 +21,7 @@ import { Power, Check, Loader2, Sparkles, Phone, Calendar, MessageSquare, Shield
 import { useToast } from "@/hooks/use-toast";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface GoLiveStepProps {
   onComplete: () => void;
@@ -32,6 +33,7 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
   const { tenant, assistantSettings, subscription, refreshTenant } = useAuth();
   const { toast } = useToast();
   const { score, canGoLive, p0Flags, loading: readinessLoading } = useAIReadinessV2();
+  const { terms } = useIndustryContext();
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [activating, setActivating] = useState(false);
@@ -56,7 +58,7 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
       allFeatures.push({ icon: MessageSquare, text: "Send instant texts to missed callers" });
     }
     allFeatures.push(
-      { icon: Calendar, text: "Direct customers to book appointments" },
+      { icon: Calendar, text: `Direct ${terms.customers} to schedule ${terms.bookings}` },
       { icon: Shield, text: "Work 24/7, even when you're closed" }
     );
     return allFeatures;
@@ -140,7 +142,7 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
             Your AI is Live! 🎉
           </CardTitle>
           <CardDescription>
-            Your AI assistant is actively answering calls and helping customers
+            Your AI assistant is actively answering calls and helping {terms.customers}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -272,7 +274,7 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
               Ready to Go Live?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Your AI assistant will start answering calls and booking appointments immediately. 
+              Your AI assistant will start answering calls and scheduling {terms.bookings} immediately.
               You can pause it anytime from your dashboard.
             </AlertDialogDescription>
           </AlertDialogHeader>

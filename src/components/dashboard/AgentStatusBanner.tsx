@@ -15,12 +15,14 @@ import {
   Settings 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export function AgentStatusBanner() {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const { terms } = useIndustryContext();
   const isLive = assistantSettings?.go_live_enabled || false;
   const phoneConnected = assistantSettings?.phone_connected || false;
   const calendarConnected = !!assistantSettings?.booking_url;
@@ -86,7 +88,7 @@ export function AgentStatusBanner() {
               </div>
               <p className="text-sm text-muted-foreground">
                 {isLive 
-                  ? "Answering calls and booking appointments 24/7" 
+                  ? `Answering calls and scheduling ${terms.bookings} 24/7`
                   : "Your AI is paused. Toggle to start answering calls."
                 }
               </p>
