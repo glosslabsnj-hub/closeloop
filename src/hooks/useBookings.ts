@@ -162,7 +162,8 @@ export function useBookings() {
         .eq("booking_id", id)
         .then(({ error: bbErr }) => {
           if (bbErr) console.error("busy_blocks update error:", bbErr);
-        });
+        })
+        .catch((err) => console.error("busy_blocks promise error:", err));
 
       // Call booking-handoff to notify customer (SMS, email) and create calendar event
       if (tenant?.id) {
