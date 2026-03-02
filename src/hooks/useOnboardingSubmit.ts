@@ -219,7 +219,12 @@ export function useOnboardingSubmit(userId?: string) {
       });
 
       // 5b. Auto-apply rich industry template (best-effort merge)
+      // Skip if the industry already has a catalog entry — Steps 2-5 already seeded
+      // from the authoritative industryCatalog. Applying the legacy template on top
+      // can create duplicate services (e.g., HVAC "Filter Replacement" only in old template).
+      const hasCatalogEntry = !!getIndustryBySlug(industrySlug);
       await runStep("industry template", async () => {
+        if (hasCatalogEntry) return; // catalog data already applied in Steps 2-5
         const richTemplate = getTemplate(industrySlug);
         if (richTemplate && tenantId) {
           const currentState = await fetchCurrentBrainState(tenantId);
