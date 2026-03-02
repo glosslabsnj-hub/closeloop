@@ -44,6 +44,7 @@ import {
   ArrowRight,
   Share2,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -442,7 +443,7 @@ export default function ReportsROIPage() {
   const [dateRange, setDateRange] = useState<DateRangeOption>("this_month");
   const [chartsOpen, setChartsOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const { data, isLoading } = useROIReport(dateRange);
+  const { data, isLoading, error: reportError } = useROIReport(dateRange);
 
   const handleShareReport = useCallback(async () => {
     if (!tenant?.id) return;
@@ -482,6 +483,31 @@ export default function ReportsROIPage() {
     : "";
 
   const hasData = data && (data.totalCalls > 0 || data.entitiesCreated > 0);
+
+  if (reportError) {
+    return (
+      <TooltipProvider>
+        <PageContainer maxWidth="xl">
+          <div className="mx-auto max-w-lg py-16">
+            <Card>
+              <CardContent className="pt-8 pb-8 text-center space-y-4">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                  <AlertTriangle className="h-7 w-7 text-destructive" />
+                </div>
+                <h2 className="text-xl font-semibold">Something went wrong</h2>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  We couldn't load your revenue report. Please refresh the page or try again later.
+                </p>
+                <Button variant="outline" onClick={() => window.location.reload()}>
+                  Refresh Page
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </PageContainer>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <TooltipProvider>

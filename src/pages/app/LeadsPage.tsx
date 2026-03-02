@@ -6,6 +6,7 @@ import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -22,7 +23,7 @@ import { StatCard } from "@/components/layout/StatCard";
 import { Toolbar } from "@/components/layout/Toolbar";
 import {
   Plus, MoreHorizontal, Phone, Mail, Calendar, MessageSquare,
-  Users, Flame, Thermometer, Snowflake, TrendingUp, UserCheck, UserX,
+  Users, Flame, Thermometer, Snowflake, TrendingUp, UserCheck, UserX, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -111,7 +112,7 @@ function getModeLabels(mode: string) {
 }
 
 export default function LeadsPage() {
-  const { data: enrichedLeads, isLoading: intelligenceLoading } = useLeadIntelligence();
+  const { data: enrichedLeads, isLoading: intelligenceLoading, isError: leadsError } = useLeadIntelligence();
   const { convertToCustomer, markAsLost } = useLeads();
   const { terms, mode } = useIndustryContext();
   const navigate = useNavigate();
@@ -178,6 +179,29 @@ export default function LeadsPage() {
     setBookingLeadPhone(lead.phone || "");
     setBookingDialogOpen(true);
   };
+
+  if (leadsError) {
+    return (
+      <PageContainer maxWidth="xl">
+        <div className="mx-auto max-w-lg py-16">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                We couldn't load your {modeLabels.leadsLabel.toLowerCase()}. Please refresh the page or try again later.
+              </p>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer maxWidth="xl">
