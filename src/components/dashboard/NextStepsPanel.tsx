@@ -64,28 +64,23 @@ export function NextStepsPanel() {
 
       // Fetch recent orders (food mode)
       if (caps.hasFoodOrders) {
-        // Orders table may not exist in all schemas, wrap in try-catch
-        try {
-          const { data: orders } = await supabase
-            .from("dispatch_jobs")
-            .select("id, status, customer_name, price_cents, created_at")
-            .eq("tenant_id", tenant.id)
-            .order("created_at", { ascending: false })
-            .limit(3);
+        const { data: orders } = await supabase
+          .from("food_orders")
+          .select("id, status, customer_name, total_cents, created_at")
+          .eq("tenant_id", tenant.id)
+          .order("created_at", { ascending: false })
+          .limit(3);
 
-          orders?.forEach((o: any) => {
-            outcomes.push({
-              id: o.id,
-              type: "order",
-              title: o.customer_name || "New Order",
-              subtitle: `$${((o.price_cents || 0) / 100).toFixed(2)} - ${o.status}`,
-              time: formatDistanceToNow(new Date(o.created_at), { addSuffix: true }),
-              synced: false,
-            });
+        orders?.forEach((o) => {
+          outcomes.push({
+            id: o.id,
+            type: "order",
+            title: o.customer_name || "New Order",
+            subtitle: `$${((o.total_cents || 0) / 100).toFixed(2)} - ${o.status}`,
+            time: formatDistanceToNow(new Date(o.created_at), { addSuffix: true }),
+            synced: false,
           });
-        } catch {
-          // Orders table doesn't exist yet
-        }
+        });
       }
 
       // Fetch recent dispatch jobs

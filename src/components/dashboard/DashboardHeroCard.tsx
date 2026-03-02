@@ -93,7 +93,7 @@ export function DashboardHeroCard() {
           .lte("started_at", todayEnd),
         supabase
           .from("bookings")
-          .select("deposit_paid, service_id, services(price_cents)")
+          .select("deposit_paid, service_id, services(price_amount)")
           .eq("tenant_id", tenant.id)
           .gte("created_at", weekStart)
           .lte("created_at", weekEnd)
@@ -101,13 +101,14 @@ export function DashboardHeroCard() {
 
       const bookings = bookingsResult.data || [];
       const bookingsThisWeek = bookings.length;
-      
+
       // Calculate revenue from confirmed bookings with deposits
+      // price_amount is in dollars (not cents)
       const revenueRecovered = bookings
         .filter(b => b.deposit_paid)
         .reduce((sum, b) => {
-          const price = (b.services as { price_cents?: number } | null)?.price_cents || 0;
-          return sum + (price / 100);
+          const price = (b.services as { price_amount?: number } | null)?.price_amount || 0;
+          return sum + price;
         }, 0);
 
       return {

@@ -159,23 +159,25 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
     case "service": {
       if (existing_value?.id) {
         // Update existing service
+        // services table uses price_amount (dollars), not price_cents
         await supabase
           .from("services")
           .update({
             name: proposed_value.name as string,
             description: proposed_value.description as string || null,
             duration_minutes: proposed_value.duration_minutes as number || 60,
-            price_cents: proposed_value.price_cents as number || proposed_value.price as number * 100 || 0,
+            price_amount: proposed_value.price_amount as number || proposed_value.price as number || 0,
           })
           .eq("id", existing_value.id as string);
       } else {
         // Insert new service
+        // services table uses price_amount (dollars), not price_cents
         await supabase.from("services").insert({
           tenant_id: tenantId,
           name: proposed_value.name as string || entity_key,
           description: proposed_value.description as string || null,
           duration_minutes: proposed_value.duration_minutes as number || 60,
-          price_cents: proposed_value.price_cents as number || (proposed_value.price as number || 0) * 100,
+          price_amount: proposed_value.price_amount as number || proposed_value.price as number || 0,
           is_active: true,
         });
       }
