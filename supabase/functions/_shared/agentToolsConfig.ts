@@ -690,8 +690,8 @@ function createTransferToOwnerTool(): AgentTool {
       {
         name: "twilio_call_sid",
         type: "string",
-        required: false,
-        description: "Twilio Call SID for the active call",
+        required: true,
+        description: "Twilio Call SID for the active call (required for transfer to work)",
         dynamicValue: "{{twilio_call_sid}}",
       },
       {
@@ -703,7 +703,7 @@ function createTransferToOwnerTool(): AgentTool {
       {
         name: "reason",
         type: "string",
-        required: false,
+        required: true,
         description: "Why the caller wants to be transferred",
       },
     ],
