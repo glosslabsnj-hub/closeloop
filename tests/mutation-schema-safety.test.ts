@@ -230,6 +230,75 @@ describe("dispatch_priority enum correctness", () => {
   });
 });
 
+// ─── dispatch_jobs: non-existent column guards (edge function bugs) ─────────
+
+describe("dispatch_jobs edge function column safety", () => {
+  const NON_EXISTENT_DISPATCH_COLUMNS = [
+    "dispatch_distance_miles",
+    "tow_distance_miles",
+    "total_distance_miles",
+    "service_tier",
+    "pricing_note",
+    "vehicle_category",
+    "price_breakdown",
+  ];
+
+  for (const col of NON_EXISTENT_DISPATCH_COLUMNS) {
+    it(`dispatch_jobs does NOT have '${col}' column`, () => {
+      expect(DISPATCH_JOBS_COLUMNS.has(col)).toBe(false);
+    });
+  }
+
+  it("dispatch_jobs HAS service_category (not vehicle_category)", () => {
+    expect(DISPATCH_JOBS_COLUMNS.has("service_category")).toBe(true);
+    expect(DISPATCH_JOBS_COLUMNS.has("vehicle_category")).toBe(false);
+  });
+
+  it("dispatch_jobs HAS price_cents but NOT price_breakdown", () => {
+    expect(DISPATCH_JOBS_COLUMNS.has("price_cents")).toBe(true);
+    expect(DISPATCH_JOBS_COLUMNS.has("price_breakdown")).toBe(false);
+  });
+
+  it("dispatch_jobs HAS estimated_eta_minutes", () => {
+    expect(DISPATCH_JOBS_COLUMNS.has("estimated_eta_minutes")).toBe(true);
+  });
+
+  it("dispatch job insert should only use valid columns", () => {
+    // Simulates the fixed edge function insert
+    function buildDispatchInsert(): Record<string, unknown> {
+      return {
+        tenant_id: "test-uuid",
+        customer_id: "customer-uuid",
+        customer_name: "John Doe",
+        customer_phone: "+15551234567",
+        pickup_address: "123 Main St",
+        dropoff_address: "456 Oak Ave",
+        job_type: "Tow",
+        priority: "normal",
+        status: "pending",
+        price_cents: 15000,
+        session_id: "session-uuid",
+      };
+    }
+
+    const payload = buildDispatchInsert();
+    for (const key of Object.keys(payload)) {
+      expect(
+        DISPATCH_JOBS_COLUMNS.has(key),
+        `'${key}' is not a valid dispatch_jobs column`
+      ).toBe(true);
+    }
+
+    // Must NOT contain the old buggy columns
+    expect(payload).not.toHaveProperty("dispatch_distance_miles");
+    expect(payload).not.toHaveProperty("tow_distance_miles");
+    expect(payload).not.toHaveProperty("total_distance_miles");
+    expect(payload).not.toHaveProperty("service_tier");
+    expect(payload).not.toHaveProperty("pricing_note");
+    expect(payload).not.toHaveProperty("vehicle_category");
+  });
+});
+
 // ─── Cross-mode: food vs dispatch mutation patterns ─────────────────────────
 
 describe("Cross-mode mutation pattern differences", () => {

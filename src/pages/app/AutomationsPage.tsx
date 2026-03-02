@@ -1,5 +1,10 @@
 import SmartAutomationsPage from "@/components/automations/SmartAutomationsPage";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function AutomationsPage() {
-  return <SmartAutomationsPage />;
+  return (
+    <ErrorBoundary>
+      <SmartAutomationsPage />
+    </ErrorBoundary>
+  );
 }

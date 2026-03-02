@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAgencyManagedTenant } from "@/hooks/useIsAgencyManagedTenant";
 import { cn } from "@/lib/utils";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   TIERS,
   TRIAL_CONFIG,
@@ -113,6 +114,7 @@ export default function GoLivePage() {
   const tierInfo = selectedTier ? TIERS.find((t) => t.tier === selectedTier) : null;
 
   return (
+    <ErrorBoundary>
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
@@ -357,5 +359,6 @@ export default function GoLivePage() {
         </p>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

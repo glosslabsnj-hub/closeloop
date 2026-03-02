@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface SimulationResult {
   aiResponse: string;
@@ -155,6 +156,7 @@ export default function TestAIPage() {
   const confidencePct = result ? confidenceToPercent(result.confidence) : 0;
 
   return (
+    <ErrorBoundary>
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Test Your AI Receptionist"
@@ -350,5 +352,6 @@ export default function TestAIPage() {
         </div>
       </div>
     </PageContainer>
+    </ErrorBoundary>
   );
 }

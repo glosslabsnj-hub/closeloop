@@ -425,13 +425,7 @@ serve(async (req: Request) => {
         requested_at: new Date().toISOString(),
         // Revenue attribution reads price_cents
         price_cents: priceCents,
-        // Distance & pricing fields
-        dispatch_distance_miles: dispatchDistanceMiles,
-        tow_distance_miles: towDistanceMiles,
-        total_distance_miles: totalDistanceMiles,
-        service_tier: serviceTier,
-        pricing_note: pricingNote,
-        price_breakdown: priceBreakdown,
+        // Detailed pricing stored in session extracted_payload (lines below)
       })
       .select("id, job_number")
       .single();
