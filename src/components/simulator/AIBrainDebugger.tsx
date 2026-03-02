@@ -36,7 +36,7 @@ interface ResponsePlan {
 }
 
 export default function AIBrainDebugger() {
-  const { tenant } = useAuth();
+  const { tenant, effectiveTenantId } = useAuth();
   const { toast } = useToast();
   
   const [testMessage, setTestMessage] = useState('');
@@ -47,13 +47,15 @@ export default function AIBrainDebugger() {
   const [brainOpen, setBrainOpen] = useState(false);
   const [snippetsOpen, setSnippetsOpen] = useState(true);
 
+  const activeTenantId = effectiveTenantId || tenant?.id;
+
   const loadBrain = async () => {
-    if (!tenant?.id) return;
-    
+    if (!activeTenantId) return;
+
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('build-business-brain', {
-        body: { tenantId: tenant.id },
+        body: { tenantId: activeTenantId },
       });
 
       if (error) throw error;
@@ -71,14 +73,14 @@ export default function AIBrainDebugger() {
   };
 
   const testQuery = async () => {
-    if (!tenant?.id || !testMessage.trim()) return;
+    if (!activeTenantId || !testMessage.trim()) return;
 
     setLoading(true);
     try {
       // Call the response planner which internally calls brain and retrieval
       const { data, error } = await supabase.functions.invoke('ai-plan-response', {
-        body: { 
-          tenantId: tenant.id, 
+        body: {
+          tenantId: activeTenantId,
           userMessage: testMessage,
           channel: 'call',
         },
@@ -87,17 +89,17 @@ export default function AIBrainDebugger() {
       if (error) throw error;
 
       setPlan(data.plan);
-      
+
       // Also fetch snippets directly for display
       const { data: knowledgeData } = await supabase.functions.invoke('retrieve-knowledge', {
-        body: { 
-          tenantId: tenant.id, 
+        body: {
+          tenantId: activeTenantId,
           queryText: testMessage,
           intent: data.plan.intent,
           topK: 8,
         },
       });
-      
+
       if (knowledgeData) {
         setSnippets(knowledgeData.snippets || []);
       }
@@ -105,7 +107,7 @@ export default function AIBrainDebugger() {
       // Load brain if not already loaded
       if (!brain) {
         const { data: brainData } = await supabase.functions.invoke('build-business-brain', {
-          body: { tenantId: tenant.id },
+          body: { tenantId: activeTenantId },
         });
         if (brainData) setBrain(brainData.brain);
       }
