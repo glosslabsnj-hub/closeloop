@@ -1,19 +1,17 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 9:47 AM ET (receptionist_eng — Cancel booking enum + HVAC services)
+## Last Session: 2026-03-02 10:10 AM ET (receptionist_ux — Brain progress + mobile + terminology)
 
 ### What Was Done
-- **Cancel booking enum fix (handoff #177)**: Added `'cancelled'` (British) to `booking_status` enum. Both spellings now valid. Root cause: enum only had `'canceled'` but edge functions and triggers used `'cancelled'`.
-- **Revenue attribution trigger fix**: `fn_attribution_on_booking()` was passing raw booking status to `revenue_attributions.status` which has CHECK(`'pending','completed','cancelled'`). Fixed to properly map: completed→completed, canceled/cancelled/no_show→cancelled, everything else→pending.
-- **HVAC services fix (handoff #178)**: Added 6 missing services to "Comfort Zone HVAC" tenant (AC Repair, Furnace Repair, AC/Furnace/Mini-Split Installation, Heat Pump Service). Now 14 active services.
-- **UI consistency**: BookingDetailsSheet, useScheduleData, industryRevenueConfig all updated to handle both canceled/cancelled.
+- **Brain dashboard 0% progress bug (handoff #179)**: Dashboard cards showed binary 0%/100% because completion tracked only 1 essentialField per section. Replaced with group-based item-status completion that matches sidebar data. Now shows granular progress (e.g., 33% = 1 of 3 items complete).
+- **Mobile 375px responsiveness**: Hero card responsive SVG (h-24→h-32), recommendation chips min-h-[40px] touch target, header buttons stack on mobile, BrainCategoryCard/SectionSummaryCard responsive padding.
+- **Industry terminology**: ServicePoliciesEditor + ServiceCoverageEditor now use dynamic `appointmentLabel`. HVAC/plumber sees "job/jobs", salon sees "appointment/appointments" (7 instances fixed).
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 360/360 passing
-- Commit: d8cb96f
-- Deployed to production (app.getfluxdata.com returns 200)
-- Handoffs #177, #178 completed. Handoffs #181, #182 filed to QA.
+- Commits: 7792a46, b788b1c
+- Handoff #179 completed. Handoff #183 filed to QA.
 
 ### MODE PROGRESS
 - SERVICE: 15/42 QA-verified (36%) ← FOCUS
