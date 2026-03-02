@@ -133,8 +133,8 @@ export function DeliveryIntegrationsSettings() {
             <div className="flex items-center gap-3">
               <Webhook className="h-5 w-5 text-muted-foreground" />
               <div>
-                <CardTitle className="text-base">Webhook (Zapier/Make/Custom)</CardTitle>
-                <CardDescription>Send payloads to any URL when items are created</CardDescription>
+                <CardTitle className="text-base">Webhook (Zapier / Make / Custom)</CardTitle>
+                <CardDescription>Automatically send data to your other tools when new items are created</CardDescription>
               </div>
             </div>
             <Switch checked={webhookEnabled} onCheckedChange={setWebhookEnabled} />
@@ -151,6 +151,9 @@ export function DeliveryIntegrationsSettings() {
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Get this URL from your CRM, scheduling software, or Zapier/Make automation
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -161,7 +164,7 @@ export function DeliveryIntegrationsSettings() {
                     <Info className="h-3 w-3 ml-1 inline text-muted-foreground" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    Used to sign payloads with HMAC SHA256. Check X-Signature header.
+                    Optional security key to verify data came from Flux Receptionist. Your software provider can tell you if you need this.
                   </TooltipContent>
                 </Tooltip>
               </Label>
@@ -184,32 +187,36 @@ export function DeliveryIntegrationsSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Authentication Mode</Label>
+              <Label>Security</Label>
               <Select value={authMode} onValueChange={(v) => setAuthMode(v as AuthMode)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="header">Custom Header</SelectItem>
-                  <SelectItem value="basic">Basic Auth</SelectItem>
+                  <SelectItem value="none">None — no login required</SelectItem>
+                  <SelectItem value="header">API Key — pass a key in a header</SelectItem>
+                  <SelectItem value="basic">Username &amp; Password</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Ask your software provider which option they require. Choose "None" if unsure.
+              </p>
             </div>
 
             {authMode === "header" && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="header-name">Header Name</Label>
+                  <Label htmlFor="header-name">Key Name</Label>
                   <Input
                     id="header-name"
                     placeholder="X-API-Key"
                     value={authHeaderName}
                     onChange={(e) => setAuthHeaderName(e.target.value)}
                   />
+                  <p className="text-xs text-muted-foreground">Your provider will tell you this</p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="header-value">Header Value</Label>
+                  <Label htmlFor="header-value">Key Value</Label>
                   <Input
                     id="header-value"
                     type="password"
@@ -255,7 +262,7 @@ export function DeliveryIntegrationsSettings() {
               ) : (
                 <TestTube2 className="h-4 w-4 mr-2" />
               )}
-              Send Test Payload
+              Send Test Data
             </Button>
           </CardContent>
         )}

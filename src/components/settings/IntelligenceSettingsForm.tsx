@@ -114,7 +114,7 @@ export function IntelligenceSettingsForm() {
             {/* Thresholds */}
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Learn after seeing pattern...</Label>
+                <Label className="text-xs text-muted-foreground">Learn after seeing a pattern this many times</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"

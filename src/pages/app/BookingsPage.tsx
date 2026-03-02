@@ -299,16 +299,16 @@ export default function BookingsPage() {
         ) : filteredBookings.length === 0 ? (
           <EmptyState
             icon={CalendarIcon}
-            title="No bookings yet"
+            title={`No ${terms.bookings} yet`}
             description={
               statusFilter !== "all" || searchQuery
                 ? "Try adjusting your filters to see more results."
-                : "When customers book through your AI or you create them manually, they'll show up here."
+                : `When ${terms.customers} book through your AI or you create them manually, they'll show up here.`
             }
             action={
               statusFilter === "all" && !searchQuery
                 ? {
-                    label: "Create Booking",
+                    label: terms.newBooking || "New Booking",
                     onClick: () => setCreateDialogOpen(true),
                   }
                 : undefined

@@ -68,8 +68,8 @@ function getAddressLabel(mode: string, category: string | null): string {
 
 function getBookingsTabLabel(mode: string): string {
   switch (mode) {
-    case "service":
-    case "medical":
+    case "service": return "Bookings";
+    case "medical": return "Visits";
     case "sales": return "Appointments";
     case "food": return "Reservations";
     case "dispatch": return "Dispatches";

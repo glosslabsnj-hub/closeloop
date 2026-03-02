@@ -39,7 +39,7 @@ const HANDOFF_METHODS: Array<{
   always?: boolean;
 }> = [
   { id: "internal", label: "Internal Queue", icon: CheckCircle2, always: true },
-  { id: "webhook", label: "Webhook", icon: Webhook, always: false },
+  { id: "webhook", label: "Send to my other software", icon: Webhook, always: false },
   { id: "email", label: "Email", icon: Mail, always: false },
   { id: "sms", label: "SMS", icon: Phone, always: false },
   { id: "print", label: "Printing", icon: Printer, always: false },

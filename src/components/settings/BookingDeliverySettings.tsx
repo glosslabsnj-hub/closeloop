@@ -39,7 +39,7 @@ const HANDOFF_METHODS: Array<{
   always?: boolean;
 }> = [
   { id: "internal", label: "Show on Flux Receptionist calendar", description: "Always saved here first", icon: Calendar, always: true },
-  { id: "webhook", label: "Send to my software (API)", description: "For CRMs, scheduling tools, etc.", icon: Webhook, always: false },
+  { id: "webhook", label: "Send to my other software", description: "For CRMs, scheduling tools, etc.", icon: Webhook, always: false },
   { id: "email", label: "Email me", description: "Get an email for each booking", icon: Mail, always: false },
   { id: "sms", label: "Text me", description: "Get a text for each booking", icon: Phone, always: false },
 ];
