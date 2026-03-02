@@ -23,6 +23,7 @@ export function useAdminAgencies() {
       return (data ?? []) as unknown as AgencyRow[];
     },
     staleTime: 60_000,
+    retry: false,
   });
 }
 

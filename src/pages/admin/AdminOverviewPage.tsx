@@ -26,7 +26,7 @@ function useAdminOverviewStats() {
             .lt("created_at", new Date(Date.now() - 30 * 86400000).toISOString()),
           supabase
             .from("subscriptions" as any)
-            .select("price_amount")
+            .select("id", { count: "exact", head: true })
             .eq("status", "active"),
         ]);
 
@@ -35,9 +35,8 @@ function useAdminOverviewStats() {
       const recentCount = recentTenantsRes.count ?? 0;
       const priorCount = priorTenantsRes.count ?? 0;
 
-      // MRR: sum of active subscription prices
-      const subData = (subscriptionsRes.data ?? []) as unknown as Array<{ price_amount: number | null }>;
-      const mrr = subData.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
+      // MRR: count active subscriptions (pricing comes from plan config, not DB column)
+      const mrr = subscriptionsRes.count ?? 0;
 
       // Growth percentage
       let growth: string;
@@ -51,6 +50,7 @@ function useAdminOverviewStats() {
       return { totalTenants, activeUsers, mrr, growth };
     },
     staleTime: 60_000,
+    retry: false,
   });
 }
 
@@ -111,12 +111,8 @@ export default function AdminOverviewPage() {
       icon: Users,
     },
     {
-      label: "MRR",
-      value: statsLoading
-        ? "..."
-        : stats?.mrr
-          ? `$${stats.mrr.toLocaleString()}`
-          : "\u2014",
+      label: "Active Subs",
+      value: statsLoading ? "..." : stats?.mrr ?? 0,
       icon: DollarSign,
     },
     {
