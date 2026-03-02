@@ -17,7 +17,6 @@ import {
   MapPin,
   Truck,
   UtensilsCrossed,
-  Settings,
   type LucideIcon,
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
@@ -64,7 +63,7 @@ const SERVICE_LAYOUT: ModeLayout = {
         { key: "essentials", label: "Basics", itemIds: ["business-info", "business-hours"] },
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -91,7 +90,7 @@ const SERVICE_LAYOUT: ModeLayout = {
       groups: [
         { key: "coverage", label: "Service Area", itemIds: ["coverage", "service-coverage", "travel-times", "workload"] },
         { key: "delivery", label: "Notifications", itemIds: ["booking-delivery", "callback-delivery"] },
-        { key: "integrations", label: "INTEGRATIONS", itemIds: ["tekmetric"] },
+        { key: "integrations", label: "Integrations", itemIds: ["tekmetric"] },
       ],
       completionSections: ["coverage"],
     },
@@ -110,24 +109,8 @@ const SERVICE_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "AI behavior customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 
@@ -145,7 +128,7 @@ const DISPATCH_LAYOUT: ModeLayout = {
         { key: "essentials", label: "Basics", itemIds: ["business-info", "business-hours"] },
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -191,24 +174,8 @@ const DISPATCH_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "Dispatch behavior customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 
@@ -226,7 +193,7 @@ const FOOD_LAYOUT: ModeLayout = {
         { key: "essentials", label: "Basics", itemIds: ["business-info", "business-hours"] },
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -273,24 +240,8 @@ const FOOD_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "Order workflow customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 
@@ -309,7 +260,7 @@ const MEDICAL_LAYOUT: ModeLayout = {
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "compliance", label: "Compliance", itemIds: ["hipaa"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -353,24 +304,8 @@ const MEDICAL_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "HIPAA & intake customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 
@@ -388,7 +323,7 @@ const GENERAL_LAYOUT: ModeLayout = {
         { key: "essentials", label: "Basics", itemIds: ["business-info", "business-hours"] },
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -433,24 +368,8 @@ const GENERAL_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "Callback & lead customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 
@@ -468,7 +387,7 @@ const SALES_LAYOUT: ModeLayout = {
         { key: "essentials", label: "Basics", itemIds: ["business-info", "business-hours"] },
         { key: "calendar", label: "Calendar", itemIds: ["calendar-sync"] },
         { key: "team", label: "Your Team", itemIds: ["team"] },
-        { key: "optional", label: "Quick Start", itemIds: ["templates"] },
+        { key: "quickstart", label: "Get Started", itemIds: ["templates"] },
       ],
       completionSections: ["profile", "hours", "calendar"],
     },
@@ -514,24 +433,8 @@ const SALES_LAYOUT: ModeLayout = {
       ],
       completionSections: ["knowledge", "ai-behavior", "policies"],
     },
-    {
-      section: "intelligence",
-      label: "AI Insights",
-      description: "Memory & learning",
-      icon: Sparkles,
-      order: 5,
-      groups: [],
-      completionSections: [],
-    },
-    {
-      section: "workflow",
-      label: "Workflow Config",
-      description: "Sales workflow customization",
-      icon: Settings,
-      order: 6,
-      groups: [],
-      completionSections: [],
-    },
+    // AI Insights tab intentionally omitted — no items yet. Will be added when intelligence features ship.
+    // Workflow Config tab intentionally omitted — no items yet.
   ],
 };
 

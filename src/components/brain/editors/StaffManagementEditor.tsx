@@ -24,12 +24,20 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
-const ROLE_OPTIONS = [
-  { value: "owner", label: "Owner" },
-  { value: "manager", label: "Manager" },
-  { value: "staff", label: "Staff" },
-] as const;
+function useRoleOptions() {
+  const { terminology } = useIndustryContext();
+  // Map the generic "staff" role label to the industry-specific team member label
+  const staffLabel = terminology?.teamMemberLabel
+    ? terminology.teamMemberLabel.charAt(0).toUpperCase() + terminology.teamMemberLabel.slice(1)
+    : "Staff";
+  return [
+    { value: "owner", label: "Owner" },
+    { value: "manager", label: "Manager" },
+    { value: "staff", label: staffLabel },
+  ] as const;
+}
 
 const COLORS = [
   "#3b82f6", "#ef4444", "#22c55e", "#f59e0b", "#8b5cf6",
@@ -39,6 +47,7 @@ const COLORS = [
 export default function StaffManagementEditor() {
   const { staff, activeStaff, isLoading, createStaffMember, updateStaffMember, deleteStaffMember } = useStaffMembers();
   const { services } = useServices();
+  const ROLE_OPTIONS = useRoleOptions();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState("");
@@ -161,6 +170,7 @@ export default function StaffManagementEditor() {
             expanded={expandedId === member.id}
             onToggle={() => setExpandedId(expandedId === member.id ? null : member.id)}
             services={services ?? []}
+            roleOptions={ROLE_OPTIONS}
             onUpdate={(updates) => updateStaffMember.mutate({ id: member.id, ...updates })}
             onDelete={() => deleteStaffMember.mutate(member.id)}
           />
@@ -175,6 +185,7 @@ function StaffCard({
   expanded,
   onToggle,
   services,
+  roleOptions,
   onUpdate,
   onDelete,
 }: {
@@ -182,10 +193,12 @@ function StaffCard({
   expanded: boolean;
   onToggle: () => void;
   services: { id: string; name: string }[];
+  roleOptions: readonly { value: string; label: string }[];
   onUpdate: (updates: Partial<StaffMember>) => void;
   onDelete: () => void;
 }) {
   const allServices = !member.service_ids || member.service_ids.length === 0;
+  const roleLabel = roleOptions.find((r) => r.value === member.role)?.label || member.role;
 
   return (
     <Card className={cn(!member.is_active && "opacity-60")}>
@@ -203,8 +216,8 @@ function StaffCard({
             <div>
               <p className="text-sm font-medium">{member.full_name}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <Badge variant="secondary" className="text-xs capitalize">
-                  {member.role}
+                <Badge variant="secondary" className="text-xs">
+                  {roleLabel}
                 </Badge>
                 {!member.is_active && (
                   <Badge variant="outline" className="text-xs">Inactive</Badge>

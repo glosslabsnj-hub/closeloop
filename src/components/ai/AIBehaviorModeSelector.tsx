@@ -6,11 +6,32 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Bot, Loader2 } from "lucide-react";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 type AIBehaviorMode = "full_service" | "callback_only";
 
+const FULL_SERVICE_DESC: Record<BusinessMode, string> = {
+  service: "AI books appointments and handles scheduling — fully automated",
+  dispatch: "AI dispatches jobs and coordinates drivers — fully automated",
+  food: "AI takes orders and handles reservations — fully automated",
+  medical: "AI schedules appointments and handles patient intake — fully automated",
+  sales: "AI qualifies leads and schedules follow-ups — fully automated",
+  general: "AI captures caller info and schedules callbacks — fully automated",
+};
+
+const CALLBACK_DESC: Record<BusinessMode, string> = {
+  service: "AI answers questions and captures caller info, but you handle booking yourself",
+  dispatch: "AI answers questions and captures caller info, but you handle dispatching yourself",
+  food: "AI answers questions and captures caller info, but you handle orders yourself",
+  medical: "AI answers questions and captures caller info, but you handle scheduling yourself",
+  sales: "AI answers questions and captures caller info, but you handle follow-ups yourself",
+  general: "AI answers questions and captures caller info, you call them back to follow up",
+};
+
 export default function AIBehaviorModeSelector() {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const { toast } = useToast();
 
   const [behaviorMode, setBehaviorMode] = useState<AIBehaviorMode>(
@@ -70,7 +91,7 @@ export default function AIBehaviorModeSelector() {
           {saving && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
         </CardTitle>
         <CardDescription>
-          Control whether your AI books appointments/dispatches or just captures info for callbacks
+          Control how your AI handles callers
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -89,7 +110,7 @@ export default function AIBehaviorModeSelector() {
               <div className="flex-1">
                 <span className="font-medium">Full Service</span>
                 <p className="text-sm text-muted-foreground mt-1">
-                  AI books appointments, dispatches jobs, takes orders — handles everything
+                  {FULL_SERVICE_DESC[businessMode] || FULL_SERVICE_DESC.general}
                 </p>
               </div>
             </Label>
@@ -107,7 +128,7 @@ export default function AIBehaviorModeSelector() {
               <div className="flex-1">
                 <span className="font-medium">Capture & Callback</span>
                 <p className="text-sm text-muted-foreground mt-1">
-                  AI answers questions and captures caller info, but you handle bookings and dispatch yourself
+                  {CALLBACK_DESC[businessMode] || CALLBACK_DESC.general}
                 </p>
               </div>
             </Label>

@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import BusinessHoursEditor, { BusinessHours, normalizeHours } from "@/components/onboarding/BusinessHoursEditor";
 import { PreviewSentence } from "../layout/BusinessBrainSectionCard";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { 
   DEFAULT_BUSINESS_HOURS, 
   TYPICAL_BUSINESS_HOURS, 
@@ -25,6 +26,7 @@ interface BusinessHoursManagerProps {
 
 export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerProps) {
   const { tenant, refreshTenant } = useAuth();
+  const { businessMode } = useTenantConfig();
   const queryClient = useQueryClient();
 
   const [hours, setHours] = useState<BusinessHours>(DEFAULT_BUSINESS_HOURS);
@@ -109,7 +111,7 @@ export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerPro
       {/* Preview */}
       <PreviewSentence sentence={getTodayHoursPreview(hours)} />
 
-      {/* Quick presets */}
+      {/* Quick presets — mode-aware */}
       <div className="flex flex-wrap gap-2">
         <span className="text-sm text-muted-foreground self-center mr-2">Quick fill:</span>
         <Button
@@ -119,20 +121,24 @@ export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerPro
         >
           9-5 Weekdays
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={setRestaurantHoursPreset}
-        >
-          Restaurant
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={setSplitShiftHours}
-        >
-          Split Shift
-        </Button>
+        {businessMode === "food" && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={setRestaurantHoursPreset}
+            >
+              Restaurant
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={setSplitShiftHours}
+            >
+              Split Shift
+            </Button>
+          </>
+        )}
         <Button
           variant={is24x7 ? "secondary" : "outline"}
           size="sm"

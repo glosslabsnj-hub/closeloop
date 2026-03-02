@@ -103,11 +103,11 @@ const BUSINESS_ITEMS: BrainSectionItem[] = [
     id: "templates",
     title: "Templates",
     icon: Palette,
-    group: "optional",
-    groupLabel: "Quick Start",
+    group: "quickstart",
+    groupLabel: "Get Started",
     order: 1,
     tab: "business",
-
+    setupPriority: "recommended",
   },
 ];
 

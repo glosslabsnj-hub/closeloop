@@ -160,7 +160,7 @@ export function BusinessProfileEditor() {
   const greetingPreview = (() => {
     const parts = [`Thanks for calling ${formData.name || "us"}!`];
     if (formData.years_in_business) {
-      parts.push(`We've been serving the ${formData.address_city || "area"} for ${formData.years_in_business} years.`);
+      parts.push(`We've been serving ${formData.address_city ? `the ${formData.address_city} area` : "the area"} for ${formData.years_in_business} years.`);
     }
     parts.push("How can I help?");
     return parts.join(" ");
