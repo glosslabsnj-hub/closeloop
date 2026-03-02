@@ -16,8 +16,9 @@ import { Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BRAIN_CATEGORIES, type CategoryConfig } from "@/components/brain/layout/businessBrainNavConfig";
 import { getModeCategories, getModeTabDef } from "@/config/brainModeLayout";
-import { useAllCategoriesCompletion } from "@/hooks/useCategoryCompletion";
+import { useAllCategoriesCompletion, type CategoryCompletionStats } from "@/hooks/useCategoryCompletion";
 import { useBrainSummaries } from "@/hooks/useBrainSummaries";
+import { useBrainItemStatuses } from "@/hooks/useBrainItemStatuses";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,6 +62,7 @@ function getCategorySummary(
 export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboardProps) {
   const completions = useAllCategoriesCompletion();
   const summaries = useBrainSummaries();
+  const itemStatuses = useBrainItemStatuses();
   const { businessMode } = useTenantConfig();
   const { tenant } = useAuth();
   const readiness = useAIReadinessV2();
@@ -82,13 +84,49 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
     return map;
   }, [modeCategories, businessMode]);
 
+  // Compute group-based completion from item statuses.
+  // This uses the SAME data source as the sidebar, preventing mismatches
+  // where the sidebar shows "Done" but the card shows 0%.
+  const groupCompletions = useMemo(() => {
+    const result: Record<string, CategoryCompletionStats> = {};
+    for (const cat of modeCategories) {
+      const tabDef = getModeTabDef(businessMode, cat.section);
+      if (!tabDef) continue;
+
+      let total = 0;
+      let completed = 0;
+      let hasRequiredIncomplete = false;
+
+      for (const group of tabDef.groups) {
+        for (const itemId of group.itemIds) {
+          const info = itemStatuses[itemId];
+          if (!info || info.status === "optional") continue;
+          total++;
+          if (info.status === "complete") {
+            completed++;
+          } else if (info.status === "error") {
+            hasRequiredIncomplete = true;
+          }
+        }
+      }
+
+      result[cat.section] = {
+        totalFields: total,
+        completedFields: completed,
+        percentage: total > 0 ? Math.round((completed / total) * 100) : 100,
+        hasRequiredIncomplete,
+      };
+    }
+    return result;
+  }, [modeCategories, businessMode, itemStatuses]);
+
   // Intelligence category
   const intelligenceCategory = BRAIN_CATEGORIES.find((c) => c.section === "intelligence");
 
-  // Overall progress
+  // Overall progress (from group-based completion for accurate display)
   const overall = modeCategories.reduce(
     (acc, cat) => {
-      const c = completions[cat.section];
+      const c = groupCompletions[cat.section];
       if (!c) return acc;
       return { total: acc.total + c.totalFields, completed: acc.completed + c.completedFields };
     },
@@ -287,7 +325,7 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
                 key={cat.id}
                 category={cat}
                 resolvedTitle={resolveCardTitle(cat.titleKey, cat.title, businessMode)}
-                completion={completions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
+                completion={groupCompletions[cat.section] ?? { totalFields: 0, completedFields: 0, percentage: 100, hasRequiredIncomplete: false }}
                 summaryText={getCategorySummary(cat.section, summaries)}
                 groupLabels={categoryGroupLabels[cat.section]}
                 onEdit={() => onNavigate(cat.section)}
