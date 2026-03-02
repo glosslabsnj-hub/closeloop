@@ -155,7 +155,7 @@ export function AgentControlPanel() {
         <div className="px-3 py-3 sm:px-5 sm:py-4">
           {/* Status Row */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 w-full sm:w-auto overflow-hidden">
               {/* Power Toggle */}
               <button
                 onClick={() => handleToggle(!isActive)}
@@ -172,10 +172,10 @@ export function AgentControlPanel() {
                 )} />
               </button>
 
-              <h2 className="text-sm font-semibold truncate text-foreground">{businessName}</h2>
+              <h2 className="text-sm font-semibold truncate min-w-0 text-foreground">{businessName}</h2>
 
               <div className={cn(
-                "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium shrink-0",
+                "flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[11px] font-medium shrink-0",
                 isActive
                   ? "bg-success/10 text-success shadow-[0_0_12px_-2px_hsl(152_60%_44%/0.4)]"
                   : "bg-muted text-muted-foreground"
@@ -188,7 +188,7 @@ export function AgentControlPanel() {
               </div>
 
               {isSuperAdmin && (
-                <Badge variant="outline" className="gap-1 text-[10px] border-primary/20 shrink-0">
+                <Badge variant="outline" className="hidden sm:flex gap-1 text-[10px] border-primary/20 shrink-0">
                   <Shield className="h-3 w-3" />
                   Admin
                 </Badge>

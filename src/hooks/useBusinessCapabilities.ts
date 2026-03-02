@@ -380,25 +380,25 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           ? supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isFood
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "catering")
+          ? supabase.from("catering_knowledge").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isDispatch
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "vehicle")
+          ? supabase.from("vehicle_knowledge").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isDispatch
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "roadside")
+          ? supabase.from("roadside_knowledge").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isMedical
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "symptom_triage")
+          ? supabase.from("symptom_triage").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isMedical
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "insurance")
+          ? supabase.from("insurance_knowledge").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isService || isMedical
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "aftercare")
+          ? supabase.from("aftercare_instructions").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isService || isSales || isGeneral
-          ? (supabase as any).from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("category", "product")
+          ? supabase.from("product_knowledge").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
         isFood
           ? (supabase as any).from("food_order_settings").select("estimated_prep_minutes").eq("tenant_id", tenant.id).maybeSingle()
