@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { CallContextDebugger } from "@/components/ai/CallContextDebugger";
 import { PlanUpgradeCard } from "@/components/settings/PlanUpgradeCard";
 import { MultiLocationManager } from "@/components/settings/MultiLocationManager";
+import { SubscriptionDetailsCard } from "@/components/settings/SubscriptionDetailsCard";
 import { DeliveryIntegrationsSettings } from "@/components/settings/DeliveryIntegrationsSettings";
 import { AutomationRulesSettings } from "@/components/settings/AutomationRulesSettings";
 import { DataControlsPanel } from "@/components/settings/DataControlsPanel";
@@ -281,6 +282,7 @@ export default function SettingsPage() {
         return (
           <>
             <PlanUpgradeCard />
+            <SubscriptionDetailsCard />
             <MultiLocationManager />
           </>
         );

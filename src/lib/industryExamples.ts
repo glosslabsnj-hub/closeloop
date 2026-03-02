@@ -202,8 +202,8 @@ const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
     priceExamples: "Example: Drain Cleaning - $175, Water Heater - Starting at $350",
   },
   "hvac": {
-    serviceNamePlaceholder: "AC Tune-Up, Furnace Repair, Duct Cleaning, System Install",
-    priceExamples: "Example: AC Tune-Up - $89, Furnace Repair - Starting at $199",
+    serviceNamePlaceholder: "AC Repair, Furnace Repair, AC Tune-Up, System Installation",
+    priceExamples: "Example: AC Tune-Up - $99, AC Repair - Starting at $149, AC Install - Quote",
   },
   "dental": {
     serviceName: "procedure",

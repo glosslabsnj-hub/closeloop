@@ -1,38 +1,26 @@
-## receptionist_fix — 2026-03-02 04:17-04:30 AM ET
+receptionist_fix session — 2026-03-02 08:01 ET
 
-### Bugs Fixed
-1. **useIntelligence cross-mode conversion counting** (abaf013): CONVERSION_OUTCOMES map ensures each mode only counts its own conversion types. Service=booked, dispatch=dispatch, food=order_placed, etc.
-2. **Picked Up tab leaking into service mode** (abaf013): JobFilterBar and JobDetailSheet now filter picked_up status with dispatchOnly flag.
-3. **Missing error recovery on LeadsPage and ReportsROIPage** (b9790f8): Both pages now show error states with Refresh Page button.
+## Bugs Fixed (commit 77e7a55)
 
-### Tests Written
-- 17 new cross-mode safety tests in tests/cross-mode-safety.test.ts
-- Total: 360/360 passing
+1. **Tenant context flash on page reload** (handoff #164)
+   - File: src/contexts/AuthContext.tsx
+   - Root cause: setTenant(defaultTenant) was called before fetching cached admin tenant, causing intermediate render with wrong tenant
+   - Fix: Moved setTenant AFTER cached tenant fetch so React 18 batches both state updates into single render
 
-### Handoffs Filed
-- #120 → QA: Verify 3 gates (mode_specific_features_work, no_console_errors, cross-mode safety)
-- #121 → QA: Verify error_states_have_recovery gate
+2. **Booking list not refreshing after creation** (handoff #164)
+   - File: src/components/calendar/CreateBookingDialog.tsx
+   - Root cause: Direct Supabase insert without invalidating React Query cache
+   - Fix: Added queryClient.invalidateQueries for both bookings and schedule-bookings keys
 
-### Gates Updated
-- dashboard/mode_specific_features_work → in_progress
-- overall/error_states_have_recovery → in_progress (new gate)
-- overall/non_technical_usable → in_progress (new gate)
+3. **Step completion counter regression** (handoff #165)
+   - File: src/config/guidedSetupSteps.ts
+   - Root cause: computeStepProgress used every() on ALL resolvesFlagKeys; adding content could reintroduce secondary flags
+   - Fix: Added completionFlagKeys field — counter uses core flags (no_services, few_services) ignoring secondary (missing_pricing)
 
-### Mar 2, 2026 - 6:50 AM ET (receptionist_eng - 6 Critical Bug Fixes + Full Deployment)
-**What happened:**
-- Fixed 6 critical bugs blocking QA verification of SERVICE mode gates
-- All changes deployed to production (frontend + edge function + DB migration)
+4. **Policies "Complete" badge with empty data** (handoff #165)
+   - File: supabase/migrations/20260302130000_fix_policies_completion_check.sql
+   - Root cause: RPC accepted empty JSON {} as valid policies
+   - Fix: Requires cancellation_text, deposit_required=true, refund/no-show policy text, or 2+ payment methods
 
-**Bugs fixed:**
-1. **deposit_amount column missing** (URGENT): Column never existed on services table despite being in code. Add Service form crashed. Added via migration.
-2. **RLS policies for 4 tables** (CRITICAL): leads, bookings, conversations, messages had RLS enabled but ZERO policies. All client operations silently failed (42501). Added 16 policies total.
-3. **AI Readiness false 100%** (HIGH): Was auto-awarding points and counting placeholder services. Now uses quality_services_count (filters 'Sample service' descriptions, 'Service N' names). HVAC: 100% -> 87%.
-4. **build-business-brain crash** (URGENT): p.title.toLowerCase() crashed on null KB entries. Fixed with optional chaining.
-5. **Tenant context resets** (MEDIUM): Admin active tenant now persisted in localStorage. Pre-fetched on page reload to prevent flash of wrong tenant.
-6. **Readiness RPC wrong table** (HIGH): Was referencing greeting_script on assistant_settings (wrong table). Fixed to use ai_assistants.
-
-**Build:** Clean (0 errors), 360/360 tests passing
-**Commits:** 97e076c, 7e743d5
-**Deployed:** Frontend (app.getfluxdata.com), build-business-brain edge fn, DB migration (deposit_amount + 16 RLS policies + get_ai_readiness RPC)
-
-[2026-03-02T12:03:02Z] receptionist_ux: Fixed 3 cross-mode UX issues from 5 QA handoffs. (1) COMPLEXITY_HINTS slug-specific (9 overrides). (2) 24/7 hours preview. (3) Service catalog heading. POS button verified correct. Unknown Caller / transcripts = data issues. Build clean, 360 tests. Commit 3cb9f1c.
+## Build: 0 errors, 360/360 tests
+## Deployed: frontend + RPC migration to production
