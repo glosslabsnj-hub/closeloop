@@ -44,7 +44,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [assistantSettings, setAssistantSettings] = useState<AssistantSettings | null>(null);
   
   // Admin-specific state for tenant switching
-  const [adminSettings, setAdminSettings] = useState<AdminSettings | null>(null);
+  // Restore from localStorage on mount to prevent flash of wrong tenant on page reload
+  const [adminSettings, setAdminSettings] = useState<AdminSettings | null>(() => {
+    try {
+      const cached = localStorage.getItem("flux_admin_active_tenant_id");
+      return cached ? { admin_active_tenant_id: cached } : null;
+    } catch { return null; }
+  });
   const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
 
   // Guard against concurrent fetchTenantData calls
@@ -99,6 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setAdminSettings(data);
+      // Persist to localStorage for instant restore on page reload
+      try {
+        if (data?.admin_active_tenant_id) {
+          localStorage.setItem("flux_admin_active_tenant_id", data.admin_active_tenant_id);
+        }
+      } catch {}
 
       // If admin has an active tenant selected, fetch that tenant's data + subscription
       if (data?.admin_active_tenant_id) {
@@ -153,8 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error;
 
-      // Update local state immediately
+      // Update local state + localStorage immediately
       setAdminSettings(prev => ({ ...prev, admin_active_tenant_id: tenantId }));
+      try { localStorage.setItem("flux_admin_active_tenant_id", tenantId); } catch {};
 
       // Fetch tenant, subscription, and assistant settings in parallel
       const [tenantRes, subRes, settingsRes] = await Promise.all([
@@ -244,8 +257,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           setAssistantSettings(settingsData);
 
-          // For super admins, fetch admin settings AFTER we have a default tenant
+          // For super admins, fetch admin settings AFTER we have a default tenant.
+          // Use localStorage-cached tenant ID for instant restore on page reload.
           if (isAdmin) {
+            let cachedTenantId: string | null = null;
+            try { cachedTenantId = localStorage.getItem("flux_admin_active_tenant_id"); } catch {}
+
+            if (cachedTenantId && cachedTenantId !== tenantData.id) {
+              // Pre-fetch the cached tenant immediately to prevent flash of wrong tenant
+              const [cachedTenantRes, cachedSubRes, cachedSettingsRes] = await Promise.all([
+                supabase.from("tenants").select("*").eq("id", cachedTenantId).single(),
+                supabase.from("subscriptions").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
+                supabase.from("assistant_settings").select("*").eq("tenant_id", cachedTenantId).maybeSingle(),
+              ]);
+              if (cachedTenantRes.data) {
+                setActiveTenant(cachedTenantRes.data as Tenant);
+                setSubscription(cachedSubRes.data);
+                setAssistantSettings(cachedSettingsRes.data);
+              }
+            }
+
             await fetchAdminSettings(userId, tenantData.id);
           }
         }
@@ -347,6 +378,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    try { localStorage.removeItem("flux_admin_active_tenant_id"); } catch {};
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };

@@ -381,10 +381,10 @@ serve(async (req) => {
       .filter(s => s.deposit_required && s.deposit_amount)
       .map(s => `${s.name}: $${s.deposit_amount} deposit required`);
 
-    // Extract policies from knowledge base
+    // Extract policies from knowledge base (safe null access on title)
     const policyItems = knowledgeBase.filter(k => k.type === 'policy');
-    const emergencyPolicy = policyItems.find(p => p.title.toLowerCase().includes('emergency'))?.content || null;
-    const warrantyPolicy = policyItems.find(p => p.title.toLowerCase().includes('warranty'))?.content || null;
+    const emergencyPolicy = policyItems.find(p => p.title?.toLowerCase()?.includes('emergency'))?.content || null;
+    const warrantyPolicy = policyItems.find(p => p.title?.toLowerCase()?.includes('warranty'))?.content || null;
 
     // Build escalation rules
     const escalationRules = [
