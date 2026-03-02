@@ -239,6 +239,8 @@ async function generateReply(
   userMessage: string,
   intent: Intent,
   channel: string,
+  allFaqs: any[],
+  allObjections: any[],
 ): Promise<{ reply: string; next_action: string }> {
 
   // Build system prompt from brain
@@ -278,23 +280,45 @@ BUSINESS INFORMATION:
     systemPrompt += '\n';
   }
 
-  // Add services summary
+  // Add ALL services (not just top 5 — businesses may have 10-20 services)
   if (brain.services.length > 0) {
-    systemPrompt += `SERVICES:\n`;
-    for (const s of brain.services.slice(0, 5)) {
+    systemPrompt += `SERVICES OFFERED:\n`;
+    for (const s of brain.services) {
       systemPrompt += `- ${s.name}`;
       if (s.price_type === 'fixed' && s.price_amount) systemPrompt += ` - $${s.price_amount}`;
       else if (s.price_type === 'starting_at' && s.price_amount) systemPrompt += ` - starting at $${s.price_amount}`;
       else systemPrompt += ` - quote required`;
-      systemPrompt += ` (${s.duration_minutes} min)\n`;
+      systemPrompt += ` (${s.duration_minutes} min)`;
+      if (s.description) systemPrompt += ` — ${s.description}`;
+      systemPrompt += `\n`;
     }
     systemPrompt += '\n';
   }
 
-  // Add relevant knowledge snippets
-  if (snippets.length > 0) {
-    systemPrompt += `RELEVANT KNOWLEDGE FOR THIS QUERY:\n`;
-    for (const s of snippets.slice(0, 5)) {
+  // Add ALL FAQs so the AI can answer common questions
+  if (allFaqs.length > 0) {
+    systemPrompt += `FREQUENTLY ASKED QUESTIONS:\n`;
+    for (const faq of allFaqs.slice(0, 15)) {
+      systemPrompt += `Q: ${faq.question}\nA: ${faq.answer}\n\n`;
+    }
+  }
+
+  // Add objection responses when customer pushback is detected
+  if (allObjections.length > 0 && ['objection', 'cancel', 'other'].includes(intent)) {
+    systemPrompt += `OBJECTION HANDLING:\n`;
+    for (const obj of allObjections.slice(0, 5)) {
+      systemPrompt += `If customer says: "${obj.objection}" → Respond: ${obj.response}\n`;
+    }
+    systemPrompt += '\n';
+  }
+
+  // Add query-specific knowledge snippets (keyword-matched from knowledge base)
+  const nonFaqNonServiceSnippets = snippets.filter(
+    s => s.source_type !== 'faq' && s.source_type !== 'service'
+  );
+  if (nonFaqNonServiceSnippets.length > 0) {
+    systemPrompt += `ADDITIONAL KNOWLEDGE:\n`;
+    for (const s of nonFaqNonServiceSnippets.slice(0, 5)) {
       systemPrompt += `[${s.source_type.toUpperCase()}] ${s.title}: ${s.content}\n\n`;
     }
   }
@@ -533,13 +557,15 @@ serve(async (req) => {
       requiredInfo.push('Booking reference or date');
     }
 
-    // Generate the reply
+    // Generate the reply — pass raw FAQs and objections so they're always in prompt
     const { reply, next_action } = await generateReply(
       brain,
       snippets,
       userMessage,
       intent,
       channel,
+      faqs,
+      objections,
     );
 
     // Check for knowledge gap
@@ -562,6 +588,21 @@ serve(async (req) => {
       }).then(() => {}).catch((e: any) => console.warn("knowledge_gaps upsert failed:", e));
     }
 
+    // Build comprehensive sources list: always-injected + keyword-matched
+    const allSourcesUsed: Array<{ type: string; id: string }> = [];
+    for (const s of services.slice(0, 20)) {
+      allSourcesUsed.push({ type: 'service', id: s.id });
+    }
+    for (const f of faqs.slice(0, 15)) {
+      allSourcesUsed.push({ type: 'faq', id: f.id });
+    }
+    // Add keyword-matched snippets that aren't already included
+    for (const s of snippets.slice(0, 5)) {
+      if (!allSourcesUsed.find(src => src.id === s.id)) {
+        allSourcesUsed.push({ type: s.source_type, id: s.id });
+      }
+    }
+
     const plan: ResponsePlan = {
       intent,
       confidence,
@@ -571,7 +612,7 @@ serve(async (req) => {
       guardrails_applied: guardrailsApplied,
       next_action: next_action as any,
       draft_reply: reply,
-      sources_used: snippets.slice(0, 5).map((s) => ({ type: s.source_type, id: s.id })),
+      sources_used: allSourcesUsed,
       knowledge_gap_detected: knowledgeGapDetected,
       gap_description: gapDescription,
     };
@@ -582,7 +623,8 @@ serve(async (req) => {
         brain_summary: {
           business_name: brain.business.name,
           services_count: brain.services.length,
-          faqs_count: brain.faqs.length,
+          faqs_count: faqs.length,
+          objections_count: objections.length,
           has_booking_rules: !!brain.booking_rules.min_lead_hours,
         },
       }),

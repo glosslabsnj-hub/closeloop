@@ -25,3 +25,4 @@ receptionist_eng session - 2026-03-02 2:03 PM ET
 
 ## Handoffs Filed
 - #209 to receptionist_qa (high): Verify AI Simulator, HVAC services, onboarding fix
+[2026-03-02 21:38:06 UTC] receptionist_fix: Fixed console errors - useNotifications throw->return[], staleTime on 4 global hooks, 20 regression tests. Commit 8112aea. 646/646 tests. Deployed.

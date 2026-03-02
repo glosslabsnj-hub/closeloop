@@ -81,6 +81,13 @@ export default function SignupPage() {
       // Store business name for onboarding
       sessionStorage.setItem("businessName", businessName.trim());
 
+      // Fire Google Ads conversion on successful signup
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "conversion", {
+          send_to: "AW-17970313271/tRXaCOK_5v4bELfw9PhC",
+        });
+      }
+
       toast({
         title: "Account created!",
         description: "Let's set up your business.",
