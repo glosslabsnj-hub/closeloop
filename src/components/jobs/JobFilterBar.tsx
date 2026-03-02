@@ -9,21 +9,25 @@ import {
 } from "@/components/ui/select";
 import { Search } from "lucide-react";
 import type { JobFilter, JobPriority, JobStatus } from "@/hooks/useActiveJobs";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 
 interface JobFilterBarProps {
   filter: JobFilter;
   onFilterChange: (filter: JobFilter) => void;
 }
 
-const STATUS_TABS: { value: JobStatus | "all"; label: string }[] = [
+const BASE_STATUS_TABS: { value: JobStatus | "all"; label: string; dispatchOnly?: boolean }[] = [
   { value: "all", label: "All" },
   { value: "in_progress", label: "In Progress" },
   { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },
-  { value: "picked_up", label: "Picked Up" },
+  { value: "picked_up", label: "Picked Up", dispatchOnly: true },
 ];
 
 export function JobFilterBar({ filter, onFilterChange }: JobFilterBarProps) {
+  const { businessMode } = useTenantConfig();
+  const statusTabs = BASE_STATUS_TABS.filter(t => !t.dispatchOnly || businessMode === "dispatch");
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <Tabs
@@ -31,7 +35,7 @@ export function JobFilterBar({ filter, onFilterChange }: JobFilterBarProps) {
         onValueChange={(v) => onFilterChange({ ...filter, status: v as JobStatus | "all" })}
       >
         <TabsList>
-          {STATUS_TABS.map((tab) => (
+          {statusTabs.map((tab) => (
             <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
               {tab.label}
             </TabsTrigger>

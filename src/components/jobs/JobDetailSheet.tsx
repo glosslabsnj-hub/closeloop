@@ -20,6 +20,7 @@ import { JobNotificationToggles } from "./JobNotificationToggles";
 import { useJobServiceItems } from "@/hooks/useJobServiceItems";
 import { useActiveJobs, type ActiveJob, type JobStatus, type JobPriority } from "@/hooks/useActiveJobs";
 import { useJobLabels } from "@/hooks/useJobLabels";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useFleetDrivers } from "@/hooks/useFleetDrivers";
 import { Progress } from "@/components/ui/progress";
 import { Phone, User, Clock, AlertTriangle, Zap, UserCheck } from "lucide-react";
@@ -30,12 +31,12 @@ interface JobDetailSheetProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const STATUS_OPTIONS: { value: JobStatus; label: string }[] = [
+const ALL_STATUS_OPTIONS: { value: JobStatus; label: string; dispatchOnly?: boolean }[] = [
   { value: "intake", label: "Intake" },
   { value: "in_progress", label: "In Progress" },
   { value: "on_hold", label: "On Hold" },
   { value: "completed", label: "Completed" },
-  { value: "picked_up", label: "Picked Up" },
+  { value: "picked_up", label: "Picked Up", dispatchOnly: true },
   { value: "cancelled", label: "Cancelled" },
 ];
 
@@ -47,6 +48,8 @@ const PRIORITY_OPTIONS: { value: JobPriority; label: string; icon?: typeof Alert
 
 export function JobDetailSheet({ job, open, onOpenChange }: JobDetailSheetProps) {
   const labels = useJobLabels();
+  const { businessMode } = useTenantConfig();
+  const STATUS_OPTIONS = ALL_STATUS_OPTIONS.filter(o => !o.dispatchOnly || businessMode === "dispatch");
   const { updateJob, updateJobStatus } = useActiveJobs();
   const { activeDrivers } = useFleetDrivers();
   const {

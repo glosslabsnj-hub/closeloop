@@ -8,6 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "./useTenantConfig";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -121,8 +122,19 @@ export function useCallOutcomes(days = 7) {
   });
 }
 
+/** Map business mode to its conversion outcome types */
+const CONVERSION_OUTCOMES: Record<string, string[]> = {
+  service: ["booked"],
+  dispatch: ["dispatch"],
+  food: ["order_placed"],
+  medical: ["booked", "intake_completed"],
+  sales: ["booked", "lead_qualified"],
+  general: ["booked", "callback"],
+};
+
 export function useConversionMetrics(days = 7) {
   const { data: outcomes = [], ...rest } = useCallOutcomes(days);
+  const { businessMode } = useTenantConfig();
 
   const metrics: ConversionMetrics = {
     totalCalls: outcomes.length,
@@ -137,8 +149,9 @@ export function useConversionMetrics(days = 7) {
 
   if (outcomes.length === 0) return { metrics, ...rest };
 
+  const validConversions = CONVERSION_OUTCOMES[businessMode] || ["booked"];
   const converted = outcomes.filter(o =>
-    ["booked", "order_placed", "dispatch_created"].includes(o.outcome_type)
+    validConversions.includes(o.outcome_type)
   );
   const hangups = outcomes.filter(o => o.outcome_type === "hangup");
   const escalations = outcomes.filter(o => o.outcome_type === "transferred");

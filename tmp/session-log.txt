@@ -1,43 +1,33 @@
-=== receptionist_eng — Mar 1, 2026 4:00 PM ET ===
+receptionist_ux | 2026-03-02 04:08-04:18 AM ET | commit a3396ae
 
-DISPATCH MODE: 37/37 (100%) — COMPLETE
+## What I Fixed (9 changes, 8 files)
 
-## What I Built/Fixed
-1. dispatch_delivery_settings not created during onboarding (P0) — useOnboardingSubmit.ts step 9c
-2. dispatch-handoff silent return on missing settings (P0) — restructured: critical actions always run
-3. Customer-facing SMS added to dispatch-handoff (P1) — AI promises text, now actually sends it
-4. Quick Dispatch button 404 fixed (P1) — DispatchDashboardLayout route corrected
-5. elevenlabs-lookup-dispatch-status HTTP 500 → 200 (P1) — ElevenLabs can now parse error messages
-6. Industry configs: courier, roadside_assistance, medical_transport, mobile_mechanic — preAnswers, checklists, nextSteps
-7. dispatch_logistics category defaults — distance pricing + phone quotes pre-enabled
+### Cross-Mode Terminology (3 fixes)
+1. ServiceCatalogEditor: "Paste from POS" button hidden for non-food modes
+2. TeachAISection: Upload text says "service info" for service mode, "menus, recipes" for food
+3. brainGuidance.ts: Catalog "what" field cleaned — no more "menu items, or procedures"
 
-## Files Changed
-- src/hooks/useOnboardingSubmit.ts — step 9c: create dispatch_delivery_settings
-- supabase/functions/dispatch-handoff/index.ts — restructured + customer SMS + optional chaining
-- supabase/functions/elevenlabs-lookup-dispatch-status/index.ts — HTTP 200 on errors
-- src/components/dashboard/layouts/DispatchDashboardLayout.tsx — route fix
-- src/config/industryOnboardingConfig.ts — 4 new slug configs + category defaults
-- .claude/docs/system-brain.md — updated
+### Mobile 375px Overflow (6 fixes)
+4. BusinessHoursEditor: Time select width w-[90px] on mobile (was w-[120px])
+5. BusinessHoursEditor: Day labels w-16 on mobile (was w-24)
+6. OnboardingAI: Tone grid smaller padding (p-2.5) and gaps (gap-1.5) on mobile
+7. A2PBusinessFields: Address grid 2-col on mobile, 6-col on sm+
+8. ServicePreviewStep: Edit form flex-wraps, input widths w-24 on mobile
+9. CallbackDashboardLayout: Removed min-w-[200px] from quick action card
 
-## Edge Functions Deployed
-- dispatch-handoff
-- elevenlabs-lookup-dispatch-status
+## Gates Updated (4 → in_progress)
+- onboarding/correct_terminology
+- onboarding/mobile_375px_usable
+- overall/responsive_all_breakpoints
+- brain/relevant_sections_only
 
-## Build: Clean (0 errors), Tests: 343/343 passing
-## Commit: 0337968
+## Handoffs Filed
+- #118 → QA: Verify 4 UX gates
+- #119 → Eng: AI Insights loads wrong-mode categories (3 edge functions need mode filter)
 
-## What Could Break (3 risks)
-1. Customer SMS in dispatch-handoff — if sendTenantSms lacks a verified number for the tenant, SMS will silently skip (by design via skipped flag). Need A2P registration.
-2. dispatch_delivery_settings upsert — relies on tenant_id unique constraint existing. If missing, could insert duplicates.
-3. Industry configs — new slug configs (courier, medical_transport) haven't been tested with real onboarding flow.
+## Risks
+1. A2P address grid col-span changes may affect form layout on tablets
+2. Tone grid tighter padding may feel cramped on some 375px devices
+3. ServicePreviewStep flex-wrap may cause 2-row layout on some inputs
 
-## Mode Matrix
-- SERVICE: tested, 37/37 passing
-- DISPATCH: tested via code audit, 37/37 passing. No real call test.
-- FOOD/MEDICAL/SALES/GENERAL: untested (0/37 each)
-
-## Weakest Part
-dispatch-handoff customer SMS is fire-and-forget with no retry. If it fails on a real call, the customer gets no confirmation. Booking-handoff has the same pattern though. Both need SMS delivery status tracking (future).
-
-## Handoffs
-None needed — dispatch is fully self-contained. Next session should target FOOD mode.
+## Modes: SERVICE tested, others not affected (mode-isolated changes)
