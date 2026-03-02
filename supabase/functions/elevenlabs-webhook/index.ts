@@ -1153,12 +1153,24 @@ async function processCallData(
   });
 
   // Get enabled_modules from tenant for routing decisions
-  const enabledModules: string[] = Array.isArray(tenant?.enabled_modules)
+  // If empty, fall back to mode-based defaults (same as frontend useCapabilities.ts)
+  const MODE_MODULE_DEFAULTS: Record<string, string[]> = {
+    service: ["ai_voice", "instant_text_back", "booking"],
+    dispatch: ["ai_voice", "instant_text_back", "dispatch_queue"],
+    food: ["ai_voice", "instant_text_back", "food_orders", "menu_knowledge", "reservations", "catering"],
+    medical: ["ai_voice", "instant_text_back", "booking", "medical_intake"],
+    sales: ["ai_voice", "instant_text_back", "sales_leads", "booking"],
+    general: ["ai_voice", "instant_text_back"],
+  };
+
+  let enabledModules: string[] = Array.isArray(tenant?.enabled_modules)
     ? tenant.enabled_modules
     : [];
 
   if (enabledModules.length === 0) {
-    console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} - all intents will route to "none"`);
+    const fallback = MODE_MODULE_DEFAULTS[tenantBusinessMode] || MODE_MODULE_DEFAULTS.service;
+    console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} — using ${tenantBusinessMode} mode defaults: ${fallback.join(", ")}`);
+    enabledModules = fallback;
   }
 
   // ===== RECORD CALL OUTCOME (Intelligence Layer) =====
@@ -1225,7 +1237,24 @@ async function processCallData(
       intent: validatedPayload.intent,
     });
   } else {
-    await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
+    const entityResult = await persistDerivedEntity(supabase, supabaseUrl, supabaseKey, tenantId, sessionId, tenantBusinessMode, enabledModules, validatedPayload, validatedPayload.customer.name, customerId, callerPhoneE164, payload, leadId);
+
+    // CRITICAL: If entity creation failed but outcome was optimistically set to "booked"/"order"/"dispatch",
+    // downgrade to "followup" so dashboard doesn't show misleading badges (e.g., "Booked" with no booking).
+    const ENTITY_OUTCOMES = new Set(["booked", "order", "dispatch"]);
+    if (!entityResult.success && ENTITY_OUTCOMES.has(outcome)) {
+      console.warn(`[elevenlabs-webhook] Entity creation failed for outcome="${outcome}" — downgrading to "followup"`);
+      await supabase
+        .from("ai_call_sessions")
+        .update({ outcome: "followup", followup_status: "new" })
+        .eq("id", sessionId);
+      await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "outcome_downgraded", {
+        original_outcome: outcome,
+        downgraded_to: "followup",
+        reason: "entity_creation_failed",
+        entity_type: entityResult.entityType,
+      });
+    }
   }
 
   // 3.3: Queue warm lead follow-up for outbound calling
@@ -2211,7 +2240,7 @@ async function persistDerivedEntity(
   callerPhoneE164: string,
   webhookPayload: ElevenLabsWebhookPayload,
   leadId: string | null = null
-): Promise<void> {
+): Promise<{ success: boolean; entityType?: string; entityId?: string }> {
   const intent = payload.intent;
 
   // Build routing decision
@@ -2364,6 +2393,8 @@ async function persistDerivedEntity(
     },
     errorMsg
   );
+
+  return { success, entityType: entityType || undefined, entityId: entityId || undefined };
 }
 
 // ===== ROUTING DECISION LOGIC =====

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowUpRight, Check, Loader2, TrendingUp, MapPin } from "lucide-react";
+import { ArrowUpRight, Check, Loader2, TrendingUp, MapPin, Sparkles } from "lucide-react";
 import {
   getLadderStep,
   getLadderStepsForTier,
@@ -74,7 +74,35 @@ export function PlanUpgradeCard() {
   };
 
   if (!subscription || !currentStep || !tierInfo) {
-    return null;
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Plan & Billing</CardTitle>
+              <CardDescription>Manage your subscription</CardDescription>
+            </div>
+            <Badge variant="secondary">Trial</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="p-4 rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 text-center">
+            <Sparkles className="h-8 w-8 text-primary mx-auto mb-2" />
+            <p className="font-medium mb-1">No active subscription</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              You're currently on a free trial. Choose a plan to unlock all features and start receiving calls.
+            </p>
+            <Button
+              onClick={() => window.open("https://getfluxdata.com/pricing", "_blank")}
+              className="gap-2"
+            >
+              <ArrowUpRight className="h-4 w-4" />
+              View Plans
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   const totalOverage = usage?.projectedVoiceOverage || 0;

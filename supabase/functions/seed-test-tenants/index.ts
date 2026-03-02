@@ -343,6 +343,15 @@ Deno.serve(async (req) => {
         unknown_question_behavior: config.communicationPrefs.unknownQuestionBehavior,
       });
 
+      // Create booking_delivery_settings for modes that book (required for booking-handoff to run)
+      if (["service", "medical", "sales", "general"].includes(config.business_mode)) {
+        await serviceClient.from("booking_delivery_settings").insert({
+          tenant_id: tenantId,
+          enabled: true,
+          handoff_methods: { email: true, sms: true, push: false, calendar_sync: false },
+        });
+      }
+
       // Create food order settings for food mode
       if (config.business_mode === "food") {
         await serviceClient.from("food_order_settings").insert({
