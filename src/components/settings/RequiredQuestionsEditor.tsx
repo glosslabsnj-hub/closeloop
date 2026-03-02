@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,12 +45,22 @@ export interface IntentRequiredInputsConfig {
   optional_inputs: InputField[];
 }
 
+// Capitalize first letter of each word
+function capitalize(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Resolve "Customer Name" → "Patient Name", "Guest Name", etc. based on terminology
+function getNameLabel(customerLabel: string): string {
+  return `${capitalize(customerLabel)} Name`;
+}
+
 // Default standard fields per intent
 const standardFields: Record<Intent, InputField[]> = {
   booking: [
     {
       key: "customer_name",
-      label: "Customer Name",
+      label: "Customer Name", // resolved dynamically at render
       ask_prompt: "May I have your name please?",
       why_needed: "Required to identify the booking"
     },
@@ -253,6 +264,7 @@ const intentDescriptions: Record<Intent, string> = {
 export function RequiredQuestionsEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { terminology } = useIndustryContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -311,7 +323,9 @@ export function RequiredQuestionsEditor() {
             loadedConfigs[intent] = existingRule.action_json as unknown as IntentRequiredInputsConfig;
           } else {
             // Default: some standard fields required, others optional
-            const standard = standardFields[intent] || [];
+            const standard = (standardFields[intent] || []).map((f) =>
+              f.key === "customer_name" ? { ...f, label: getNameLabel(terminology.customerLabel) } : f
+            );
             loadedConfigs[intent] = {
               intent,
               required_inputs: standard.slice(0, 3), // First 3 required by default
@@ -562,6 +576,7 @@ export function RequiredQuestionsEditor() {
                         onUpdate={(updates) => updateField(field, updates, true)}
                         onRemove={() => removeField(field, true)}
                         isCustom={field.key.startsWith("custom_")}
+                        customerLabel={terminology.customerLabel}
                       />
                     ))
                   )}
@@ -610,6 +625,7 @@ export function RequiredQuestionsEditor() {
                         onUpdate={(updates) => updateField(field, updates, false)}
                         onRemove={() => removeField(field, false)}
                         isCustom={field.key.startsWith("custom_")}
+                        customerLabel={terminology.customerLabel}
                       />
                     ))
                   )}
@@ -630,6 +646,7 @@ interface FieldEditorProps {
   onUpdate: (updates: Partial<InputField>) => void;
   onRemove: () => void;
   isCustom: boolean;
+  customerLabel: string;
 }
 
 // Helper function to get validation hints for a field
@@ -701,7 +718,8 @@ function FieldEditor({
   onToggleRequired,
   onUpdate,
   onRemove,
-  isCustom
+  isCustom,
+  customerLabel
 }: FieldEditorProps) {
   const validationHint = getValidationHint(field.key);
 
@@ -760,7 +778,7 @@ function FieldEditor({
             id={`${field.key}-label`}
             value={field.label}
             onChange={(e) => onUpdate({ label: e.target.value })}
-            placeholder="e.g., Customer Name"
+            placeholder={`e.g., ${getNameLabel(customerLabel)}`}
           />
         </div>
 
@@ -785,7 +803,7 @@ function FieldEditor({
             id={`${field.key}-why`}
             value={field.why_needed}
             onChange={(e) => onUpdate({ why_needed: e.target.value })}
-            placeholder="e.g., Required to identify the customer"
+            placeholder={`e.g., Required to identify the ${customerLabel}`}
             rows={2}
           />
         </div>

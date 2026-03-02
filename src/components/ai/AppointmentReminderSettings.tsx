@@ -7,15 +7,22 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { BellRing } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 const DEFAULT_24H =
   "Hi {{customer_name}}, this is a reminder that your {{service_name}} appointment is tomorrow at {{time}}. Reply CONFIRM to confirm or call us to reschedule.";
 const DEFAULT_1H =
   "Hi {{customer_name}}, your {{service_name}} appointment is in about 1 hour at {{time}}. We look forward to seeing you!";
 
+function capitalize(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function AppointmentReminderSettings() {
   const { tenant, assistantSettings } = useAuth();
   const { toast } = useToast();
+  const { terminology } = useIndustryContext();
+  const bookingLabel = capitalize(terminology.appointmentLabel);
 
   const [enabled, setEnabled] = useState(false);
   const [template24h, setTemplate24h] = useState(DEFAULT_24H);
@@ -70,10 +77,10 @@ export default function AppointmentReminderSettings() {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <BellRing className="h-5 w-5" />
-          Appointment Reminders
+          {bookingLabel} Reminders
         </CardTitle>
         <CardDescription>
-          Automatically send SMS reminders to reduce no-shows
+          Automatically send text reminders to reduce no-shows
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -81,7 +88,7 @@ export default function AppointmentReminderSettings() {
           <div>
             <p className="font-medium text-sm">Enable Reminders</p>
             <p className="text-xs text-muted-foreground">
-              Send automatic SMS reminders 24h and 1h before appointments
+              Send automatic reminders 24h and 1h before each {terminology.appointmentLabel}
             </p>
           </div>
           <Switch checked={enabled} onCheckedChange={setEnabled} />

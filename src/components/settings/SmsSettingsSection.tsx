@@ -17,6 +17,7 @@ import {
   Info,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface SmsTemplate {
   enabled: boolean;
@@ -65,18 +66,28 @@ const REVIEW_DELAY_OPTIONS = [
   { label: "24 hours after", value: 1440 },
 ];
 
-const TEMPLATE_VARIABLES = [
-  { key: "{{customer_name}}", desc: "Customer's name" },
-  { key: "{{business_name}}", desc: "Your business name" },
-  { key: "{{appointment_date}}", desc: "Appointment date" },
-  { key: "{{appointment_time}}", desc: "Appointment time" },
-  { key: "{{service_name}}", desc: "Service booked" },
-  { key: "{{review_link}}", desc: "Review page link" },
-];
+// Template variable descriptions are rendered dynamically via getTemplateVariables()
+function getTemplateVariables(customerLabel: string, bookingLabel: string) {
+  return [
+    { key: "{{customer_name}}", desc: `${customerLabel}'s name` },
+    { key: "{{business_name}}", desc: "Your business name" },
+    { key: "{{appointment_date}}", desc: `${bookingLabel} date` },
+    { key: "{{appointment_time}}", desc: `${bookingLabel} time` },
+    { key: "{{service_name}}", desc: "Service booked" },
+    { key: "{{review_link}}", desc: "Review page link" },
+  ];
+}
+
+function capitalize(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export function SmsSettingsSection() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
+  const { terminology, terms } = useIndustryContext();
+  const bookingLabel = capitalize(terminology.appointmentLabel);
+  const customerLabel = capitalize(terminology.customerLabel);
 
   // Fetch A2P status
   const { data: a2pStatus } = useQuery({
@@ -248,7 +259,7 @@ export function SmsSettingsSection() {
         description="Use these placeholders in your message templates."
       >
         <div className="flex flex-wrap gap-2">
-          {TEMPLATE_VARIABLES.map((v) => (
+          {getTemplateVariables(customerLabel, bookingLabel).map((v) => (
             <Badge key={v.key} variant="secondary" className="gap-1 font-mono text-xs">
               {v.key}
               <span className="font-sans text-muted-foreground">— {v.desc}</span>
@@ -257,10 +268,10 @@ export function SmsSettingsSection() {
         </div>
       </SettingsCard>
 
-      {/* Appointment Confirmation */}
+      {/* Booking/Appointment Confirmation */}
       <SettingsCard
-        title="Appointment Confirmation"
-        description="Sent immediately when a booking is confirmed."
+        title={`${bookingLabel} Confirmation`}
+        description={`Sent immediately when a ${terminology.appointmentLabel} is confirmed.`}
         onSave={() => saveMutation.mutate(settings)}
         isSaving={saveMutation.isPending}
         isDirty={isDirty}
@@ -269,7 +280,7 @@ export function SmsSettingsSection() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarCheck className="h-4 w-4 text-primary" />
-              <Label>Send confirmation SMS</Label>
+              <Label>Send confirmation text</Label>
             </div>
             <Switch
               checked={settings.appointment_confirmation.enabled}
@@ -296,10 +307,10 @@ export function SmsSettingsSection() {
         </div>
       </SettingsCard>
 
-      {/* Appointment Reminder */}
+      {/* Booking/Appointment Reminder */}
       <SettingsCard
-        title="Appointment Reminder"
-        description="Sent before the appointment to reduce no-shows."
+        title={`${bookingLabel} Reminder`}
+        description={`Sent before the ${terminology.appointmentLabel} to reduce no-shows.`}
         onSave={() => saveMutation.mutate(settings)}
         isSaving={saveMutation.isPending}
         isDirty={isDirty}
@@ -356,7 +367,7 @@ export function SmsSettingsSection() {
       {/* Review Request */}
       <SettingsCard
         title="Review Request"
-        description="Ask for a review after the appointment is completed."
+        description={`Ask for a review after the ${terminology.appointmentLabel} is completed.`}
         onSave={() => saveMutation.mutate(settings)}
         isSaving={saveMutation.isPending}
         isDirty={isDirty}
