@@ -167,7 +167,9 @@ DECLARE
   result jsonb;
   tenant_record record;
   assistant_record record;
+  ai_record record;
   has_assistant boolean := false;
+  has_ai_assistant boolean := false;
   services_count integer;
   quality_services_count integer;
   menu_items_count integer;
@@ -189,9 +191,13 @@ BEGIN
     RETURN jsonb_build_object('error', 'Tenant not found', 'score', 0);
   END IF;
 
-  -- Fetch assistant settings
+  -- Fetch assistant settings (booking mode, readiness cache)
   SELECT * INTO assistant_record FROM assistant_settings WHERE tenant_id = tenant_uuid;
   has_assistant := FOUND;
+
+  -- Fetch AI assistant (greeting, tone, voice config)
+  SELECT * INTO ai_record FROM ai_assistants WHERE tenant_id = tenant_uuid;
+  has_ai_assistant := FOUND;
 
   IF has_assistant THEN
     booking_mode_value := assistant_record.ai_booking_mode;
@@ -201,11 +207,14 @@ BEGIN
 
   -- Get counts
   SELECT COUNT(*) INTO services_count FROM services WHERE tenant_id = tenant_uuid AND is_active = true;
-  -- Quality services: have a description longer than 15 chars (not just "Sample service #1")
+  -- Quality services: non-placeholder names and descriptions
   SELECT COUNT(*) INTO quality_services_count FROM services
     WHERE tenant_id = tenant_uuid AND is_active = true
-    AND description IS NOT NULL AND length(trim(description)) > 15
-    AND name NOT LIKE 'Service %';
+    AND description IS NOT NULL AND length(trim(description)) > 20
+    AND description NOT LIKE 'Sample service%'
+    AND name NOT LIKE 'Service %'
+    AND name NOT LIKE '% Service _'
+    AND name NOT LIKE '% Service __';
   SELECT COUNT(*) INTO menu_items_count FROM menu_items WHERE tenant_id = tenant_uuid AND is_available = true;
   SELECT COUNT(*) INTO faqs_count FROM business_faqs WHERE tenant_id = tenant_uuid;
 
@@ -325,9 +334,9 @@ BEGIN
     END IF;
 
     -- AI greeting configured (10 pts) — replaces the auto-award
-    IF has_assistant AND assistant_record.greeting_script IS NOT NULL AND length(trim(assistant_record.greeting_script)) > 10 THEN
+    IF has_ai_assistant AND ai_record.greeting_script IS NOT NULL AND length(trim(ai_record.greeting_script)) > 10 THEN
       score := score + 10;
-    ELSIF has_assistant THEN
+    ELSIF has_ai_assistant THEN
       score := score + 5;
       p1_flags := array_append(p1_flags, 'generic_greeting');
       recommendations := recommendations || jsonb_build_array(jsonb_build_object(
@@ -418,9 +427,9 @@ BEGIN
     END IF;
 
     -- AI greeting (15 pts) — replaces auto-award
-    IF has_assistant AND assistant_record.greeting_script IS NOT NULL AND length(trim(assistant_record.greeting_script)) > 10 THEN
+    IF has_ai_assistant AND ai_record.greeting_script IS NOT NULL AND length(trim(ai_record.greeting_script)) > 10 THEN
       score := score + 15;
-    ELSIF has_assistant THEN
+    ELSIF has_ai_assistant THEN
       score := score + 7;
       p1_flags := array_append(p1_flags, 'generic_greeting');
     ELSE
@@ -486,7 +495,7 @@ BEGIN
     END IF;
 
     -- Greeting configured (20 pts)
-    IF has_assistant AND assistant_record.greeting_script IS NOT NULL AND length(trim(assistant_record.greeting_script)) > 5 THEN
+    IF has_ai_assistant AND ai_record.greeting_script IS NOT NULL AND length(trim(assistant_record.greeting_script)) > 5 THEN
       score := score + 20;
     ELSE
       score := score + 5;
@@ -512,7 +521,7 @@ BEGIN
     END IF;
 
     -- Lead qualification (20 pts)
-    IF has_assistant AND assistant_record.greeting_script IS NOT NULL THEN
+    IF has_ai_assistant AND ai_record.greeting_script IS NOT NULL THEN
       score := score + 20;
     ELSE
       score := score + 5;
