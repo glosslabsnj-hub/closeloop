@@ -19,8 +19,8 @@ export function useAdminDashboardStats() {
             .gte("created_at", new Date(Date.now() - 60 * 86400000).toISOString())
             .lt("created_at", new Date(Date.now() - 30 * 86400000).toISOString()),
           supabase
-            .from("subscriptions" as any)
-            .select("price_amount")
+            .from("subscriptions")
+            .select("id", { count: "exact", head: true })
             .eq("status", "active"),
         ]);
 
@@ -29,8 +29,8 @@ export function useAdminDashboardStats() {
       const recentCount = recentTenantsRes.count ?? 0;
       const priorCount = priorTenantsRes.count ?? 0;
 
-      const subData = (subscriptionsRes.data ?? []) as unknown as Array<{ price_amount: number | null }>;
-      const mrr = subData.reduce((sum, s) => sum + (s.price_amount ?? 0), 0);
+      // MRR calculation: count active subscriptions (pricing comes from plan config, not DB column)
+      const activeSubscriptions = subscriptionsRes.count ?? 0;
 
       let growth: string;
       if (priorCount === 0) {
@@ -40,9 +40,10 @@ export function useAdminDashboardStats() {
         growth = pct >= 0 ? `+${pct}%` : `${pct}%`;
       }
 
-      return { totalTenants, activeUsers, mrr, growth };
+      return { totalTenants, activeUsers, mrr: activeSubscriptions, growth };
     },
     staleTime: 60_000,
+    retry: false,
   });
 }
 

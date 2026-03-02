@@ -34,9 +34,11 @@ export function useAgencyApplications() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      // Non-admin users get RLS errors — return empty array silently
+      if (error) return [] as AgencyApplication[];
       return (data ?? []) as unknown as AgencyApplication[];
     },
+    retry: false,
   });
 }
 

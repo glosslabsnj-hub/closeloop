@@ -334,7 +334,7 @@ export function useBusinessCapabilities(): BusinessCapabilities {
       ] = await Promise.all([
         supabase
           .from("services")
-          .select("id, category", { count: "exact", head: false })
+          .select("id", { count: "exact", head: false })
           .eq("tenant_id", tenant.id)
           .eq("is_active", true)
           .limit(10),
@@ -374,8 +374,7 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .from("services")
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id)
-          .eq("is_active", true)
-          .not("category", "is", null),
+          .eq("is_active", true),
         isFood
           ? supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
