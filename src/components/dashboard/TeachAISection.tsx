@@ -191,7 +191,7 @@ export function TeachAISection() {
             <Brain className="h-8 w-8 mx-auto text-primary mb-2" />
             <p className="text-sm font-medium mb-1">Upload Knowledge in Business Brain</p>
             <p className="text-xs text-muted-foreground mb-3">
-              Click here to upload menus, policies, and other documents
+              Click here to upload {businessMode === 'food' ? 'menus, recipes,' : 'service info,'} policies, and other documents
             </p>
             <Button size="sm" variant="outline" className="pointer-events-none">
               Go to Business Brain

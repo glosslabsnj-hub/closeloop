@@ -89,7 +89,7 @@ export function CallbackDashboardLayout() {
         </Card>
 
         {/* Quick Action */}
-        <Card className="flex flex-col items-center justify-center p-6 min-w-[200px]">
+        <Card className="flex flex-col items-center justify-center p-6">
           <Users className="h-8 w-8 text-primary mb-3" />
           <p className="text-sm font-medium mb-1">View All Leads</p>
           <p className="text-xs text-muted-foreground text-center mb-4">

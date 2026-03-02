@@ -197,7 +197,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                         </button>
                       ))}
                     </div>
-                    <div className="flex gap-2 items-end">
+                    <div className="flex flex-wrap gap-2 items-end">
                       {service.priceType !== "quote_only" && (
                         <div className="space-y-1">
                           <label className="text-[11px] font-medium text-muted-foreground">
@@ -207,7 +207,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                             type="number"
                             value={service.price}
                             onChange={(e) => updateService(idx, "price", parseFloat(e.target.value) || 0)}
-                            className="w-28"
+                            className="w-24 sm:w-28"
                             aria-label={service.priceType === "starting_at" ? "Starting price" : "Price"}
                           />
                         </div>
@@ -218,7 +218,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                           type="number"
                           value={service.duration}
                           onChange={(e) => updateService(idx, "duration", parseInt(e.target.value) || 0)}
-                          className="w-28"
+                          className="w-24 sm:w-28"
                           aria-label="Duration in minutes"
                         />
                       </div>

@@ -138,8 +138,8 @@ export function A2PBusinessFields({ value, onChange, businessName, _userEmail, _
           value={value.streetAddress}
           onChange={(e) => update("streetAddress", e.target.value)}
         />
-        <div className="grid grid-cols-6 gap-2">
-          <div className="col-span-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
+          <div className="col-span-2 sm:col-span-3">
             <Input
               placeholder="City"
               value={value.city}
@@ -158,9 +158,9 @@ export function A2PBusinessFields({ value, onChange, businessName, _userEmail, _
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <Input
-              placeholder="ZIP Code"
+              placeholder="ZIP"
               value={value.zipCode}
               onChange={(e) => update("zipCode", e.target.value.replace(/\D/g, "").slice(0, 5))}
               maxLength={5}

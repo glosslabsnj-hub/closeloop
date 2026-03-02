@@ -103,14 +103,14 @@ export const OnboardingAI = React.memo(function OnboardingAI({
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {toneOptions.map((opt) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => onAiToneChange(opt.value)}
               className={cn(
-                "flex flex-col items-center gap-2 p-4 rounded-lg border text-center transition-all",
+                "flex flex-col items-center gap-1.5 sm:gap-2 p-2.5 sm:p-4 rounded-lg border text-center transition-all",
                 aiTone === opt.value
                   ? "border-primary bg-primary/5 ring-2 ring-primary"
                   : "hover:bg-muted/50"

@@ -181,8 +181,8 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
         const firstWindow = windows[0];
 
         return (
-          <div key={key} className="flex items-center gap-3 py-2 border-b border-border/50 last:border-0">
-            <div className="w-24 shrink-0">
+          <div key={key} className="flex items-center gap-2 sm:gap-3 py-2 border-b border-border/50 last:border-0">
+            <div className="w-16 sm:w-24 shrink-0">
               <span className="text-sm font-medium">{label}</span>
             </div>
             
@@ -194,7 +194,7 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
                   value={firstWindow?.open || '09:00'}
                   onValueChange={(value) => updateWindow(key, 0, 'open', value)}
                 >
-                  <SelectTrigger className="w-[120px] h-9">
+                  <SelectTrigger className="w-[90px] sm:w-[120px] h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -212,7 +212,7 @@ export default function BusinessHoursEditor({ hours, onChange }: BusinessHoursEd
                   value={firstWindow?.close || '17:00'}
                   onValueChange={(value) => updateWindow(key, 0, 'close', value)}
                 >
-                  <SelectTrigger className="w-[120px] h-9">
+                  <SelectTrigger className="w-[90px] sm:w-[120px] h-9">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

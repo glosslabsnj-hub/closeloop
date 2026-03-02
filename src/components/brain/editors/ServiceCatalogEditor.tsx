@@ -710,10 +710,12 @@ export function ServiceCatalogEditor() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setPasteDialogOpen(true)}>
-            <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
-            Paste from POS
-          </Button>
+          {(businessMode === "food" || businessMode === "sales") && (
+            <Button variant="outline" size="sm" onClick={() => setPasteDialogOpen(true)}>
+              <ClipboardPaste className="h-3.5 w-3.5 mr-1.5" />
+              {businessMode === "food" ? "Paste from POS" : "Paste from List"}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={() => setCsvDialogOpen(true)}>
             <FileSpreadsheet className="h-3.5 w-3.5 mr-1.5" />
             CSV Import

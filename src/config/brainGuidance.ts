@@ -47,7 +47,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     },
   },
   "catalog": {
-    what: "Add everything you offer — services, menu items, or procedures — with descriptions and prices.",
+    what: "Add everything you offer — with descriptions and prices so your AI can quote accurately.",
     why: "Your AI uses this to answer 'What do you offer?' and 'How much does that cost?' Without it, your AI can't quote prices.",
     tips: {
       service: "Start with your 5 most popular services. You can always add more later.",
