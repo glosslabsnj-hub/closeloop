@@ -43,6 +43,7 @@ import { IntegrationStatusDashboard } from "@/components/integrations/Integratio
 import { IntegrationHealthAlert, type HealthWarning } from "@/components/integrations/IntegrationHealthAlert";
 import { AutomationActivityFeed } from "@/components/integrations/AutomationActivityFeed";
 import { SELF_SETUP_INTEGRATIONS, FEATURED_EXPERT_INTEGRATIONS } from "@/data/popularIntegrations";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Quick automation presets that create real automation_rules
 interface QuickPreset {
@@ -354,6 +355,7 @@ export default function IntegrationsPage() {
       />
 
       {/* Tabs */}
+      <ErrorBoundary>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="automations" className="gap-2">
@@ -693,6 +695,7 @@ export default function IntegrationsPage() {
           />
         </TabsContent>
       </Tabs>
+      </ErrorBoundary>
 
       {/* Dialogs */}
       <ConciergeRequestDialog

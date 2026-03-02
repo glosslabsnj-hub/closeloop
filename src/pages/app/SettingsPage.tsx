@@ -45,6 +45,7 @@ import { ReferralTransferLog } from "@/components/settings/ReferralTransferLog";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useModuleEnabled, useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function SettingsPage() {
   const { user, signOut, tenant, isSuperAdmin } = useAuth();
@@ -380,9 +381,11 @@ export default function SettingsPage() {
         <div className="px-6 md:px-8 lg:px-12 py-6 space-y-6 max-w-4xl">
 
           {/* Section Content */}
-          <div className="space-y-6">
-            {renderSectionContent()}
-          </div>
+          <ErrorBoundary>
+            <div className="space-y-6">
+              {renderSectionContent()}
+            </div>
+          </ErrorBoundary>
 
           {/* Account Access - Always visible at bottom */}
           <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">

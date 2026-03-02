@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2, Zap, Globe, Search } from "lucide-react";
+import { Phone, Brain, Power, Check, ChevronDown, ChevronRight, CheckCircle2, Zap, Globe, Search, ArrowRight } from "lucide-react";
 import { PhoneConnectionStep } from "./PhoneConnectionStep";
 import { ConfigureAIStep } from "./ConfigureAIStep";
 import { GoLiveStep } from "./GoLiveStep";
@@ -245,33 +245,54 @@ export function SetupWizard({ onSetupComplete }: SetupWizardProps) {
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{step.subtitle}</p>
                 </div>
-                {!step.isComplete && (
-                  isExpanded
-                    ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
-                    : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                )}
+                {isExpanded
+                  ? <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                  : <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                }
               </button>
 
-              {/* Step content - expanded only */}
-              {isExpanded && !step.isComplete && (
+              {/* Step content - expanded (both complete and incomplete) */}
+              {isExpanded && (
                 <div className="px-4 pb-4">
                   {step.id === "business-info" && (
                     <p className="text-sm text-muted-foreground">
                       Business info was set up during onboarding. You can edit it in{" "}
-                      <a href="/app/business-brain?section=about" className="text-primary underline">Business Brain</a>.
+                      <Link to="/app/business-brain?section=about" className="text-primary underline">Business Brain</Link>.
                     </p>
                   )}
                   {step.id === "phone" && (
-                    <PhoneConnectionStep
-                      onComplete={() => handleStepComplete(index)}
-                      isComplete={phoneComplete}
-                    />
+                    step.isComplete ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Your AI phone number is connected and ready.
+                        </p>
+                        <Link to="/app/settings" className="text-sm text-primary underline inline-flex items-center gap-1">
+                          Manage phone settings <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    ) : (
+                      <PhoneConnectionStep
+                        onComplete={() => handleStepComplete(index)}
+                        isComplete={phoneComplete}
+                      />
+                    )
                   )}
                   {step.id === "ai-knowledge" && (
-                    <ConfigureAIStep
-                      onComplete={() => handleStepComplete(index)}
-                      isComplete={aiKnowledgeComplete}
-                    />
+                    step.isComplete ? (
+                      <div className="space-y-2">
+                        <p className="text-sm text-muted-foreground">
+                          Your AI is configured with {stepProgress.completedSteps} of {stepProgress.totalSteps} knowledge items.
+                        </p>
+                        <Link to="/app/business-brain" className="text-sm text-primary underline inline-flex items-center gap-1">
+                          Fine-tune AI knowledge <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+                    ) : (
+                      <ConfigureAIStep
+                        onComplete={() => handleStepComplete(index)}
+                        isComplete={aiKnowledgeComplete}
+                      />
+                    )
                   )}
                   {step.id === "golive" && (
                     <GoLiveStep

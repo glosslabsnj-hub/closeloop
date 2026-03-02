@@ -4,7 +4,7 @@
  * Mobile-first, mode-aware, industry-specific language.
  */
 
-import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check, PartyPopper, X, PhoneForwarded, ChevronDown, ChevronRight } from "lucide-react";
+import { Phone, ArrowRight, Clock, Brain, Sparkles, UtensilsCrossed, Truck, Stethoscope, ShoppingBag, Copy, Check, PartyPopper, X, PhoneForwarded, ChevronDown, ChevronRight, Settings2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -282,7 +282,7 @@ export function EmptyDashboard() {
       )}
 
       {/* ── Quick Actions (mode-aware) ──────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => navigate("/app/business-brain?section=about&item=business-hours")}
@@ -291,7 +291,6 @@ export function EmptyDashboard() {
           <Clock className="h-5 w-5 text-muted-foreground shrink-0" />
           <div className="sm:contents">
             <span className="text-sm sm:text-xs font-medium">Set Hours</span>
-            <span className="text-xs text-muted-foreground sm:hidden ml-auto">~1 min</span>
           </div>
         </button>
         <button
@@ -308,7 +307,6 @@ export function EmptyDashboard() {
           )}
           <div className="sm:contents">
             <span className="text-sm sm:text-xs font-medium">{terms.addService}</span>
-            <span className="text-xs text-muted-foreground sm:hidden ml-auto">~3 min</span>
           </div>
         </button>
         <button
@@ -319,7 +317,16 @@ export function EmptyDashboard() {
           <Brain className="h-5 w-5 text-muted-foreground shrink-0" />
           <div className="sm:contents">
             <span className="text-sm sm:text-xs font-medium">Train AI</span>
-            <span className="text-xs text-muted-foreground sm:hidden ml-auto">~3 min</span>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate("/app/settings")}
+          className="flex items-center sm:flex-col gap-3 sm:gap-2 p-3 sm:p-4 rounded-xl border border-border/30 bg-card/60 hover:bg-card hover:border-border/50 transition-all text-left sm:text-center"
+        >
+          <Settings2 className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div className="sm:contents">
+            <span className="text-sm sm:text-xs font-medium">Settings</span>
           </div>
         </button>
       </div>
