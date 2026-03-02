@@ -10,7 +10,7 @@ import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { hasVoiceFeature, hasSmsFeature } from "@/config/pricing";
 import {
   Phone,
@@ -38,7 +38,7 @@ import {
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
   const caps = useCapabilities();
-  const { context } = useBusinessContext(tenant?.id || null);
+  const { score: readinessScore } = useAIReadinessV2();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -117,8 +117,6 @@ export function DashboardHeroCard() {
     enabled: !!tenant?.id,
     refetchInterval: 30000,
   });
-
-  const readinessScore = calculateReadinessFromContext(context);
 
   const handleToggle = async (enabled: boolean) => {
     if (!tenant) return;

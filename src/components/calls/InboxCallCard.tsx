@@ -47,7 +47,12 @@
  }
 
  function formatDuration(startedAt: string, endedAt: string | null): string {
-   if (!endedAt) return "";
+   if (!endedAt) {
+     // Stale call: started > 30 min ago with no end time
+     const ageMs = Date.now() - new Date(startedAt).getTime();
+     if (ageMs > 30 * 60 * 1000) return "Ended";
+     return "";
+   }
    const start = new Date(startedAt).getTime();
    const end = new Date(endedAt).getTime();
    const seconds = Math.floor((end - start) / 1000);
@@ -184,7 +189,7 @@
              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
                {call.summary}
              </p>
-           ) : !call.ended_at ? (
+           ) : !call.ended_at && (Date.now() - new Date(call.started_at).getTime() < 30 * 60 * 1000) ? (
              <p className="text-sm text-muted-foreground mt-1 italic flex items-center gap-1">
                <Loader2 className="w-3 h-3 animate-spin" />
                Call in progress...

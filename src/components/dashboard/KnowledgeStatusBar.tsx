@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,8 +36,7 @@ export function KnowledgeStatusBar() {
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { context, loading } = useBusinessContext(tenant?.id || null);
-
-  const score = calculateReadinessFromContext(context);
+  const { score } = useAIReadinessV2();
 
   const statusItems = useMemo<StatusItem[]>(() => {
     const items: StatusItem[] = [

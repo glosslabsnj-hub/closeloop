@@ -122,8 +122,8 @@ function calculateTotals(
 }
 
 export function useEstimates() {
-  const { tenant } = useAuth();
-  const tenantId = tenant?.id ?? null;
+  const { effectiveTenantId } = useAuth();
+  const tenantId = effectiveTenantId;
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -329,8 +329,8 @@ export function useEstimates() {
 }
 
 export function useEstimate(estimateId: string | undefined) {
-  const { tenant } = useAuth();
-  const tenantId = tenant?.id ?? null;
+  const { effectiveTenantId } = useAuth();
+  const tenantId = effectiveTenantId;
 
   return useQuery({
     queryKey: ["estimate", estimateId],

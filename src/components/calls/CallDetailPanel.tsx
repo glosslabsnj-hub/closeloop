@@ -35,7 +35,12 @@
  }
 
  function formatDuration(startedAt: string, endedAt: string | null): string {
-   if (!endedAt) return "In progress";
+   if (!endedAt) {
+     // If call started over 30 min ago with no end, it's stale — not actually in progress
+     const ageMs = Date.now() - new Date(startedAt).getTime();
+     if (ageMs > 30 * 60 * 1000) return "Ended (duration unknown)";
+     return "In progress";
+   }
    const start = new Date(startedAt).getTime();
    const end = new Date(endedAt).getTime();
    const seconds = Math.floor((end - start) / 1000);

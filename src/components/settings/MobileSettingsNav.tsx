@@ -13,6 +13,7 @@ import {
   DollarSign,
   MessageSquare,
   Network,
+  Clock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -40,6 +41,7 @@ interface NavItem {
 
 // Section labels for display
 const sectionLabels: Record<string, string> = {
+  hours: "Business Hours",
   team: "Team Members",
   plan: "Plan & Billing",
   revenue: "Revenue Tracking",
@@ -59,11 +61,19 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
 
   const navGroups: NavGroup[] = [
     {
-      id: "account",
-      label: "Account",
+      id: "business",
+      label: "Business",
       colorClass: "text-primary",
       items: [
+        { id: "hours", label: "Business Hours", icon: Clock },
         { id: "team", label: "Team Members", icon: Users },
+      ],
+    },
+    {
+      id: "account",
+      label: "Billing",
+      colorClass: "text-primary",
+      items: [
         { id: "plan", label: "Plan & Billing", icon: CreditCard },
         { id: "revenue", label: "Revenue Tracking", icon: DollarSign },
       ],

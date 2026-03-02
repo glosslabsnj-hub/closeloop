@@ -24,36 +24,36 @@ export type StaffMemberInsert = Omit<StaffMember, "id" | "tenant_id" | "created_
 export type StaffMemberUpdate = Partial<StaffMemberInsert> & { id: string };
 
 export function useStaffMembers() {
-  const { tenant } = useAuth();
+  const { effectiveTenantId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const staffQuery = useQuery({
-    queryKey: ["staff_members", tenant?.id],
+    queryKey: ["staff_members", effectiveTenantId],
     queryFn: async () => {
-      if (!tenant?.id) return [];
+      if (!effectiveTenantId) return [];
 
       const { data, error } = await supabase
         .from("staff_members" as any)
         .select("*")
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", effectiveTenantId)
         .order("sort_order", { ascending: true });
 
       if (error) throw error;
       return (data ?? []) as unknown as StaffMember[];
     },
-    enabled: !!tenant?.id,
+    enabled: !!effectiveTenantId,
   });
 
   const activeStaff = staffQuery.data?.filter((s) => s.is_active) ?? [];
 
   const createStaffMember = useMutation({
     mutationFn: async (member: StaffMemberInsert) => {
-      if (!tenant?.id) throw new Error("No tenant");
+      if (!effectiveTenantId) throw new Error("No tenant");
 
       const { data, error } = await supabase
         .from("staff_members" as any)
-        .insert({ ...member, tenant_id: tenant.id })
+        .insert({ ...member, tenant_id: effectiveTenantId })
         .select()
         .single();
 
@@ -61,11 +61,12 @@ export function useStaffMembers() {
       return data as unknown as StaffMember;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff_members", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["staff_members", effectiveTenantId] });
       toast({ title: "Team member added" });
     },
-    onError: () => {
-      toast({ title: "Failed to add team member", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Failed to add team member:", error);
+      toast({ title: "Failed to add team member", description: error.message, variant: "destructive" });
     },
   });
 
@@ -82,11 +83,12 @@ export function useStaffMembers() {
       return data as unknown as StaffMember;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff_members", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["staff_members", effectiveTenantId] });
       toast({ title: "Team member updated" });
     },
-    onError: () => {
-      toast({ title: "Failed to update team member", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Failed to update team member:", error);
+      toast({ title: "Failed to update team member", description: error.message, variant: "destructive" });
     },
   });
 
@@ -100,11 +102,12 @@ export function useStaffMembers() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff_members", tenant?.id] });
+      queryClient.invalidateQueries({ queryKey: ["staff_members", effectiveTenantId] });
       toast({ title: "Team member removed" });
     },
-    onError: () => {
-      toast({ title: "Failed to remove team member", variant: "destructive" });
+    onError: (error: Error) => {
+      console.error("Failed to remove team member:", error);
+      toast({ title: "Failed to remove team member", description: error.message, variant: "destructive" });
     },
   });
 

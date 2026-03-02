@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useServices } from "@/hooks/useServices";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -43,6 +44,7 @@ export function CreateBookingDialog({
   onSuccess,
 }: CreateBookingDialogProps) {
   const { services } = useServices();
+  const { effectiveTenantId } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [customerName, setCustomerName] = useState(initialCustomerName);
@@ -74,13 +76,7 @@ export function CreateBookingDialog({
 
     setIsSubmitting(true);
     try {
-      // Get current tenant
-      const { data: tenantUser } = await supabase
-        .from("tenant_users")
-        .select("tenant_id")
-        .single();
-
-      if (!tenantUser) {
+      if (!effectiveTenantId) {
         throw new Error("No tenant found");
       }
 
@@ -88,7 +84,7 @@ export function CreateBookingDialog({
       const { data: existingLead } = await supabase
         .from("leads")
         .select("id")
-        .eq("tenant_id", tenantUser.tenant_id)
+        .eq("tenant_id", effectiveTenantId)
         .eq("phone", customerPhone)
         .maybeSingle();
 
@@ -98,7 +94,7 @@ export function CreateBookingDialog({
         const { data: newLead, error: leadError } = await supabase
           .from("leads")
           .insert({
-            tenant_id: tenantUser.tenant_id,
+            tenant_id: effectiveTenantId,
             full_name: customerName,
             phone: customerPhone,
             source: "manual",
@@ -112,7 +108,7 @@ export function CreateBookingDialog({
 
       // Create booking
       const { error: bookingError } = await supabase.from("bookings").insert({
-        tenant_id: tenantUser.tenant_id,
+        tenant_id: effectiveTenantId,
         lead_id: leadId,
         service_id: serviceId || null,
         start_at: startTime.toISOString(),

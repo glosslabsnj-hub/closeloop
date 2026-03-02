@@ -144,7 +144,8 @@ export function useBrainSummaries(): BrainSummaries {
     staleTime: 30000,
   });
 
-  // Fetch delivery settings
+  // Fetch delivery settings (only for modes that use bookings)
+  const hasBookingMode = businessMode === "service" || businessMode === "medical" || businessMode === "sales";
   const { data: bookingDelivery } = useQuery({
     queryKey: ["brain-summaries-booking-delivery", tenant?.id],
     queryFn: async () => {
@@ -153,10 +154,10 @@ export function useBrainSummaries(): BrainSummaries {
         .from("booking_delivery_settings")
         .select("enabled, notify_email, webhook_url")
         .eq("tenant_id", tenant.id)
-        .single();
+        .maybeSingle();
       return data;
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenant?.id && hasBookingMode,
     staleTime: 30000,
   });
 

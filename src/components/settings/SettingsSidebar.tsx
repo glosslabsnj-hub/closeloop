@@ -14,6 +14,7 @@ import {
   RefreshCw,
   MessageSquare,
   Network,
+  Clock,
 } from "lucide-react";
 import { SettingsNavItem } from "./SettingsNavItem";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -60,11 +61,19 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
   // Simplified nav groups: Account, Data & Privacy, Notifications, Advanced
   const navGroups: NavGroup[] = [
     {
-      id: "account",
-      label: "Account",
+      id: "business",
+      label: "Business",
       colorClass: "text-primary",
       items: [
+        { id: "hours", label: "Business Hours", icon: Clock },
         { id: "team", label: "Team Members", icon: Users },
+      ],
+    },
+    {
+      id: "account",
+      label: "Billing",
+      colorClass: "text-primary",
+      items: [
         { id: "plan", label: "Plan & Billing", icon: CreditCard },
         { id: "revenue", label: "Revenue Tracking", icon: DollarSign, visible: config.hasCallData === true },
       ],

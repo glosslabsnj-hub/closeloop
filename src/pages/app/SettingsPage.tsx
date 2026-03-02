@@ -34,6 +34,7 @@ import { SettingsSidebar, SettingsNavConfig } from "@/components/settings/Settin
 import { MobileSettingsNav } from "@/components/settings/MobileSettingsNav";
 // BusinessBrainCTA removed for cleaner settings layout
 import { DangerZoneSection } from "@/components/settings/DangerZoneSection";
+import { BusinessHoursManager } from "@/components/brain/profile/BusinessHoursManager";
 import { NotificationPreferencesPanel } from "@/components/settings/NotificationPreferencesPanel";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import { RevenueSettingsSection } from "@/components/settings/RevenueSettingsSection";
@@ -72,7 +73,7 @@ export default function SettingsPage() {
   });
 
   // Default to first available section
-  const [activeSection, setActiveSection] = useState("team");
+  const [activeSection, setActiveSection] = useState("hours");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("staff");
@@ -128,6 +129,10 @@ export default function SettingsPage() {
 
   // Simplified section metadata
   const sectionMeta: Record<string, { title: string; description: string }> = {
+    hours: {
+      title: "Business Hours",
+      description: "Set when your business is open. Your AI agent uses these to handle calls appropriately.",
+    },
     team: {
       title: "Team Members",
       description: "Manage who has access to your account and their permissions.",
@@ -182,6 +187,16 @@ export default function SettingsPage() {
 
   const renderSectionContent = () => {
     switch (activeSection) {
+      case "hours":
+        return (
+          <SettingsCard
+            title="Business Hours"
+            description="Your AI agent will let callers know when you're open and adjust its behavior outside business hours."
+          >
+            <BusinessHoursManager />
+          </SettingsCard>
+        );
+
       case "team":
         return (
           <>

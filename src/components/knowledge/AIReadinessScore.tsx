@@ -3,7 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
-import { useBusinessContext, calculateReadinessFromContext } from "@/hooks/useBusinessContext";
+import { useBusinessContext } from "@/hooks/useBusinessContext";
+import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,9 +35,8 @@ export default function AIReadinessScore({ compact = false }: AIReadinessScorePr
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { context, loading } = useBusinessContext(tenant?.id || null);
+  const { score } = useAIReadinessV2();
   const navigate = useNavigate();
-
-  const score = calculateReadinessFromContext(context);
 
   const scoreItems = useMemo<ScoreItem[]>(() => {
     const items: ScoreItem[] = [
