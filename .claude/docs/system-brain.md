@@ -1,48 +1,46 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-01 4:52 PM ET (receptionist_ux — 3 UX fixes)
+## Last Session: 2026-03-01 10:15 PM ET (receptionist_eng — 6 bug fixes + DB backfill + responsive)
 
 ### What Was Done
-- Fixed Inbox page header: "Leads" → "Inbox" across all 6 modes with mode-specific subtitles
-- Added mode-aware outcome filters: "Ordered" for food, "Dispatched" for dispatch
-- Added session expiry toast in AuthContext (no more silent redirect to login)
-- Decoupled sidebar nav label from page title (sidebar says "Leads", mobile nav says "Inbox")
-- Filed backend bug handoff: outcome "booked" set before persistence confirmed → misleading badges
+- **Console errors fixed**: `useMyAgencyApplication` was throwing 403 on every page (AppLayout). Now fails silently with `retry: false`. Also silenced `usePendingActions` and `useAgencySummary`.
+- **PlanUpgradeCard**: Now uses `effectiveTenant` for super admin instead of `tenant`. Admin viewing another tenant's billing page now shows correct plan info.
+- **create-tenant**: Subscription INSERT now includes `included_minutes`, `overage_minute_rate_cents`, `overage_sms_rate_cents`. Was creating rows with null values, breaking usage display.
+- **Subscription backfill**: Updated 7 subscription rows to have `included_minutes: 200`, `overage_minute_rate_cents: 55`.
+- **Responsive 375px**: Fixed mobile header (px-4→px-3, gap-3→gap-2), AgentControlPanel (px-5→px-3), MetricsGrid (p-5→p-3, text-2xl), PageContainer (overflow-x-hidden), NotificationBell (responsive dropdown width), NeedsAttentionBanner (truncate), EmptyDashboard (break-words).
+- **Edge function deployed**: create-tenant
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 343/343 passing
+- Commit: e8b5fda
 
 ### MODE PROGRESS
-- SERVICE: 15/37 (41%) ← FOCUS (3 gates moved to in_progress, awaiting QA)
-- DISPATCH: 0/37 (0%)
-- FOOD: 0/37 (0%)
-- MEDICAL: 0/37 (0%)
-- SALES: 0/37 (0%)
-- GENERAL: 0/37 (0%)
+- SERVICE: 4/22 QA-verified (18%) ← FOCUS. Console errors + billing + responsive all addressed.
+- DISPATCH: 0/22 (0%)
+- FOOD: 0/22 (0%)
+- MEDICAL: 0/22 (0%)
+- SALES: 0/22 (0%)
+- GENERAL: 0/22 (0%)
 
-### Bugs Fixed This Session
-1. **Brain save reverts on navigation** (P0): BusinessProfileEditor saved to DB but never called refreshTenant(). AuthContext had stale tenant data. Form re-initialized from stale cache on re-render. Fix: added refreshTenant() after save (matching BusinessHoursManager pattern).
-2. **Cross-mode queries not invalidated on tenant switch** (P1): When super admin switched tenant via AdminTenantSwitcher, React Query caches kept data from old tenant. Fix: AppLayout effect watches tenant.id changes and calls queryClient.invalidateQueries().
-3. **60+ RLS errors from wrong-mode queries** (P1): useBusinessCapabilities queried dispatch_delivery_settings, fleet_vehicles, menu_items, food_order_settings, and 7 ai_knowledge_base categories for ALL tenants regardless of mode. Fix: conditionally skip non-relevant queries based on businessMode. Also added businessMode to query key so cache refreshes on mode change.
+### Key Finding: Test Tenants Exist But No Slug Column
+- All 6 test tenants ARE in Supabase (verified by name)
+- The `tenants` table has NO `slug` column — QA tests looking up by slug all fail
+- QA test harness needs to look up tenants by `name` instead of `slug`
+- This blocks 6 functional gates (emergency, callback, cancel, reschedule, service_area)
 
-### Edge Function Deployments
-All 6 critical call-flow edge functions deployed with accumulated bug fixes from prior sessions:
-- elevenlabs-create-booking (date parsing, outcome enum)
-- elevenlabs-webhook (outcome enum, duplicate prevention, intelligence)
-- booking-handoff (notification defaults, timezone fix, SMS enabled by default)
-- twilio-inbound (off-behavior outcome enum fix)
-- dispatch-handoff (customer SMS, missing settings resilience)
-- order-handoff (new - created by receptionist_ux)
+### Database Changes Applied
+- 7 subscriptions updated: included_minutes=200, overage_minute_rate_cents=55, overage_sms_rate_cents=0
+- create-tenant now writes correct plan defaults on INSERT
 
 ### Architecture Notes
-- BusinessProfileEditor writes to `tenants` table → must call refreshTenant() after save (AuthContext caches tenant)
-- BusinessHoursManager already had this pattern (since commit 341073d)
-- useBusinessCapabilities now takes businessMode into account for query filtering
-- AppLayout uses useRef + useEffect to detect tenant.id changes and invalidate all queries
+- `useMyAgencyApplication` runs on EVERY page via AppLayout (line 77). Must never throw.
+- `PlanUpgradeCard` was using `tenant` (own) not `effectiveTenant` (switched). This is a common bug pattern in admin-switchable components — always check for `effectiveTenant ?? tenant`.
+- `create-tenant` was defaulting to `plan_code: "voice"` (legacy). Now maps to `"base-200"` and includes PLAN_DEFAULTS for all SKUs.
+- `has_tenant_access` super_admin bypass is confirmed working (tested via REST API).
 
 ### Next Priorities
-1. QA verification of 5 gates (brain save, cross-mode, booking flow, dashboard terminology, error recovery)
-2. Backend fix: outcome "booked" must be downgraded to "followup" when persistBooking() fails
-3. Real end-to-end call test on demo line (855) 329-7357
-4. Remaining BLOCKED onboarding gates need real user flow testing
+1. QA re-verification of ALL service mode gates (handoff filed)
+2. QA test harness needs to look up tenants by `name` not `slug` (handoff filed)
+3. Console errors may still include Mapbox token warnings — not blocking
+4. Remaining onboarding/mobile_375px gate needs test/sandbox mode
