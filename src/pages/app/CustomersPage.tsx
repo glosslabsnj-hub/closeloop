@@ -192,9 +192,9 @@ export default function CustomersPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-[104px] sm:w-32 text-sm">
                     <SelectValue placeholder="Source" />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,7 +206,7 @@ export default function CustomersPage() {
                   </SelectContent>
                 </Select>
                 <Select value={sortBy} onValueChange={(v) => setSortBy(v as "name" | "recent")}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-[104px] sm:w-32 text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

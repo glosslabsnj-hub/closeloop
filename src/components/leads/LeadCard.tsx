@@ -11,6 +11,7 @@ import {
 import { Users, Phone, Calendar, MessageSquare, MoreVertical, UserCheck, XCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface Lead {
   id: string;
@@ -50,8 +51,11 @@ const sourceLabels: Record<string, string> = {
 };
 
 export function LeadCard({ lead, onClick, onBookAppointment, onSendMessage, onConvertToCustomer, onMarkAsLost }: LeadCardProps) {
+  const { terms } = useIndustryContext();
   const styles = statusStyles[lead.status] || statusStyles.new;
   const canConvert = lead.status !== "won" && lead.status !== "lost";
+  const customerLabel = terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1);
+  const bookingLabel = terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1);
 
   return (
     <Card
@@ -131,14 +135,14 @@ export function LeadCard({ lead, onClick, onBookAppointment, onSendMessage, onCo
                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                   <DropdownMenuItem onClick={() => onBookAppointment?.(lead)}>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Book Appointment
+                    New {bookingLabel}
                   </DropdownMenuItem>
                   {canConvert && (
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => onConvertToCustomer?.(lead)}>
                         <UserCheck className="h-4 w-4 mr-2" />
-                        Convert to Customer
+                        Convert to {customerLabel}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-destructive"

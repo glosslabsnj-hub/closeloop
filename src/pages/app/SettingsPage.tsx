@@ -351,7 +351,7 @@ export default function SettingsPage() {
       {/* Main Content Area */}
       <main className="flex-1 min-w-0">
         {/* Page Header - Sticky */}
-        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md py-6 px-6 md:px-8 lg:px-12 relative">
+        <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md py-4 sm:py-6 px-4 sm:px-6 md:px-8 lg:px-12 relative">
           {/* Mobile Navigation */}
           <div className="md:hidden mb-4">
             <MobileSettingsNav
@@ -380,7 +380,7 @@ export default function SettingsPage() {
         </header>
 
         {/* Content */}
-        <div className="px-6 md:px-8 lg:px-12 py-6 space-y-6 max-w-4xl">
+        <div className="px-4 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-6 space-y-6 max-w-4xl">
 
           {/* Section Content */}
           <ErrorBoundary>
