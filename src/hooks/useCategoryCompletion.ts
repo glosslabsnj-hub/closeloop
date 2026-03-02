@@ -106,7 +106,27 @@ export function useCategoryCompletion(categorySection: string): CategoryCompleti
     }
 
     const total = sectionFields.length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 100;
+    // When no required/recommended fields exist (all optional), don't default to 100%.
+    // Instead, check if any optional fields are complete for a more honest indicator.
+    let percentage: number;
+    if (total > 0) {
+      percentage = Math.round((completed / total) * 100);
+    } else {
+      // Count optional fields in this section to avoid misleading "Done" on empty sections
+      const optionalFields = allFields.filter(
+        (f) => essentialSections.includes(f.section) && shouldShowField(f, capFlags)
+          && f.priority === "optional",
+      );
+      if (optionalFields.length === 0) {
+        percentage = 100; // Truly no fields at all
+      } else {
+        // Show 100% only if at least one optional field is complete
+        const anyOptionalComplete = optionalFields.some(
+          (f) => isFieldComplete(f.id, capabilities, tenant as Record<string, unknown> | null)
+        );
+        percentage = anyOptionalComplete ? 100 : 0;
+      }
+    }
 
     return { totalFields: total, completedFields: completed, percentage, hasRequiredIncomplete };
   }, [categorySection, tenant, capabilities, businessMode]);

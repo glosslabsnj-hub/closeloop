@@ -204,7 +204,33 @@ function parseAddressString(address: string | null | undefined): {
   zip: string;
 } {
   if (!address) return { line1: "", city: "", state: "", zip: "" };
-  
+
+  // Handle JSON-stringified address objects
+  if (typeof address === 'string' && address.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(address);
+      return {
+        line1: parsed.line1 || parsed.street || parsed.address1 || "",
+        city: parsed.city || "",
+        state: parsed.state || parsed.region || "",
+        zip: parsed.zip || parsed.postal_code || parsed.zipCode || "",
+      };
+    } catch { /* not JSON, continue with string parsing */ }
+  }
+
+  // Try full regex: "123 Main St, Springfield, IL 62701"
+  const fullMatch = address.match(
+    /^(.+?),\s*(.+?),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)?\s*$/i
+  );
+  if (fullMatch) {
+    return {
+      line1: fullMatch[1].trim(),
+      city: fullMatch[2].trim(),
+      state: fullMatch[3].toUpperCase(),
+      zip: fullMatch[4] || "",
+    };
+  }
+
   // Try to parse common formats
   const parts = address.split(",").map(p => p.trim());
   
@@ -277,7 +303,25 @@ export function ServiceAreaManager() {
   );
 
   useEffect(() => {
-    setFormData(serviceArea);
+    // Auto-populate base address from tenant address if base address is empty
+    if (
+      hasBusinessAddress &&
+      !serviceArea.base_address.line1 &&
+      !serviceArea.base_address.city &&
+      !serviceArea.base_address.state
+    ) {
+      setFormData({
+        ...serviceArea,
+        base_address: {
+          line1: businessIdentityAddress.line1 || serviceArea.base_address.line1,
+          city: businessIdentityAddress.city || serviceArea.base_address.city,
+          state: businessIdentityAddress.state || serviceArea.base_address.state,
+          zip: businessIdentityAddress.zip || serviceArea.base_address.zip,
+        },
+      });
+    } else {
+      setFormData(serviceArea);
+    }
   }, [serviceArea]);
 
   const updateForm = (updates: Partial<ServiceAreaConfig>) => {

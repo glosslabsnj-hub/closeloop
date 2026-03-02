@@ -375,7 +375,17 @@ export default function BusinessBrainPage() {
   const isDispatchMode = caps.isDispatchBusiness;
 
   const currentCategory = activeSection
-    ? modeCategories.find(c => c.section === activeSection) ?? null
+    ? modeCategories.find(c => c.section === activeSection)
+      // Fallback: construct a minimal category so URL navigation always works
+      ?? (NEW_VALID_SECTIONS.includes(activeSection as any) ? {
+        id: `mode-${activeSection}`,
+        title: activeSection.charAt(0).toUpperCase() + activeSection.slice(1),
+        description: "",
+        icon: "Settings",
+        section: activeSection,
+        order: 0,
+        cards: [],
+      } as ReturnType<typeof getModeCategories>[number] : null)
     : null;
 
   // ─── Build banner content per tab ──────────────────────────────────────────
