@@ -93,10 +93,9 @@ export function useAgencySummary() {
   return useQuery({
     queryKey: ["admin-agency-summary"],
     queryFn: async () => {
-      const { data: agencies, error } = await supabase
+      const { data: agencies } = await supabase
         .from("agency_accounts" as any)
         .select("id");
-      if (error) throw error;
 
       const agencyList = (agencies ?? []) as unknown as Array<{ id: string }>;
       const totalAgencies = agencyList.length;
@@ -121,6 +120,7 @@ export function useAgencySummary() {
       };
     },
     staleTime: 60_000,
+    retry: false,
   });
 }
 
@@ -144,5 +144,6 @@ export function usePendingActions() {
       };
     },
     staleTime: 30_000,
+    retry: false,
   });
 }

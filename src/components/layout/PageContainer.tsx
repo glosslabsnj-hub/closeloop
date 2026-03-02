@@ -22,7 +22,7 @@ export function PageContainer({
   return (
     <div
       className={cn(
-        "px-6 md:px-10 lg:px-14 pb-14",
+        "px-4 sm:px-6 md:px-10 lg:px-14 pb-14 overflow-x-hidden",
         padTop && "pt-8",
         maxWidth === "sm" && "max-w-2xl mx-auto",
         maxWidth === "md" && "max-w-4xl mx-auto",

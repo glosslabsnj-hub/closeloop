@@ -195,7 +195,17 @@ serve(async (req) => {
     }
 
     // 9. Create subscription (service role to bypass RLS timing issues)
-    const planCode = body.plan_code || "voice";
+    // Map legacy plan codes to new SKUs and include usage limits from pricing config
+    const PLAN_DEFAULTS: Record<string, { minutes: number; overageMinuteCents: number }> = {
+      "base-200": { minutes: 200, overageMinuteCents: 55 },
+      "growth-2000": { minutes: 2000, overageMinuteCents: 45 },
+      "scale-5000": { minutes: 5000, overageMinuteCents: 35 },
+      "power-10000": { minutes: 10000, overageMinuteCents: 29 },
+      "voice": { minutes: 200, overageMinuteCents: 55 },
+    };
+    const rawPlanCode = body.plan_code || "base-200";
+    const planCode = rawPlanCode === "voice" || rawPlanCode === "text" || rawPlanCode === "both" ? "base-200" : rawPlanCode;
+    const planDefaults = PLAN_DEFAULTS[planCode] || PLAN_DEFAULTS["base-200"];
     const { error: subError } = await serviceClient
       .from("subscriptions")
       .insert({
@@ -203,6 +213,9 @@ serve(async (req) => {
         plan_code: planCode,
         status: "trialing",
         current_period_end: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        included_minutes: planDefaults.minutes,
+        overage_minute_rate_cents: planDefaults.overageMinuteCents,
+        overage_sms_rate_cents: 0,
       });
 
     if (subError) {

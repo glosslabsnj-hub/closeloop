@@ -149,13 +149,13 @@ export function AgentControlPanel() {
   return (
     <>
       <div className={cn(
-        "rounded-xl border bg-card/60 backdrop-blur-sm shadow-sm w-fit",
+        "rounded-xl border bg-card/60 backdrop-blur-sm shadow-sm w-full sm:w-fit",
         isActive ? "border-success/20 shimmer-active" : "border-border/30"
       )}>
-        <div className="px-5 py-4">
+        <div className="px-3 py-3 sm:px-5 sm:py-4">
           {/* Status Row */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 min-w-0 w-full sm:w-auto">
               {/* Power Toggle */}
               <button
                 onClick={() => handleToggle(!isActive)}

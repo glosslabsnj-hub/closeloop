@@ -110,7 +110,7 @@ export function NeedsAttentionBanner() {
           <AlertCircle className="h-4 w-4 text-warning" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight text-warning">Needs Your Attention</p>
+          <p className="text-sm font-semibold tracking-tight text-warning truncate">Needs Your Attention</p>
           <p className="text-xs text-warning/70 truncate">
             {items.map((item, i) => (
               <span key={item.href}>

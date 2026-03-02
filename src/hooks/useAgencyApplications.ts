@@ -126,9 +126,12 @@ export function useMyAgencyApplication() {
         .order("created_at", { ascending: false })
         .limit(1);
 
-      if (error) throw error;
+      // Fail silently — this runs on every page via AppLayout.
+      // Non-agency users get empty results; RLS/table errors should not pollute console.
+      if (error) return null;
       const apps = (data ?? []) as unknown as AgencyApplication[];
       return apps[0] ?? null;
     },
+    retry: false,
   });
 }

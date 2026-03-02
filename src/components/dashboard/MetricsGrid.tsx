@@ -178,18 +178,18 @@ export function MetricsGrid() {
         return (
           <button
             key={metric.label}
-            className="text-left p-5 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive cursor-pointer group"
+            className="text-left p-3 sm:p-5 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 card-interactive cursor-pointer group"
             onClick={() => navigate(metric.href)}
           >
             <div className="flex items-center gap-2 mb-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/10 group-hover:bg-primary/15 group-hover:shadow-[0_0_16px_-4px_hsl(230_70%_62%/0.2)] transition-all">
                 <Icon className="h-4 w-4 text-primary" />
               </div>
-              <p className="text-[13px] font-medium text-muted-foreground/80">
+              <p className="text-[13px] font-medium text-muted-foreground/80 truncate">
                 {metric.label}
               </p>
             </div>
-            <p className="text-[36px] font-bold tracking-tight tabular-nums text-foreground leading-none">
+            <p className="text-2xl sm:text-[36px] font-bold tracking-tight tabular-nums text-foreground leading-none">
               {typeof metric.value === "number" ? (
                 <AnimatedNumber value={metric.value} />
               ) : (

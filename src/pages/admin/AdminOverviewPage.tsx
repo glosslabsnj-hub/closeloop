@@ -74,6 +74,7 @@ function usePendingActions() {
       };
     },
     staleTime: 30_000,
+    retry: false,
   });
 }
 

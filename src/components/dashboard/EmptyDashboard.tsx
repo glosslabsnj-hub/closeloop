@@ -262,7 +262,7 @@ export function EmptyDashboard() {
                       <p className="text-xs text-muted-foreground">
                         On your phone, go to <strong>Settings → Phone → Call Forwarding</strong> and enter your AI number: <span className="font-mono font-medium text-foreground">{phoneNumber}</span>
                       </p>
-                      <p className="text-[11px] text-muted-foreground mt-1">
+                      <p className="text-[11px] text-muted-foreground mt-1 break-words">
                         Or call your carrier: AT&T dial *21*{phoneNumber}# · T-Mobile *21*{phoneNumber}# · Verizon *72{phoneNumber}
                       </p>
                     </div>

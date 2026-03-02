@@ -189,7 +189,7 @@ function AppLayoutContent() {
         </header>
       )}
 
-      <div className={cn("flex min-h-screen", isSuperAdmin && "md:pt-10")}>
+      <div className={cn("flex min-h-screen overflow-x-hidden", isSuperAdmin && "md:pt-10")}>
         {/* App Sidebar */}
         <AppSidebar
           enabledModules={enabledModules}
@@ -308,13 +308,13 @@ function MobileHeader({
   const _navigate = useNavigate();
 
   return (
-    <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/20 flex items-center justify-between px-4">
-      <div className="flex items-center gap-3">
+    <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-background/95 backdrop-blur-lg border-b border-border/20 flex items-center justify-between px-3 overflow-hidden">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleSidebar}
-          className="h-9 w-9"
+          className="h-9 w-9 shrink-0"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
             <line x1="3" y1="5" x2="17" y2="5" />
@@ -322,14 +322,14 @@ function MobileHeader({
             <line x1="3" y1="15" x2="17" y2="15" />
           </svg>
         </Button>
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-lg gradient-brand flex items-center justify-center">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="h-7 w-7 shrink-0 rounded-lg gradient-brand flex items-center justify-center">
             <AudioWaveform className="h-3.5 w-3.5 text-white" />
           </div>
-          <span className="font-semibold text-sm">{displayTenant?.name || BRAND.name}</span>
+          <span className="font-semibold text-sm truncate">{displayTenant?.name || BRAND.name}</span>
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 shrink-0">
         <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

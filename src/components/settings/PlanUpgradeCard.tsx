@@ -22,8 +22,9 @@ import {
 } from "@/config/pricing";
 
 export function PlanUpgradeCard() {
-  const { tenant } = useAuth();
-  const { subscription, planSku, hasVoice, _hasSms, refetch } = useSubscription(tenant?.id || null);
+  const { tenant, effectiveTenant, isSuperAdmin } = useAuth();
+  const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
+  const { subscription, planSku, hasVoice, _hasSms, refetch } = useSubscription(displayTenant?.id || null);
   const { usage, _nextUpgrade } = useUsage(tenant?.id || null, planSku);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [selectedUpgradeSku, setSelectedUpgradeSku] = useState<PlanSku | null>(null);
@@ -37,7 +38,7 @@ export function PlanUpgradeCard() {
   const currentIndex = tierSteps.findIndex(s => s.sku === mappedSku);
 
   const handleUpgrade = async () => {
-    if (!tenant?.id || !selectedUpgradeSku) return;
+    if (!displayTenant?.id || !selectedUpgradeSku) return;
 
     setIsUpgrading(true);
     try {
@@ -54,7 +55,7 @@ export function PlanUpgradeCard() {
           overage_minute_rate_cents: newStep.overageMinuteRate ? Math.round(newStep.overageMinuteRate * 100) : null,
           overage_sms_rate_cents: Math.round((newStep.overageSmsRate || 0) * 100),
         } as any)
-        .eq("tenant_id", tenant.id);
+        .eq("tenant_id", displayTenant.id);
 
       if (error) throw error;
 
