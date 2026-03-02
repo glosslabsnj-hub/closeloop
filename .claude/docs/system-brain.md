@@ -1,20 +1,16 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 10:52 AM ET (receptionist_eng — 3 critical fixes)
+## Last Session: 2026-03-02 10:58 AM ET (receptionist_ux — 2 UX fixes)
 
 ### What Was Done
-- **Bookings route redirect fix**: `useModuleRequired` now checks both resolved `enabledModules` AND mode defaults (`defaultModulesByMode`). Service mode tenants can navigate directly to `/app/bookings` without being redirected to dashboard.
-- **Transfer-to-human fix**: `twilio_call_sid` and `reason` now `required: true` on `transfer_to_owner` tool in agentToolsConfig.ts. Previously `required: false`, letting ElevenLabs call the tool without the call SID, causing silent transfer failure.
-- **Opportunities RLS fix**: Added `service_role` bypass policy + `WITH CHECK` clause on opportunities table. Unblocks CallSimulator and edge functions (elevenlabs-create-callback, universal-delivery).
+- **Brain section % mismatch fix**: BrainSectionDetailHost breadcrumb now uses item-status-based completion (same as BrainDashboard cards). Fixes bug where overview card showed 33% but breadcrumb showed 0%.
+- **Mode-aware intake fields**: ServiceCatalogEditor intake fields now adapt to business mode and complexity. "Quick confirmation" shows 2 essential fields (address, preferred date). "Ask detailed questions" shows mode-relevant advanced fields. HVAC AC Tune-Up no longer shows 9 generic fields.
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 365/365 passing
-- Commit: fa8a462
-- Edge functions deployed: elevenlabs-transfer-call, get-agent-tools-config, elevenlabs-init
-- Frontend deployed to VPS (app.getfluxdata.com)
-- Migration 20260302150000 applied via Management API
-- Handoff #189 filed to QA (3 gates to verify)
+- Commit: 2b07746
+- Handoff #190 filed to QA (2 gates to verify)
 
 ### MODE PROGRESS
 - SERVICE: 18/42 QA-verified (43%) ← FOCUS (3 gates moved to in_progress)
