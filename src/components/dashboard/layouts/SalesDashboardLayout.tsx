@@ -128,7 +128,7 @@ export function SalesDashboardLayout() {
                       {d.scheduled_at ? format(parseISO(d.scheduled_at), "h:mm a") : "TBD"}
                     </p>
                     <p className="text-xs font-medium truncate mt-1">
-                      {d.customer?.full_name || "Walk-in"}
+                      {d.customer?.full_name || "Prospect"}
                     </p>
                     <p className="text-[11px] text-muted-foreground truncate">
                       {[d.vehicle_year, d.vehicle_make, d.vehicle_model].filter(Boolean).join(" ") || "Vehicle TBD"}

@@ -222,8 +222,8 @@ export default function BookingsPage() {
               </div>
               <div className="space-y-2 ml-7">
                 {pendingBookings.slice(0, 5).map((b) => (
-                  <div key={b.id} className="flex items-center justify-between gap-4">
-                    <div className="text-sm">
+                  <div key={b.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                    <div className="text-sm min-w-0">
                       <span className="font-medium">{b.lead?.full_name || "Unknown"}</span>
                       <span className="text-muted-foreground"> — {b.service?.name || "Service"}</span>
                       <span className="text-muted-foreground"> · {format(new Date(b.start_at), "EEE, MMM d 'at' h:mm a")}</span>
@@ -231,7 +231,7 @@ export default function BookingsPage() {
                     <Button
                       variant="default"
                       size="sm"
-                      className="h-7 text-xs gap-1 shrink-0"
+                      className="h-7 text-xs gap-1 shrink-0 self-start sm:self-auto"
                       onClick={() => handleApproveBooking(b)}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />

@@ -8,13 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Shield, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  Mic, 
-  FileText, 
+import {
+  Shield,
+  Lock,
+  Eye,
+  EyeOff,
+  Mic,
+  FileText,
   Clock,
   AlertTriangle,
   Save,
@@ -25,6 +25,7 @@ import {
   XCircle,
   Database
 } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export function DataControlsPanel() {
   const { 
@@ -38,6 +39,7 @@ export function DataControlsPanel() {
     notStoredList,
     isHIPAACompliant,
   } = useDataRetentionSettings();
+  const { terminology } = useIndustryContext();
 
   const [formValues, setFormValues] = useState(settings);
 
@@ -247,11 +249,11 @@ export function DataControlsPanel() {
               <div className="flex items-center gap-2">
                 <Brain className="h-4 w-4 text-muted-foreground" />
                 <Label htmlFor="allow-memory" className="font-medium">
-                  Customer-Specific Memory
+                  {terminology.customerLabel.charAt(0).toUpperCase() + terminology.customerLabel.slice(1)}-Specific Memory
                 </Label>
               </div>
               <p className="text-sm text-muted-foreground">
-                Allow AI to remember individual customer preferences
+                Allow AI to remember individual {terminology.customerLabel} preferences
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -271,7 +273,7 @@ export function DataControlsPanel() {
 
           {hipaaMode && (
             <p className="text-xs text-muted-foreground">
-              Customer-specific memory is disabled in HIPAA mode to prevent PHI storage.
+              {terminology.customerLabel.charAt(0).toUpperCase() + terminology.customerLabel.slice(1)}-specific memory is disabled in HIPAA mode to prevent PHI storage.
             </p>
           )}
 

@@ -41,22 +41,24 @@ export function GoLiveChecklist() {
         variant="elevated"
         className="border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-transparent"
       >
-        <div className="flex items-center gap-4 p-4">
-          <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
-            <Rocket className="h-6 w-6 text-emerald-500" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <Rocket className="h-6 w-6 text-emerald-500" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold flex items-center gap-2">
+                You're Live!
+                <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
+                  Active
+                </Badge>
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                AI answering calls 24/7 • {score}% readiness
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold flex items-center gap-2">
-              You're Live!
-              <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600">
-                Active
-              </Badge>
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              AI answering calls 24/7 • {score}% readiness
-            </p>
-          </div>
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
+          <Button variant="outline" size="sm" className="gap-1.5 shrink-0 ml-0 sm:ml-auto" asChild>
             <Link to="/app/calls">
               View Calls
               <ChevronRight className="h-4 w-4" />

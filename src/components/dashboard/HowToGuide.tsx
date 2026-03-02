@@ -27,9 +27,11 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export function HowToGuide() {
   const { toast } = useToast();
+  const { terms } = useIndustryContext();
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
@@ -92,7 +94,7 @@ export function HowToGuide() {
                 <p className="text-sm text-muted-foreground">
                   When someone calls your business number and you don't answer (busy, away, or after hours), 
                   the call automatically forwards to your Flux Receptionist AI. Your AI answers professionally, 
-                  qualifies the lead, and books appointments directly into your calendar.
+                  qualifies the lead, and handles {terms.bookings} directly into your calendar.
                 </p>
               </div>
 
@@ -571,7 +573,7 @@ export function HowToGuide() {
                 <p className="text-sm text-muted-foreground">
                   When a customer calls and you can't answer, Flux Receptionist automatically sends them a 
                   personalized text message. The AI crafts the message based on your business context, 
-                  and can continue the conversation via SMS to qualify leads and book appointments.
+                  and can continue the conversation via SMS to qualify leads and handle {terms.bookings}.
                 </p>
               </div>
 

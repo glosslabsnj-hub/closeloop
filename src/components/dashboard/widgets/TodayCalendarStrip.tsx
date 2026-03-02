@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock } from "lucide-react";
 import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface Booking {
   id: string;
@@ -17,6 +18,7 @@ interface Booking {
 
 export function TodayCalendarStrip() {
   const { tenant } = useAuth();
+  const { terms } = useIndustryContext();
   const todayStart = startOfDay(new Date()).toISOString();
   const todayEnd = endOfDay(new Date()).toISOString();
 
@@ -44,7 +46,7 @@ export function TodayCalendarStrip() {
       <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
         <CardContent className="p-4 flex items-center gap-3">
           <Calendar className="h-5 w-5 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No appointments scheduled today</p>
+          <p className="text-sm text-muted-foreground">No {terms.bookings} scheduled today</p>
         </CardContent>
       </Card>
     );
@@ -57,7 +59,7 @@ export function TodayCalendarStrip() {
           <Calendar className="h-4 w-4 text-primary" />
           <p className="text-sm font-medium">Today's Schedule</p>
           <Badge variant="secondary" className="text-xs ml-auto">
-            {bookings.length} {bookings.length === 1 ? "appointment" : "appointments"}
+            {bookings.length} {bookings.length === 1 ? terms.booking : terms.bookings}
           </Badge>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
@@ -80,7 +82,7 @@ export function TodayCalendarStrip() {
                     {format(time, "h:mm a")}
                   </span>
                 </div>
-                <p className="text-xs font-medium truncate">{customerName || "Walk-in"}</p>
+                <p className="text-xs font-medium truncate">{customerName || terms.customer}</p>
                 {serviceName && (
                   <p className="text-[11px] text-muted-foreground truncate">{serviceName}</p>
                 )}

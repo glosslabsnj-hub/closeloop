@@ -91,10 +91,10 @@ export function CarrierInstructions({ forwardingNumber }: CarrierInstructionsPro
   return (
     <div className="space-y-4">
       {/* Forwarding Number Display */}
-      <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10 border border-primary/20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-lg bg-primary/10 border border-primary/20">
         <div>
           <p className="text-sm font-medium text-muted-foreground">Forward calls to:</p>
-          <p className="text-xl font-mono font-bold text-primary">{forwardingNumber}</p>
+          <p className="text-base sm:text-xl font-mono font-bold text-primary break-all">{forwardingNumber}</p>
         </div>
         <Button variant="outline" size="sm" onClick={copyNumber} className="gap-2">
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}

@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCapabilities } from "@/hooks/useCapabilities";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { formatDistanceToNow } from "date-fns";
 
 interface RecentOutcome {
@@ -32,7 +33,7 @@ export function NextStepsPanel() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
   const caps = useCapabilities();
-  const _businessMode = tenant?.business_mode || "service";
+  const { terms } = useIndustryContext();
 
   const { data: recentOutcomes, isLoading } = useQuery({
     queryKey: ["recent-outcomes", tenant?.id],
@@ -54,7 +55,7 @@ export function NextStepsPanel() {
           outcomes.push({
             id: b.id,
             type: "booking",
-            title: (b.leads as any)?.full_name || "New Booking",
+            title: (b.leads as any)?.full_name || terms.newBooking,
             subtitle: `Scheduled for ${new Date(b.start_at).toLocaleDateString()}`,
             time: formatDistanceToNow(new Date(b.created_at), { addSuffix: true }),
             synced: false, // Would check routing_rules status
@@ -75,7 +76,7 @@ export function NextStepsPanel() {
           outcomes.push({
             id: o.id,
             type: "order",
-            title: o.customer_name || "New Order",
+            title: o.customer_name || terms.customer,
             subtitle: `$${((o.total_cents || 0) / 100).toFixed(2)} - ${o.status}`,
             time: formatDistanceToNow(new Date(o.created_at), { addSuffix: true }),
             synced: false,
@@ -96,7 +97,7 @@ export function NextStepsPanel() {
           outcomes.push({
             id: j.id,
             type: "dispatch",
-            title: j.customer_name || "New Job",
+            title: j.customer_name || terms.customer,
             subtitle: j.job_type || j.status,
             time: formatDistanceToNow(new Date(j.created_at), { addSuffix: true }),
             synced: false,
@@ -174,19 +175,19 @@ export function NextStepsPanel() {
               {recentOutcomes.map((outcome) => (
                 <div
                   key={outcome.id}
-                  className="flex items-center justify-between py-2 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center justify-between py-2 px-2 -mx-2 rounded-lg hover:bg-muted/50 transition-colors gap-2"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-1.5 rounded-lg bg-muted">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="p-1.5 rounded-lg bg-muted shrink-0">
                       {getIcon(outcome.type)}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{outcome.title}</p>
-                      <p className="text-xs text-muted-foreground">{outcome.subtitle}</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{outcome.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{outcome.subtitle}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">{outcome.time}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-muted-foreground whitespace-nowrap">{outcome.time}</p>
                     {outcome.synced && (
                       <Badge variant="secondary" className="text-xs">
                         <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
