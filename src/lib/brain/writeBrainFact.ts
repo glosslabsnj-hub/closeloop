@@ -63,7 +63,7 @@ export async function updateBusinessProfile(
 }
 
 /**
- * Update business hours
+ * Update business hours and sync availability_slots table
  */
 export async function updateBusinessHours(
   tenantId: string,
@@ -77,7 +77,68 @@ export async function updateBusinessHours(
     .single();
 
   if (error) throw error;
+
+  // Sync availability_slots so AI and LiveSchedulePreview stay in sync
+  await syncAvailabilitySlotsFromHours(tenantId, hoursJson);
+
   return data;
+}
+
+/**
+ * Derive availability_slots from hours_json and persist to DB.
+ * This keeps the availability_slots table in sync with hours_json,
+ * which is critical because build-business-brain prefers table rows
+ * over deriving from hours_json on-the-fly.
+ */
+async function syncAvailabilitySlotsFromHours(
+  tenantId: string,
+  hoursJson: Record<string, any>
+) {
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const derived: Array<{
+    tenant_id: string;
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+  }> = [];
+
+  for (let i = 0; i < dayNames.length; i++) {
+    const dayData = hoursJson[dayNames[i]] || hoursJson[i.toString()];
+    if (!dayData || dayData.closed) {
+      derived.push({ tenant_id: tenantId, day_of_week: i, start_time: '00:00', end_time: '00:00', is_available: false });
+      continue;
+    }
+    if (dayData.windows && Array.isArray(dayData.windows)) {
+      for (const w of dayData.windows) {
+        derived.push({ tenant_id: tenantId, day_of_week: i, start_time: w.open, end_time: w.close, is_available: true });
+      }
+    } else if (dayData.open && dayData.close) {
+      derived.push({ tenant_id: tenantId, day_of_week: i, start_time: dayData.open, end_time: dayData.close, is_available: true });
+    }
+  }
+
+  // Delete existing slots and insert derived ones (same pattern as useAvailabilitySlots.saveSlots)
+  const { error: deleteError } = await supabase
+    .from("availability_slots")
+    .delete()
+    .eq("tenant_id", tenantId);
+
+  if (deleteError) {
+    console.error("[BRAIN_WRITE] Failed to delete old availability_slots:", deleteError);
+    return; // Non-fatal: hours_json is already saved, AI can still derive
+  }
+
+  if (derived.length > 0) {
+    const { error: insertError } = await supabase
+      .from("availability_slots")
+      .insert(derived);
+
+    if (insertError) {
+      console.error("[BRAIN_WRITE] Failed to insert availability_slots:", insertError);
+      // Non-fatal: if insert fails, table is now empty → build-business-brain will derive from hours_json
+    }
+  }
 }
 
 /**
@@ -340,14 +401,31 @@ export async function updateBusynessRules(
 }
 
 /**
- * Update availability slots
+ * Update availability slots directly (for manual overrides or calendar sync)
  */
 export async function updateAvailabilitySlots(
   tenantId: string,
-  slots: Array<any>
+  slots: Array<{
+    day_of_week: number;
+    start_time: string;
+    end_time: string;
+    is_available: boolean;
+  }>
 ) {
-  // TODO: Implement in Phase 3
-  throw new Error("updateAvailabilitySlots not yet implemented - Phase 3");
+  const { error: deleteError } = await supabase
+    .from("availability_slots")
+    .delete()
+    .eq("tenant_id", tenantId);
+
+  if (deleteError) throw deleteError;
+
+  if (slots.length > 0) {
+    const { error: insertError } = await supabase
+      .from("availability_slots")
+      .insert(slots.map(s => ({ ...s, tenant_id: tenantId })));
+
+    if (insertError) throw insertError;
+  }
 }
 
 // ============================================================================

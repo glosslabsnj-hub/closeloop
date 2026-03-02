@@ -52,10 +52,14 @@ export function BusinessHoursManager({ onSaveComplete }: BusinessHoursManagerPro
     
     try {
       await updateBusinessHours(tenant.id, hours);
-      
+
       // Invalidate all relevant queries so UI updates
       invalidateBrainQueries(queryClient, tenant.id);
-      
+
+      // Also invalidate availability_slots queries so LiveSchedulePreview refreshes
+      queryClient.invalidateQueries({ queryKey: ["availability_slots"] });
+      queryClient.invalidateQueries({ queryKey: ["availability-slots-preview"] });
+
       // Refresh the tenant in AuthContext so hours_json is updated
       if (refreshTenant) {
         await refreshTenant();
