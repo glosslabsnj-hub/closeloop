@@ -39,7 +39,7 @@ export function BrainCategoryCard({
       type="button"
       onClick={onEdit}
       className={cn(
-        "flex flex-col items-start gap-3 rounded-xl border p-5 text-left transition-all duration-200",
+        "flex flex-col items-start gap-3 rounded-xl border p-4 sm:p-5 text-left transition-all duration-200",
         "bg-card/60 backdrop-blur-sm hover:shadow-md hover:-translate-y-0.5",
         isComplete
           ? "border-primary/20 hover:border-primary/30 hover:shadow-primary/5"

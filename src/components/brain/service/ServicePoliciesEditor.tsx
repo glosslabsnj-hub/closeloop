@@ -18,6 +18,7 @@ import { Loader2, Save, Clock, Shield, Home, AlertTriangle, Car } from "lucide-r
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { AIPreviewCard } from "../AIPreviewCard";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface ServicePolicies {
   id?: string;
@@ -77,6 +78,7 @@ const DEFAULT_POLICIES: Omit<ServicePolicies, 'tenant_id'> = {
 export function ServicePoliciesEditor() {
   const { tenant } = useAuth();
   const queryClient = useQueryClient();
+  const { terminology } = useIndustryContext();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState<ServicePolicies | null>(null);
@@ -396,7 +398,7 @@ export function ServicePoliciesEditor() {
             <Textarea
               value={formData.access_requirements}
               onChange={(e) => updateField('access_requirements', e.target.value)}
-              placeholder="Gate codes, lockbox info, or key arrangements should be provided 24 hours before your appointment."
+              placeholder={`Gate codes, lockbox info, or key arrangements should be provided 24 hours before your ${terminology.appointmentLabel}.`}
               rows={2}
             />
           </div>

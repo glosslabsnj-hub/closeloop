@@ -136,7 +136,7 @@ export function SectionSummaryCard({
       )}
     >
       {/* Header - always visible */}
-      <div className="flex items-center gap-3 p-4">
+      <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4">
         {/* Step number badge (from EssentialGroup) */}
         {stepNumber !== undefined && (
           <div className={cn(

@@ -159,8 +159,8 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
   return (
     <div className="space-y-6">
       {/* ── Header ─────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Business Brain</h1>
           {tenant?.name && (
             <p className="text-sm text-muted-foreground mt-0.5">{tenant.name as string}</p>
@@ -172,14 +172,14 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
             }
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-stretch sm:items-center gap-2 sm:gap-3">
           {onStartGuidedSetup && overallPercent < 100 && (
-            <Button variant="default" size="sm" onClick={onStartGuidedSetup} className="gap-1.5">
+            <Button variant="default" size="sm" onClick={onStartGuidedSetup} className="gap-1.5 flex-1 sm:flex-initial">
               <Wand2 className="h-4 w-4" />
               Guided Setup
             </Button>
           )}
-          <Button variant="outline" size="sm" onClick={() => setWebsiteImportOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setWebsiteImportOpen(true)} className="flex-1 sm:flex-initial">
             <Globe className="h-4 w-4 mr-1.5" />
             Import from Website
           </Button>
@@ -191,13 +191,13 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
       {/* ── AI Readiness Hero Card ──────────────────────────────────── */}
       {!searchQuery && (
         <div className={cn(
-          "rounded-xl border bg-card/60 backdrop-blur-sm p-6",
+          "rounded-xl border bg-card/60 backdrop-blur-sm p-4 sm:p-6",
           isReady ? "border-primary/20 glow-primary-subtle" : "border-border/30",
         )}>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
+          <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
             {/* Circular progress */}
             <div className="relative shrink-0">
-              <svg className="h-32 w-32 -rotate-90" viewBox="0 0 120 120">
+              <svg className="h-24 w-24 sm:h-32 sm:w-32 -rotate-90" viewBox="0 0 120 120">
                 {/* Background circle */}
                 <circle
                   cx="60"
@@ -268,15 +268,15 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
                           }
                         }}
                         className={cn(
-                          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                          "inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg text-sm font-medium transition-colors min-h-[40px] sm:min-h-0",
                           isP0
                             ? "bg-destructive/10 text-destructive hover:bg-destructive/15"
                             : "bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-500/15",
                         )}
                       >
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        <span className="truncate">{rec.label}</span>
-                        {isP0 && <Badge variant="destructive" className="text-[10px] ml-1 shrink-0">Required</Badge>}
+                        <span className="truncate flex-1">{rec.label}</span>
+                        {isP0 && <Badge variant="destructive" className="text-[10px] ml-1 shrink-0 whitespace-nowrap">Required</Badge>}
                       </button>
                     );
                   })}

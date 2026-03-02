@@ -76,7 +76,7 @@ export function BrainContentPanel({
 
   return (
     <div className="flex-1 min-w-0">
-      <div className="max-w-3xl px-2 md:px-6 py-4 space-y-4">
+      <div className="max-w-3xl px-3 sm:px-4 md:px-6 py-4 space-y-4">
         {/* Mobile back button */}
         <Button
           variant="ghost"

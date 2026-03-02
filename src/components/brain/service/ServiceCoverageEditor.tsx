@@ -32,6 +32,7 @@ import {
   Info,
 } from "lucide-react";
 import { AIPreviewCard } from "../AIPreviewCard";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface ServiceCoverageSettings {
   tenant_id: string;
@@ -65,6 +66,9 @@ const DEFAULT_SETTINGS: Omit<ServiceCoverageSettings, "tenant_id"> = {
 export function ServiceCoverageEditor() {
   const { tenant } = useAuth();
   const { toast } = useToast();
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel;
+  const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : `${apptLabel}s`;
   const [settings, setSettings] = useState<ServiceCoverageSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -178,7 +182,7 @@ export function ServiceCoverageEditor() {
     }
     
     if (settings.travel_buffer_minutes > 0) {
-      parts.push(`I'll schedule about ${settings.travel_buffer_minutes} minutes between appointments for travel`);
+      parts.push(`I'll schedule about ${settings.travel_buffer_minutes} minutes between ${apptLabelPlural} for travel`);
     }
     
     return parts.length > 0 
@@ -213,7 +217,7 @@ export function ServiceCoverageEditor() {
                 Same-Day Service
               </CardTitle>
               <CardDescription>
-                Configure when you can offer same-day appointments
+                {`Configure when you can offer same-day ${apptLabelPlural}`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -221,7 +225,7 @@ export function ServiceCoverageEditor() {
                 <div className="space-y-0.5">
                   <Label>Same-day service available</Label>
                   <p className="text-xs text-muted-foreground">
-                    AI will offer same-day appointments when available
+                    {`AI will offer same-day ${apptLabelPlural} when available`}
                   </p>
                 </div>
                 <Switch
@@ -319,10 +323,10 @@ export function ServiceCoverageEditor() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Clock className="h-4 w-4 text-blue-500" />
-                Appointment Duration
+                {apptLabel === "job" ? "Job Duration" : `${apptLabel.charAt(0).toUpperCase() + apptLabel.slice(1)} Duration`}
               </CardTitle>
               <CardDescription>
-                How long typical service appointments take
+                {`How long typical ${apptLabelPlural} take`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -365,7 +369,7 @@ export function ServiceCoverageEditor() {
                 Travel Buffer
               </CardTitle>
               <CardDescription>
-                Time between appointments for travel
+                {`Time between ${apptLabelPlural} for travel`}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -379,7 +383,7 @@ export function ServiceCoverageEditor() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="fixed">Fixed buffer between appointments</SelectItem>
+                    <SelectItem value="fixed">{`Fixed buffer between ${apptLabelPlural}`}</SelectItem>
                     <SelectItem value="distance_based">Calculate based on distance</SelectItem>
                     <SelectItem value="none">No buffer (back-to-back)</SelectItem>
                   </SelectContent>
@@ -394,13 +398,13 @@ export function ServiceCoverageEditor() {
                     min="0"
                     step="5"
                     value={settings.travel_buffer_minutes}
-                    onChange={(e) => updateSettings({ 
-                      travel_buffer_minutes: parseInt(e.target.value) || 0 
+                    onChange={(e) => updateSettings({
+                      travel_buffer_minutes: parseInt(e.target.value) || 0
                     })}
                     className="w-32"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Time added between appointments for travel
+                    {`Time added between ${apptLabelPlural} for travel`}
                   </p>
                 </div>
               )}
@@ -408,7 +412,7 @@ export function ServiceCoverageEditor() {
               {settings.buffer_mode === "distance_based" && (
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground">
-                    Travel time will be automatically calculated using distance between appointments.
+                    {`Travel time will be automatically calculated using distance between ${apptLabelPlural}.`}
                     Requires Mapbox distance provider to be enabled.
                   </p>
                 </div>
