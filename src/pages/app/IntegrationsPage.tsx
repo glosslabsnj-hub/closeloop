@@ -583,7 +583,7 @@ export default function IntegrationsPage() {
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {SELF_SETUP_INTEGRATIONS.map((tool) => {
+              {SELF_SETUP_INTEGRATIONS.filter((tool) => !('modes' in tool && tool.modes) || (tool.modes as readonly string[]).includes(businessMode)).map((tool) => {
                 const integration = integrations?.find(i => i.provider === tool.id);
                 const isConnected = integration?.status === "connected";
 
@@ -620,7 +620,7 @@ export default function IntegrationsPage() {
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {FEATURED_EXPERT_INTEGRATIONS.map((tool) => (
+              {FEATURED_EXPERT_INTEGRATIONS.filter((tool) => !('modes' in tool && tool.modes) || (tool.modes as readonly string[]).includes(businessMode)).map((tool) => (
                 <IntegrationCard
                   key={tool.id}
                   id={tool.id}

@@ -59,8 +59,9 @@ export const POPULAR_INTEGRATIONS: PopularIntegration[] = [
 ];
 
 // Self-setup integrations (user can connect themselves)
+// modes: which business modes see this integration. Omit = all modes.
 export const SELF_SETUP_INTEGRATIONS = [
-  { id: "google_calendar", name: "Google Calendar", icon: "📅", logo: "https://cdn.brandfetch.io/idnrCPuv87/theme/dark/symbol.svg?c=1id1sPTWgaw12fOGbUd", description: "Sync bookings to your calendar" },
+  { id: "google_calendar", name: "Google Calendar", icon: "📅", logo: "https://cdn.brandfetch.io/idnrCPuv87/theme/dark/symbol.svg?c=1id1sPTWgaw12fOGbUd", description: "Sync bookings to your calendar", modes: ["service", "medical", "sales", "general"] },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", logo: "https://cdn.brandfetch.io/idnrCPuv87/theme/dark/symbol.svg?c=1id1sPTWgaw12fOGbUd", description: "Log data to spreadsheets" },
   { id: "quickbooks", name: "QuickBooks Online", icon: "📒", logo: "https://cdn.brandfetch.io/id_0dwMfEz/w/400/h/400/theme/dark/icon.png", description: "Sync invoices & payments" },
   { id: "hubspot", name: "HubSpot", icon: "🟠", logo: "https://cdn.brandfetch.io/idZHcZ_i7F/w/400/h/400/theme/dark/icon.png", description: "CRM and marketing automation", modes: ["service", "general", "sales"] },
@@ -70,14 +71,14 @@ export const SELF_SETUP_INTEGRATIONS = [
   { id: "housecallpro", name: "Housecall Pro", icon: "🏠", logo: "https://cdn.brandfetch.io/idCQDfdhLz/w/400/h/400/theme/dark/icon.png", description: "Field service management", modes: ["service", "dispatch"] },
   { id: "fieldedge", name: "FieldEdge", icon: "⚙️", logo: "https://cdn.brandfetch.io/idHKtLfVPo/w/400/h/400/theme/dark/icon.png", description: "Sync bookings & dispatches with FieldEdge", modes: ["service", "dispatch"] },
   { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL (Zapier, Make, etc.)" },
-  { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets and receipts" },
+  { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets and receipts", modes: ["food"] },
 ] as const;
 
 // Featured expert-setup integrations shown on main page
 // These are integrations that require concierge/custom setup
 export const FEATURED_EXPERT_INTEGRATIONS = [
-  { id: "servicetitan", name: "ServiceTitan", icon: "🛠️", logo: "https://cdn.brandfetch.io/idjJU3DLHO/w/400/h/400/theme/dark/icon.png", description: "Home service management" },
-  { id: "calendly", name: "Calendly", icon: "📆", logo: "https://cdn.brandfetch.io/idOJxVnpHC/w/400/h/400/theme/dark/icon.png", description: "Online scheduling" },
-  { id: "salesforce", name: "Salesforce", icon: "☁️", logo: "https://cdn.brandfetch.io/id20mQyGeY/w/400/h/400/theme/dark/icon.png", description: "Enterprise CRM" },
-  { id: "toast", name: "Toast", icon: "🍞", logo: "https://cdn.brandfetch.io/idJnYpnZvK/w/400/h/400/theme/dark/icon.png", description: "Restaurant POS" },
+  { id: "servicetitan", name: "ServiceTitan", icon: "🛠️", logo: "https://cdn.brandfetch.io/idjJU3DLHO/w/400/h/400/theme/dark/icon.png", description: "Home service management", modes: ["service", "dispatch"] },
+  { id: "calendly", name: "Calendly", icon: "📆", logo: "https://cdn.brandfetch.io/idOJxVnpHC/w/400/h/400/theme/dark/icon.png", description: "Online scheduling", modes: ["service", "medical", "sales", "general"] },
+  { id: "salesforce", name: "Salesforce", icon: "☁️", logo: "https://cdn.brandfetch.io/id20mQyGeY/w/400/h/400/theme/dark/icon.png", description: "Enterprise CRM", modes: ["service", "sales", "general"] },
+  { id: "toast", name: "Toast", icon: "🍞", logo: "https://cdn.brandfetch.io/idJnYpnZvK/w/400/h/400/theme/dark/icon.png", description: "Restaurant POS", modes: ["food"] },
 ] as const;

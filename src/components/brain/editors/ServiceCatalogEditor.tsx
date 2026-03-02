@@ -68,7 +68,7 @@ interface ServiceFormData {
   payment_timing: PaymentTiming;
 }
 
-const COMMON_INTAKE_FIELDS = [
+const BASE_INTAKE_FIELDS = [
   "address",
   "property_type",
   "urgency",
@@ -76,10 +76,18 @@ const COMMON_INTAKE_FIELDS = [
   "scope_of_work",
   "access_instructions",
   "preferred_date",
-  "vehicle_info",
   "photos",
   "warranty_status",
 ];
+
+// Fields only relevant to specific modes
+const MODE_SPECIFIC_INTAKE_FIELDS: Record<string, string[]> = {
+  dispatch: ["vehicle_info", "pickup_location", "dropoff_location"],
+};
+
+function getIntakeFieldsForMode(mode: string): string[] {
+  return [...BASE_INTAKE_FIELDS, ...(MODE_SPECIFIC_INTAKE_FIELDS[mode] || [])];
+}
 
 const defaultFormData: ServiceFormData = {
   name: "",
@@ -276,7 +284,7 @@ function ServiceForm({
           <Label className="text-xs">Required info to collect before booking</Label>
           <p className="text-[11px] text-muted-foreground">AI will ask for these before scheduling this service</p>
           <div className="flex flex-wrap gap-1.5">
-            {COMMON_INTAKE_FIELDS.map((field) => {
+            {getIntakeFieldsForMode(businessMode).map((field) => {
               const selected = formData.required_intake_fields.includes(field);
               return (
                 <Badge

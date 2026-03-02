@@ -152,6 +152,7 @@ export function useOnboardingSubmit(userId?: string) {
             address: businessAddress || businessDetails.location || undefined, default_capacity: defaultCapacity,
             plan_code: planCode,
             agency_slug: agencySlug,
+            tagline: industryEntry ? `Your trusted ${industryEntry.name.toLowerCase()} professionals` : undefined,
           },
         });
         if (createError) throw new Error(createError.message || "Failed to create business profile");

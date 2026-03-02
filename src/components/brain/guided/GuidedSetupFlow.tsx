@@ -43,7 +43,7 @@ export function GuidedSetupFlow({ onSwitchToFullBrain }: GuidedSetupFlowProps) {
   const caps = useCapabilities();
   const { isFoodMode } = useFoodMode();
   const isDispatchMode = caps.isDispatchBusiness;
-  const { score, p0Flags, p1Flags, canGoLive, refetch } = useAIReadinessV2();
+  const { score, p0Flags, p1Flags, canGoLive, loading: readinessLoading, refetch } = useAIReadinessV2();
 
   // Get all steps for this mode
   const allSteps = useMemo(
@@ -110,10 +110,11 @@ export function GuidedSetupFlow({ onSwitchToFullBrain }: GuidedSetupFlowProps) {
     setCurrentStepIndex(index);
   }, []);
 
-  // Check if setup is complete (all required steps done)
-  const allRequiredDone = canGoLive || progress.completedSteps === progress.totalSteps;
+  // Check if setup is complete — only trust flags when readiness data is loaded.
+  // While loading, p0Flags/p1Flags are empty which makes all steps appear "complete".
+  const allRequiredDone = !readinessLoading && canGoLive;
 
-  if (!currentStep) return null;
+  if (readinessLoading || !currentStep) return null;
 
   // ─── Celebration view ────────────────────────────────────────────────────
   if (allRequiredDone) {
