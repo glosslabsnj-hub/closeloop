@@ -1,17 +1,20 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 3:52 PM ET (receptionist_eng — super_admin auth fix for AI Simulator)
+## Last Session: 2026-03-02 4:22 PM ET (receptionist_ux — terminology + responsive fixes)
 
 ### What Was Done
-- **Root cause fix for AI Simulator P0**: `requireAuthedTenant` in `_shared/tenant.ts` only checked `tenant_users` membership. Super_admin users switching to test tenants via AdminTenantSwitcher got "Forbidden tenant" because they had no `tenant_users` row for the target tenant. Added `user_roles` super_admin check to bypass tenant membership validation.
-- **3 edge functions redeployed**: ai-plan-response (v17), build-business-brain (v17), retrieve-knowledge (v13). All with `--no-verify-jwt`.
+- **LeadCard**: "Book Appointment" and "Convert to Customer" now use mode-aware terms
+- **BookingBehaviorSettings**: 12 hardcoded strings replaced with mode-aware terms (title, description, radio labels, notifications, AI preview)
+- **MetricsGrid**: Tighter mobile spacing at 375px (gap-2, p-2.5, text-xl, h-7 icons)
+- **PageHeader**: Action buttons stack below title on mobile (flex-col sm:flex-row)
+- **SettingsPage**: Mobile padding reduced (px-4 py-4 on mobile)
+- **CustomersPage**: Filter dropdowns shrink to w-[104px] on mobile
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 626/626 passing
-- Commit: 2235ffd
-- Pushed to main, deployed to app.getfluxdata.com
-- Edge functions deployed: ai-plan-response, build-business-brain, retrieve-knowledge
+- Commit: 2332ab9
+- Pushed to main
 
 ### MODE PROGRESS
 - SERVICE: 23/42 QA-verified (55%) ← FOCUS

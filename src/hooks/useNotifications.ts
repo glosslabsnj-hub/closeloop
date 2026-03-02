@@ -43,11 +43,14 @@ export function useNotifications() {
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      // Fail silently — this runs on every page via NotificationBell in AppLayout.
+      // RLS or table errors should not pollute console.
+      if (error) return [] as OwnerNotification[];
       return data as OwnerNotification[];
     },
     enabled: !!tenant?.id,
     staleTime: 30000,
+    retry: false,
   });
 
   // Subscribe to realtime updates

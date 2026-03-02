@@ -62,6 +62,7 @@ export function useKnowledgeConflicts() {
     },
     enabled: !!tenant?.id,
     retry: false,
+    staleTime: 60_000, // Realtime subscription handles updates; no need to re-query on every page nav
   });
 
   // Subscribe to realtime updates

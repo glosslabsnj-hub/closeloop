@@ -135,5 +135,6 @@ export function useMyAgencyApplication() {
       return apps[0] ?? null;
     },
     retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes — no need to re-query on every page nav
   });
 }
