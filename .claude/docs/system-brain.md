@@ -1,20 +1,19 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 4:22 PM ET (receptionist_ux — terminology + responsive fixes)
+## Last Session: 2026-03-02 4:36 PM ET (receptionist_fix — global hooks silent fail)
 
 ### What Was Done
-- **LeadCard**: "Book Appointment" and "Convert to Customer" now use mode-aware terms
-- **BookingBehaviorSettings**: 12 hardcoded strings replaced with mode-aware terms (title, description, radio labels, notifications, AI preview)
-- **MetricsGrid**: Tighter mobile spacing at 375px (gap-2, p-2.5, text-xl, h-7 icons)
-- **PageHeader**: Action buttons stack below title on mobile (flex-col sm:flex-row)
-- **SettingsPage**: Mobile padding reduced (px-4 py-4 on mobile)
-- **CustomersPage**: Filter dropdowns shrink to w-[104px] on mobile
+- **useNotifications**: Fixed `throw error` → `return []` on error. Was crashing on every page via NotificationBell when owner_notifications RLS fails.
+- **useMyAgencyApplication**: Added staleTime 5min (was re-querying agency_applications on every page navigation)
+- **useAgencyAccount**: Added staleTime 5min
+- **useKnowledgeConflicts**: Added staleTime 60s (realtime subscription already handles updates)
+- **20 new regression tests** in `tests/global-hooks-silent-fail.test.ts` enforce silent-fail pattern for all 4 global hooks
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 626/626 passing
-- Commit: 2332ab9
-- Pushed to main
+- Tests: 646/646 passing (+20 new)
+- Commit: 8112aea
+- Pushed to main & deployed
 
 ### MODE PROGRESS
 - SERVICE: 23/42 QA-verified (55%) ← FOCUS
@@ -34,7 +33,7 @@
 - **booking_status enum**: Has BOTH 'canceled' and 'cancelled'. Use either.
 - **order_status enum**: pending, confirmed, preparing, ready, out_for_delivery, completed, cancelled. NO 'ready_for_pickup'.
 - **RLS policy pattern**: All tenant-scoped tables need explicit SELECT/INSERT/UPDATE/DELETE policies + service_role bypass.
-- **Global hooks must fail silently**: useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts all run on every page via AppLayout. They MUST NOT throw — return null/[] on error.
+- **Global hooks must fail silently**: useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts, useNotifications all run on every page via AppLayout. They MUST NOT throw — return null/[] on error. All must have `retry: false` and `staleTime > 0`. Regression test `tests/global-hooks-silent-fail.test.ts` enforces this.
 - **Mode-aware terminology pattern**: Use `useIndustryContext()` → `terms` for UI labels. Never hardcode "Customer", "appointment", "Walk-in".
 - **Edge function deployment**: Functions MUST be deployed after code changes. Code changes alone don't affect production. Use: `SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env | cut -d'"' -f2) npx supabase functions deploy [name] --project-ref yltzlvzgwkidbeqaoevp`
 - **Vitest file reads**: Use `@vitest-environment node` directive, import from `node:fs` and `node:path`.
@@ -49,5 +48,5 @@
 
 ### Next Priorities
 1. QA verification of AI Simulator fix (handoff #220 filed)
-2. Continue clearing WIP gates as QA verifies them
-3. Address console errors (handoff #219 to receptionist_fix)
+2. QA verification of console errors fix (handoff #222 filed — useNotifications silent fail + staleTime on all 4 global hooks)
+3. Continue clearing WIP gates as QA verifies them
