@@ -1,26 +1,24 @@
-receptionist_fix session — 2026-03-02 08:01 ET
+receptionist_fix session - 2026-03-02 09:04-09:22 ET
 
-## Bugs Fixed (commit 77e7a55)
+HANDOFFS PROCESSED:
+- #170 (from receptionist_qa): Cancel booking 403 + dialog overlay → COMPLETED
 
-1. **Tenant context flash on page reload** (handoff #164)
-   - File: src/contexts/AuthContext.tsx
-   - Root cause: setTenant(defaultTenant) was called before fetching cached admin tenant, causing intermediate render with wrong tenant
-   - Fix: Moved setTenant AFTER cached tenant fetch so React 18 batches both state updates into single render
+FIXES:
+1. CancelBookingDialog refactored: accepts onConfirm prop from parent instead of creating own useBookings() hook instance. Eliminates stale state risk that could cause 403.
+2. Dialog overlay conflict: 250ms setTimeout delay between Sheet close and AlertDialog open prevents backdrop overlap. z-[60] on AlertDialogContent for layering safety.
+3. cancelBooking mutation: added error logging (console.error with code/message/details/hint).
+4. Removed unused _handleCancelBookingConfirmed and _updateBooking from BookingsPage.
+5. Migration 20260228080000: added DROP POLICY IF EXISTS for idempotency.
 
-2. **Booking list not refreshing after creation** (handoff #164)
-   - File: src/components/calendar/CreateBookingDialog.tsx
-   - Root cause: Direct Supabase insert without invalidating React Query cache
-   - Fix: Added queryClient.invalidateQueries for both bookings and schedule-bookings keys
+DB MIGRATIONS PUSHED (6 total):
+- 20260228080000: RLS policies for user_roles + tenant_users
+- 20260301210000: has_tenant_access super_admin bypass
+- 20260302080000: staff_members RLS with super_admin
+- 20260302090000: notification_preferences WITH CHECK fix
+- 20260302120000: bookings/leads/conversations/messages/services RLS + deposit_amount
+- 20260302130000: get_ai_readiness stricter policy checks
 
-3. **Step completion counter regression** (handoff #165)
-   - File: src/config/guidedSetupSteps.ts
-   - Root cause: computeStepProgress used every() on ALL resolvesFlagKeys; adding content could reintroduce secondary flags
-   - Fix: Added completionFlagKeys field — counter uses core flags (no_services, few_services) ignoring secondary (missing_pricing)
-
-4. **Policies "Complete" badge with empty data** (handoff #165)
-   - File: supabase/migrations/20260302130000_fix_policies_completion_check.sql
-   - Root cause: RPC accepted empty JSON {} as valid policies
-   - Fix: Requires cancellation_text, deposit_required=true, refund/no-show policy text, or 2+ payment methods
-
-## Build: 0 errors, 360/360 tests
-## Deployed: frontend + RPC migration to production
+BUILD: 0 errors, 360/360 tests
+COMMIT: dc16952
+DEPLOYED: app.getfluxdata.com (200 OK)
+HANDOFF FILED: #176 to receptionist_qa

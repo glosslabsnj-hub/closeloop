@@ -271,7 +271,7 @@ export function BookingDetailsSheet({
                     date={(booking as any).completed_at || (booking as any).updated_at}
                   />
                 )}
-                {booking.status === "canceled" && (
+                {(booking.status === "canceled" || booking.status === "cancelled") && (
                   <TimelineItem
                     label="Cancelled"
                     date={(booking as any).updated_at}

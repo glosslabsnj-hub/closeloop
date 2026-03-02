@@ -50,7 +50,8 @@ export function useScheduleData(weekStart: Date) {
         .eq("tenant_id", tenant.id)
         .gte("start_at", startISO)
         .lte("start_at", endISO)
-        .neq("status", "canceled");
+        .neq("status", "canceled")
+        .neq("status", "cancelled");
 
       if (error) throw error;
       return data || [];
