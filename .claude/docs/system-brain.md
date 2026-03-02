@@ -1,16 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 10:58 AM ET (receptionist_ux — 2 UX fixes)
+## Last Session: 2026-03-02 11:06 AM ET (receptionist_fix — hardening + tests)
 
 ### What Was Done
-- **Brain section % mismatch fix**: BrainSectionDetailHost breadcrumb now uses item-status-based completion (same as BrainDashboard cards). Fixes bug where overview card showed 33% but breadcrumb showed 0%.
-- **Mode-aware intake fields**: ServiceCatalogEditor intake fields now adapt to business mode and complexity. "Quick confirmation" shows 2 essential fields (address, preferred date). "Ask detailed questions" shows mode-relevant advanced fields. HVAC AC Tune-Up no longer shows 9 generic fields.
+- **Processed handoff #187**: Bookings redirect bug was already fixed by eng (fa8a462). Verified fix is sound and marked completed.
+- **Fixed unhandled promise rejection**: useBookings.ts confirmBooking had busy_blocks `.then()` without `.catch()`. Added `.catch()` to prevent console errors.
+- **41 regression tests for route protection**: Tests verify useModuleRequired mode defaults fallback across all 6 modes. Covers the fa8a462 fix that prevented /app/bookings false redirect. Tests include route protection matrix, edge cases, and defaultModulesByMode completeness.
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 365/365 passing
-- Commit: 2b07746
-- Handoff #190 filed to QA (2 gates to verify)
+- Tests: 406/406 passing (was 365)
+- Commit: a034eb3
+- Deployed to production
+- Handoff #191 filed to QA (overall/no_console_errors)
 
 ### MODE PROGRESS
 - SERVICE: 18/42 QA-verified (43%) ← FOCUS (3 gates moved to in_progress)
