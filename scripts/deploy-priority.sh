@@ -85,9 +85,11 @@ FUNCTIONS=(
   elevenlabs-reschedule-booking
   ai-text-reply
   seed-test-tenants
-  # PAYMENTS (5)
+  # PAYMENTS (7)
   create-checkout-session
+  create-billing-portal-session
   create-payment-link
+  get-usage-status
   process-commission-payout
   seed-stripe-prices
   track-usage

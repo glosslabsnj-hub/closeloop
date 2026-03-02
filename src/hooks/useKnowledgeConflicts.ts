@@ -55,10 +55,13 @@ export function useKnowledgeConflicts() {
         .eq("tenant_id", tenant.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      // Fail silently — this runs on every page via AppLayout.
+      // Missing table or RLS error should not pollute console.
+      if (error) return [] as KnowledgeConflict[];
       return data as KnowledgeConflict[];
     },
     enabled: !!tenant?.id,
+    retry: false,
   });
 
   // Subscribe to realtime updates

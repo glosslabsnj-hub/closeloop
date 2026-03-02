@@ -1,14 +1,15 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUsage } from "@/hooks/useUsage";
+import { useBillingPortal } from "@/hooks/useBillingPortal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Phone, MessageSquare, TrendingUp, AlertTriangle, 
-  ArrowUpRight, Calendar, DollarSign
+import {
+  Phone, MessageSquare, TrendingUp, AlertTriangle,
+  ArrowUpRight, Calendar, DollarSign, ExternalLink, Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -22,6 +23,7 @@ export default function UsagePage() {
   const { tenant } = useAuth();
   const { subscription, planSku, hasVoice, hasSms, loading: subLoading } = useSubscription(tenant?.id || null);
   const { usage, loading: usageLoading, nextUpgrade } = useUsage(tenant?.id || null, planSku);
+  const { openPortal, loading: portalLoading } = useBillingPortal(tenant?.id || null);
 
   const step = planSku ? getLadderStep(planSku) : null;
   const tierInfo = step ? getTierInfo(step.tier) : null;
@@ -89,7 +91,7 @@ export default function UsagePage() {
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Calendar className="h-4 w-4" />
@@ -97,6 +99,21 @@ export default function UsagePage() {
             </div>
             <div className="font-medium">{formatPrice(step.price)}/mo</div>
           </div>
+          {subscription.stripe_customer_id && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={openPortal}
+              disabled={portalLoading}
+            >
+              {portalLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <ExternalLink className="mr-2 h-4 w-4" />
+              )}
+              Manage Billing
+            </Button>
+          )}
         </CardContent>
       </Card>
 

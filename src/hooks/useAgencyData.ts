@@ -59,10 +59,13 @@ export function useAgencyAccount() {
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      // Fail silently — this runs on every page via AppLayout/useIsAgencyUser.
+      // Non-agency users or missing table should not pollute console.
+      if (error) return null;
       return data as AgencyAccount | null;
     },
     enabled: !!user?.id,
+    retry: false,
   });
 }
 
