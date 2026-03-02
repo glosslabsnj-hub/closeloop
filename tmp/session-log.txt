@@ -35,3 +35,4 @@
 **Commits:** 97e076c, 7e743d5
 **Deployed:** Frontend (app.getfluxdata.com), build-business-brain edge fn, DB migration (deposit_amount + 16 RLS policies + get_ai_readiness RPC)
 
+[2026-03-02T12:03:02Z] receptionist_ux: Fixed 3 cross-mode UX issues from 5 QA handoffs. (1) COMPLEXITY_HINTS slug-specific (9 overrides). (2) 24/7 hours preview. (3) Service catalog heading. POS button verified correct. Unknown Caller / transcripts = data issues. Build clean, 360 tests. Commit 3cb9f1c.

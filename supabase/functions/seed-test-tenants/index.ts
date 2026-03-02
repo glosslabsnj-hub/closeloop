@@ -417,10 +417,20 @@ async function seedTenantData(
     }));
     await client.from("services").insert(services);
   } else {
+    // Generate mode-aware service names instead of generic "Service N"
+    const modeServiceNames: Record<string, string[]> = {
+      service: ["Consultation", "Standard Service", "Premium Service", "Emergency Service", "Inspection", "Maintenance", "Repair", "Installation"],
+      dispatch: ["Standard Pickup", "Express Pickup", "Scheduled Delivery", "Emergency Dispatch", "Long Distance", "After-Hours Service"],
+      food: ["Lunch Special", "Dinner Special", "Catering Package", "Family Meal", "Party Platter"],
+      medical: ["New Patient Visit", "Follow-Up Visit", "Wellness Check", "Screening", "Consultation", "Procedure"],
+      sales: ["Initial Consultation", "Product Demo", "Custom Quote", "Priority Service", "Premium Package"],
+      general: ["Phone Consultation", "In-Person Meeting", "Priority Support", "Standard Service"],
+    };
+    const names = modeServiceNames[config.business_mode] ?? modeServiceNames.general!;
     const services = Array.from({ length: seedData.serviceCount }, (_, i) => ({
       tenant_id: tenantId,
-      name: `${config.name} Service ${i + 1}`,
-      description: `Sample service #${i + 1}`,
+      name: names[i % names.length]!,
+      description: `Professional ${names[i % names.length]!.toLowerCase()} provided by ${config.name}`,
       duration_minutes: [30, 45, 60, 90][i % 4],
       price_amount: [50, 75, 100, 150, 200][i % 5],
       price_type: "fixed" as const,
@@ -441,11 +451,22 @@ async function seedTenantData(
     }));
     await client.from("business_faqs").insert(faqs);
   } else {
-    const faqs = Array.from({ length: seedData.faqCount }, (_, i) => ({
+    // Generate realistic FAQs instead of generic "Sample question N"
+    const defaultFaqs = [
+      { question: "What are your hours?", answer: `Our hours are listed on our website. Please call ${config.name} and we'll let you know our current availability.` },
+      { question: "What forms of payment do you accept?", answer: "We accept all major credit cards, debit cards, and cash." },
+      { question: "Are you licensed and insured?", answer: `Yes, ${config.name} is fully licensed and insured.` },
+      { question: "What is your cancellation policy?", answer: "We ask for at least 24 hours notice for cancellations. Late cancellations may incur a fee." },
+      { question: "Do you offer free estimates?", answer: "We provide free estimates for most services. Contact us to schedule one." },
+      { question: "How do I schedule an appointment?", answer: "You can call us directly or use our online booking system." },
+      { question: "Do you offer emergency service?", answer: "Please call us directly for urgent requests and we will do our best to accommodate you." },
+      { question: "What areas do you serve?", answer: `Please contact ${config.name} for our current service area.` },
+    ];
+    const faqs = defaultFaqs.slice(0, seedData.faqCount).map((f, i) => ({
       tenant_id: tenantId,
-      question: `Sample question ${i + 1} for ${config.name}?`,
-      answer: `This is the answer to sample question ${i + 1}.`,
-      priority_weight: i,
+      question: f.question,
+      answer: f.answer,
+      priority_weight: seedData.faqCount - i,
     }));
     if (faqs.length > 0) {
       await client.from("business_faqs").insert(faqs);
