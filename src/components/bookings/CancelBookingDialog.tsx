@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { BookingWithDetails } from "@/hooks/useBookings";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { toast } from "sonner";
 
 interface CancelBookingDialogProps {
@@ -21,6 +22,8 @@ interface CancelBookingDialogProps {
 }
 
 export function CancelBookingDialog({ booking, open, onOpenChange, onConfirm }: CancelBookingDialogProps) {
+  const { terms } = useIndustryContext();
+  const bookingLabel = terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1);
   const [isPending, setIsPending] = useState(false);
 
   const handleConfirm = async () => {
@@ -29,11 +32,11 @@ export function CancelBookingDialog({ booking, open, onOpenChange, onConfirm }: 
     setIsPending(true);
     try {
       await onConfirm(booking.id);
-      toast.success("Booking cancelled");
+      toast.success(`${bookingLabel} cancelled`);
       onOpenChange(false);
     } catch (err) {
       console.error("[CancelBookingDialog] cancel failed:", err);
-      toast.error("Failed to cancel booking");
+      toast.error(`Failed to cancel ${terms.booking}`);
     } finally {
       setIsPending(false);
     }
@@ -49,20 +52,20 @@ export function CancelBookingDialog({ booking, open, onOpenChange, onConfirm }: 
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="z-[60]">
         <AlertDialogHeader>
-          <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+          <AlertDialogTitle>Cancel {bookingLabel}</AlertDialogTitle>
           <AlertDialogDescription>
-            Cancel the booking for <strong>{customerName}</strong> — {serviceName} on {dateStr}?
+            Cancel the {terms.booking} for <strong>{customerName}</strong> — {serviceName} on {dateStr}?
             This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>Keep Booking</AlertDialogCancel>
+          <AlertDialogCancel disabled={isPending}>Keep {bookingLabel}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={isPending}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            {isPending ? "Cancelling..." : "Cancel Booking"}
+            {isPending ? "Cancelling..." : `Cancel ${bookingLabel}`}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

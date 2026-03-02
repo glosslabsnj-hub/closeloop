@@ -25,6 +25,7 @@ import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { CallCard } from "@/components/calls/CallCard";
 import { useToast } from "@/hooks/use-toast";
 import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   Tooltip,
   TooltipContent,
@@ -285,6 +286,7 @@ export default function CallsPage() {
   const needsFollowupCount = deduplicatedCalls.filter(c => c.followup_status === "new" || c.followup_status === "no_answer").length;
 
   return (
+    <ErrorBoundary>
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Calls"
@@ -522,6 +524,7 @@ export default function CallsPage() {
         />
       )}
     </PageContainer>
+    </ErrorBoundary>
   );
 }
 

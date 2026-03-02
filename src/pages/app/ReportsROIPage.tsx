@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   Tooltip,
   TooltipContent,
@@ -510,6 +511,7 @@ export default function ReportsROIPage() {
   }
 
   return (
+    <ErrorBoundary>
     <TooltipProvider>
       <PageContainer maxWidth="xl">
         <PageHeader
@@ -644,6 +646,7 @@ export default function ReportsROIPage() {
         )}
       </PageContainer>
     </TooltipProvider>
+    </ErrorBoundary>
   );
 }
 

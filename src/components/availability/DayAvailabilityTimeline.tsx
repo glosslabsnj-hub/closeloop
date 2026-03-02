@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { Plus, Calendar, XCircle } from "lucide-react";
 import type { BusyBlock } from "@/hooks/useCalendarConnections";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface DayAvailabilityTimelineProps {
   date: Date;
@@ -29,6 +30,8 @@ export function DayAvailabilityTimeline({
   onBlockTime,
   onRemoveBlock,
 }: DayAvailabilityTimelineProps) {
+  const { terms } = useIndustryContext();
+  const bookingLabel = terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1);
   const dayLabel = isToday(date)
     ? "Today"
     : isTomorrow(date)
@@ -78,7 +81,7 @@ export function DayAvailabilityTimeline({
             blockLabel = reason || "Calendar event";
             break;
           case "confirmed_booking":
-            blockLabel = reason || "Appointment";
+            blockLabel = reason || bookingLabel;
             break;
           case "manual_busy":
             blockLabel = reason || "Blocked";

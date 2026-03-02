@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useBookings, type BookingWithDetails } from "@/hooks/useBookings";
 import { useServices } from "@/hooks/useServices";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { toast } from "sonner";
 
 interface EditBookingDialogProps {
@@ -32,6 +33,7 @@ interface EditBookingDialogProps {
 export function EditBookingDialog({ booking, open, onOpenChange }: EditBookingDialogProps) {
   const { updateBooking } = useBookings();
   const { services } = useServices();
+  const { terms } = useIndustryContext();
 
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
@@ -64,10 +66,10 @@ export function EditBookingDialog({ booking, open, onOpenChange }: EditBookingDi
         service_id: serviceId || null,
         notes: notes || null,
       });
-      toast.success("Booking updated");
+      toast.success(`${terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)} updated`);
       onOpenChange(false);
     } catch {
-      toast.error("Failed to update booking");
+      toast.error(`Failed to update ${terms.booking}`);
     }
   };
 
@@ -79,9 +81,9 @@ export function EditBookingDialog({ booking, open, onOpenChange }: EditBookingDi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Booking</DialogTitle>
+          <DialogTitle>Edit {terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}</DialogTitle>
           <DialogDescription>
-            Update the booking for {customerName}
+            Update the {terms.booking} for {customerName}
           </DialogDescription>
         </DialogHeader>
 

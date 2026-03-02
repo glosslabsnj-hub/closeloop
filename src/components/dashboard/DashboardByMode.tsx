@@ -315,7 +315,7 @@ function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode
           href="/app/medical-intake"
         />
         <StatCard
-          title="Appointments Today"
+          title={`${terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1)} Today`}
           value={stats?.completedItems || 0}
           icon={Calendar}
           href="/app/bookings"

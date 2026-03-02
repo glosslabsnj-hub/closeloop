@@ -26,6 +26,7 @@ import {
   Users, Flame, Thermometer, Snowflake, TrendingUp, UserCheck, UserX, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   Tooltip,
   TooltipContent,
@@ -204,6 +205,7 @@ export default function LeadsPage() {
   }
 
   return (
+    <ErrorBoundary>
     <PageContainer maxWidth="xl">
       <PageHeader
         title={modeLabels.leadsLabel}
@@ -435,5 +437,6 @@ export default function LeadsPage() {
         customerId={smsRecipient.customerId}
       />
     </PageContainer>
+    </ErrorBoundary>
   );
 }

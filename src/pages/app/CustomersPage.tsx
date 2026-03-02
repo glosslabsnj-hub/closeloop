@@ -28,6 +28,7 @@ import {
 import { format, formatDistanceToNow } from "date-fns";
 import { CustomerDetailSheet } from "@/components/customers/CustomerDetailSheet";
 import { CreateCustomerDialog } from "@/components/customers/CreateCustomerDialog";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import CustomerMergeQueue from "@/components/customers/CustomerMergeQueue";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { CustomerCSVImportDialog } from "@/components/customers/CustomerCSVImportDialog";
@@ -134,6 +135,7 @@ export default function CustomersPage() {
   };
 
   return (
+    <ErrorBoundary>
     <PageContainer maxWidth="xl">
       <PageHeader
         title={modeLabels.customersLabel === "Customer" ? "Customers" : modeLabels.customersLabel}
@@ -347,5 +349,6 @@ export default function CustomersPage() {
         initialCustomerPhone={bookingCustomerPhone}
       />
     </PageContainer>
+    </ErrorBoundary>
   );
 }

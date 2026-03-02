@@ -22,6 +22,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useServices } from "@/hooks/useServices";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -46,6 +47,7 @@ export function CreateBookingDialog({
 }: CreateBookingDialogProps) {
   const { services } = useServices();
   const { effectiveTenantId } = useAuth();
+  const { terms } = useIndustryContext();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -72,7 +74,7 @@ export function CreateBookingDialog({
 
   const handleSubmit = async () => {
     if (!customerName.trim() || !customerPhone.trim()) {
-      toast.error("Please enter customer name and phone");
+      toast.error(`Please enter ${terms.customer.toLowerCase()} name and phone`);
       return;
     }
 
@@ -125,7 +127,7 @@ export function CreateBookingDialog({
       queryClient.invalidateQueries({ queryKey: ["bookings", effectiveTenantId] });
       queryClient.invalidateQueries({ queryKey: ["schedule-bookings"] });
 
-      toast.success("Booking created successfully");
+      toast.success(`${terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)} created successfully`);
       onOpenChange(false);
       onSuccess?.();
 
@@ -136,7 +138,7 @@ export function CreateBookingDialog({
       setNotes("");
     } catch (error) {
       console.error("Error creating booking:", error);
-      toast.error("Failed to create booking");
+      toast.error(`Failed to create ${terms.booking}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -146,9 +148,9 @@ export function CreateBookingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Booking</DialogTitle>
+          <DialogTitle>Create {terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}</DialogTitle>
           <DialogDescription>
-            Add a new appointment to your schedule
+            Add a new {terms.booking} to your schedule
           </DialogDescription>
         </DialogHeader>
 
@@ -162,7 +164,7 @@ export function CreateBookingDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="customerName">Customer Name</Label>
+            <Label htmlFor="customerName">{terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)} Name</Label>
             <Input
               id="customerName"
               value={customerName}
@@ -180,7 +182,7 @@ export function CreateBookingDialog({
               placeholder="+1 (555) 123-4567"
             />
             <p className="text-xs text-muted-foreground">
-              We'll use this to link the booking to the customer's record
+              We'll use this to link the {terms.booking} to the {terms.customer.toLowerCase()}'s record
             </p>
           </div>
 
@@ -220,7 +222,7 @@ export function CreateBookingDialog({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Creating..." : "Create Booking"}
+            {isSubmitting ? "Creating..." : `Create ${terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}`}
           </Button>
         </DialogFooter>
       </DialogContent>

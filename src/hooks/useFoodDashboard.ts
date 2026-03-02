@@ -51,7 +51,7 @@ export function useFoodDashboard(): {
 
       const pendingOrders = allOrders.filter(o => o.status === "pending" || o.status === "confirmed");
       const preparingOrders = allOrders.filter(o => o.status === "preparing");
-      const readyOrders = allOrders.filter(o => o.status === "ready" || o.status === "ready_for_pickup");
+      const readyOrders = allOrders.filter(o => o.status === "ready");
       const totalTodayRevenueCents = allOrders.reduce((sum, o) => sum + (o.total_cents || 0), 0);
 
       return {
