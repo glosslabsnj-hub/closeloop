@@ -3595,13 +3595,20 @@ async function persistTestDrive(
     scheduledAt = `${dateStr}T09:00:00`;
   }
 
+  // Combine vehicle interest + booking notes into notes field
+  // (test_drives has no vehicle_interest column — individual vehicle_* fields exist instead)
+  const vehicleInterest = sales.vehicle_interest || null;
+  const bookingNotes = payload.booking.notes || null;
+  const combinedNotes = [vehicleInterest && `Vehicle interest: ${vehicleInterest}`, bookingNotes]
+    .filter(Boolean)
+    .join(". ") || null;
+
   const { data: testDrive, error } = await supabase
     .from("test_drives")
     .insert({
       tenant_id: tenantId,
       customer_id: customerId,
       session_id: sessionId,
-      vehicle_interest: sales.vehicle_interest || null,
       scheduled_at: scheduledAt,
       scheduled_date: dateStr || null,
       scheduled_time: timeStr || null,
@@ -3611,7 +3618,7 @@ async function persistTestDrive(
       financing_interest: sales.financing_interest,
       budget_range: sales.budget_range || null,
       status: "pending",
-      notes: payload.booking.notes || null,
+      notes: combinedNotes,
     })
     .select("id")
     .single();

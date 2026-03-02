@@ -52,3 +52,21 @@ receptionist_eng session - 2026-03-02 2:03 PM ET
 ### Handoffs
 - Completed: #224 (urgent, brain retrieval fix)
 - Filed: #226 (high, QA verification of brain AI fix)
+
+### Mar 2, 2026 — 5:43 PM ET (receptionist_fix — Availability Slots Sync)
+**Handoff processed:** #225 (from receptionist_qa) — availability_slots not synced with hours after time change
+**Root cause:** updateBusinessHours() only updated tenants.hours_json, never touched availability_slots table. build-business-brain prefers table rows when present → AI used stale hours.
+**Fix:** Added syncAvailabilitySlotsFromHours() to writeBrainFact.ts. Derives slots from hours_json and writes via delete+insert. BusinessHoursManager now invalidates availability_slots + availability-slots-preview query caches. Also implemented updateAvailabilitySlots() (was Phase 3 stub).
+**Files changed:** src/lib/brain/writeBrainFact.ts, src/components/brain/profile/BusinessHoursManager.tsx, tests/availability-slots-sync.test.ts (NEW)
+**Tests:** 656 pass (+10 new). Build clean.
+**Commit:** 228ab95
+**Deployed:** Frontend to VPS (200). No edge function changes needed (sync happens client-side).
+**Handoff filed:** #228 to receptionist_qa — verify settings/business_hours_save_and_enforce gate.
+
+## receptionist_eng — 2026-03-02 5:56 PM ET
+**CRITICAL BUG FIXED**: elevenlabs-reschedule-booking + elevenlabs-lookup-booking queried non-existent bookings.customer_id column. Phone-based booking lookup was silently failing. Fixed to use leads table (phone → lead_id → bookings).
+- Full audit of 8 critical edge functions — all clean
+- Deployed 2 edge functions + frontend to VPS
+- Commit: cec3a21
+- Tests: 656/656 passing
+- SERVICE: 23/42 QA-verified (55%), 16 WIP gates awaiting QA

@@ -1,19 +1,17 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 4:36 PM ET (receptionist_fix — global hooks silent fail)
+## Last Session: 2026-03-02 6:20 PM ET (receptionist_ux — terminology + responsive + plain language)
 
 ### What Was Done
-- **useNotifications**: Fixed `throw error` → `return []` on error. Was crashing on every page via NotificationBell when owner_notifications RLS fails.
-- **useMyAgencyApplication**: Added staleTime 5min (was re-querying agency_applications on every page navigation)
-- **useAgencyAccount**: Added staleTime 5min
-- **useKnowledgeConflicts**: Added staleTime 60s (realtime subscription already handles updates)
-- **20 new regression tests** in `tests/global-hooks-silent-fail.test.ts` enforce silent-fail pattern for all 4 global hooks
+- **30+ terminology fixes**: Hardcoded "Appointment/Booking/Customer" strings made mode-aware across 7 files using `useIndustryContext()` and `getTerminology()`.
+- **Responsive fixes**: HowToGuide TabsList (`grid-cols-1 sm:grid-cols-3`), BookingsPage filters (`w-full sm:w-36/44` + `flex-wrap`).
+- **Plain language**: SMS "A2P 10DLC" → "phone number verification", medical "PHI" → "patient data", "BAA" → "signed agreements".
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 646/646 passing (+20 new)
-- Commit: 8112aea
-- Pushed to main & deployed
+- Tests: 656/656 passing
+- Commit: c0325c9
+- Pushed to main
 
 ### MODE PROGRESS
 - SERVICE: 23/42 QA-verified (55%) ← FOCUS
@@ -25,28 +23,24 @@
 
 ### Key Architecture Patterns
 - **Super_admin auth**: TWO layers must both handle super_admin: (1) DB `has_tenant_access()` function (migration 20260301210000) and (2) edge function `requireAuthedTenant` in `_shared/tenant.ts`. Both now check `user_roles` for super_admin and allow any tenant.
-- **ai-plan-response**: Uses Anthropic Claude Haiku 4.5. Queries DB directly. Falls back gracefully if ANTHROPIC_API_KEY missing.
-- **build-business-brain**: Queries 23 tables in parallel. Mode-specific knowledge only for matching mode.
-- **Onboarding template priority**: industryCatalog.ts is authoritative. Step 5b (legacy industryTemplates) SKIPPED when catalog entry exists.
+- **ai-plan-response**: Uses Anthropic Claude Haiku 4.5. Queries DB directly. Falls back gracefully if ANTHROPIC_API_KEY missing. FAQs+services always injected (commit 2c74dd1).
+- **build-business-brain**: Queries 23 tables in parallel. Mode-specific knowledge only for matching mode. FAQs+services unconditional.
+- **Booking customer linkage**: bookings table has NO customer_id. Link is `lead_id → leads.customer_id`. ALL booking lookups must go through leads table. dispatch_jobs and ai_call_sessions DO have customer_id.
 - **tenant_id in agent tools**: MUST be `required: true` on ALL tools. Regression test guards this.
 - **twilio_call_sid in transfer tool**: MUST be `required: true`.
 - **booking_status enum**: Has BOTH 'canceled' and 'cancelled'. Use either.
 - **order_status enum**: pending, confirmed, preparing, ready, out_for_delivery, completed, cancelled. NO 'ready_for_pickup'.
 - **RLS policy pattern**: All tenant-scoped tables need explicit SELECT/INSERT/UPDATE/DELETE policies + service_role bypass.
-- **Global hooks must fail silently**: useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts, useNotifications all run on every page via AppLayout. They MUST NOT throw — return null/[] on error. All must have `retry: false` and `staleTime > 0`. Regression test `tests/global-hooks-silent-fail.test.ts` enforces this.
-- **Mode-aware terminology pattern**: Use `useIndustryContext()` → `terms` for UI labels. Never hardcode "Customer", "appointment", "Walk-in".
-- **Edge function deployment**: Functions MUST be deployed after code changes. Code changes alone don't affect production. Use: `SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env | cut -d'"' -f2) npx supabase functions deploy [name] --project-ref yltzlvzgwkidbeqaoevp`
-- **Vitest file reads**: Use `@vitest-environment node` directive, import from `node:fs` and `node:path`.
-- **_shared/tenant.ts redeploy**: When modifying `_shared/tenant.ts`, ALL 29 edge functions that import from it need redeployment. For targeted fixes, only redeploy the affected functions.
+- **Global hooks must fail silently**: useAgencyAccount, useMyAgencyApplication, useKnowledgeConflicts, useNotifications all run on every page via AppLayout. They MUST NOT throw — return null/[] on error. All must have `retry: false` and `staleTime > 0`. Regression test enforces this.
+- **Mode-aware terminology pattern**: Use `useIndustryContext()` → `terms` for UI labels. For public pages (no auth), use `getTerminology(mode)` directly.
+- **Edge function deployment**: Functions MUST be deployed after code changes. Use: `SUPABASE_ACCESS_TOKEN=$(grep SUPABASE_ACCESS_TOKEN .env | cut -d'"' -f2) npx supabase functions deploy [name] --project-ref yltzlvzgwkidbeqaoevp`
+- **_shared/tenant.ts redeploy**: When modifying `_shared/tenant.ts`, ALL 29 edge functions that import from it need redeployment.
 
 ### Remaining Work
-- 15 WIP gates awaiting QA verification (most have eng fixes deployed)
+- 16 WIP gates awaiting QA verification (all have eng/ux fixes deployed)
 - 2 BLOCKED gates (Google Calendar OAuth, SMS A2P registration)
 - 1 FAILING gate (ai_handles_edge_cases — WS connection drops in test framework, not an eng issue)
-- Plan/Billing settings tab: "Manage Billing" on settings page (low priority)
-- Stripe Customer Portal configuration (Jack task)
 
 ### Next Priorities
-1. QA verification of AI Simulator fix (handoff #220 filed)
-2. QA verification of console errors fix (handoff #222 filed — useNotifications silent fail + staleTime on all 4 global hooks)
-3. Continue clearing WIP gates as QA verifies them
+1. QA verification of all WIP gates (handoffs filed)
+2. Continue clearing WIP gates as QA verifies them
