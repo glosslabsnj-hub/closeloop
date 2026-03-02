@@ -98,7 +98,7 @@ function createCheckAvailabilityTool(modeSpecificDescription?: string): AgentToo
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
@@ -145,7 +145,7 @@ function createSuggestAvailabilityTool(modeSpecificDescription?: string): AgentT
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
@@ -211,7 +211,7 @@ function createBookingTool(modeSpecificDescription?: string): AgentTool {
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
@@ -263,7 +263,7 @@ function createCheckServiceAreaTool(modeSpecificDescription?: string, includeVeh
     {
       name: "tenant_id",
       type: "string",
-      required: false,
+      required: true,
       description: "Tenant identifier",
       dynamicValue: "{{tenant_id}}",
     },
@@ -357,7 +357,7 @@ function createDispatchJobTool(modeSpecificDescription?: string, isDispatchMode 
     {
       name: "tenant_id",
       type: "string",
-      required: false,
+      required: true,
       description: "Tenant identifier",
       dynamicValue: "{{tenant_id}}",
     },
@@ -431,7 +431,7 @@ function createCallbackTool(modeSpecificDescription?: string): AgentTool {
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
@@ -867,7 +867,7 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -943,7 +943,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -998,7 +998,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -1056,7 +1056,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -1151,7 +1151,7 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -1233,7 +1233,7 @@ export const GENERAL_AGENT_CONFIG: AgentToolsConfig = {
         {
           name: "tenant_id",
           type: "string",
-          required: false,
+          required: true,
           description: "Tenant identifier",
           dynamicValue: "{{tenant_id}}",
         },
@@ -1537,7 +1537,7 @@ function createFoodOrderTool(): AgentTool {
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
@@ -1596,7 +1596,7 @@ function createRescheduleBookingTool(): AgentTool {
       {
         name: "tenant_id",
         type: "string",
-        required: false,
+        required: true,
         description: "Tenant identifier",
         dynamicValue: "{{tenant_id}}",
       },
