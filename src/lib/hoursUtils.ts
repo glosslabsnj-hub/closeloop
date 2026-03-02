@@ -176,14 +176,28 @@ export function formatWindowsForDisplay(windows: TimeWindow[]): string {
  * Get today's hours preview for AI
  */
 export function getTodayHoursPreview(hours: BusinessHours): string {
+  // Check 24/7 first — avoids awkward "open today midnight - midnight"
+  if (getIs24x7(hours)) {
+    return "We're available 24/7.";
+  }
+
   const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   const today = days[new Date().getDay()];
   const todayHours = hours[today];
-  
+
   if (!todayHours || todayHours.closed || todayHours.windows.length === 0) {
     return "We're closed today.";
   }
-  
+
+  // Single window covering entire day (but not all 7 days) → "open 24 hours today"
+  if (
+    todayHours.windows.length === 1 &&
+    todayHours.windows[0].open === "00:00" &&
+    todayHours.windows[0].close === "23:59"
+  ) {
+    return "We're open 24 hours today.";
+  }
+
   const windowsText = formatWindowsForDisplay(todayHours.windows);
   return `We're open today ${windowsText}.`;
 }

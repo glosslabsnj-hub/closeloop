@@ -40,7 +40,7 @@ import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
+import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, SLUG_COMPLEXITY_OVERRIDES, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 
@@ -108,16 +108,17 @@ const defaultFormData: ServiceFormData = {
 };
 
 // Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
-function ServiceForm({ 
-  formData, 
-  onChange, 
-  onSave, 
-  onCancel, 
+function ServiceForm({
+  formData,
+  onChange,
+  onSave,
+  onCancel,
   isSaving,
   isNew = false,
   serviceExamples,
   businessMode,
-}: { 
+  complexityHints,
+}: {
   formData: ServiceFormData;
   onChange: (field: keyof ServiceFormData, value: any) => void;
   onSave: () => void;
@@ -126,6 +127,7 @@ function ServiceForm({
   isNew?: boolean;
   serviceExamples: ReturnType<typeof getServiceExamples>;
   businessMode: string;
+  complexityHints: { simple: string; complex: string };
 }) {
   return (
     <div className="p-4 space-y-4 border-t bg-muted/20">
@@ -234,8 +236,8 @@ function ServiceForm({
           </div>
           <p className="text-xs text-muted-foreground">
             {formData.complexity === "simple"
-              ? `Quick: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).simple}`
-              : `Detailed: ${(COMPLEXITY_HINTS[businessMode] || COMPLEXITY_HINTS.general).complex}`
+              ? `Quick: ${complexityHints.simple}`
+              : `Detailed: ${complexityHints.complex}`
             }
           </p>
         </div>
@@ -425,6 +427,10 @@ export function ServiceCatalogEditor() {
   const serviceExamples = slug
     ? getSlugServiceExamples(businessMode, slug)
     : getServiceExamples(businessMode);
+
+  const complexityHints = (slug && SLUG_COMPLEXITY_OVERRIDES[slug])
+    || COMPLEXITY_HINTS[businessMode]
+    || COMPLEXITY_HINTS.general;
 
   const [expandedServiceId, setExpandedServiceId] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -701,7 +707,7 @@ export function ServiceCatalogEditor() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold capitalize">{terms.services} Catalog</h3>
+          <h3 className="text-lg font-semibold">{terms.services.charAt(0).toUpperCase() + terms.services.slice(1)} Catalog</h3>
           <p className="text-sm text-muted-foreground">
             {services?.length 
               ? `${services.length} ${serviceExamples.serviceName}${services.length !== 1 ? 's' : ''} • Click to expand and edit`
@@ -746,6 +752,7 @@ export function ServiceCatalogEditor() {
             isNew
             serviceExamples={serviceExamples}
             businessMode={businessMode}
+            complexityHints={complexityHints}
           />
         </Card>
       )}
@@ -819,6 +826,7 @@ export function ServiceCatalogEditor() {
                         isSaving={savingServiceId === service.id}
                         serviceExamples={serviceExamples}
                         businessMode={businessMode}
+                        complexityHints={complexityHints}
                       />
                     )}
                     <div className="px-4 py-2 border-t bg-muted/10 flex items-center justify-between">

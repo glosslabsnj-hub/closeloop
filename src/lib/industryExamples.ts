@@ -19,10 +19,10 @@ export interface ServiceExamples {
 export const SERVICE_EXAMPLES: Record<BusinessMode, ServiceExamples> = {
   service: {
     serviceName: "service",
-    serviceNamePlaceholder: "Haircut, Oil Change, Deep Cleaning, etc.",
+    serviceNamePlaceholder: "e.g., Standard Service, Repair, Consultation",
     descriptionPlaceholder: "What's included in this service...",
     durationHint: "Helps AI suggest realistic timeframes",
-    priceExamples: "Example: Full Detail - $150, Starting at $99",
+    priceExamples: "Example: Standard Service - $150, Starting at $99",
   },
   dispatch: {
     serviceName: "service",
@@ -253,12 +253,27 @@ export function getProfileExamples(mode: BusinessMode): ProfileExamples {
  * Complexity hints by business mode — helps owners understand the toggle
  */
 export const COMPLEXITY_HINTS: Record<BusinessMode, { simple: string; complex: string }> = {
-  service: { simple: "Oil change, tire rotation, basic wash", complex: "Engine diagnostic, electrical, transmission" },
+  service: { simple: "Routine maintenance, standard appointment", complex: "Custom project, on-site assessment needed" },
   dispatch: { simple: "Lockout, jump start, tire change", complex: "Heavy-duty tow, accident recovery, winch-out" },
   food: { simple: "Standard menu items", complex: "Custom catering, special dietary prep" },
   medical: { simple: "Follow-up, routine checkup", complex: "Initial consultation, procedure, surgery" },
   general: { simple: "Standard service, quick task", complex: "Custom project, assessment needed" },
   sales: { simple: "Standard product inquiry", complex: "Custom configuration, financing discussion" },
+};
+
+/**
+ * Slug-specific complexity hint overrides
+ */
+export const SLUG_COMPLEXITY_OVERRIDES: Record<string, { simple: string; complex: string }> = {
+  "hvac": { simple: "AC tune-up, filter change, thermostat install", complex: "Full system install, duct work, diagnostic" },
+  "plumbing": { simple: "Drain cleaning, faucet repair, toilet fix", complex: "Pipe replacement, water heater, sewer line" },
+  "auto-repair": { simple: "Oil change, tire rotation, brake pads", complex: "Engine diagnostic, electrical, transmission" },
+  "auto-detailing": { simple: "Basic wash, interior vacuum, wax", complex: "Full detail, ceramic coating, paint correction" },
+  "hair-salon": { simple: "Cut, blowout, basic color", complex: "Balayage, extensions, keratin treatment" },
+  "dental": { simple: "Cleaning, filling, routine exam", complex: "Crown, root canal, cosmetic procedure" },
+  "electrical": { simple: "Outlet install, light fixture, switch", complex: "Panel upgrade, rewiring, inspection" },
+  "cleaning": { simple: "Standard cleaning, touch-up", complex: "Deep clean, move-out, post-construction" },
+  "landscaping": { simple: "Mowing, trimming, leaf cleanup", complex: "Hardscaping, irrigation install, tree removal" },
 };
 
 /**
