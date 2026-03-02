@@ -96,7 +96,7 @@ serve(async (req) => {
       supabase.from("objection_responses").select("*").eq("tenant_id", tenantId),
       supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true),
       supabase.from("ai_knowledge_base").select("*").eq("tenant_id", tenantId),
-      supabase.from("tenants").select("context_fields_json, cancellation_policy, deposit_policy, refund_policy").eq("id", tenantId).single(),
+      supabase.from("tenants").select("context_fields_json, cancellation_policy, deposit_policy, refund_policy, hours_json").eq("id", tenantId).single(),
     ]);
 
     const snippets: KnowledgeSnippet[] = [];
@@ -198,8 +198,39 @@ serve(async (req) => {
       });
     }
 
-    // Add tenant policies as snippets
+    // Add tenant hours as auto-generated snippet
     const tenant = tenantResult.data;
+    if (tenant?.hours_json && typeof tenant.hours_json === 'object') {
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const hoursLines: string[] = [];
+      for (const dayName of dayNames) {
+        const dayLower = dayName.toLowerCase();
+        const dayIndex = dayNames.indexOf(dayName).toString();
+        const dayData = tenant.hours_json[dayLower] || tenant.hours_json[dayName] || tenant.hours_json[dayIndex];
+        if (!dayData) continue;
+        if (dayData.closed) {
+          hoursLines.push(`${dayName}: Closed`);
+        } else if (dayData.windows && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
+          const windowStr = dayData.windows.map((w: any) => `${w.open} - ${w.close}`).join(', ');
+          hoursLines.push(`${dayName}: ${windowStr}`);
+        } else if (dayData.open && dayData.close) {
+          hoursLines.push(`${dayName}: ${dayData.open} - ${dayData.close}`);
+        }
+      }
+      if (hoursLines.length > 0) {
+        const hoursContent = hoursLines.join('\n');
+        const score = calculateRelevance(queryText, `business hours open close schedule when available ${hoursContent}`);
+        snippets.push({
+          source_type: 'faq' as const,
+          id: 'business_hours',
+          title: 'Business Hours',
+          content: hoursContent,
+          relevance_score: score + getIntentBoost(detectedIntent, 'faq') + 0.2, // Always boost hours snippet
+        });
+      }
+    }
+
+    // Add tenant policies as snippets
     if (tenant) {
       if (tenant.cancellation_policy) {
         const score = calculateRelevance(queryText, `cancel cancellation policy ${tenant.cancellation_policy}`);
@@ -271,10 +302,12 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in retrieve-knowledge:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("Error in retrieve-knowledge:", errMsg);
+    const isAuthError = /unauthorized|invalid.*jwt|jwt.*expired|not.*member|no.*authorization/i.test(errMsg);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errMsg }),
+      { status: isAuthError ? 401 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

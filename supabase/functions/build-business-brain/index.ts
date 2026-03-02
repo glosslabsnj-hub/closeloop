@@ -475,12 +475,35 @@ serve(async (req) => {
         booking_mode: assistantSettings?.ai_booking_mode || 'auto_book',
         closed_dates: Array.isArray(tenant.closed_dates) ? tenant.closed_dates : [],
       },
-      availability_slots: availabilitySlots.map(s => ({
-        day_of_week: s.day_of_week,
-        start_time: s.start_time,
-        end_time: s.end_time,
-        is_available: s.is_available,
-      })),
+      availability_slots: availabilitySlots.length > 0
+        ? availabilitySlots.map(s => ({
+            day_of_week: s.day_of_week,
+            start_time: s.start_time,
+            end_time: s.end_time,
+            is_available: s.is_available,
+          }))
+        : // Derive from hours_json when availability_slots table is empty
+          (() => {
+            const hoursJson = tenant.hours_json;
+            if (!hoursJson || typeof hoursJson !== 'object') return [];
+            const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const derived: Array<{ day_of_week: number; start_time: string; end_time: string; is_available: boolean }> = [];
+            for (let i = 0; i < dayNames.length; i++) {
+              const dayData = hoursJson[dayNames[i]] || hoursJson[i.toString()];
+              if (!dayData || dayData.closed) {
+                derived.push({ day_of_week: i, start_time: '00:00', end_time: '00:00', is_available: false });
+                continue;
+              }
+              if (dayData.windows && Array.isArray(dayData.windows)) {
+                for (const w of dayData.windows) {
+                  derived.push({ day_of_week: i, start_time: w.open, end_time: w.close, is_available: true });
+                }
+              } else if (dayData.open && dayData.close) {
+                derived.push({ day_of_week: i, start_time: dayData.open, end_time: dayData.close, is_available: true });
+              }
+            }
+            return derived;
+          })(),
       guardrails: {
         never_promise: tenant.ai_never_promise || [],
         do_not_say: [
@@ -626,9 +649,10 @@ serve(async (req) => {
     const errMsg = error instanceof Error ? error.message : String(error);
     const errStack = error instanceof Error ? error.stack : '';
     console.error("Error in build-business-brain:", errMsg, errStack);
+    const isAuthError = /unauthorized|invalid.*jwt|jwt.*expired|not.*member|no.*authorization/i.test(errMsg);
     return new Response(
       JSON.stringify({ error: errMsg }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: isAuthError ? 401 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

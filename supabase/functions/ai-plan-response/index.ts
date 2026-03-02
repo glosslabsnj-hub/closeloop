@@ -190,6 +190,37 @@ function retrieveKnowledge(
     });
   }
 
+  // Auto-generate business hours snippet from hours_json
+  if (tenant?.hours_json && typeof tenant.hours_json === 'object') {
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const hoursLines: string[] = [];
+    for (const dayName of dayNames) {
+      const dayLower = dayName.toLowerCase();
+      const dayIdx = dayNames.indexOf(dayName).toString();
+      const dayData = tenant.hours_json[dayLower] || tenant.hours_json[dayName] || tenant.hours_json[dayIdx];
+      if (!dayData) continue;
+      if (dayData.closed) {
+        hoursLines.push(`${dayName}: Closed`);
+      } else if (dayData.windows && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
+        const windowStr = dayData.windows.map((w: any) => `${w.open} - ${w.close}`).join(', ');
+        hoursLines.push(`${dayName}: ${windowStr}`);
+      } else if (dayData.open && dayData.close) {
+        hoursLines.push(`${dayName}: ${dayData.open} - ${dayData.close}`);
+      }
+    }
+    if (hoursLines.length > 0) {
+      const hoursContent = hoursLines.join('\n');
+      const score = calculateRelevance(queryText, `business hours open close schedule when available ${hoursContent}`);
+      snippets.push({
+        source_type: 'faq',
+        id: 'business_hours',
+        title: 'Business Hours',
+        content: hoursContent,
+        relevance_score: score + getIntentBoost(intent, 'faq') + 0.2,
+      });
+    }
+  }
+
   const rankedSnippets = snippets
     .filter(s => s.relevance_score > 0.1)
     .sort((a, b) => b.relevance_score - a.relevance_score)
@@ -224,6 +255,28 @@ BUSINESS INFORMATION:
 - Address: ${brain.business.address || 'Not provided'}
 
 `;
+
+  // Add business hours
+  if (brain.hours && Object.keys(brain.hours).length > 0) {
+    systemPrompt += `BUSINESS HOURS:\n`;
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    // Support both named keys ("monday") and numbered keys ("0"-"6"), plus legacy/new formats
+    for (const dayName of dayNames) {
+      const dayLower = dayName.toLowerCase();
+      const dayIndex = dayNames.indexOf(dayName).toString();
+      const dayData = brain.hours[dayLower] || brain.hours[dayName] || brain.hours[dayIndex];
+      if (!dayData) continue;
+      if (dayData.closed) {
+        systemPrompt += `- ${dayName}: CLOSED\n`;
+      } else if (dayData.windows && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
+        const windowStr = dayData.windows.map((w: any) => `${w.open} - ${w.close}`).join(', ');
+        systemPrompt += `- ${dayName}: ${windowStr}\n`;
+      } else if (dayData.open && dayData.close) {
+        systemPrompt += `- ${dayName}: ${dayData.open} - ${dayData.close}\n`;
+      }
+    }
+    systemPrompt += '\n';
+  }
 
   // Add services summary
   if (brain.services.length > 0) {
@@ -413,6 +466,7 @@ serve(async (req) => {
         phone: tenant.phone_public,
         address: tenant.address,
       },
+      hours: tenant.hours_json || {},
       services: services.map((s: any) => ({
         name: s.name,
         description: s.description,
@@ -538,9 +592,10 @@ serve(async (req) => {
     const errMsg = error instanceof Error ? error.message : String(error);
     const errStack = error instanceof Error ? error.stack : '';
     console.error("Error in ai-plan-response:", errMsg, errStack);
+    const isAuthError = /unauthorized|invalid.*jwt|jwt.*expired|not.*member|no.*authorization/i.test(errMsg);
     return new Response(
       JSON.stringify({ error: errMsg }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: isAuthError ? 401 : 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
