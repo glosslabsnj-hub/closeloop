@@ -17,6 +17,7 @@ import { SoundManager } from "@/components/notifications/SoundManager";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getReadinessVerb } from "@/data/industryTerminology";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 /** Mode-specific welcome messaging */
@@ -42,13 +43,17 @@ function getModeIcon(mode: string) {
 }
 
 /** Mode-specific capabilities list for the celebration */
-function getModeCapabilities(mode: string): string[] {
+function getModeCapabilities(mode: string, readinessVerb?: string): string[] {
+  // readinessVerb examples: "schedule jobs" (plumber), "book appointments" (salon), "take reservations" (restaurant)
+  const bookingCapability = readinessVerb
+    ? readinessVerb.charAt(0).toUpperCase() + readinessVerb.slice(1)
+    : "Book appointments";
   switch (mode) {
     case "food": return ["Take phone orders", "Answer menu questions", "Handle delivery requests", "Manage reservations"];
     case "dispatch": return ["Accept new job requests", "Collect location details", "Provide ETA estimates", "Handle emergency calls"];
     case "medical": return ["Schedule appointments", "Handle patient inquiries", "Triage by urgency", "Verify insurance info"];
     case "sales": return ["Qualify incoming leads", "Answer product questions", "Schedule consultations", "Follow up on interest"];
-    default: return ["Answer calls 24/7", "Book appointments", "Quote your prices", "Handle common questions"];
+    default: return ["Answer calls 24/7", bookingCapability, "Quote your prices", "Handle common questions"];
   }
 }
 
@@ -56,7 +61,7 @@ export function EmptyDashboard() {
   const navigate = useNavigate();
   const { tenant, assistantSettings } = useAuth();
   const readiness = useAIReadinessV2();
-  const { mode, terms } = useIndustryContext();
+  const { mode, terms, terminology } = useIndustryContext();
   const [copied, setCopied] = useState(false);
 
   // First-time celebration: show once after setup completes
@@ -135,7 +140,7 @@ export function EmptyDashboard() {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {getModeCapabilities(mode).map((cap) => (
+                  {getModeCapabilities(mode, getReadinessVerb(terminology.appointmentLabel)).map((cap) => (
                     <div key={cap} className="flex items-center gap-2 text-sm">
                       <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
                       <span>{cap}</span>

@@ -80,13 +80,15 @@ export function GoLiveStep({ onComplete, isComplete, canActivate }: GoLiveStepPr
 
       if (error) throw error;
 
-      await refreshTenant();
       setShowConfirm(false);
-      
+
       toast({
         title: "AI is now live",
         description: "Your AI is handling incoming calls.",
       });
+      // Call onComplete BEFORE refreshTenant — refreshTenant causes DashboardPage
+      // to swap to LiveDashboard, which unmounts SetupWizard. The completion screen
+      // needs to show first; tenant refresh happens when user clicks "Go to Dashboard".
       onComplete();
     } catch (error: any) {
       toast({
