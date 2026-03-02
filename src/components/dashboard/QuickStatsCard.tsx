@@ -3,11 +3,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bot, Phone, Calendar, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek, endOfWeek } from "date-fns";
 
 export function QuickStatsCard() {
   const { tenant } = useAuth();
+  const { terms } = useIndustryContext();
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["quick-stats", tenant?.id],
@@ -63,7 +65,7 @@ export function QuickStatsCard() {
       bgColor: "bg-primary/10",
     },
     {
-      label: "Bookings",
+      label: terms.bookingsMetricLabel,
       value: stats?.bookingsThisWeek ?? 0,
       icon: Calendar,
       color: "text-success",

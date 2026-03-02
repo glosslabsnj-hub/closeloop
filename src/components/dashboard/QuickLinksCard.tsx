@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 import { useKnowledgeConflicts } from "@/hooks/useKnowledgeConflicts";
 import { useMemo } from "react";
@@ -29,30 +30,34 @@ interface QuickLink {
   iconColor: string;
 }
 
-const allQuickLinks: QuickLink[] = [
-  { icon: Phone, label: "Inbox", href: "/app/inbox", description: "Conversations", iconBg: "bg-emerald-500/15", iconColor: "text-emerald-400" },
-  { icon: Calendar, label: "Bookings", href: "/app/bookings", description: "Appointments", requiredModules: ["booking"], iconBg: "bg-blue-500/15", iconColor: "text-blue-400" },
-  { icon: UtensilsCrossed, label: "Orders", href: "/app/orders", description: "Food orders", requiredModules: ["food_orders"], iconBg: "bg-orange-500/15", iconColor: "text-orange-400" },
-  { icon: Truck, label: "Dispatch", href: "/app/dispatch", description: "Job queue", requiredModules: ["dispatch_queue"], iconBg: "bg-sky-500/15", iconColor: "text-sky-400" },
-  { icon: Stethoscope, label: "Intakes", href: "/app/medical-intake", description: "Patient intake", requiredModules: ["medical_intake"], iconBg: "bg-rose-500/15", iconColor: "text-rose-400" },
-  { icon: Users, label: "Leads", href: "/app/leads", description: "All contacts", iconBg: "bg-violet-500/15", iconColor: "text-violet-400" },
-  { icon: Wrench, label: "Services", href: "/app/services", description: "Your offerings", iconBg: "bg-amber-500/15", iconColor: "text-amber-400" },
-];
+/** Build quick links with mode-aware labels for bookings/services */
+function buildQuickLinks(terms: { bookingsPageTitle: string; servicesPageTitle: string; bookingsPageSubtitle: string; servicesPageSubtitle: string }): QuickLink[] {
+  return [
+    { icon: Phone, label: "Inbox", href: "/app/inbox", description: "Conversations", iconBg: "bg-emerald-500/15", iconColor: "text-emerald-400" },
+    { icon: Calendar, label: terms.bookingsPageTitle || "Bookings", href: "/app/bookings", description: terms.bookingsPageSubtitle || "Appointments", requiredModules: ["booking"], iconBg: "bg-blue-500/15", iconColor: "text-blue-400" },
+    { icon: UtensilsCrossed, label: "Orders", href: "/app/orders", description: "Food orders", requiredModules: ["food_orders"], iconBg: "bg-orange-500/15", iconColor: "text-orange-400" },
+    { icon: Truck, label: "Dispatch", href: "/app/dispatch", description: "Job queue", requiredModules: ["dispatch_queue"], iconBg: "bg-sky-500/15", iconColor: "text-sky-400" },
+    { icon: Stethoscope, label: "Intakes", href: "/app/medical-intake", description: "Patient intake", requiredModules: ["medical_intake"], iconBg: "bg-rose-500/15", iconColor: "text-rose-400" },
+    { icon: Users, label: "Leads", href: "/app/leads", description: "All contacts", iconBg: "bg-violet-500/15", iconColor: "text-violet-400" },
+    { icon: Wrench, label: terms.servicesPageTitle || "Services", href: "/app/services", description: "Your offerings", iconBg: "bg-amber-500/15", iconColor: "text-amber-400" },
+  ];
+}
 
 export function QuickLinksCard() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
+  const { terms } = useIndustryContext();
   const { pendingCount: knowledgeGapCount } = useKnowledgeSuggestions();
   const { unresolvedCount: conflictCount } = useKnowledgeConflicts();
 
   const enabledModules = (Array.isArray(tenant?.enabled_modules) ? tenant.enabled_modules : []) as string[];
 
   const quickLinks = useMemo(() => {
-    return allQuickLinks.filter(link => {
+    return buildQuickLinks(terms).filter(link => {
       if (!link.requiredModules) return true;
       return link.requiredModules.some(mod => enabledModules.includes(mod));
     }).slice(0, 4);
-  }, [enabledModules]);
+  }, [enabledModules, terms]);
 
   // Priority action based on what needs attention
   const priorityAction = useMemo(() => {

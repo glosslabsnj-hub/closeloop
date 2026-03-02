@@ -100,9 +100,10 @@ export function LiveActivityFeed() {
         const displayPhone = phone.length > 8 ? `${phone.slice(0, 3)}...${phone.slice(-4)}` : phone;
         // Outcome values match the ai_call_outcome DB enum:
         // booked, followup, lost, escalated, order, dispatch, message, lead_captured, referral_transfer
-        const outcomeLabel = call.outcome === 'booked' ? 'Appointment Booked'
-          : call.outcome === 'dispatch' ? 'Job Dispatched'
-          : call.outcome === 'order' ? 'Order Taken'
+        // Uses mode-aware terms so plumber sees "Booking created" not "Appointment Booked"
+        const outcomeLabel = call.outcome === 'booked' ? terms.bookingCreated
+          : call.outcome === 'dispatch' ? terms.bookingCreated
+          : call.outcome === 'order' ? terms.bookingCreated
           : call.outcome === 'lead_captured' ? 'Lead Captured'
           : call.outcome === 'followup' ? 'Follow-up Needed'
           : call.outcome === 'escalated' ? 'Escalated'

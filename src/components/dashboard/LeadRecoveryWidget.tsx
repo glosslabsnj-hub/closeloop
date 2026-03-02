@@ -82,7 +82,7 @@ export function LeadRecoveryWidget() {
 
       <CardContent className="space-y-4">
         {/* Top metrics row */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <MetricCard
             icon={<RefreshCw className="w-4 h-4" />}
             label="Leads Recovered"
@@ -112,7 +112,7 @@ export function LeadRecoveryWidget() {
         </div>
 
         {/* Status bar */}
-        <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg text-sm">
+        <div className="flex flex-wrap items-center gap-3 p-3 bg-muted/50 rounded-lg text-sm">
           <div className="flex items-center gap-2">
             <RefreshCw className="w-4 h-4 text-primary" />
             <span className="text-muted-foreground">
@@ -225,7 +225,7 @@ function LeadRecoveryWidgetSkeleton() {
         <Skeleton className="h-8 w-28" />
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="p-3 rounded-lg bg-muted/50">
               <Skeleton className="h-4 w-20 mb-2" />

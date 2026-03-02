@@ -24,6 +24,7 @@ import {
   Calendar,
   TrendingUp
 } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useToast } from "@/hooks/use-toast";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -38,6 +39,7 @@ import {
 export function DashboardHeroCard() {
   const { tenant, assistantSettings, refreshTenant, subscription } = useAuth();
   const caps = useCapabilities();
+  const { terms } = useIndustryContext();
   const { score: readinessScore } = useAIReadinessV2();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -286,7 +288,7 @@ export function DashboardHeroCard() {
       icon: Phone,
     },
     {
-      label: "Bookings",
+      label: terms.bookingsMetricLabel,
       value: stats?.bookingsThisWeek || 0,
       icon: Calendar,
       sublabel: "this week",
