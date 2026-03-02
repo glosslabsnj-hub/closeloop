@@ -42,16 +42,15 @@ function detectIntent(message: string): Intent {
   return 'other';
 }
 
-// Generate draft reply using AI
+// Generate draft reply using AI (Anthropic Claude API)
 async function generateReply(
   brain: any,
   snippets: any[],
   userMessage: string,
   intent: Intent,
   channel: string,
-  lovableApiKey: string
 ): Promise<{ reply: string; next_action: string }> {
-  
+
   // Build system prompt from brain
   let systemPrompt = `You are an AI assistant for ${brain.business.name}`;
   if (brain.business.tagline) systemPrompt += ` - ${brain.business.tagline}`;
@@ -133,30 +132,40 @@ Intent detected: ${intent}
 
 Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 characters.' : 'Be conversational.'}`;
 
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!anthropicApiKey) {
+    console.error("ANTHROPIC_API_KEY not configured");
+    return {
+      reply: brain.ai_settings?.fallback || "I'd be happy to help! Let me have someone get back to you shortly.",
+      next_action: 'escalate',
+    };
+  }
+
   try {
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: channel === 'sms' ? 150 : 300,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: channel === 'sms' ? 150 : 300,
-        temperature: 0.7,
       }),
     });
 
     if (!aiResponse.ok) {
-      throw new Error(`AI API error: ${aiResponse.status}`);
+      const errText = await aiResponse.text().catch(() => '');
+      throw new Error(`Anthropic API error: ${aiResponse.status} ${errText}`);
     }
 
     const data = await aiResponse.json();
-    const reply = data.choices?.[0]?.message?.content?.trim() || '';
+    const reply = data.content?.[0]?.text?.trim() || '';
 
     // Determine next action based on intent and reply
     let next_action = 'provide_info';
@@ -197,7 +206,6 @@ serve(async (req) => {
     const { tenantId } = await requireAuthedTenant(req, requestedTenantId);
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = serviceClient();
 
     // Get the authorization header to pass to sub-functions
@@ -271,7 +279,6 @@ serve(async (req) => {
       userMessage,
       intent,
       channel,
-      lovableApiKey
     );
 
     // Check for knowledge gap

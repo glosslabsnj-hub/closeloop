@@ -50,7 +50,8 @@ FUNCTIONS=(
   get-voice-options
   cron-a2p-status-check
   ai-plan-response
-  # CONTEXT/MEMORY (7)
+  # CONTEXT/MEMORY (8)
+  build-business-brain
   check-recovery-context
   copilot-context
   get-business-context
