@@ -404,14 +404,14 @@ export type TerminologyKey = keyof Pick<
 // Booking action helpers — used by onboarding UI to show industry-native verbs
 // ---------------------------------------------------------------------------
 
-const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string; readinessVerb: string }> = {
-  job: { actionPhrase: "schedule a job", autoSummary: "schedule jobs automatically", readinessVerb: "schedule jobs" },
-  reservation: { actionPhrase: "make a reservation", autoSummary: "take reservations automatically", readinessVerb: "take reservations" },
-  dispatch: { actionPhrase: "request service", autoSummary: "assign dispatches automatically", readinessVerb: "dispatch jobs" },
-  visit: { actionPhrase: "schedule a visit", autoSummary: "schedule visits automatically", readinessVerb: "schedule visits" },
-  session: { actionPhrase: "book a session", autoSummary: "book sessions automatically", readinessVerb: "book sessions" },
-  consultation: { actionPhrase: "schedule a consultation", autoSummary: "schedule consultations automatically", readinessVerb: "schedule consultations" },
-  appointment: { actionPhrase: "book an appointment", autoSummary: "book appointments automatically", readinessVerb: "book appointments" },
+const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string; readinessVerb: string; activeVerb: string }> = {
+  job: { actionPhrase: "schedule a job", autoSummary: "schedule jobs automatically", readinessVerb: "schedule jobs", activeVerb: "scheduling jobs" },
+  reservation: { actionPhrase: "make a reservation", autoSummary: "take reservations automatically", readinessVerb: "take reservations", activeVerb: "taking reservations" },
+  dispatch: { actionPhrase: "request service", autoSummary: "assign dispatches automatically", readinessVerb: "dispatch jobs", activeVerb: "dispatching jobs" },
+  visit: { actionPhrase: "schedule a visit", autoSummary: "schedule visits automatically", readinessVerb: "schedule visits", activeVerb: "scheduling visits" },
+  session: { actionPhrase: "book a session", autoSummary: "book sessions automatically", readinessVerb: "book sessions", activeVerb: "booking sessions" },
+  consultation: { actionPhrase: "schedule a consultation", autoSummary: "schedule consultations automatically", readinessVerb: "schedule consultations", activeVerb: "scheduling consultations" },
+  appointment: { actionPhrase: "book an appointment", autoSummary: "book appointments automatically", readinessVerb: "book appointments", activeVerb: "booking appointments" },
 };
 
 /** Returns phrasing like "schedule a job" or "book an appointment" based on appointmentLabel */
@@ -427,6 +427,11 @@ export function getAutoBookSummary(appointmentLabel: string): string {
 /** Returns phrasing like "schedule jobs" for readiness descriptions */
 export function getReadinessVerb(appointmentLabel: string): string {
   return BOOKING_VERBS[appointmentLabel]?.readinessVerb ?? "book appointments";
+}
+
+/** Returns present-participle phrasing like "scheduling jobs" or "booking appointments" */
+export function getActiveVerb(appointmentLabel: string): string {
+  return BOOKING_VERBS[appointmentLabel]?.activeVerb ?? "booking appointments";
 }
 
 /**

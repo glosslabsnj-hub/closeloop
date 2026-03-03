@@ -34,7 +34,7 @@ interface QuickLink {
 function buildQuickLinks(terms: { bookingsPageTitle: string; servicesPageTitle: string; bookingsPageSubtitle: string; servicesPageSubtitle: string }): QuickLink[] {
   return [
     { icon: Phone, label: "Inbox", href: "/app/inbox", description: "Conversations", iconBg: "bg-emerald-500/15", iconColor: "text-emerald-400" },
-    { icon: Calendar, label: terms.bookingsPageTitle || "Bookings", href: "/app/bookings", description: terms.bookingsPageSubtitle || "Appointments", requiredModules: ["booking"], iconBg: "bg-blue-500/15", iconColor: "text-blue-400" },
+    { icon: Calendar, label: terms.bookingsPageTitle || "Bookings", href: "/app/bookings", description: terms.bookingsPageSubtitle || "Schedule", requiredModules: ["booking"], iconBg: "bg-blue-500/15", iconColor: "text-blue-400" },
     { icon: UtensilsCrossed, label: "Orders", href: "/app/orders", description: "Food orders", requiredModules: ["food_orders"], iconBg: "bg-orange-500/15", iconColor: "text-orange-400" },
     { icon: Truck, label: "Dispatch", href: "/app/dispatch", description: "Job queue", requiredModules: ["dispatch_queue"], iconBg: "bg-sky-500/15", iconColor: "text-sky-400" },
     { icon: Stethoscope, label: "Intakes", href: "/app/medical-intake", description: "Patient intake", requiredModules: ["medical_intake"], iconBg: "bg-rose-500/15", iconColor: "text-rose-400" },

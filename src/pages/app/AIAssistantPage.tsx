@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useBusinessContext } from "@/hooks/useBusinessContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getActiveVerb } from "@/data/industryTerminology";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -52,6 +54,8 @@ export default function AIAssistantPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { _context, loading: _contextLoading, _refetch } = useBusinessContext(tenant?.id || null);
+  const { terminology } = useIndustryContext();
+  const activeVerbPhrase = getActiveVerb(terminology.appointmentLabel);
   
   const [aiEnabled, setAiEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<string>("sarah");
@@ -211,7 +215,7 @@ export default function AIAssistantPage() {
               </h2>
               <p className="text-muted-foreground">
                 {aiEnabled
-                  ? "Your AI is answering calls and booking appointments 24/7"
+                  ? `Your AI is answering calls and ${activeVerbPhrase} 24/7`
                   : "Enable AI to start answering calls automatically"}
               </p>
             </div>

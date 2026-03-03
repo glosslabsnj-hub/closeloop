@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getBookingActionPhrase } from "@/data/industryTerminology";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,12 +40,14 @@ interface SimulationResult {
   sourcesCount: number;
 }
 
-const QUICK_SUGGESTIONS = [
-  "I need an emergency repair",
-  "How much do you charge?",
-  "What are your hours?",
-  "I'd like to book an appointment",
-];
+function getQuickSuggestions(bookingPhrase: string): string[] {
+  return [
+    "I need an emergency repair",
+    "How much do you charge?",
+    "What are your hours?",
+    `I'd like to ${bookingPhrase}`,
+  ];
+}
 
 function confidenceToPercent(confidence: string): number {
   switch (confidence) {
@@ -58,12 +62,12 @@ function confidenceToPercent(confidence: string): number {
   }
 }
 
-function nextActionLabel(action: string, intent: string): string {
+function nextActionLabel(action: string, _intent: string): string {
   switch (action) {
     case "offer_slots":
       return "Would offer available time slots";
     case "book":
-      return "Would book appointment";
+      return "Would confirm booking";
     case "request_details":
       return "Would ask for more details";
     case "escalate":
@@ -80,6 +84,8 @@ function nextActionLabel(action: string, intent: string): string {
 export default function TestAIPage() {
   const { effectiveTenantId } = useAuth();
   const { toast } = useToast();
+  const { terminology } = useIndustryContext();
+  const bookingPhrase = getBookingActionPhrase(terminology.appointmentLabel);
 
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -125,7 +131,7 @@ export default function TestAIPage() {
           plan.required_info_to_collect?.find((i: string) => i.toLowerCase().includes("service"))
             ? plan.facts_to_use?.[0]?.content?.slice(0, 50) || "General inquiry"
             : plan.intent === "booking"
-            ? "Appointment request"
+            ? `${terminology.appointmentLabel.charAt(0).toUpperCase() + terminology.appointmentLabel.slice(1)} request`
             : plan.intent === "quote"
             ? "Price inquiry"
             : "General inquiry",
@@ -213,7 +219,7 @@ export default function TestAIPage() {
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Quick scenarios:</p>
                 <div className="flex flex-wrap gap-2">
-                  {QUICK_SUGGESTIONS.map((s) => (
+                  {getQuickSuggestions(bookingPhrase).map((s) => (
                     <button
                       key={s}
                       onClick={() => {

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServices } from "@/hooks/useServices";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Check } from "lucide-react";
@@ -12,6 +13,7 @@ import { Check } from "lucide-react";
 export function WelcomeBanner() {
   const { tenant } = useAuth();
   const { services } = useServices();
+  const { terms } = useIndustryContext();
 
   const activeServices = (services || []).filter((s) => s.is_active !== false);
   const hoursConfigured =
@@ -53,7 +55,7 @@ export function WelcomeBanner() {
         Welcome, {tenant?.name || "there"}
       </h1>
       <p className="text-muted-foreground max-w-md mx-auto">
-        Let's get your AI assistant ready to answer calls and book customers.
+        Let's get your AI assistant ready to answer calls and help your {terms.customers}.
       </p>
       {knowledgeItems.length > 0 && (
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm">

@@ -26,7 +26,7 @@ function getWelcomeSubtext(mode: string, businessName: string): string {
     case "food": return `Your AI is learning ${businessName}'s menu so it can take orders by phone.`;
     case "dispatch": return `Your AI is ready to answer calls and dispatch jobs for ${businessName}.`;
     case "medical": return `Your AI is being trained to handle patient calls for ${businessName}.`;
-    case "sales": return `Your AI is ready to qualify leads and book appointments for ${businessName}.`;
+    case "sales": return `Your AI is ready to qualify leads and schedule consultations for ${businessName}.`;
     default: return `Your AI receptionist is almost ready to answer calls for ${businessName}.`;
   }
 }
@@ -51,7 +51,7 @@ function getModeCapabilities(mode: string, readinessVerb?: string): string[] {
   switch (mode) {
     case "food": return ["Take phone orders", "Answer menu questions", "Handle delivery requests", "Manage reservations"];
     case "dispatch": return ["Accept new job requests", "Collect location details", "Provide ETA estimates", "Handle emergency calls"];
-    case "medical": return ["Schedule appointments", "Handle patient inquiries", "Triage by urgency", "Verify insurance info"];
+    case "medical": return ["Schedule patient visits", "Handle patient inquiries", "Triage by urgency", "Verify insurance info"];
     case "sales": return ["Qualify incoming leads", "Answer product questions", "Schedule consultations", "Follow up on interest"];
     default: return ["Answer calls 24/7", bookingCapability, "Quote your prices", "Handle common questions"];
   }

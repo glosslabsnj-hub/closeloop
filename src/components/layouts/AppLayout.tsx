@@ -33,9 +33,11 @@ import {
   AudioWaveform,
   DollarSign,
   Phone,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
@@ -77,6 +79,18 @@ function AppLayoutContent() {
   const showAgency = isAgency || !!myAgencyApp;
   const effectiveHasSubscription = isSuperAdmin || hasActiveSubscription;
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
+
+  // Admin bar collapse state — persists across navigations
+  const [adminBarCollapsed, setAdminBarCollapsed] = useState(() => {
+    try { return localStorage.getItem("flux_admin_bar_collapsed") === "true"; } catch { return false; }
+  });
+  const toggleAdminBar = useCallback(() => {
+    setAdminBarCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem("flux_admin_bar_collapsed", String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   // Business-aware sidebar subtitle
   const sidebarSubtitle = useMemo(() => {
@@ -177,7 +191,7 @@ function AppLayoutContent() {
   return (
     <>
       {/* Super Admin Bar — full width, above everything */}
-      {isSuperAdmin && (
+      {isSuperAdmin && !adminBarCollapsed && (
         <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 h-10 bg-background/95 backdrop-blur-lg border-b border-border/20 items-center justify-between px-4">
           <Link
             to="/admin/overview"
@@ -193,11 +207,32 @@ function AppLayoutContent() {
             </div>
             <AdminModeSelector />
             <AdminTenantSwitcher />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={toggleAdminBar}
+              title="Client Preview — hide admin controls"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+            </Button>
           </div>
         </header>
       )}
 
-      <div className={cn("flex min-h-screen overflow-x-hidden", isSuperAdmin && "md:pt-10")}>
+      {/* Collapsed admin bar — small floating pill to restore */}
+      {isSuperAdmin && adminBarCollapsed && (
+        <button
+          onClick={toggleAdminBar}
+          className="hidden md:flex fixed top-2 right-2 z-50 items-center gap-1.5 px-2.5 py-1 rounded-full bg-warning/15 border border-warning/30 text-warning text-[11px] font-medium hover:bg-warning/25 transition-colors cursor-pointer"
+          title="Exit Client Preview — show admin controls"
+        >
+          <Eye className="h-3 w-3" />
+          Admin
+        </button>
+      )}
+
+      <div className={cn("flex min-h-screen overflow-x-hidden", isSuperAdmin && !adminBarCollapsed && "md:pt-10")}>
         {/* App Sidebar */}
         <AppSidebar
           enabledModules={enabledModules}
