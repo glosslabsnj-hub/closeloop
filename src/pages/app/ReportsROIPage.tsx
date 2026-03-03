@@ -77,6 +77,7 @@ import {
 } from "@/lib/revenueUtils";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -312,7 +313,7 @@ const SERVICE_COLORS = [
   "hsl(310, 50%, 50%)",
 ];
 
-function RevenueByServiceChart({ items }: { items: RevenueByServiceItem[] }) {
+function RevenueByServiceChart({ items, bookingsLabel }: { items: RevenueByServiceItem[]; bookingsLabel: string }) {
   if (items.length === 0) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
@@ -356,7 +357,7 @@ function RevenueByServiceChart({ items }: { items: RevenueByServiceItem[] }) {
               fontSize: "12px",
             }}
             formatter={(value: number, _name: string, props: any) => [
-              `$${value.toLocaleString()} (${props.payload.count} bookings)`,
+              `$${value.toLocaleString()} (${props.payload.count} ${bookingsLabel})`,
               "Revenue",
             ]}
           />
@@ -445,6 +446,7 @@ export default function ReportsROIPage() {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const { data, isLoading, error: reportError, refetch } = useROIReport(dateRange);
+  const { terms } = useIndustryContext();
 
   const handleShareReport = useCallback(async () => {
     if (!tenant?.id) return;
@@ -566,7 +568,7 @@ export default function ReportsROIPage() {
             <NarrativeSummary data={data} storyHeadline={storyHeadline} />
 
             {/* Key Metrics (Level 2 — Overview) */}
-            <KeyMetrics data={data} />
+            <KeyMetrics data={data} bookingLabel={terms.booking} bookingsLabel={terms.bookings} />
 
             {/* ROI Breakdown */}
             <ROIBreakdown data={data} />
@@ -629,7 +631,7 @@ export default function ReportsROIPage() {
                       <CardTitle>Revenue by Service</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <RevenueByServiceChart items={data.revenueByService} />
+                      <RevenueByServiceChart items={data.revenueByService} bookingsLabel={terms.bookings} />
                     </CardContent>
                   </Card>
                 )}
@@ -713,8 +715,12 @@ function NarrativeSummary({
 
 function KeyMetrics({
   data,
+  bookingLabel,
+  bookingsLabel,
 }: {
   data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
+  bookingLabel: string;
+  bookingsLabel: string;
 }) {
   const roiBadge = getROIBadge(data.roiMultiplier, data.celebratoryTone);
 
@@ -726,7 +732,7 @@ function KeyMetrics({
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">
               AI Revenue
-              <InfoTooltip text="Revenue from bookings created by your AI agent" />
+              <InfoTooltip text={`Revenue from ${bookingsLabel} created by your AI agent`} />
             </p>
             <div className="p-2 rounded-lg bg-success/10 text-success">
               <DollarSign className="h-4 w-4" />
@@ -777,7 +783,7 @@ function KeyMetrics({
           <div className="flex items-start justify-between mb-2">
             <p className="text-sm font-medium text-muted-foreground">
               Conversion
-              <InfoTooltip text="Percentage of calls that resulted in a booking" />
+              <InfoTooltip text={`Percentage of calls that resulted in a ${bookingLabel}`} />
             </p>
             <div className="p-2 rounded-lg bg-muted text-muted-foreground">
               <TrendingUp className="h-4 w-4" />

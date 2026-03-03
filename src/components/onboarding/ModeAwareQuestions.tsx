@@ -21,6 +21,7 @@ import {
   type FollowUpField,
 } from "@/lib/scenarioQuestions";
 import { getIndustryBySlug } from "@/data/industryCatalog";
+import { getIndustryTerminology } from "@/data/industryTerminology";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface ModeAwareQuestionsProps {
@@ -46,6 +47,20 @@ export const ModeAwareQuestions = React.memo(function ModeAwareQuestions({
   const industryContext = industryEntry
     ? { slug: industrySlug, category: industryEntry.category }
     : undefined;
+
+  // Resolve industry-specific appointment label for dynamic question text
+  const terminology = useMemo(() =>
+    getIndustryTerminology(businessMode, industryContext?.category, industryContext?.slug),
+    [businessMode, industryContext?.category, industryContext?.slug]
+  );
+  const apptLabel = terminology.appointmentLabel;
+  const apptLabelCap = apptLabel.charAt(0).toUpperCase() + apptLabel.slice(1);
+  const apptLabelPlural = apptLabelCap + "s";
+
+  // Replace "Appointments" / "appointments" in labels/descriptions with industry term
+  const localizeLabel = (text: string) =>
+    text.replace(/Appointments/g, apptLabelPlural).replace(/appointments/g, apptLabel + "s")
+        .replace(/Appointment/g, apptLabelCap).replace(/appointment/g, apptLabel);
 
   // Get only onboarding-visible questions for this mode/industry
   const questions = useMemo(() => {
@@ -126,13 +141,13 @@ export const ModeAwareQuestions = React.memo(function ModeAwareQuestions({
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium">{q.label}</p>
+                            <p className="text-sm font-medium">{localizeLabel(q.label)}</p>
                             {q.requiredForAI && (
                               <Sparkles className="h-3 w-3 text-primary shrink-0" />
                             )}
                           </div>
                           {q.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{q.description}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{localizeLabel(q.description)}</p>
                           )}
                         </div>
                         <Switch

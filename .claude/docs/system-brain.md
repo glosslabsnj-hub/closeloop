@@ -1,19 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 5:45 PM ET (receptionist_eng — dynamic Call Flow badges)
+## Last Session: 2026-03-03 5:52 PM ET (receptionist_ux — ErrorBoundary coverage expansion)
 
 ### What Was Done
-- **ServiceCallFlowSettings**: Dynamic "Recommended for your business" badge on industry-appropriate Call Flow option
-- Static badges changed to "Common for..." to avoid confusion with the recommendation
-- Plumbing/HVAC/electrical tenants now see "Recommended" on "Ask if Urgent"
-- Locksmith/towing tenants see "Recommended" on "Immediate Dispatch"
+- **ErrorBoundary wraps on 13 app pages** (commit 6b5b0c3): WorkflowEdit, WorkflowRuns, WorkflowRunDetail, LeadRecovery, ReadinessFixCenter, TimeTracking, SalesPipeline, SalesInventory, Fleet, Inventory, Loyalty, MedicalIntake, OrderTicket
+- Each page now shows "Try again" + "Back to Dashboard" + "Contact support" on crash
+- Total error recovery coverage: ~41/97 pages (up from ~28)
 - Build: Clean (0 errors), Tests: 1274/1274 passing
-- Commit: 3dea8ea, pushed to main, deployed
+- Commit: 6b5b0c3, pushed to main
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 1274/1274 passing
-- Commit: 3dea8ea
+- Commit: 6b5b0c3
 - Pushed to main + deployed
 
 ### MODE PROGRESS

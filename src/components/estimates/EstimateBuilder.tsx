@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
@@ -158,6 +159,20 @@ function LineItemsEditor({
 export function EstimateBuilder({ estimate, onSave, onCancel }: EstimateBuilderProps) {
   const { createEstimate, updateEstimate, sendEstimate } = useEstimates();
   const { customers = [] } = useCustomers();
+  const { slug } = useIndustryContext();
+
+  const estimatePlaceholder = useMemo(() => {
+    const examples: Record<string, string> = {
+      plumbing: "Whole-House Repipe",
+      hvac: "HVAC System Replacement",
+      electrical: "Panel Upgrade",
+      roofing: "Roof Replacement",
+      painting: "Exterior Painting",
+      landscaping: "Backyard Renovation",
+      auto_repair: "Transmission Rebuild",
+    };
+    return `e.g., ${examples[slug || ""] || "Service Estimate"}`;
+  }, [slug]);
   const { isConnected: financingAvailable, createApplication } = useFinancing();
 
   // Form state
@@ -277,7 +292,7 @@ export function EstimateBuilder({ estimate, onSave, onCancel }: EstimateBuilderP
           <Label htmlFor="title">Estimate Title (Optional)</Label>
           <Input
             id="title"
-            placeholder="e.g., HVAC System Replacement"
+            placeholder={estimatePlaceholder}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />

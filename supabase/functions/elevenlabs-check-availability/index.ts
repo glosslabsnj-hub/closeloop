@@ -68,20 +68,31 @@ interface CheckAvailabilityResponse {
   } | null;
 }
 
-// DST-aware timezone offset calculator
+// DST-aware timezone offset calculator (uses longOffset for reliability)
 function getTimezoneOffset(tz: string, refDate?: Date): string {
   try {
     const d = refDate || new Date();
-    const utcStr = d.toLocaleString("en-US", { timeZone: "UTC" });
-    const localStr = d.toLocaleString("en-US", { timeZone: tz });
-    const diffMs = new Date(localStr).getTime() - new Date(utcStr).getTime();
-    const totalMin = Math.round(diffMs / 60000);
-    const sign = totalMin >= 0 ? "+" : "-";
-    const abs = Math.abs(totalMin);
-    return `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "longOffset",
+    });
+    const parts = formatter.formatToParts(d);
+    const tzPart = parts.find((p) => p.type === "timeZoneName");
+    if (tzPart?.value) {
+      const match = tzPart.value.match(/GMT([+-]\d{2}:\d{2})/);
+      if (match) return match[1];
+      if (tzPart.value === "GMT") return "+00:00";
+    }
+    return "-05:00";
   } catch {
     return "-05:00";
   }
+}
+
+// Convert "HH:MM" or "H:MM" to minutes since midnight (robust to non-padded formats)
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = (timeStr || "00:00").split(":").map(Number);
+  return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
 }
 
 // Compute end time string by adding minutes to a HH:MM string (stays in local time)
@@ -403,9 +414,15 @@ serve(async (req: Request) => {
     // Normalize business hours (handle both flat and windows format)
     const openTime = dayHours.windows?.length > 0 ? dayHours.windows[0].open : dayHours.open;
     const closeTime = dayHours.windows?.length > 0 ? dayHours.windows[0].close : dayHours.close;
-    const requestedEndTime = addMinutesToTimeStr(targetTime, finalDuration + bufferMinutes);
+    // Use numeric comparison to avoid string padding issues ("9:00" vs "09:00")
+    const openMin = timeToMinutes(openTime);
+    const closeMin = timeToMinutes(closeTime);
+    const requestedMin = timeToMinutes(targetTime);
+    const requestedEndMin = requestedMin + finalDuration + bufferMinutes;
 
-    if (targetTime < openTime || requestedEndTime > closeTime) {
+    console.log(`[check-availability] Hours check: requested ${targetTime} (${requestedMin}min) end ${requestedEndMin}min vs open ${openTime} (${openMin}min) close ${closeTime} (${closeMin}min)`);
+
+    if (requestedMin < openMin || requestedEndMin > closeMin) {
       const alternatives = await getAlternatives(supabase, tenantId, targetDate, finalDuration, bufferMinutes, tenant?.hours_json);
       return new Response(
         JSON.stringify({
