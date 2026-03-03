@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, ToggleLeft, Sliders, HelpCircle } from "lucide-react";
+import { Plus, GitBranch, Play, Pause, Settings, History, Trash2, Calendar, UtensilsCrossed, Truck, PhoneCall, Lock, ArrowRight, ToggleLeft, Sliders, HelpCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +35,7 @@ import { SimpleAutomationPanel } from "@/components/workflows/SimpleAutomationPa
 import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
 import { WorkflowRunLogCard } from "@/components/workflows/WorkflowRunLogCard";
 import { TestTriggerButton } from "@/components/workflows/TestTriggerButton";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Pre-configured node for workflow templates
 interface TemplateNode {
@@ -389,13 +390,13 @@ const UNIVERSAL_TEMPLATES: WorkflowTemplate[] = [
   },
 ];
 
-export default function WorkflowsPage() {
+function WorkflowsPageContent() {
   const { tenant, _hasActiveSubscription } = useAuth();
   const { businessMode, enabledModules } = useTenantConfig();
   const { terms } = useIndustryContext();
   const tenantId = tenant?.id ?? null;
 
-  const { data: workflows, isLoading } = useWorkflows(tenantId);
+  const { data: workflows, isLoading, error: workflowsError, refetch } = useWorkflows(tenantId);
   const { data: stats } = useWorkflowStats(tenantId);
   const { createWorkflow, deleteWorkflow, activateWorkflow, pauseWorkflow } = useWorkflowMutations(tenantId);
   const navigate = useNavigate();
@@ -548,6 +549,34 @@ export default function WorkflowsPage() {
     );
   }
 
+  if (workflowsError) {
+    return (
+      <div className="container max-w-6xl py-8 px-4 sm:px-6">
+        <div className="mx-auto max-w-lg py-16">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Couldn't load your workflows</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                This is usually a temporary connection issue. Try again, or come back in a minute.
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                Try again
+              </Button>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <Link to="/app" className="text-primary hover:underline">Back to Dashboard</Link>
+                <span className="text-border">·</span>
+                <a href="mailto:support@getfluxdata.com" className="text-muted-foreground hover:underline">Contact Support</a>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // Empty state with templates
   if (workflows?.length === 0) {
     return (
@@ -557,7 +586,7 @@ export default function WorkflowsPage() {
           <div>
             <h1 className="text-2xl font-bold">Workflows</h1>
             <p className="text-muted-foreground">
-              Automate what happens after calls, bookings, orders, and dispatches.
+              Automate what happens after calls, {terms.bookings}, and more.
             </p>
           </div>
           
@@ -686,7 +715,7 @@ export default function WorkflowsPage() {
         <div>
           <h1 className="text-2xl font-bold">Automations</h1>
           <p className="text-muted-foreground">
-            Automate what happens after calls, bookings, orders, and dispatches.
+            Automate what happens after calls, {terms.bookings}, and more.
           </p>
         </div>
         
@@ -975,5 +1004,13 @@ function WorkflowSection({
         })}
       </CardContent>
     </Card>
+  );
+}
+
+export default function WorkflowsPage() {
+  return (
+    <ErrorBoundary context="loading your workflows">
+      <WorkflowsPageContent />
+    </ErrorBoundary>
   );
 }

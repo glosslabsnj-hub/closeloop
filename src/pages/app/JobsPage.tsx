@@ -21,8 +21,9 @@ import { CSVImportDialog } from "@/components/jobs/CSVImportDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClipboardCheck, Plus, Upload, Loader2, ChevronDown, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-export default function JobsPage() {
+function JobsPageContent() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["job_tracking"]);
   const { jobs, isLoading, error: jobsError, stats, filter, setFilter, refetch } = useActiveJobs();
   const labels = useJobLabels();
@@ -160,5 +161,13 @@ export default function JobsPage() {
         onOpenChange={setDetailOpen}
       />
     </PageContainer>
+  );
+}
+
+export default function JobsPage() {
+  return (
+    <ErrorBoundary context="loading your jobs">
+      <JobsPageContent />
+    </ErrorBoundary>
   );
 }

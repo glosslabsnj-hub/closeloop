@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Phone, Loader2, MessageSquare, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ConversationList, MessageThread } from "@/components/inbox";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-export default function InboxPage() {
+function InboxPageContent() {
   const { conversations, isLoading, error: conversationsError, refetch } = useConversations();
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,5 +100,13 @@ export default function InboxPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function InboxPage() {
+  return (
+    <ErrorBoundary context="loading your messages">
+      <InboxPageContent />
+    </ErrorBoundary>
   );
 }
