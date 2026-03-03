@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
       if (!roleData) return errorResponse("Forbidden", 403);
     }
 
-    const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
-    if (!apiKey) return errorResponse("AI_GATEWAY_API_KEY not configured", 500);
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) return errorResponse("ANTHROPIC_API_KEY not configured", 500);
 
     const body = await req.json();
     const { platform, industry, location, objective } = body;
@@ -62,34 +62,34 @@ Deno.serve(async (req) => {
 
     const platformSpec = PLATFORM_SPECS[platform] || PLATFORM_SPECS.google;
 
-    const res = await fetch("https://ai.gateway.lovable.dev/chat/completions", {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
+      },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "claude-haiku-4-5-20251001",
+        system: `You are an expert digital advertising copywriter. You create high-converting ad copy for Flux Receptionist, an AI phone receptionist SaaS. Flux Receptionist answers business calls 24/7 with AI, books appointments, captures leads, and handles inquiries. It's designed for small-to-medium service businesses.`,
         messages: [
-          {
-            role: "system",
-            content: `You are an expert digital advertising copywriter. You create high-converting ad copy for Flux Receptionist, an AI phone receptionist SaaS. Flux Receptionist answers business calls 24/7 with AI, books appointments, captures leads, and handles inquiries. It's designed for small-to-medium service businesses.`,
-          },
           {
             role: "user",
             content: `Create ${platform} ad copy for targeting ${industry} businesses in ${location}. Objective: ${objective}.\n\n${platformSpec}\n\nReturn ONLY valid JSON, no markdown.`,
           },
         ],
-        temperature: 0.7,
         max_tokens: 1000,
       }),
     });
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("[ad-copy] AI error:", errText);
+      console.error("[ad-copy] Anthropic API error:", errText);
       return errorResponse("AI generation failed", 500);
     }
 
     const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || "{}";
+    const raw = data.content?.[0]?.text || "{}";
 
     let parsed: any = {};
     try {

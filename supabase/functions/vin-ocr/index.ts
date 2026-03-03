@@ -1,5 +1,5 @@
 /**
- * vin-ocr - Extract VIN from images using Lovable AI vision
+ * vin-ocr - Extract VIN from images using Anthropic Claude vision
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -17,7 +17,7 @@ serve(async (req) => {
 
   try {
     const { image } = await req.json();
-    
+
     if (!image) {
       return new Response(
         JSON.stringify({ error: "No image provided" }),
@@ -25,57 +25,70 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured");
     }
 
-    // Use Lovable AI vision to extract VIN
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: `Look at this image and find the VIN (Vehicle Identification Number). 
+    // Parse data URL to extract media_type and base64 data for Anthropic format
+    const vinPrompt = `Look at this image and find the VIN (Vehicle Identification Number).
 A VIN is a 17-character code that may appear on a dashboard plate, door jamb sticker, or vehicle registration.
 VINs contain letters and numbers but never I, O, or Q.
 
 If you find a VIN, respond with ONLY the 17-character VIN code, nothing else.
 If you cannot find a valid VIN, respond with exactly: NOT_FOUND
 
-Remember: VINs are exactly 17 characters, alphanumeric, no spaces.`
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: image
-                }
-              }
-            ]
-          }
-        ],
+Remember: VINs are exactly 17 characters, alphanumeric, no spaces.`;
+
+    // Build image content block - handle data URLs and regular URLs
+    let imageBlock: any;
+    if (image.startsWith("data:")) {
+      const match = image.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        imageBlock = {
+          type: "image",
+          source: { type: "base64", media_type: match[1], data: match[2] },
+        };
+      } else {
+        throw new Error("Invalid data URL format");
+      }
+    } else {
+      imageBlock = {
+        type: "image",
+        source: { type: "url", url: image },
+      };
+    }
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 50,
-        temperature: 0.1,
+        messages: [
+          {
+            role: "user",
+            content: [
+              imageBlock,
+              { type: "text", text: vinPrompt },
+            ],
+          },
+        ],
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI API error:", errorText);
+      const errorText = await response.text().catch(() => "");
+      console.error("Anthropic API error:", errorText);
       throw new Error(`AI API failed: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content?.trim() || "";
+    const content = data.content?.[0]?.text?.trim() || "";
     
     // Validate the response is a proper VIN
     const vinPattern = /^[A-HJ-NPR-Z0-9]{17}$/;

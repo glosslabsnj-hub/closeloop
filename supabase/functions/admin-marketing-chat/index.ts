@@ -101,9 +101,9 @@ serve(async (req) => {
 
     const { messages } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
+      return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -121,19 +121,19 @@ serve(async (req) => {
 
     const contextMessage = `[PLATFORM CONTEXT: Flux Receptionist currently has ${totalTenants} active tenants, MRR ~$${mrr.toLocaleString()}. Use this data to inform your strategy recommendations.]`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT + "\n\n" + contextMessage },
-          ...messages,
-        ],
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
         stream: true,
+        system: SYSTEM_PROMPT + "\n\n" + contextMessage,
+        messages,
       }),
     });
 
@@ -144,21 +144,60 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits depleted. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const txt = await response.text();
-      console.error("[admin-marketing-chat] AI gateway error:", response.status, txt);
-      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+      const txt = await response.text().catch(() => "");
+      console.error("[admin-marketing-chat] Anthropic API error:", response.status, txt);
+      return new Response(JSON.stringify({ error: "AI service error" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(response.body, {
+    // Transform Anthropic SSE stream to OpenAI-compatible format for frontend
+    const reader = response.body!.getReader();
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+              controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+              controller.close();
+              break;
+            }
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const jsonStr = line.slice(6).trim();
+                if (!jsonStr || jsonStr === "[DONE]") continue;
+                try {
+                  const event = JSON.parse(jsonStr);
+                  if (event.type === "content_block_delta" && event.delta?.text) {
+                    // Convert to OpenAI streaming format
+                    const openaiChunk = {
+                      choices: [{ delta: { content: event.delta.text } }],
+                    };
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify(openaiChunk)}\n\n`));
+                  }
+                } catch {
+                  // Skip unparseable events
+                }
+              }
+            }
+          }
+        } catch (err) {
+          controller.error(err);
+        }
+      },
+    });
+
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (error) {

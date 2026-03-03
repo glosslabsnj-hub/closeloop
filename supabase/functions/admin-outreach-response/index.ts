@@ -143,29 +143,29 @@ Deno.serve(async (req) => {
 });
 
 async function analyzeSentiment(text: string): Promise<string> {
-  const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
-  if (!apiKey) return "neutral";
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!anthropicApiKey) return "neutral";
 
-  const res = await fetch("https://ai.gateway.lovable.dev/chat/completions", {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "claude-haiku-4-5-20251001",
+      system: 'Classify the sentiment of this reply to a business outreach message. Reply with ONLY one word: "positive", "neutral", or "negative".',
       messages: [
-        {
-          role: "system",
-          content: 'Classify the sentiment of this reply to a business outreach message. Reply with ONLY one word: "positive", "neutral", or "negative".',
-        },
         { role: "user", content: text },
       ],
-      temperature: 0,
       max_tokens: 10,
     }),
   });
 
   if (!res.ok) return "neutral";
   const data = await res.json();
-  const result = (data.choices?.[0]?.message?.content || "neutral").toLowerCase().trim();
+  const result = (data.content?.[0]?.text || "neutral").toLowerCase().trim();
   if (["positive", "neutral", "negative"].includes(result)) return result;
   return "neutral";
 }

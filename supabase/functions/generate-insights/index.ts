@@ -2,7 +2,7 @@
  * generate-insights
  * 
  * Cron job (runs daily) that synthesizes patterns and knowledge gaps
- * into actionable insights using Lovable AI.
+ * into actionable insights using Anthropic AI.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get all active tenants
@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
 
       let insights: GeneratedInsight[] = [];
 
-      // If Lovable AI is available, use it to synthesize insights
-      if (lovableApiKey) {
+      // If Anthropic AI is available, use it to synthesize insights
+      if (anthropicApiKey) {
         try {
           const prompt = `You are a business analyst for a ${tenant.business_mode} business called "${tenant.name}".
 
@@ -93,26 +93,27 @@ Generate 1-3 actionable insights. For each insight, provide:
 
 Return a JSON array of insights.`;
 
-          const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${lovableApiKey}`,
+              "x-api-key": anthropicApiKey,
+              "anthropic-version": "2023-06-01",
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "claude-haiku-4-5-20251001",
+              max_tokens: 2048,
+              system: "You are a business intelligence analyst. Return only valid JSON arrays.",
               messages: [
-                { role: "system", content: "You are a business intelligence analyst. Return only valid JSON arrays." },
                 { role: "user", content: prompt },
               ],
-              temperature: 0.7,
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
-            const content = data.choices?.[0]?.message?.content || "";
-            
+            const content = data.content?.[0]?.text || "";
+
             // Extract JSON from response
             const jsonMatch = content.match(/\[[\s\S]*\]/);
             if (jsonMatch) {
@@ -158,7 +159,7 @@ Return a JSON array of insights.`;
       }
 
       // ===== 1.1: Auto-generate FAQ drafts from knowledge gaps =====
-      if (gaps && gaps.length > 0 && lovableApiKey) {
+      if (gaps && gaps.length > 0 && anthropicApiKey) {
         try {
           // Get tenant context for better FAQ generation
           const { data: tenantDetail } = await supabase
@@ -204,25 +205,26 @@ Write a helpful, accurate FAQ entry. Return JSON: {"question": "...", "answer": 
 - If you're unsure about specifics (pricing, exact hours), use language like "Please contact us for..." or "Typically..."
 - The answer should be something the AI can confidently speak aloud on a phone call`;
 
-            const faqResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            const faqResponse = await fetch("https://api.anthropic.com/v1/messages", {
               method: "POST",
               headers: {
-                "Authorization": `Bearer ${lovableApiKey}`,
+                "x-api-key": anthropicApiKey,
+                "anthropic-version": "2023-06-01",
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                model: "google/gemini-2.5-flash",
+                model: "claude-haiku-4-5-20251001",
+                max_tokens: 512,
+                system: "Return only valid JSON objects. No markdown, no explanations.",
                 messages: [
-                  { role: "system", content: "Return only valid JSON objects. No markdown, no explanations." },
                   { role: "user", content: faqPrompt },
                 ],
-                temperature: 0.5,
               }),
             });
 
             if (faqResponse.ok) {
               const faqData = await faqResponse.json();
-              const faqContent = faqData.choices?.[0]?.message?.content || "";
+              const faqContent = faqData.content?.[0]?.text || "";
               const jsonMatch = faqContent.match(/\{[\s\S]*\}/);
               if (jsonMatch) {
                 const parsed = JSON.parse(jsonMatch[0]);

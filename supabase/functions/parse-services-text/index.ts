@@ -29,8 +29,8 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Text is too long (max 50,000 characters)" }, 400);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return jsonResponse({ error: "AI service not configured" }, 500);
     }
 
@@ -52,39 +52,36 @@ Return a JSON object with a "services" array. Each element has: name, descriptio
 
 IMPORTANT: Return ONLY valid JSON, no markdown, no explanation.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: text },
         ],
-        temperature: 0.1,
-        response_format: { type: "json_object" },
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
+      const errorText = await response.text().catch(() => "");
       console.error("[parse-services-text] AI error:", response.status, errorText);
 
       if (response.status === 429) {
         return jsonResponse({ error: "Rate limited — please try again in a moment" }, 429);
-      }
-      if (response.status === 402) {
-        return jsonResponse({ error: "AI credits exhausted" }, 402);
       }
 
       return jsonResponse({ error: "AI parsing failed" }, 500);
     }
 
     const aiResult = await response.json();
-    const content = aiResult.choices?.[0]?.message?.content;
+    const content = aiResult.content?.[0]?.text;
 
     if (!content) {
       return jsonResponse({ error: "No response from AI" }, 500);

@@ -292,8 +292,8 @@ async function personalizeWithAI(
   enrollment: any,
   context: { industry: string; frictionSignals: string[]; score: number; scoreReasons: string[]; website: string }
 ): Promise<string | null> {
-  const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
-  if (!apiKey) return null;
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!anthropicApiKey) return null;
 
   const contextLines = [
     `Business: ${enrollment.lead_name}`,
@@ -304,29 +304,29 @@ async function personalizeWithAI(
     context.scoreReasons.length > 0 ? `Why they're a fit: ${context.scoreReasons.join(", ")}` : null,
   ].filter(Boolean).join("\n");
 
-  const res = await fetch("https://ai.gateway.lovable.dev/chat/completions", {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify({
-      model: "gpt-4o-mini",
+      model: "claude-haiku-4-5-20251001",
+      system: `You personalize cold outreach messages for an AI phone receptionist SaaS called Flux Receptionist. Use the business context to make the message feel genuinely written for this specific business. Reference their industry, specific pain points, or situation naturally. Keep the same structure, length, and call-to-action. Return ONLY the rewritten message, no quotes or explanation.`,
       messages: [
-        {
-          role: "system",
-          content: `You personalize cold outreach messages for an AI phone receptionist SaaS called Flux Receptionist. Use the business context to make the message feel genuinely written for this specific business. Reference their industry, specific pain points, or situation naturally. Keep the same structure, length, and call-to-action. Return ONLY the rewritten message, no quotes or explanation.`,
-        },
         {
           role: "user",
           content: `Business context:\n${contextLines}\n\nOriginal message:\n${message}`,
         },
       ],
-      temperature: 0.7,
       max_tokens: 500,
     }),
   });
 
   if (!res.ok) return null;
   const data = await res.json();
-  return data.choices?.[0]?.message?.content || null;
+  return data.content?.[0]?.text || null;
 }
 
 async function logActivity(supabase: any, type: string, title: string, description?: string, metadata?: any) {

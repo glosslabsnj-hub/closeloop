@@ -59,8 +59,8 @@ Deno.serve(async (req) => {
       if (!roleData) return errorResponse("Forbidden", 403);
     }
 
-    const apiKey = Deno.env.get("AI_GATEWAY_API_KEY");
-    if (!apiKey) return errorResponse("AI_GATEWAY_API_KEY not configured", 500);
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) return errorResponse("ANTHROPIC_API_KEY not configured", 500);
 
     const body = await req.json();
     const platforms: string[] = body.platforms || ["linkedin", "twitter"];
@@ -87,29 +87,29 @@ Deno.serve(async (req) => {
         scheduledDate.setHours(platform === "linkedin" ? 9 : platform === "twitter" ? 12 : 10, 0, 0, 0);
 
         try {
-          const res = await fetch("https://ai.gateway.lovable.dev/chat/completions", {
+          const res = await fetch("https://api.anthropic.com/v1/messages", {
             method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": anthropicApiKey,
+              "anthropic-version": "2023-06-01",
+            },
             body: JSON.stringify({
-              model: "gpt-4o-mini",
+              model: "claude-haiku-4-5-20251001",
+              system: `You are a social media content creator for Flux Receptionist, an AI phone receptionist SaaS for small businesses. Flux Receptionist answers calls 24/7, books appointments, captures leads, and handles customer inquiries using AI. ${toneInstruction}`,
               messages: [
-                {
-                  role: "system",
-                  content: `You are a social media content creator for Flux Receptionist, an AI phone receptionist SaaS for small businesses. Flux Receptionist answers calls 24/7, books appointments, captures leads, and handles customer inquiries using AI. ${toneInstruction}`,
-                },
                 {
                   role: "user",
                   content: `${platformPrompt}\n\nTopic: ${topic}\n\nReturn ONLY a JSON object with these fields:\n{"content": "the post text", "hashtags": ["#tag1", "#tag2"]}`,
                 },
               ],
-              temperature: 0.8,
               max_tokens: 500,
             }),
           });
 
           if (res.ok) {
             const data = await res.json();
-            const raw = data.choices?.[0]?.message?.content || "";
+            const raw = data.content?.[0]?.text || "";
             try {
               const jsonMatch = raw.match(/\{[\s\S]*\}/);
               if (jsonMatch) {

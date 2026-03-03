@@ -88,7 +88,7 @@ serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+  const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -187,8 +187,8 @@ serve(async (req) => {
       throw new Error("No content provided - need either rawText or fileUrl");
     }
 
-    if (!lovableApiKey) {
-      throw new Error("LOVABLE_API_KEY not configured");
+    if (!anthropicApiKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
     // Step 1: Auto-classify the document if sourceType is "auto" or "general"
@@ -198,7 +198,7 @@ serve(async (req) => {
 
     if (autoDetect && (sourceType === "auto" || sourceType === "general")) {
       console.log("Auto-detecting document type...");
-      const classification = await classifyDocument(lovableApiKey, fileContent, isImage);
+      const classification = await classifyDocument(anthropicApiKey, fileContent, isImage);
       detectedType = mapClassificationToSourceType(classification.document_type);
       classificationConfidence = classification.confidence;
       classificationReasoning = classification.reasoning || "";
@@ -225,61 +225,68 @@ serve(async (req) => {
     const extractionTools = getExtractionTools(detectedType);
     const systemPrompt = getSystemPrompt(detectedType);
 
-    // Call Lovable AI for extraction
-    const messages: any[] = [
-      { role: "system", content: systemPrompt },
-    ];
+    // Convert OpenAI tool format to Anthropic format
+    const anthropicTools = extractionTools.map((t: any) => ({
+      name: t.function.name,
+      description: t.function.description,
+      input_schema: t.function.parameters,
+    }));
 
+    // Build user message content
+    let userContent: any;
     if (isImage) {
-      messages.push({
-        role: "user",
-        content: [
-          { type: "text", text: "Please extract the information from this image:" },
-          { type: "image_url", image_url: { url: fileContent } }
-        ]
-      });
+      // Parse data URL for Anthropic image format
+      const dataMatch = fileContent.match(/^data:([^;]+);base64,(.+)$/);
+      if (dataMatch) {
+        userContent = [
+          { type: "image", source: { type: "base64", media_type: dataMatch[1], data: dataMatch[2] } },
+          { type: "text", text: "Please extract the information from this image." },
+        ];
+      } else {
+        userContent = [
+          { type: "image", source: { type: "url", url: fileContent } },
+          { type: "text", text: "Please extract the information from this image." },
+        ];
+      }
     } else {
-      messages.push({
-        role: "user",
-        content: `Please extract the information from this document:\n\n${fileContent.substring(0, 50000)}`
-      });
+      userContent = `Please extract the information from this document:\n\n${fileContent.substring(0, 50000)}`;
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        tools: extractionTools,
-        tool_choice: { type: "function", function: { name: extractionTools[0].function.name } },
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: "user", content: userContent }],
+        tools: anthropicTools,
+        tool_choice: { type: "tool", name: anthropicTools[0].name },
       }),
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
-      
+      const errorText = await aiResponse.text().catch(() => "");
+      console.error("Anthropic API error:", aiResponse.status, errorText);
+
       if (aiResponse.status === 429) {
         throw new Error("Rate limit exceeded. Please try again in a few minutes.");
       }
-      if (aiResponse.status === 402) {
-        throw new Error("AI credits exhausted. Please add funds to continue processing.");
-      }
-      throw new Error(`AI extraction failed: ${aiResponse.statusText}`);
+      throw new Error(`AI extraction failed: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUseBlock = aiData.content?.find((b: any) => b.type === "tool_use");
 
-    if (!toolCall) {
+    if (!toolUseBlock) {
       throw new Error("AI did not return extracted data");
     }
 
-    const extractedData = JSON.parse(toolCall.function.arguments);
+    const extractedData = toolUseBlock.input;
     console.log("Extracted data:", JSON.stringify(extractedData).substring(0, 500));
 
     // Process extracted data based on type
@@ -465,29 +472,26 @@ serve(async (req) => {
 // Auto-classify document type
 async function classifyDocument(apiKey: string, content: string, isImage: boolean): Promise<ClassificationResult> {
   const classifyTool = {
-    type: "function",
-    function: {
-      name: "classify_document",
-      description: "Classify what type of business document this is",
-      parameters: {
-        type: "object",
-        properties: {
-          document_type: {
-            type: "string",
-            enum: ["menu", "services", "pricing", "hours", "policies", "faq", "general"],
-            description: "The type of business document"
-          },
-          confidence: { 
-            type: "number", 
-            description: "Confidence score from 0 to 1" 
-          },
-          reasoning: { 
-            type: "string", 
-            description: "Brief explanation for the classification" 
-          }
+    name: "classify_document",
+    description: "Classify what type of business document this is",
+    input_schema: {
+      type: "object",
+      properties: {
+        document_type: {
+          type: "string",
+          enum: ["menu", "services", "pricing", "hours", "policies", "faq", "general"],
+          description: "The type of business document"
         },
-        required: ["document_type", "confidence"]
-      }
+        confidence: {
+          type: "number",
+          description: "Confidence score from 0 to 1"
+        },
+        reasoning: {
+          type: "string",
+          description: "Brief explanation for the classification"
+        }
+      },
+      required: ["document_type", "confidence"]
     }
   };
 
@@ -504,42 +508,44 @@ Categories:
 
 Look for visual cues:
 - Menu: Food items, categories like Appetizers/Entrees, $X.XX prices
-- Services: Duration times, service names like "Haircut", "Plumbing Repair"  
+- Services: Duration times, service names like "Haircut", "Plumbing Repair"
 - Hours: Days of week (Mon-Sun), open/close times
 - Policies: Words like "cancellation", "refund", "deposit", terms & conditions
 
 Be confident in your classification.`;
 
-  const messages: any[] = [
-    { role: "system", content: systemPrompt },
-  ];
-
+  let userContent: any;
   if (isImage) {
-    messages.push({
-      role: "user",
-      content: [
+    const dataMatch = content.match(/^data:([^;]+);base64,(.+)$/);
+    if (dataMatch) {
+      userContent = [
+        { type: "image", source: { type: "base64", media_type: dataMatch[1], data: dataMatch[2] } },
         { type: "text", text: "What type of business document is this?" },
-        { type: "image_url", image_url: { url: content } }
-      ]
-    });
+      ];
+    } else {
+      userContent = [
+        { type: "image", source: { type: "url", url: content } },
+        { type: "text", text: "What type of business document is this?" },
+      ];
+    }
   } else {
-    messages.push({
-      role: "user",
-      content: `What type of business document is this?\n\n${content.substring(0, 10000)}`
-    });
+    userContent = `What type of business document is this?\n\n${content.substring(0, 10000)}`;
   }
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages,
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userContent }],
       tools: [classifyTool],
-      tool_choice: { type: "function", function: { name: "classify_document" } },
+      tool_choice: { type: "tool", name: "classify_document" },
     }),
   });
 
@@ -550,13 +556,13 @@ Be confident in your classification.`;
   }
 
   const data = await response.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  const toolUseBlock = data.content?.find((b: any) => b.type === "tool_use");
 
-  if (!toolCall) {
+  if (!toolUseBlock) {
     return { document_type: "general", confidence: 0.5 };
   }
 
-  return JSON.parse(toolCall.function.arguments);
+  return toolUseBlock.input as ClassificationResult;
 }
 
 function mapClassificationToSourceType(docType: string): string {

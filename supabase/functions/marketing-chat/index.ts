@@ -149,33 +149,36 @@ Important guidelines:
 - When suggesting metrics, provide realistic benchmarks for B2B SaaS targeting SMBs
 - Tailor advice to the current scale of the platform (use the stats above)`;
 
-    const apiMessages = [
-      { role: "system", content: systemPrompt },
-      ...messages.map((m: any) => ({ role: m.role, content: m.content })),
-    ];
+    const apiMessages = messages.map((m: any) => ({ role: m.role, content: m.content }));
 
-    // Use the AI gateway
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
+      throw new Error("ANTHROPIC_API_KEY not configured");
+    }
+
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "claude-haiku-4-5-20251001",
+        system: systemPrompt,
         messages: apiMessages,
-        temperature: 0.7,
         max_tokens: 4096,
       }),
     });
 
     if (!res.ok) {
       const errorText = await res.text();
-      console.error(`[marketing-chat] AI gateway error ${res.status}:`, errorText);
-      throw new Error(`AI gateway returned ${res.status}`);
+      console.error(`[marketing-chat] Anthropic API error ${res.status}:`, errorText);
+      throw new Error(`Anthropic API returned ${res.status}`);
     }
 
     const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    const content = data.content?.[0]?.text || "";
 
     return new Response(
       JSON.stringify({ content }),

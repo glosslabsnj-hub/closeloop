@@ -2,7 +2,7 @@
  * Partner Analysis Edge Function
  *
  * Generates AI-powered business analysis for the Business Partner page.
- * Uses Claude Sonnet 4.5 to analyze the tenant's actual business data
+ * Uses Claude Haiku 4.5 to analyze the tenant's actual business data
  * and produce personalized, contextual advice.
  *
  * - Caches analysis for 24 hours per tenant
@@ -187,47 +187,44 @@ Deno.serve(async (req: Request) => {
       hasCalendarConnected,
     });
 
-    // ─── Call AI via Lovable AI Gateway ────────────────────────────
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return errorResponse("LOVABLE_API_KEY not configured", 500);
+    // ─── Call AI via Anthropic API ──────────────────────────────────
+    const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!anthropicApiKey) {
+      return errorResponse("ANTHROPIC_API_KEY not configured", 500);
     }
 
     const systemPrompt = buildSystemPrompt();
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
+        "x-api-key": anthropicApiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: contextDoc },
         ],
-        max_tokens: 4096,
-        temperature: 0.3,
       }),
     });
 
     if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("[partner-analysis] AI Gateway error:", aiResponse.status, errText);
+      const errText = await aiResponse.text().catch(() => "");
+      console.error("[partner-analysis] Anthropic API error:", aiResponse.status, errText);
       if (aiResponse.status === 429) {
         return errorResponse("Rate limit exceeded. Please try again later.", 429);
-      }
-      if (aiResponse.status === 402) {
-        return errorResponse("AI credits exhausted. Please add more credits.", 402);
       }
       return errorResponse(`AI service error: ${aiResponse.status}`, 502);
     }
 
     const aiData = await aiResponse.json();
-    const rawText = aiData.choices?.[0]?.message?.content ?? "";
-    const promptTokens = aiData.usage?.prompt_tokens ?? null;
-    const completionTokens = aiData.usage?.completion_tokens ?? null;
+    const rawText = aiData.content?.[0]?.text ?? "";
+    const promptTokens = aiData.usage?.input_tokens ?? null;
+    const completionTokens = aiData.usage?.output_tokens ?? null;
 
     // Parse JSON from response (strip markdown fences if present)
     let analysis;
@@ -254,7 +251,7 @@ Deno.serve(async (req: Request) => {
         {
           tenant_id: tenantId,
           analysis_json: analysis,
-          model_used: "google/gemini-3-flash-preview",
+          model_used: "claude-haiku-4-5-20251001",
           prompt_tokens: promptTokens,
           completion_tokens: completionTokens,
           generated_at: now.toISOString(),
