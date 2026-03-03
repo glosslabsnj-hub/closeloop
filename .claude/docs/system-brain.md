@@ -1,18 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 10:44 PM ET (receptionist_eng — 3 critical QA bug fixes)
+## Last Session: 2026-03-02 11:03 PM ET (receptionist_fix — agency_applications RLS fix)
 
 ### What Was Done
-- **Fixed 3 critical bugs from QA HVAC Dashboard R2-R5** (commit 3887730, deployed to production):
-  - Fix 1: **Booking date/time picker NOT interactive** — CreateBookingDialog showed date/time as static `<p>` text. User couldn't change date or time. Replaced with interactive `<Input type="date">` and `<Input type="time">` matching EditBookingDialog pattern.
-  - Fix 2: **Estimates RLS 403 (ROOT CAUSE)** — Previous fix (75530c2) added WITH CHECK but used `tenant_users`-only check. Super admins had no `tenant_users` row for HVAC tenant → 403 on INSERT. Fixed all 7 competitive-features tables to use `has_tenant_access()` which includes super_admin bypass. Migration 20260303040000 deployed.
-  - Fix 3: **Dashboard "No bookings today" vs "5 bookings today"** — TodayCalendarStrip lacked status filter (pending/confirmed), refetchInterval, and used complex nested join `leads(customers(name))`. Fixed to match UpcomingAppointmentsWidget pattern: status filter, 60s refetch, `leads(full_name)` join.
-- **Investigated and closed**: agency_applications console errors (hooks already silenced, QA false positive), tenant context drops (extensive safeguards already in place, no code bug found)
+- **Fixed agency_applications HTTP 401 on every page load** (commit 4f1b876, deployed to production):
+  - ROOT CAUSE: RLS SELECT policy on `agency_applications` used `(SELECT email FROM auth.users WHERE id = auth.uid())` but the `authenticated` role CANNOT SELECT from `auth.users`. This caused "permission denied for table users" (HTTP 401) for EVERY `useMyAgencyApplication()` call in AppLayout — 22 errors per QA session across all 16 pages.
+  - FIX: Replaced `auth.users` subquery with `auth.jwt() ->> 'email'` which reads from JWT claims directly. Migration 20260303050000 applied.
+  - VERIFIED: curl test confirmed query now returns HTTP 200 (empty array) instead of 401.
+- **Triaged 5 other handoffs** (#247, #252, #254, #263, #264) — all already fixed by eng (3887730) and ux (8b5930c) agents. Marked completed.
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 678/678 passing
-- Commit: 3887730
+- Commit: 4f1b876
 - Pushed to main, deployed to production
 
 ### MODE PROGRESS
@@ -36,6 +36,7 @@
 - **ai_call_outcome enum**: booked, followup, lost, escalated, order, dispatch, message, lead_captured, referral_transfer. NO "cancellation" — use "followup" for cancel calls.
 - **order_status enum**: pending, confirmed, preparing, ready, out_for_delivery, completed, cancelled. NO 'ready_for_pickup'.
 - **RLS policy pattern**: All tenant-scoped tables need `FOR ALL USING(has_tenant_access(auth.uid(), tenant_id)) WITH CHECK(has_tenant_access(auth.uid(), tenant_id))` + service_role bypass. `has_tenant_access()` checks BOTH `tenant_users` AND `user_roles.super_admin`. Using `tenant_users`-only check causes 403 for super admins testing other tenants. 7 competitive-features tables fixed in 3887730.
+- **RLS MUST NOT reference auth.users**: The `authenticated` role cannot SELECT from `auth.users`. Use `auth.jwt() ->> 'email'` or `auth.uid()` instead. Subqueries against auth.users in RLS policies cause "permission denied for table users" (HTTP 401). Fixed in agency_applications (commit 4f1b876).
 - **useTenantConfig uses effectiveTenant**: Changed from `tenant` to `effectiveTenant ?? tenant` so admin tenant switching shows correct mode/modules/industry. This is a SPINE file — changes affect all modes.
 - **AppLayout route gating**: Uses `/app/` prefix check (not a manual whitelist). All /app/ routes accessible; inline paywall card handles non-subscribers.
 - **followup_status valid values**: new, called_back, no_answer, completed, lost, contacted, quoted. DB trigger validates. UI maps: won→completed, contacted↔called_back.
@@ -52,6 +53,6 @@
 - 2 BLOCKED gates (Google Calendar OAuth, SMS A2P registration)
 
 ### Next Priorities
-1. QA verification of all WIP gates (handoffs #267-269 filed)
-2. overall/no_console_errors gate — agency_applications query runs on every page (not a real error, hooks are silenced, but QA counts network 4xx as errors)
-3. Customers page Active=0 bug (handoff from QA fix team)
+1. QA verification of all WIP gates (handoffs #267-271 filed)
+2. overall/no_console_errors now fixed (commit 4f1b876) — awaiting QA verification
+3. All other pending handoffs resolved (booking picker, dashboard today, customers Active=0)
