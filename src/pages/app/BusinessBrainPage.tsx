@@ -340,10 +340,15 @@ export default function BusinessBrainPage() {
   const getSectionGuidance = (sectionId: string) => {
     const g = SECTION_GUIDANCE[sectionId];
     if (!g) return {};
+    const label = terms.appointmentLabel || "appointment";
+    const labelPlural = label + "s";
+    const resolve = (s: string) =>
+      s.replace(/\{\{appointmentLabel\}\}/g, label)
+       .replace(/\{\{appointmentLabelPlural\}\}/g, labelPlural);
     return {
-      whyText: g.why,
-      whatText: g.what,
-      tipText: g.tips[businessMode] || g.tips.default,
+      whyText: resolve(g.why),
+      whatText: resolve(g.what),
+      tipText: resolve(g.tips[businessMode] || g.tips.default),
     };
   };
 

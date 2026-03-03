@@ -10,7 +10,7 @@ import {
   getIndustryTerminology,
   type IndustryTerminology,
 } from "@/data/industryTerminology";
-import { getTerminology, type IndustryTerms } from "@/lib/terminology";
+import { getTerminology, applyAppointmentLabel, type IndustryTerms } from "@/lib/terminology";
 import {
   getIndustryBrainConfig,
   type IndustryBrainConfig,
@@ -53,7 +53,7 @@ export function useIndustryContext(): IndustryContext {
     const mode = catalogEntry?.businessMode ?? businessMode;
 
     const terminology = getIndustryTerminology(mode, category ?? undefined, slug ?? undefined);
-    const terms = getTerminology(mode);
+    const terms = applyAppointmentLabel(getTerminology(mode), terminology.appointmentLabel);
     const config = getIndustryBrainConfig(mode, category ?? undefined, slug ?? undefined);
 
     return {

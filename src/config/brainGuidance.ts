@@ -26,7 +26,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
   },
   "business-hours": {
     what: "Set your operating hours so your AI knows when you're open.",
-    why: "Your AI tells callers if you're currently open, and only offers appointment times during business hours.",
+    why: "Your AI tells callers if you're currently open, and only offers {{appointmentLabel}} times during business hours.",
     tips: {
       default: "If your hours change seasonally, update them here when the season changes.",
       dispatch: "If you're 24/7, make sure all days show as open. Your AI will tell callers you're always available.",
@@ -36,7 +36,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     what: "Connect your Google or Outlook calendar so your AI can see your real-time availability.",
     why: "Without this, your AI might offer times when you're already booked. Calendar sync prevents double-booking.",
     tips: {
-      default: "Your AI checks your calendar before offering any appointment time.",
+      default: "Your AI checks your calendar before offering any {{appointmentLabel}} time.",
     },
   },
   "templates": {
@@ -116,7 +116,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
   },
   "objections": {
     what: "Tell your AI how to respond when customers say things like 'That's too expensive' or 'I'll call back later.'",
-    why: "Without these, your AI accepts objections and lets the caller hang up. With them, your AI keeps pushing toward a booking.",
+    why: "Without these, your AI accepts objections and lets the caller hang up. With them, your AI keeps pushing toward a {{appointmentLabel}}.",
     tips: {
       default: "The top 3 objections for most businesses: 'too expensive,' 'need to think about it,' and 'can I get a discount?'",
     },
@@ -169,17 +169,17 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     },
   },
   "booking-delivery": {
-    what: "Choose where confirmed bookings get sent — email, calendar, or your booking system.",
-    why: "Without this, your AI confirms bookings but you might not see them in time.",
+    what: "Choose where your confirmed schedule gets sent — email, calendar, or your system.",
+    why: "Without this, your AI confirms {{appointmentLabelPlural}} but you might not see them in time.",
     tips: {
       default: "Email is the quickest to set up. Connect your booking software later if you use one.",
     },
   },
   "ai-behavior-mode": {
-    what: "Choose what your AI does on calls — take messages, book appointments, or handle the full conversation.",
-    why: "This is the single most impactful setting. It determines whether your AI is a receptionist, a booking agent, or a full service rep.",
+    what: "Choose what your AI does on calls — take messages, handle scheduling, or run the full conversation.",
+    why: "This is the single most impactful setting. It determines whether your AI is a receptionist, a scheduling agent, or a full service rep.",
     tips: {
-      default: "Start with 'Book appointments' if you're a service business. Switch to 'Full service' once you've trained your AI with FAQs and policies.",
+      default: "Start with 'Schedule {{appointmentLabelPlural}}' if you're a service business. Switch to 'Full service' once you've trained your AI with FAQs and policies.",
       dispatch: "Most towing companies use 'Full service' so the AI can collect all job details and dispatch immediately.",
       food: "Use 'Full service' so your AI can take orders, answer menu questions, and handle reservations.",
     },
@@ -188,7 +188,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     what: "Set the order your AI follows on calls — schedule first, or check urgency first.",
     why: "Controls whether your AI leads with 'When would you like to come in?' or 'What's going on?' This affects conversion rates.",
     tips: {
-      default: "Schedule-first works best for appointment-based businesses. Urgency-first is better if you need to triage before booking.",
+      default: "Schedule-first works best for {{appointmentLabel}}-based businesses. Urgency-first is better if you need to triage before scheduling.",
       service: "If most callers already know what they need, use schedule-first. If they often need diagnosis, use urgency-first.",
     },
   },
@@ -196,7 +196,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     what: "Choose whether your AI confirms bookings instantly or holds them for your review.",
     why: "Auto-confirm gives callers instant gratification. Pending mode gives you control but adds a delay before the customer hears back.",
     tips: {
-      default: "Auto-confirm is recommended if your calendar is connected. Use pending mode if you need to manually approve appointments.",
+      default: "Auto-confirm is recommended if your calendar is connected. Use pending mode if you need to manually approve {{appointmentLabelPlural}}.",
       medical: "Many practices prefer pending mode so staff can verify insurance and prepare for the visit.",
     },
   },
@@ -261,10 +261,10 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     },
   },
   "service-coverage": {
-    what: "Configure scheduling rules — how far out customers can book and appointment durations.",
-    why: "Prevents your AI from booking appointments too far in advance or not leaving enough time between jobs.",
+    what: "Configure scheduling rules — how far out customers can book and how long each slot lasts.",
+    why: "Prevents your AI from scheduling {{appointmentLabelPlural}} too far in advance or not leaving enough time between {{appointmentLabelPlural}}.",
     tips: {
-      default: "Set realistic buffer times between appointments to avoid running behind schedule.",
+      default: "Set realistic buffer times between {{appointmentLabelPlural}} to avoid running behind schedule.",
     },
   },
   "workload": {

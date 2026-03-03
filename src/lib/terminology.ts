@@ -195,3 +195,45 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
 export function getTerminology(mode: BusinessMode): IndustryTerms {
   return TERMINOLOGY[mode] || TERMINOLOGY.service;
 }
+
+/**
+ * Overlay industry-specific appointmentLabel onto base mode terms.
+ *
+ * The 3-tier industry terminology system (industryTerminology.ts) resolves
+ * appointmentLabel per category/slug (e.g. "job" for home_services, "visit"
+ * for health_medical). This function applies that label to the simple UI terms
+ * so a plumber sees "Job scheduled" instead of "Booking created".
+ */
+export function applyAppointmentLabel(
+  base: IndustryTerms,
+  appointmentLabel: string | undefined,
+): IndustryTerms {
+  // Only override when the label differs from the mode default
+  if (!appointmentLabel || appointmentLabel === "appointment" || appointmentLabel === "booking") {
+    return base;
+  }
+
+  // Already matches (e.g. dispatch mode already uses "job")
+  if (base.booking === appointmentLabel) {
+    return base;
+  }
+
+  const s = appointmentLabel; // e.g. "job", "visit", "consultation"
+  const p = s + "s"; // "jobs", "visits", "consultations"
+  const cap = s.charAt(0).toUpperCase() + s.slice(1);
+  const capP = p.charAt(0).toUpperCase() + p.slice(1);
+
+  return {
+    ...base,
+    booking: s,
+    bookings: p,
+    bookingCreated: `${cap} scheduled`,
+    bookingConfirmed: `${cap} confirmed`,
+    newBooking: `New ${cap}`,
+    viewBookings: `View ${capP}`,
+    pendingBooking: `pending ${s}`,
+    pendingBookings: `pending ${p}`,
+    bookingsMetricLabel: capP,
+    bookingsPageSubtitle: `Your calendar and upcoming ${p}`,
+  };
+}
