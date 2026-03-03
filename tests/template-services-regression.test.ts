@@ -54,6 +54,119 @@ describe("resolveIndustryTemplate — service completeness", () => {
     expect(names).toContain("Furnace Repair");
   });
 
+  // ─── Electrical ─────────────────────────────────────────────────
+  it("electrical template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("electrical");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Electrical Inspection");
+    expect(names).toContain("Outlet Installation");
+    expect(names).toContain("Panel Upgrade");
+    expect(names).toContain("Emergency Service");
+  });
+
+  // ─── Cleaning ──────────────────────────────────────────────────
+  it("cleaning template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("cleaning");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Standard Cleaning");
+    expect(names).toContain("Deep Cleaning");
+    expect(names).toContain("Move In/Out Cleaning");
+  });
+
+  // ─── Landscaping / Lawn Care ───────────────────────────────────
+  it("landscaping template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("landscaping");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Lawn Mowing");
+    expect(names).toContain("Landscape Design");
+  });
+
+  // ─── Pest Control ──────────────────────────────────────────────
+  it("pest_control template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("pest_control");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("General Pest Treatment");
+    expect(names).toContain("Termite Inspection");
+    expect(names).toContain("Bed Bug Treatment");
+  });
+
+  // ─── Auto Detailing ────────────────────────────────────────────
+  it("auto_detailing template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("auto_detailing");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Basic Wash");
+    expect(names).toContain("Full Detail");
+    expect(names).toContain("Ceramic Coating");
+  });
+
+  // ─── Auto Repair ───────────────────────────────────────────────
+  it("auto_repair template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("auto_repair");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Diagnostic");
+    expect(names).toContain("Oil Change");
+    expect(names).toContain("Brake Service");
+  });
+
+  // ─── Salon ─────────────────────────────────────────────────────
+  it("salon template resolves all 6 services", () => {
+    const config = resolveIndustryTemplate("salon");
+    expect(config.services).toHaveLength(6);
+    const names = config.services.map((s) => s.name);
+    expect(names).toContain("Haircut");
+    expect(names).toContain("Hair Color");
+    expect(names).toContain("Blowout");
+  });
+
+  // ─── Service data quality: all services have valid fields ──────
+  it("all service-mode industries have valid price types and durations", () => {
+    const slugs = [
+      "plumbing", "hvac", "electrical", "cleaning", "landscaping",
+      "pest_control", "auto_detailing", "auto_repair", "salon",
+    ];
+    const validPriceTypes = ["fixed", "starting_at", "quote_only"];
+
+    for (const slug of slugs) {
+      const config = resolveIndustryTemplate(slug);
+      for (const svc of config.services) {
+        expect(svc.name.length, `${slug}/${svc.name} name`).toBeGreaterThan(0);
+        expect(svc.duration, `${slug}/${svc.name} duration`).toBeGreaterThan(0);
+        expect(validPriceTypes, `${slug}/${svc.name} priceType`).toContain(svc.priceType);
+        // quote_only services can have price=0 (pricing varies per job)
+        if (svc.priceType !== "quote_only") {
+          expect(svc.price, `${slug}/${svc.name} price`).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  // ─── FAQs and policies exist for key industries ────────────────
+  it("key service industries have at least 3 FAQs defined", () => {
+    const slugs = ["plumbing", "hvac", "electrical", "cleaning", "salon", "auto_repair"];
+    for (const slug of slugs) {
+      const config = resolveIndustryTemplate(slug);
+      expect(
+        config.faqs.length,
+        `${slug} should have at least 3 FAQs`
+      ).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("key service industries have default policies", () => {
+    const slugs = ["plumbing", "hvac", "electrical", "cleaning", "salon"];
+    for (const slug of slugs) {
+      const config = resolveIndustryTemplate(slug);
+      expect(config.defaultPolicies).toBeDefined();
+      expect(config.defaultPolicies.cancellation.length).toBeGreaterThan(0);
+    }
+  });
+
   // ─── Cross-industry: all catalog entries have services ──────────
   it("every catalog industry has at least 1 service defined", () => {
     const allSlugs = [
