@@ -1,55 +1,14 @@
-## receptionist_eng Session — 2026-03-03 04:37 UTC
+[2026-03-03 01:58 ET] receptionist_eng session
+Commit: 4fef504
+Build: Clean (0 errors), Tests: 685/685
+Deployed: ai-plan-response, elevenlabs-webhook, twilio-inbound, frontend
 
-### What Was Done
-**Migrated ALL 12 AI edge functions from dead Lovable gateway to Anthropic API** (commit 939d30a, deployed to production)
+BUGS FIXED (5):
+1. ai-plan-response: Added conversationHistory param for multi-turn simulator context
+2. ai-plan-response: Injected current date/time in tenant timezone into AI system prompt
+3. scenarioQuestions.ts: overridesBase false on ai-books — booking module no longer removed
+4. elevenlabs-webhook: Mode-default modules always merged into enabled_modules
+5. twilio-inbound: current_date_time + current_timezone in ElevenLabs dynamic vars
 
-**Root cause**: LOVABLE_API_KEY was never configured on the new Supabase project (yltzlvzgwkidbeqaoevp). All edge functions calling `ai.gateway.lovable.dev` returned 500 errors. The partner-analysis function caused 4 console errors on the AI Insights page (handoff #274).
-
-**Functions fixed** (12 total):
-| Function | Type | Notes |
-|----------|------|-------|
-| partner-analysis | Text completion | AI Insights page — was causing console errors |
-| ai-text-reply | Text completion | SMS auto-reply generation |
-| generate-insights | Text completion (2 calls) | Daily insight + FAQ draft generation |
-| parse-services-text | Text completion | Service/menu text parsing during onboarding |
-| process-knowledge-upload | Tool calling + vision | Document classification + extraction |
-| vin-ocr | Vision | VIN image extraction |
-| admin-marketing-chat | Streaming | SSE format translation (Anthropic → OpenAI) |
-| marketing-chat | Text completion | Marketing chat |
-| admin-outreach-execute | Text completion | Outreach message personalization |
-| admin-generate-ad-copy | Text completion | Ad copy generation |
-| admin-generate-social-batch | Text completion | Social media batch generation |
-| admin-outreach-response | Text completion | Sentiment analysis |
-
-**All functions now use**:
-- ANTHROPIC_API_KEY (already configured in Supabase secrets)
-- https://api.anthropic.com/v1/messages endpoint
-- claude-haiku-4-5-20251001 model
-- Anthropic response format (content[0].text, tool_use blocks, base64 images)
-
-### Build Status
-- Build: Clean (0 errors)
-- Tests: 678/678 passing
-- Commit: 939d30a
-- Deployed: Frontend (Hetzner VPS) + 12 edge functions (Supabase)
-
-### Handoffs Filed
-- → receptionist_qa [high] (#275): VERIFY GATE: service overall/no_console_errors — all 12 AI edge functions migrated
-
-### Risks
-1. admin-marketing-chat SSE stream translation (Anthropic→OpenAI format) — untested with real browser, could have edge cases
-2. process-knowledge-upload tool calling format may differ slightly — Anthropic tool_use vs OpenAI tool_calls
-3. vin-ocr image URL vs base64 handling — Anthropic may not support all URL formats
-
-### Mode Matrix
-- SERVICE: All AI-powered features should now work (partner-analysis, parse-services-text, ai-text-reply)
-- ALL MODES: generate-insights, process-knowledge-upload work for all modes
-- DISPATCH/IMPOUND: vin-ocr now functional
-- ADMIN: All admin AI tools (marketing chat, ad copy, social batch, outreach) now functional
-
-=== receptionist_ux 2026-03-03 04:46 ===
-Fixed 1 critical UX bug (commit fb24479):
-- MobileSidebar at 375px: full-screen solid overlay with no backdrop dismiss → standard sidebar pattern (280px panel + backdrop click-to-close)
-Gate: dashboard/mobile_375px_usable → in_progress (handoff #276 to QA)
-Build: clean, Tests: 678/678
-2026-03-03 05:03 receptionist_fix: Fixed admin tenant context persistence (commit 810d29f). 3 gaps sealed: (1) auto-create localStorage, (2) effectiveTenantId bridge during loading, (3) skip redundant re-fetch. 685/685 tests, deployed. Handoffs: #272 completed, #273 already fixed.
+HANDOFFS COMPLETED: #278, #281, #282, #283, #284
+HANDOFFS FILED: #286 (QA verify booking gates), #287 (QA verify simulator memory), #288 (note re customer_name)

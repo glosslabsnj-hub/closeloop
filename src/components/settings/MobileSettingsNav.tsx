@@ -6,7 +6,7 @@ import {
   Shield,
   Webhook,
   Zap,
-  Bug,
+  Wrench,
   AlertTriangle,
   ChevronDown,
   RefreshCw,
@@ -52,7 +52,7 @@ const sectionLabels: Record<string, string> = {
   sms: "SMS Messaging",
   recovery: "Lead Recovery",
   "referral-network": "Referral Network",
-  developer: "Developer Tools",
+  developer: "Troubleshooting",
   danger: "Danger Zone",
 };
 
@@ -111,7 +111,7 @@ export function MobileSettingsNav({ activeSection, onSectionChange, config }: Mo
       label: "Advanced",
       colorClass: "text-muted-foreground",
       items: [
-        { id: "developer", label: "Developer Tools", icon: Bug },
+        { id: "developer", label: "Troubleshooting", icon: Wrench },
         { id: "danger", label: "Danger Zone", icon: AlertTriangle },
       ],
     },

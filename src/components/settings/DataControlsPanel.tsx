@@ -94,7 +94,7 @@ export function DataControlsPanel() {
           </div>
           {hipaaMode && (
             <Badge variant={isHIPAACompliant ? "default" : "destructive"} className="ml-2">
-              {isHIPAACompliant ? "Compliant" : "Review Settings"}
+              {isHIPAACompliant ? "Compliant" : "Action Needed"}
             </Badge>
           )}
         </AlertDescription>
@@ -311,13 +311,13 @@ export function DataControlsPanel() {
             Retention Periods
           </CardTitle>
           <CardDescription>
-            Data older than these periods will be automatically deleted. Use 0 for immediate deletion.
+            Data older than these periods will be automatically deleted. Set to 0 to never store that type of data.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="recording-days">Recording Retention</Label>
+              <Label htmlFor="recording-days">Keep Recordings For</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="recording-days"
@@ -339,7 +339,7 @@ export function DataControlsPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="transcript-days">Transcript Retention</Label>
+              <Label htmlFor="transcript-days">Keep Transcripts For</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="transcript-days"
@@ -361,7 +361,7 @@ export function DataControlsPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="summary-days">Call Summary Retention</Label>
+              <Label htmlFor="summary-days">Keep Call Summaries For</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="summary-days"
@@ -382,7 +382,7 @@ export function DataControlsPanel() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="audit-days">Audit Log Retention</Label>
+              <Label htmlFor="audit-days">Keep Activity Logs For</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="audit-days"

@@ -6,7 +6,7 @@ import {
   Shield,
   Webhook,
   Zap,
-  Bug,
+  Wrench,
   AlertTriangle,
   ChevronDown,
   ChevronRight,
@@ -101,7 +101,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
       label: "AI Features",
       colorClass: "text-emerald-500",
       items: [
-        { id: "sms", label: "SMS Messaging (Coming Soon)", icon: MessageSquare },
+        { id: "sms", label: "SMS Messaging", icon: MessageSquare },
         { id: "recovery", label: "Lead Recovery", icon: RefreshCw, visible: config.showRecovery },
         { id: "referral-network", label: "Referral Network", icon: Network, visible: config.showReferralNetwork },
       ],
@@ -180,8 +180,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, config, comple
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-1 pt-1">
               <SettingsNavItem
-                icon={Bug}
-                label="Developer Tools"
+                icon={Wrench}
+                label="Troubleshooting"
                 isActive={activeSection === "developer"}
                 onClick={() => onSectionChange("developer")}
               />

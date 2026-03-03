@@ -143,7 +143,7 @@ export function DeliveryIntegrationsSettings() {
         {webhookEnabled && (
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="webhook-url">Webhook URL</Label>
+              <Label htmlFor="webhook-url">Integration URL</Label>
               <Input
                 id="webhook-url"
                 type="url"
@@ -187,7 +187,7 @@ export function DeliveryIntegrationsSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Security</Label>
+              <Label>Connection Security</Label>
               <Select value={authMode} onValueChange={(v) => setAuthMode(v as AuthMode)}>
                 <SelectTrigger>
                   <SelectValue />

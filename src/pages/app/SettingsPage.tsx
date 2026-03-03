@@ -145,7 +145,7 @@ export default function SettingsPage() {
     },
     revenue: {
       title: "Revenue Tracking",
-      description: "Configure how your AI-generated revenue and ROI are calculated.",
+      description: "Configure how your AI-generated revenue and return on investment are calculated.",
     },
     "data-privacy": {
       title: "Data Controls",
@@ -157,15 +157,15 @@ export default function SettingsPage() {
     },
     integrations: {
       title: "Integrations",
-      description: "Push bookings, orders, and leads to your existing tools via webhooks.",
+      description: "Automatically send bookings, orders, and leads to your existing tools.",
     },
     automation: {
       title: "Automation Rules",
       description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
     },
     developer: {
-      title: "Developer Tools",
-      description: "Advanced debugging tools for troubleshooting.",
+      title: "Troubleshooting",
+      description: "See what your AI knows and how it handles calls.",
     },
     danger: {
       title: "Danger Zone",
@@ -306,11 +306,11 @@ export default function SettingsPage() {
         return (
           <>
             <SettingsCard
-              title="Debug Tools"
-              description="Inspect what data is passed to the AI during calls."
+              title="Troubleshooting"
+              description="See exactly what your AI knows about your business and how it responds to callers."
             >
               <p className="text-sm text-muted-foreground">
-                These tools help you understand and troubleshoot AI behavior. Only use if you're comfortable with technical details.
+                Use this to check if your AI has the right information before going live.
               </p>
             </SettingsCard>
             {tenant?.id && <CallContextDebugger tenantId={tenant.id} />}

@@ -73,7 +73,7 @@ export function RevenueSettingsSection() {
       <CardHeader>
         <CardTitle>Revenue Tracking</CardTitle>
         <CardDescription>
-          Configure how your AI-generated revenue and ROI are calculated.
+          Configure how your AI-generated revenue and return on investment are calculated.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -95,7 +95,7 @@ export function RevenueSettingsSection() {
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            Used as a fallback when a service doesn't have a set price (e.g., quote-only services).
+            Used when a service doesn't have a fixed price (e.g., "call for a quote" services).
           </p>
         </div>
 
@@ -135,14 +135,14 @@ export function RevenueSettingsSection() {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            Used to calculate your ROI. Override if you have a custom deal or annual plan.
+            Used to calculate how much revenue your AI generates vs. what you pay. Override if you have a custom deal or annual plan.
           </p>
         </div>
 
         {/* Monthly Report Toggle */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">Monthly ROI Email</p>
+            <p className="text-sm font-medium">Monthly Revenue Report</p>
             <p className="text-xs text-muted-foreground">
               Receive a monthly revenue report via email
             </p>

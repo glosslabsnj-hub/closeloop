@@ -409,7 +409,7 @@ export function IntegrationConnectDialog({
               </div>
               <DialogTitle className="mb-2">{provider.name} Connected!</DialogTitle>
               <DialogDescription>
-                You can now enable automation rules that use this integration.
+                Your data will now sync automatically. Head to Settings &gt; Automation to customize what gets sent.
               </DialogDescription>
             </div>
             <DialogFooter>
