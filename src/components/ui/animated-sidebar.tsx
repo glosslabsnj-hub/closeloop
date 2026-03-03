@@ -114,25 +114,35 @@ export const MobileSidebar = ({
   return (
     <div className={cn("md:hidden", className)} {...props}>
       <AnimatePresence>
-        {open && (
+        {open ? (
           <motion.div
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: "-100%", opacity: 0 }}
+            key="sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[99] bg-black/50 backdrop-blur-[2px]"
+            onClick={() => setOpen(false)}
+          />
+        ) : null}
+        {open ? (
+          <motion.div
+            key="sidebar-panel"
+            initial={{ x: "-100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "-100%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className={cn(
-              "fixed inset-0 z-[100] flex flex-col bg-sidebar p-6",
-            )}
+            className="fixed inset-y-0 left-0 z-[100] flex w-[280px] max-w-[85vw] flex-col bg-sidebar p-6 shadow-2xl"
           >
             <div
-              className="absolute right-4 top-4 cursor-pointer text-sidebar-foreground"
+              className="absolute right-3 top-3 cursor-pointer rounded-md p-1 text-sidebar-foreground hover:bg-accent/80 transition-colors"
               onClick={() => setOpen(false)}
             >
               <X className="h-5 w-5" />
             </div>
             {children}
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );
