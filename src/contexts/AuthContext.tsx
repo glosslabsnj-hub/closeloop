@@ -57,7 +57,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isFetchingRef = useRef(false);
 
   // Computed: The effective tenant ID that should be used for all operations
-  const effectiveTenantId = isSuperAdmin && adminSettings?.admin_active_tenant_id
+  // During initialization (loading=true), isSuperAdmin hasn't been determined yet
+  // but adminSettings may already be restored from localStorage. Use it as a
+  // synchronous bridge to prevent effectiveTenantId from briefly being null.
+  const effectiveTenantId = (isSuperAdmin || (loading && adminSettings?.admin_active_tenant_id))
+    && adminSettings?.admin_active_tenant_id
     ? adminSettings.admin_active_tenant_id
     : tenant?.id || null;
 
@@ -69,7 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch admin settings (admin_active_tenant_id) for super admins
   // If no settings exist, auto-create with current tenant as default
-  const fetchAdminSettings = useCallback(async (userId: string, defaultTenantId: string | null) => {
+  // skipTenantFetch: when true, only sync adminSettings state — tenant data was already pre-fetched
+  const fetchAdminSettings = useCallback(async (userId: string, defaultTenantId: string | null, skipTenantFetch = false) => {
     try {
       const { data, error } = await supabase
         .from("admin_settings")
@@ -99,6 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.warn("Failed to auto-create admin settings:", upsertError);
         } else {
           setAdminSettings({ admin_active_tenant_id: defaultTenantId });
+          // Persist to localStorage so page reload has synchronous backup
+          try { if (defaultTenantId) localStorage.setItem("flux_admin_active_tenant_id", defaultTenantId); } catch {}
           // The default tenant is already set as `tenant`, so set it as active too
           return;
         }
@@ -113,7 +120,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {}
 
       // If admin has an active tenant selected, fetch that tenant's data + subscription
-      if (data?.admin_active_tenant_id) {
+      // Skip if caller already pre-fetched the data (avoids redundant queries + renders)
+      if (data?.admin_active_tenant_id && !skipTenantFetch) {
         const { data: tenantData } = await supabase
           .from("tenants")
           .select("*")
@@ -272,7 +280,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setSubscription(defaultSubRes.data);
               setAssistantSettings(defaultSettingsRes.data);
             }
-            await fetchAdminSettings(userId, tenantData.id);
+            // skipTenantFetch=true: tenant data already pre-fetched above, only sync adminSettings
+            await fetchAdminSettings(userId, tenantData.id, true);
           } else {
             // Normal user or admin viewing their own default tenant
             // Set tenant first, then fetch subscription/settings

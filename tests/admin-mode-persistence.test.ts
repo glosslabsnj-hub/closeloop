@@ -211,3 +211,63 @@ describe("Redirect defense: localStorage backup for admin sessions", () => {
     expect(matches!.length).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe("effectiveTenantId bridge during loading", () => {
+  // Simulates the computation at AuthContext lines 63-66
+  function computeEffectiveTenantId(
+    isSuperAdmin: boolean,
+    loading: boolean,
+    adminActiveId: string | null,
+    tenantId: string | null,
+  ) {
+    return (isSuperAdmin || (loading && adminActiveId))
+      && adminActiveId
+      ? adminActiveId
+      : tenantId || null;
+  }
+
+  it("returns cached tenant ID during loading even when isSuperAdmin is false", () => {
+    // Scenario: page reload, isSuperAdmin not yet determined, localStorage has cached tenant
+    const result = computeEffectiveTenantId(false, true, "hvac-uuid", null);
+    expect(result).toBe("hvac-uuid");
+  });
+
+  it("returns cached tenant ID when isSuperAdmin is true and loading is false", () => {
+    const result = computeEffectiveTenantId(true, false, "hvac-uuid", "default-uuid");
+    expect(result).toBe("hvac-uuid");
+  });
+
+  it("falls back to tenant ID for non-admin users during loading", () => {
+    // No adminSettings cached — regular user
+    const result = computeEffectiveTenantId(false, true, null, "user-tenant");
+    expect(result).toBe("user-tenant");
+  });
+
+  it("returns null for non-admin users with no tenant during loading", () => {
+    const result = computeEffectiveTenantId(false, true, null, null);
+    expect(result).toBeNull();
+  });
+
+  it("after loading, non-admin without cached admin ID uses tenant.id", () => {
+    const result = computeEffectiveTenantId(false, false, null, "user-tenant");
+    expect(result).toBe("user-tenant");
+  });
+});
+
+describe("fetchAdminSettings auto-create sets localStorage", () => {
+  it("AuthContext auto-create branch persists to localStorage", () => {
+    const src = srcFile("src/contexts/AuthContext.tsx");
+    // Find the auto-create section (after upsert success, before early return)
+    const autoCreateSection = src.indexOf("Auto-creating admin_settings");
+    const earlyReturn = src.indexOf("return;", autoCreateSection);
+    const sectionBetween = src.slice(autoCreateSection, earlyReturn);
+    // Must include localStorage.setItem call
+    expect(sectionBetween).toContain("localStorage.setItem");
+  });
+
+  it("fetchAdminSettings supports skipTenantFetch parameter", () => {
+    const src = srcFile("src/contexts/AuthContext.tsx");
+    expect(src).toContain("skipTenantFetch = false");
+    expect(src).toContain("!skipTenantFetch");
+  });
+});
