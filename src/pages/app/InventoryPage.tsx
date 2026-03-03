@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -169,7 +170,7 @@ export default function InventoryPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary context="loading your inventory">
       <PageContainer maxWidth="xl">
         <PageHeader
           title="Inventory Management"
@@ -601,6 +602,6 @@ export default function InventoryPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   );
 }

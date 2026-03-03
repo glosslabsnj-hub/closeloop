@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -102,6 +103,7 @@ export default function MedicalIntakePage() {
   }
 
   return (
+    <ErrorBoundary context="loading medical intakes">
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -310,5 +312,6 @@ export default function MedicalIntakePage() {
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   );
 }

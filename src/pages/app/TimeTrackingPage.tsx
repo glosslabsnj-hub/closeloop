@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -226,7 +227,7 @@ export default function TimeTrackingPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary context="loading time tracking">
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<Clock className="h-5 w-5" />}
@@ -496,6 +497,6 @@ export default function TimeTrackingPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   );
 }

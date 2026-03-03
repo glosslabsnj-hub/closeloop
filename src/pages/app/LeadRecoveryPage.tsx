@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useNavigate } from "react-router-dom";
 import { Search, Settings, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -196,6 +197,7 @@ export default function LeadRecoveryPage() {
   };
 
   return (
+    <ErrorBoundary context="loading lead recovery">
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -315,5 +317,6 @@ export default function LeadRecoveryPage() {
         onSuccess={() => refetch()}
       />
     </div>
+    </ErrorBoundary>
   );
 }

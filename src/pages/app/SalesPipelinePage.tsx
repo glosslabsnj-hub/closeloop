@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -75,6 +76,7 @@ export default function SalesPipelinePage() {
   }
 
   return (
+    <ErrorBoundary context="loading your sales pipeline">
     <PageContainer maxWidth="full">
       <div className="space-y-6">
         <PageHeader
@@ -278,5 +280,6 @@ export default function SalesPipelinePage() {
         </DialogContent>
       </Dialog>
     </PageContainer>
+    </ErrorBoundary>
   );
 }

@@ -1,23 +1,23 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 8:55 AM ET (receptionist_eng — SMS terminology fix)
+## Last Session: 2026-03-03 5:45 PM ET (receptionist_eng — dynamic Call Flow badges)
 
 ### What Was Done
-- **SMS templates**: Created `_shared/terminology.ts` with `getAppointmentLabel(mode, industrySlug)` for edge functions
-- **SmsSettingsSection**: Default templates now use `terminology.appointmentLabel` — plumber sees "Your job..." not "Your appointment..."
-- **booking-handoff**: Fallback SMS template uses tenant's mode+industry for correct label
-- **cron-appointment-reminders**: Reminder template + service_name fallback use dynamic label
-- Build: Clean (0 errors), Tests: 1071/1071 passing
-- Commit: d96e1ca, pushed to main, deployed (frontend + 2 edge functions)
+- **ServiceCallFlowSettings**: Dynamic "Recommended for your business" badge on industry-appropriate Call Flow option
+- Static badges changed to "Common for..." to avoid confusion with the recommendation
+- Plumbing/HVAC/electrical tenants now see "Recommended" on "Ask if Urgent"
+- Locksmith/towing tenants see "Recommended" on "Immediate Dispatch"
+- Build: Clean (0 errors), Tests: 1274/1274 passing
+- Commit: 3dea8ea, pushed to main, deployed
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 1071/1071 passing
-- Commit: d96e1ca
+- Tests: 1274/1274 passing
+- Commit: 3dea8ea
 - Pushed to main + deployed
 
 ### MODE PROGRESS
-- SERVICE: 32/42 QA-verified (76%) ← FOCUS
+- SERVICE: 35/42 QA-verified (83%) ← FOCUS
 - DISPATCH: 0/42 (0%)
 - FOOD: 0/42 (0%)
 - MEDICAL: 0/42 (0%)

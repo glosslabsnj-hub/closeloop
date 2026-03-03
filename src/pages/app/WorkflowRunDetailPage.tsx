@@ -1,4 +1,5 @@
 import { useParams, Link } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { ArrowLeft, CheckCircle, XCircle, Clock, Ban, SkipForward, RefreshCw, AlertTriangle, FlaskConical } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export default function WorkflowRunDetailPage() {
   const triggerMeta = workflow ? TRIGGER_METADATA[workflow.trigger] : null;
 
   return (
+    <ErrorBoundary context="loading workflow run details">
     <div className="container py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -229,6 +231,7 @@ export default function WorkflowRunDetailPage() {
         </Card>
       )}
     </div>
+    </ErrorBoundary>
   );
 }
 

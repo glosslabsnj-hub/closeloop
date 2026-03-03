@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, Plus, Save, Play, GripVertical, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,7 @@ export default function WorkflowEditPage() {
   ];
 
   return (
+    <ErrorBoundary context="loading your workflow editor">
     <div className="container py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -312,6 +314,7 @@ export default function WorkflowEditPage() {
         />
       )}
     </div>
+    </ErrorBoundary>
   );
 }
 

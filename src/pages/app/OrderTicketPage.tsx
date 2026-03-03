@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +91,7 @@ export default function OrderTicketPage() {
   };
 
   return (
-    <>
+    <ErrorBoundary context="loading the order ticket">
       {/* Print styles */}
       <style>{`
         @media print {
@@ -145,6 +146,6 @@ export default function OrderTicketPage() {
           ticketFormat={printFormat}
         />
       </div>
-    </>
+    </ErrorBoundary>
   );
 }

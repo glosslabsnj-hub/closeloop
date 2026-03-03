@@ -5,6 +5,7 @@
  * For dispatch businesses: "Fleet Management" with drivers + vehicles
  */
 
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { FleetDriversManager } from "@/components/brain/dispatch/FleetDriversManager";
@@ -35,6 +36,7 @@ export default function FleetPage() {
   }
 
   return (
+    <ErrorBoundary context="loading your team">
     <PageContainer>
       <PageHeader
         icon={isServiceMode ? <Wrench className="h-5 w-5" /> : <Users className="h-5 w-5" />}
@@ -51,5 +53,6 @@ export default function FleetPage() {
         {!isServiceMode && <FleetVehiclesManager />}
       </div>
     </PageContainer>
+    </ErrorBoundary>
   );
 }

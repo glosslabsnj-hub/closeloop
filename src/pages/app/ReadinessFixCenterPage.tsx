@@ -7,6 +7,7 @@
  */
 
 import { Link, useNavigate } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
 import { getIssueDetails, isPlanGatedIssue, type ReadinessIssue, type FixType } from "@/lib/readiness/issueMapping";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,6 +96,7 @@ export default function ReadinessFixCenterPage() {
   }
 
   return (
+    <ErrorBoundary context="loading readiness diagnostics">
     <div className="container max-w-4xl py-8 px-4">
       {/* Back Navigation */}
       <Button
@@ -300,6 +302,7 @@ export default function ReadinessFixCenterPage() {
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   );
 }
 

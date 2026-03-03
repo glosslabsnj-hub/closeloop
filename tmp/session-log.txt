@@ -1,25 +1,2 @@
-receptionist_eng 2026-03-03 2:00-2:20PM ET
-
-## What was done
-1. CRITICAL FIX: Deployed check_availability timezone fix (commit 0c8432e)
-   - Bug: ALL non-UTC tenants rejected as "Outside business hours"
-   - Root cause: Commit was committed but NEVER DEPLOYED to Supabase
-   - Fix: Deployed both elevenlabs-check-availability + check-availability
-   - Verified: Phoenix tenant (UTC-7) at 2:30 PM → available=true
-
-2. FIX: Save & Exit onboarding redirect (commit 49094b2)
-   - Bug: navigate("/") sent user to public landing page, auth lost
-   - Fix: navigate("/app/dashboard") keeps user authenticated
-   - Deployed: frontend rebuilt and pushed to VPS
-
-3. Deployed all priority edge functions (deploy-priority.sh running)
-4. Pushed to GitHub, deployed frontend to VPS (app.getfluxdata.com = 200)
-
-## Handoffs filed
-- #337 → receptionist_qa: Verify check_availability fix (plumbing tenant)
-- #338 → receptionist_qa: Verify Save & Exit redirect
-
-## Gate status (service mode): 34/42 QA-verified (81%)
-- 5 WIP gates: all engineering done, awaiting QA
-- 3 BLOCKED: google_calendar, sms_delivery, transfer_to_human
-[2026-03-03 19:29] receptionist_ux: Dynamic terminology in 3 more components (commit 13da456). BrainTabHeader hours/availability guidance, ServiceCallFlowSettings 3 strings, CommunicationPreferences 6 strings. Build clean, 1071/1071 tests. QA handoff #339.
+receptionist_fix 2026-03-03 5:19-5:27PM ET. Fixed 2 bugs (commit ae7bee7, deployed): (1) elevenlabs-reschedule-booking timezone day-shift in parseDate - new Date(year,month,day) without noon UTC caused March 15 -> March 14 in US timezones. (2) elevenlabs-add-to-waitlist parseDate only handled today/tomorrow/ISO - callers saying 'March 15' or 'next Monday' got waitlisted for today. Both now use full natural language parser with noon UTC. All 5 scheduling edge functions now have consistent parseDate. Build clean, 1274/1274 tests pass.
+receptionist_eng 2026-03-03 5:44-5:52PM ET. Fixed handoff #364 (Call Flow badges). Commit 3dea8ea deployed. Dynamic 'Recommended for your business' badge now shows on industry-appropriate Call Flow option. 1274 tests pass, build clean.

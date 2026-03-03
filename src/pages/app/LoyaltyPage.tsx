@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -163,7 +164,7 @@ export default function LoyaltyPage() {
   const lifetimePoints = members.reduce((sum, m) => sum + m.lifetime_points, 0);
 
   return (
-    <>
+    <ErrorBoundary context="loading your loyalty program">
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<Star className="h-5 w-5" />}
@@ -579,6 +580,6 @@ export default function LoyaltyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   );
 }
