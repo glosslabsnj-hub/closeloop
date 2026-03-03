@@ -50,7 +50,7 @@ interface ServiceCoverageSettings {
 }
 
 const DEFAULT_SETTINGS: Omit<ServiceCoverageSettings, "tenant_id"> = {
-  same_day_radius_miles: null,
+  same_day_radius_miles: 25,
   same_day_enabled: true,
   same_day_cutoff_time: "14:00",
   travel_buffer_minutes: 15,

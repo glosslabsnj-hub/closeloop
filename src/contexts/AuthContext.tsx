@@ -53,8 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [activeTenant, setActiveTenant] = useState<Tenant | null>(null);
 
-  // Guard against concurrent fetchTenantData calls
-  const isFetchingRef = useRef(false);
+  // Guard against concurrent fetchTenantData calls — stores the in-flight promise
+  // so concurrent callers can await the same fetch instead of returning early
+  const fetchPromiseRef = useRef<Promise<void> | null>(null);
 
   // Computed: The effective tenant ID that should be used for all operations
   // During initialization (loading=true), isSuperAdmin hasn't been determined yet
@@ -204,9 +205,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isSuperAdmin]);
 
-  const fetchTenantData = async (userId: string) => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+  const fetchTenantData = (userId: string): Promise<void> => {
+    // If a fetch is already in flight, return the same promise so callers
+    // (especially initializeAuth) await the real result instead of skipping
+    if (fetchPromiseRef.current) return fetchPromiseRef.current;
+
+    const promise = (async () => {
     try {
       // Fetch user role
       const { data: roleData } = await supabase
@@ -306,8 +310,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error fetching tenant data:", error);
     } finally {
-      isFetchingRef.current = false;
+      fetchPromiseRef.current = null;
     }
+    })();
+
+    fetchPromiseRef.current = promise;
+    return promise;
   };
 
   const refreshTenant = async () => {

@@ -51,7 +51,7 @@ interface MedicalCoverageSettings {
 
 const DEFAULT_SETTINGS: Omit<MedicalCoverageSettings, "tenant_id"> = {
   offers_home_visits: false,
-  home_visit_radius_miles: null,
+  home_visit_radius_miles: 15,
   home_visit_fee_cents: 0,
   home_visit_duration_minutes: 60,
   offers_telehealth: true,

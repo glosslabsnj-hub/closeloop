@@ -58,7 +58,8 @@ export function BusynessRulesEditor() {
 
         const dataAny = data as any;
         if (dataAny?.busyness_rules_jsonb) {
-          setConfig(dataAny.busyness_rules_jsonb as BusynessRulesConfig);
+          // Merge with defaults to prevent undefined fields causing NaN
+          setConfig(prev => ({ ...prev, ...dataAny.busyness_rules_jsonb }));
         }
       } catch (error) {
         console.error("Failed to load busyness rules:", error);
@@ -99,8 +100,10 @@ export function BusynessRulesEditor() {
   };
 
   const calculateETA = () => {
-    const baseTime = config.base_prep_minutes;
-    const busyBuffer = (config.manual_busyness_pct / 100) * config.busy_buffer_minutes;
+    const baseTime = config.base_prep_minutes ?? 30;
+    const pct = config.manual_busyness_pct ?? 0;
+    const buffer = config.busy_buffer_minutes ?? 15;
+    const busyBuffer = (pct / 100) * buffer;
     return Math.round(baseTime + busyBuffer);
   };
 

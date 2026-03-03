@@ -50,7 +50,7 @@ const defaultServiceArea: ServiceAreaConfig = {
     lat: null,
     lng: null,
   },
-  radius_miles: null,
+  radius_miles: 25,
   include: {
     counties: [],
     zips: [],
