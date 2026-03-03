@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
+import { getIndustryTerminology } from "@/data/industryTerminology";
 
 export type AITone = "professional" | "friendly" | "casual";
 export type FollowUpCadence = "aggressive" | "moderate" | "conservative";
@@ -134,6 +135,9 @@ export function CommunicationPreferences({
   const showBookingMode = businessMode !== "dispatch";
   const [showAdvanced, setShowAdvanced] = useState(false);
   const availableIntakeFields = getIntakeFieldsForMode(businessMode);
+  const terms = getIndustryTerminology(businessMode);
+  const apptLabel = terms.appointmentLabel || "appointment";
+  const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
 
   const toggleIntakeField = (key: string) => {
     const current = value.requiredIntakeFields || [];
@@ -171,21 +175,21 @@ export function CommunicationPreferences({
           How should your AI communicate?
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Choose how your AI handles bookings, missed calls, and escalations.
+          Choose how your AI handles {apptLabelPlural}, missed calls, and escalations.
         </p>
       </div>
 
       {/* AI Booking Mode — hidden for dispatch */}
       {showBookingMode && (
         <PreferenceSection
-          title="When AI schedules an appointment:"
+          title={`When AI schedules a ${apptLabel}:`}
           value={value.aiBookingMode}
           onValueChange={(v) => onChange({ ...value, aiBookingMode: v as CommunicationPrefs["aiBookingMode"] })}
           options={[
             {
               value: "auto_book",
               label: "Auto-Book",
-              description: "AI confirms appointments instantly based on your availability",
+              description: `AI confirms ${apptLabelPlural} instantly based on your availability`,
               recommended: true,
             },
             {
@@ -196,7 +200,7 @@ export function CommunicationPreferences({
             {
               value: "suggest_callback",
               label: "Suggest + Callback",
-              description: "AI checks availability and shares open times, then your team calls back to confirm the booking.",
+              description: `AI checks availability and shares open times, then your team calls back to confirm the ${apptLabel}.`,
             },
             {
               value: "callback_only",
@@ -303,9 +307,9 @@ export function CommunicationPreferences({
           {/* Required intake fields */}
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium">Required info before booking</p>
+              <p className="text-sm font-medium">Required info before {apptLabel === "appointment" ? "booking" : `scheduling a ${apptLabel}`}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                AI must collect this information before creating any booking or request.
+                AI must collect this information before creating any {apptLabel} or request.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">

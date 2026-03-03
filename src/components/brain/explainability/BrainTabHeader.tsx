@@ -143,19 +143,22 @@ export const TAB_GUIDANCE: Record<string, (mode: BusinessMode) => TabGuidance> =
     ],
   }),
 
-  hours: () => ({
-    whatItControls: "When your business is open for calls and appointments.",
-    howAIUsesIt: [
-      "Tells callers if you're currently open or closed",
-      "Suggests available times when booking",
-      "Explains your hours when asked",
-    ],
-    commonMistakes: [
-      "Not setting hours (AI can't tell callers when you're open)",
-      "Forgetting to mark holidays or special closures",
-      "Setting hours that don't match your actual availability",
-    ],
-  }),
+  hours: (mode) => {
+    const label = mode === "food" ? "orders" : mode === "dispatch" ? "dispatches" : mode === "medical" ? "patient visits" : "scheduling";
+    return {
+      whatItControls: `When your business is open for calls and ${label}.`,
+      howAIUsesIt: [
+        "Tells callers if you're currently open or closed",
+        "Suggests available times when booking",
+        "Explains your hours when asked",
+      ],
+      commonMistakes: [
+        "Not setting hours (AI can't tell callers when you're open)",
+        "Forgetting to mark holidays or special closures",
+        "Setting hours that don't match your actual availability",
+      ],
+    };
+  },
 
   services: (mode) => {
     if (mode === "food") {
@@ -219,19 +222,22 @@ export const TAB_GUIDANCE: Record<string, (mode: BusinessMode) => TabGuidance> =
     ],
   }),
 
-  availability: () => ({
-    whatItControls: "Your calendar connections and time blocking for real-time availability.",
-    howAIUsesIt: [
-      "Syncs with your calendar to see real appointments",
-      "Avoids double-booking by checking before offering times",
-      "Respects manually blocked times and buffer periods",
-    ],
-    commonMistakes: [
-      "Not connecting your calendar (AI might double-book)",
-      "Forgetting to block personal time",
-      "Not granting correct calendar permissions",
-    ],
-  }),
+  availability: (mode) => {
+    const label = mode === "food" ? "reservations" : mode === "dispatch" ? "dispatches" : mode === "medical" ? "patient visits" : "bookings";
+    return {
+      whatItControls: "Your calendar connections and time blocking for real-time availability.",
+      howAIUsesIt: [
+        `Syncs with your calendar to see real ${label}`,
+        "Avoids double-booking by checking before offering times",
+        "Respects manually blocked times and buffer periods",
+      ],
+      commonMistakes: [
+        "Not connecting your calendar (AI might double-book)",
+        "Forgetting to block personal time",
+        "Not granting correct calendar permissions",
+      ],
+    };
+  },
 
   policies: (mode) => {
     const modeSpecific = mode === "food" 

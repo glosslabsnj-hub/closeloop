@@ -6,6 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Calendar, AlertTriangle, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 type ServiceDefaultFlow = "schedule_first" | "urgency_check" | "dispatch_first";
 
@@ -17,7 +18,10 @@ interface ServiceCallFlowSettingsProps {
 export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCallFlowSettingsProps) {
   const { tenant, assistantSettings } = useAuth();
   const { toast } = useToast();
-  
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel || "appointment";
+  const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
+
   const [serviceFlow, setServiceFlow] = useState<ServiceDefaultFlow>("schedule_first");
   const [saving, setSaving] = useState(false);
 
@@ -143,7 +147,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                <span className="font-medium">Schedule Appointments</span>
+                <span className="font-medium">Schedule {apptLabelPlural.charAt(0).toUpperCase() + apptLabelPlural.slice(1)}</span>
                 <Badge variant="default" className="text-xs">Recommended for salons, detailing, cleaning</Badge>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -172,7 +176,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
                 AI asks if it's urgent first, then schedules or expedites accordingly.
               </p>
               <p className="text-xs text-muted-foreground mt-2 italic">
-                "Is this urgent, or can you schedule an appointment?"
+                {`"Is this urgent, or can you schedule a ${apptLabel}?"`}
               </p>
             </div>
           </label>
@@ -212,7 +216,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           {serviceFlow === "urgency_check" && (
             <p className="text-sm text-muted-foreground">
               Customer: "I need my drain cleaned"<br />
-              AI: "Is this urgent, or would you like to schedule an appointment?"<br />
+              AI: "Is this urgent, or would you like to schedule a {apptLabel}?"<br />
               <span className="text-xs">(If urgent, AI checks same-day availability or offers expedited service)</span>
             </p>
           )}
