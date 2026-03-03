@@ -101,3 +101,78 @@ verify_jwt = false
 
 [functions.text-conversation]
 verify_jwt = false
+
+# ElevenLabs tool endpoints — called by ElevenLabs agent during voice calls.
+# No Supabase JWT available, so gateway must not verify.
+[functions.elevenlabs-create-booking]
+verify_jwt = false
+
+[functions.elevenlabs-create-dispatch-job]
+verify_jwt = false
+
+[functions.elevenlabs-create-food-order]
+verify_jwt = false
+
+[functions.elevenlabs-create-callback]
+verify_jwt = false
+
+[functions.elevenlabs-cancel-booking]
+verify_jwt = false
+
+[functions.elevenlabs-reschedule-booking]
+verify_jwt = false
+
+[functions.elevenlabs-lookup-booking]
+verify_jwt = false
+
+[functions.elevenlabs-add-to-waitlist]
+verify_jwt = false
+
+[functions.elevenlabs-suggest-availability]
+verify_jwt = false
+
+[functions.elevenlabs-check-availability]
+verify_jwt = false
+
+[functions.elevenlabs-transfer-call]
+verify_jwt = false
+
+[functions.elevenlabs-tts]
+verify_jwt = false
+
+[functions.elevenlabs-lookup-active-job]
+verify_jwt = false
+
+[functions.elevenlabs-lookup-order-status]
+verify_jwt = false
+
+[functions.elevenlabs-search-inventory]
+verify_jwt = false
+
+# Internally-called functions — called by other edge functions, not by users.
+[functions.booking-handoff]
+verify_jwt = false
+
+[functions.dispatch-handoff]
+verify_jwt = false
+
+[functions.order-handoff]
+verify_jwt = false
+
+[functions.sales-lead-handoff]
+verify_jwt = false
+
+[functions.test-drive-handoff]
+verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = false
+
+[functions.outbound-call]
+verify_jwt = false
+
+[functions.test-call-phone]
+verify_jwt = false
+
+[functions.notify-job-update]
+verify_jwt = false

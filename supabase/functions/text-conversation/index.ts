@@ -1,10 +1,10 @@
 /**
  * text-conversation
  *
- * Text-mode interface to the ElevenLabs voice agent.
- * Used by QA chains to test all 50+ scenarios without needing voice.
- * Same system prompt + business context as the real voice agent.
- * LLM: Claude (Anthropic) — swappable. Results mirror Gemini closely.
+ * Text-mode interface to the ElevenLabs voice agent WITH tool calling.
+ * Used by QA to test all scenarios (including booking creation) without voice.
+ * Same system prompt + business context + tools as the real voice agent.
+ * LLM: Claude Haiku — tool calls execute against real edge functions.
  *
  * POST body:
  *   tenantId: string
@@ -77,15 +77,122 @@ function getFallbackPrompt(): string {
   return `You are the front-desk receptionist for {{business_name}}. You sound like a real human: warm, quick, confident, and helpful. Your job is to identify what the caller needs, collect minimum required details, and complete the correct outcome: book an appointment, answer a quick question, or take a message/callback. Your tone is: {{tone}}. You must be accurate. You are not a chatbot.`;
 }
 
-/**
- * Fill {{variable}} placeholders in the system prompt template.
- */
 function fillTemplate(template: string, variables: Record<string, string | number | boolean>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+  return template.replace(/\{\{(\w+)\}\}/g, (_match, key) => {
     const val = variables[key];
     if (val === undefined || val === null) return "";
     return String(val);
   });
+}
+
+/**
+ * Claude tool definitions matching the ElevenLabs agent tools.
+ */
+function getToolDefinitions(tenantId: string): Anthropic.Tool[] {
+  return [
+    {
+      name: "create_booking",
+      description: "Create an appointment booking after the customer has confirmed the date, time, and service. Use this when you have collected all required details and the customer agrees to book.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          customer_name: { type: "string", description: "Customer's full name" },
+          customer_phone: { type: "string", description: "Customer's phone number" },
+          customer_email: { type: "string", description: "Customer's email (optional)" },
+          date: { type: "string", description: "Appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
+          time: { type: "string", description: "Appointment time (e.g. '9am', '2:30 PM', '14:00')" },
+          service_name: { type: "string", description: "Name of the service being booked" },
+          notes: { type: "string", description: "Any additional notes from the customer" },
+        },
+        required: ["customer_name", "date", "time"],
+      },
+    },
+    {
+      name: "check_availability",
+      description: "Check if a specific date and time slot is available for booking.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          date: { type: "string", description: "Date to check (e.g. 'tomorrow', 'March 5')" },
+          time: { type: "string", description: "Time to check (e.g. '9am', '2:30 PM')" },
+        },
+        required: ["date", "time"],
+      },
+    },
+    {
+      name: "create_callback",
+      description: "Schedule a callback for the customer when you cannot handle their request directly (e.g. complex quotes, owner questions, complaints).",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          customer_name: { type: "string", description: "Customer's full name" },
+          customer_phone: { type: "string", description: "Customer's phone number" },
+          reason: { type: "string", description: "Why the callback is needed" },
+        },
+        required: ["customer_name", "customer_phone", "reason"],
+      },
+    },
+    {
+      name: "check_service_area",
+      description: "Check if an address is within the business's service area.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          address: { type: "string", description: "Customer's address to validate" },
+        },
+        required: ["address"],
+      },
+    },
+  ];
+}
+
+/**
+ * Execute a tool by calling the corresponding edge function.
+ */
+async function executeTool(
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  tenantId: string,
+  callerPhone: string,
+): Promise<Record<string, unknown>> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+
+  const endpointMap: Record<string, string> = {
+    create_booking: "elevenlabs-create-booking",
+    check_availability: "elevenlabs-check-availability",
+    create_callback: "elevenlabs-create-callback",
+    check_service_area: "elevenlabs-check-service-area",
+  };
+
+  const endpoint = endpointMap[toolName];
+  if (!endpoint) {
+    return { error: `Unknown tool: ${toolName}` };
+  }
+
+  // Build request body with tenant context
+  const body: Record<string, unknown> = {
+    ...toolInput,
+    tenant_id: tenantId,
+    customer_phone: toolInput.customer_phone || callerPhone,
+  };
+
+  try {
+    const res = await fetch(`${supabaseUrl}/functions/v1/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    console.log(`[text-conversation] Tool ${toolName} result:`, JSON.stringify(data).slice(0, 200));
+    return data;
+  } catch (err) {
+    console.error(`[text-conversation] Tool ${toolName} error:`, err);
+    return { error: `Tool execution failed: ${String(err)}` };
+  }
 }
 
 serve(async (req) => {
@@ -123,38 +230,98 @@ serve(async (req) => {
     const systemPrompt = fillTemplate(template, vars as Record<string, string | number | boolean>);
 
     // Build message history for Claude
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
+    const messages: Anthropic.MessageParam[] = [
       ...(history as Array<{ role: "user" | "assistant"; content: string }>),
       { role: "user", content: message },
     ];
 
-    // Call Claude with the same context the voice agent has
+    // Get tool definitions
+    const tools = getToolDefinitions(tenantId);
+
+    // Call Claude with tools
     const anthropic = new Anthropic({
       apiKey: Deno.env.get("ANTHROPIC_API_KEY")!,
     });
 
-    const response = await anthropic.messages.create({
+    let response = await anthropic.messages.create({
       model: "claude-haiku-4-5-20251001",
       max_tokens: 512,
       system: systemPrompt,
       messages,
+      tools,
     });
 
-    const reply = response.content[0]?.type === "text" ? response.content[0].text : "";
+    // Track tool calls for debug output
+    const toolCalls: Array<{ tool: string; input: Record<string, unknown>; result: Record<string, unknown> }> = [];
+    let bookingCreated = false;
+    let bookingId: string | null = null;
 
-    // Extract debug info if agent returns it (debug mode)
-    let debugInfo: Record<string, string> = {};
-    const debugMatch = reply.match(/tenant_id=(\S+)\s*\|.*?mode=(\S+)\s*\|.*?industry=(\S+)/);
-    if (debugMatch) {
-      debugInfo = {
-        tenant_id: debugMatch[1],
-        business_mode: debugMatch[2],
-        industry_type: debugMatch[3],
-      };
+    // Handle tool use loop (max 3 iterations to prevent infinite loops)
+    let iterations = 0;
+    while (response.stop_reason === "tool_use" && iterations < 3) {
+      iterations++;
+
+      // Extract tool use blocks
+      const toolUseBlocks = response.content.filter(
+        (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+      );
+
+      // Execute each tool and collect results
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+
+      for (const toolUse of toolUseBlocks) {
+        console.log(`[text-conversation] Tool call: ${toolUse.name}`, JSON.stringify(toolUse.input).slice(0, 200));
+
+        const result = await executeTool(
+          toolUse.name,
+          toolUse.input as Record<string, unknown>,
+          tenantId,
+          callerPhoneE164,
+        );
+
+        toolCalls.push({
+          tool: toolUse.name,
+          input: toolUse.input as Record<string, unknown>,
+          result,
+        });
+
+        // Track booking creation
+        if (toolUse.name === "create_booking" && result.success && result.booking_id) {
+          bookingCreated = true;
+          bookingId = result.booking_id as string;
+        }
+
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: toolUse.id,
+          content: JSON.stringify(result),
+        });
+      }
+
+      // Send tool results back to Claude
+      messages.push({ role: "assistant", content: response.content });
+      messages.push({ role: "user", content: toolResults });
+
+      response = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 512,
+        system: systemPrompt,
+        messages,
+        tools,
+      });
     }
+
+    // Extract final text reply
+    const textBlocks = response.content.filter(
+      (block): block is Anthropic.TextBlock => block.type === "text"
+    );
+    const reply = textBlocks.map(b => b.text).join("\n") || "";
 
     return new Response(JSON.stringify({
       reply,
+      toolCalls,
+      bookingCreated,
+      bookingId,
       debug: {
         tenant_id: String(vars.tenant_id || tenantId),
         business_mode: String(vars.business_mode || ""),
@@ -163,7 +330,7 @@ serve(async (req) => {
         has_dispatch: String(vars.has_dispatch || ""),
         llm: "claude-haiku-4-5-20251001",
         template_cached: cachedTemplate !== null,
-        ...debugInfo,
+        tool_calls_count: toolCalls.length,
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

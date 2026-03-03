@@ -5,13 +5,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Send, Loader2, Brain, RefreshCw, Bug } from "lucide-react";
+import { MessageSquare, Send, Loader2, Brain, RefreshCw, Bug, CalendarCheck, Wrench } from "lucide-react";
+
+interface ToolCall {
+  tool: string;
+  input: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
   debug?: Record<string, string>;
+  toolCalls?: ToolCall[];
+  bookingCreated?: boolean;
+  bookingId?: string | null;
 }
 
 export default function TextConversationSimulator() {
@@ -51,6 +60,9 @@ export default function TextConversationSimulator() {
         content: data.reply || "(no response)",
         timestamp: new Date(),
         debug: data.debug,
+        toolCalls: data.toolCalls || [],
+        bookingCreated: data.bookingCreated || false,
+        bookingId: data.bookingId || null,
       };
       setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
@@ -95,6 +107,37 @@ export default function TextConversationSimulator() {
                 msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border"
               }`}>
                 <p className="text-sm">{msg.content}</p>
+                {msg.bookingCreated && msg.role === "assistant" && (
+                  <div className="mt-2 flex items-center gap-1.5">
+                    <Badge variant="default" className="text-[10px] gap-1 bg-green-600">
+                      <CalendarCheck className="h-2.5 w-2.5" />
+                      Booking Created
+                    </Badge>
+                    {msg.bookingId && (
+                      <span className="text-[10px] font-mono text-muted-foreground">
+                        {msg.bookingId.slice(0, 8)}...
+                      </span>
+                    )}
+                  </div>
+                )}
+                {showDebug && msg.toolCalls && msg.toolCalls.length > 0 && msg.role === "assistant" && (
+                  <div className="mt-2 pt-2 border-t space-y-1.5">
+                    {msg.toolCalls.map((tc, j) => (
+                      <div key={j} className="text-[10px] font-mono text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Wrench className="h-2.5 w-2.5" />
+                          <span className="font-semibold">{tc.tool}</span>
+                        </div>
+                        <div className="ml-3.5 opacity-70">
+                          in: {JSON.stringify(tc.input).slice(0, 120)}
+                        </div>
+                        <div className="ml-3.5 opacity-70">
+                          out: {JSON.stringify(tc.result).slice(0, 120)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {showDebug && msg.debug && msg.role === "assistant" && (
                   <div className="mt-2 pt-2 border-t text-[10px] font-mono text-muted-foreground space-y-0.5">
                     {Object.entries(msg.debug).map(([k, v]) => (

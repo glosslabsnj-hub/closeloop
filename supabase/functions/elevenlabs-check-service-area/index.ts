@@ -290,9 +290,94 @@ serve(async (req: Request) => {
       );
     }
 
-    // If no distance settings or provider disabled, use fallback
+    // If no distance settings or provider disabled, use text-based fallback
     if (!distanceSettings?.distance_provider_enabled) {
       const radiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 50;
+
+      // Get tenant's base location for comparison
+      const { data: tenantFull } = await supabase
+        .from("tenants")
+        .select("address, city, state")
+        .eq("id", tenantId)
+        .single();
+
+      const tenantState = (tenantFull?.state || "").toUpperCase().trim();
+      const tenantCity = (tenantFull?.city || "").toLowerCase().trim();
+
+      // Extract state from customer address using common patterns
+      const addressUpper = address.toUpperCase().trim();
+
+      // US state abbreviations and full names
+      const stateMap: Record<string, string> = {
+        AL:"AL",ALABAMA:"AL",AK:"AK",ALASKA:"AK",AZ:"AZ",ARIZONA:"AZ",AR:"AR",ARKANSAS:"AR",
+        CA:"CA",CALIFORNIA:"CA",CO:"CO",COLORADO:"CO",CT:"CT",CONNECTICUT:"CT",DE:"DE",DELAWARE:"DE",
+        FL:"FL",FLORIDA:"FL",GA:"GA",GEORGIA:"GA",HI:"HI",HAWAII:"HI",ID:"ID",IDAHO:"ID",
+        IL:"IL",ILLINOIS:"IL",IN:"IN",INDIANA:"IN",IA:"IA",IOWA:"IA",KS:"KS",KANSAS:"KS",
+        KY:"KY",KENTUCKY:"KY",LA:"LA",LOUISIANA:"LA",ME:"ME",MAINE:"ME",MD:"MD",MARYLAND:"MD",
+        MA:"MA",MASSACHUSETTS:"MA",MI:"MI",MICHIGAN:"MI",MN:"MN",MINNESOTA:"MN",MS:"MS",MISSISSIPPI:"MS",
+        MO:"MO",MISSOURI:"MO",MT:"MT",MONTANA:"MT",NE:"NE",NEBRASKA:"NE",NV:"NV",NEVADA:"NV",
+        NH:"NH","NEW HAMPSHIRE":"NH",NJ:"NJ","NEW JERSEY":"NJ",NM:"NM","NEW MEXICO":"NM",
+        NY:"NY","NEW YORK":"NY",NC:"NC","NORTH CAROLINA":"NC",ND:"ND","NORTH DAKOTA":"ND",
+        OH:"OH",OHIO:"OH",OK:"OK",OKLAHOMA:"OK",OR:"OR",OREGON:"OR",PA:"PA",PENNSYLVANIA:"PA",
+        RI:"RI","RHODE ISLAND":"RI",SC:"SC","SOUTH CAROLINA":"SC",SD:"SD","SOUTH DAKOTA":"SD",
+        TN:"TN",TENNESSEE:"TN",TX:"TX",TEXAS:"TX",UT:"UT",UTAH:"UT",VT:"VT",VERMONT:"VT",
+        VA:"VA",VIRGINIA:"VA",WA:"WA",WASHINGTON:"WA",WV:"WV","WEST VIRGINIA":"WV",
+        WI:"WI",WISCONSIN:"WI",WY:"WY",WYOMING:"WY",DC:"DC","DISTRICT OF COLUMBIA":"DC",
+      };
+
+      // Try to extract state from address
+      let customerState = "";
+      // Check for state name/abbrev at the end of the address
+      for (const [key, abbr] of Object.entries(stateMap)) {
+        // Match state at end of string or before zip code
+        const stateRegex = new RegExp(`\\b${key}\\b`, "i");
+        if (stateRegex.test(addressUpper)) {
+          customerState = abbr;
+          break;
+        }
+      }
+
+      // If we found both states and they differ, clearly reject
+      if (tenantState && customerState && tenantState !== customerState) {
+        // Check if the states are neighbors (allow neighboring states within radius)
+        const neighborStates: Record<string, string[]> = {
+          NJ: ["NY", "PA", "DE"],
+          NY: ["NJ", "PA", "CT", "MA", "VT"],
+          PA: ["NJ", "NY", "DE", "MD", "WV", "OH"],
+          CT: ["NY", "MA", "RI"],
+          DE: ["NJ", "PA", "MD"],
+          MD: ["PA", "DE", "VA", "WV", "DC"],
+        };
+        const neighbors = neighborStates[tenantState] || [];
+        const isNeighborState = neighbors.includes(customerState);
+
+        if (!isNeighborState) {
+          const outOfAreaMsg = (serviceArea?.out_of_area_message as string) ||
+            `Sorry, we don't service that area. We only cover within ${radiusMiles} miles of ${tenantCity || "our location"}.`;
+          console.log(`[check-service-area] State mismatch: tenant=${tenantState} customer=${customerState} → out_of_area`);
+          return new Response(
+            JSON.stringify({
+              in_area: false,
+              distance_miles: null,
+              tow_distance_miles: null,
+              dropoff_geocoded: null,
+              eta_minutes: null,
+              eta_range: "",
+              message: outOfAreaMsg,
+              service_tier: "out_of_area",
+              pricing_note: outOfAreaMsg,
+              local_radius_miles: radiusMiles,
+              distance_basis_used: "state_mismatch",
+              price_breakdown: null,
+              needs_verification: false,
+              verification_message: null,
+            } as ServiceAreaResponse),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // Same state or can't determine — assume in area but note we can't verify distance
       return new Response(
         JSON.stringify({
           in_area: true,
@@ -305,8 +390,10 @@ serve(async (req: Request) => {
           service_tier: "long_distance",
           pricing_note: "Distance calculation unavailable - treat as long distance, collect details for pricing.",
           local_radius_miles: 10,
-          distance_basis_used: "unavailable",
-          price_breakdown: null
+          distance_basis_used: "state_match_fallback",
+          price_breakdown: null,
+          needs_verification: false,
+          verification_message: null,
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
