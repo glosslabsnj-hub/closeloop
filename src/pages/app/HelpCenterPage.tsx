@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,31 +107,45 @@ const allCategories: GuideCategory[] = [
 
 export default function HelpCenterPage() {
   const { businessMode, enabledModules } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const { _tenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("getting-started");
+
+  // Capitalize helper
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   // Filter categories based on business mode and enabled modules
   const filteredCategories = allCategories.filter(cat => {
     // If no mode requirement, always show
     if (!cat.forModes && !cat.requiredModules) return true;
-    
+
     // Check mode-specific categories
     if (cat.forModes && !cat.forModes.includes(businessMode)) return false;
-    
+
     // Check module requirements
     if (cat.requiredModules) {
       return cat.requiredModules.some(mod => enabledModules.includes(mod));
     }
-    
+
     return true;
+  }).map(cat => {
+    // Dynamic terminology for bookings category
+    if (cat.id === "bookings") {
+      return {
+        ...cat,
+        label: `${cap(terms.bookings)} & Calendar`,
+        description: `Manage ${terms.bookings} and scheduling`,
+      };
+    }
+    return cat;
   });
 
   // Mode-specific welcome message
   const getModeDescription = () => {
     switch (businessMode) {
       case "service":
-        return "Learn how to manage bookings, handle leads, and let your AI take care of missed calls.";
+        return `Learn how to manage ${terms.bookings}, handle leads, and let your AI take care of missed calls.`;
       case "dispatch":
         return "Learn how to manage dispatch jobs, prioritize urgent requests, and automate customer communication.";
       case "food":

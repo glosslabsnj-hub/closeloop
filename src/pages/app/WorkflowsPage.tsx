@@ -29,6 +29,7 @@ import { useWorkflowStats } from "@/hooks/useWorkflowRuns";
 import { TRIGGER_METADATA, type WorkflowTrigger, type Workflow, type WorkflowNodeType } from "@/types/workflow";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { SimpleAutomationPanel } from "@/components/workflows/SimpleAutomationPanel";
 import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
@@ -391,17 +392,21 @@ const UNIVERSAL_TEMPLATES: WorkflowTemplate[] = [
 export default function WorkflowsPage() {
   const { tenant, _hasActiveSubscription } = useAuth();
   const { businessMode, enabledModules } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const tenantId = tenant?.id ?? null;
-  
+
   const { data: workflows, isLoading } = useWorkflows(tenantId);
   const { data: stats } = useWorkflowStats(tenantId);
   const { createWorkflow, deleteWorkflow, activateWorkflow, pauseWorkflow } = useWorkflowMutations(tenantId);
   const navigate = useNavigate();
-  
+
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState("");
   const [newTrigger, setNewTrigger] = useState<WorkflowTrigger | "">("");
   const [viewMode, setViewMode] = useState<"simple" | "advanced" | "help">("simple");
+
+  // Capitalize helper
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   // Check if user has access to workflows
   const hasWorkflowAccess = useMemo(() => {
@@ -409,11 +414,21 @@ export default function WorkflowsPage() {
     return workflowModules.some(mod => enabledModules.includes(mod));
   }, [enabledModules]);
 
-  // Get mode-specific templates (strictly gated by business mode)
+  // Get mode-specific templates with dynamic terminology
   const modeTemplates = useMemo(() => {
     const templates = WORKFLOW_TEMPLATES[businessMode] || WORKFLOW_TEMPLATES.general;
-    return [...templates, ...UNIVERSAL_TEMPLATES];
-  }, [businessMode]);
+    const all = [...templates, ...UNIVERSAL_TEMPLATES];
+    return all.map((t) => {
+      if (t.trigger.startsWith("booking.")) {
+        return {
+          ...t,
+          name: t.name.replace(/Booking/g, cap(terms.booking)).replace(/Appointment/g, cap(terms.booking)),
+          description: t.description.replace(/booking/gi, terms.booking).replace(/appointment/gi, terms.booking),
+        };
+      }
+      return t;
+    });
+  }, [businessMode, terms.booking]);
 
   // Get mode-appropriate triggers for the create dialog
   const availableTriggers = useMemo(() => {
@@ -497,7 +512,7 @@ export default function WorkflowsPage() {
             </div>
             <CardTitle className="text-xl">Workflows Not Available</CardTitle>
             <CardDescription className="text-base">
-              Workflows require at least one of the following modules: Booking, Orders, Dispatch, Voice AI, or Text Back.
+              Workflows require at least one of the following modules: {cap(terms.bookings)}, Orders, Dispatch, Voice AI, or Text Back.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 pt-2">

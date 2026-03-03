@@ -41,6 +41,7 @@ import {
   type AutomationRule,
 } from "@/hooks/useIntegrations";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { formatDistanceToNow } from "date-fns";
 
 interface AutomationRulesSectionProps {
@@ -75,6 +76,7 @@ const ACTIONS: Record<string, { label: string; description: string; providers: s
 
 export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps) {
   const { businessMode } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const { data: rules, isLoading } = useAutomationRules(tenantId);
   const { data: integrations } = useIntegrations(tenantId);
   const { createRule, toggleRule, deleteRule } = useAutomationRuleMutations(tenantId);
@@ -89,12 +91,26 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
     integration_id: "",
   });
 
+  // Capitalize helper
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // Apply industry-aware terminology to booking events
+  const applyTerms = (id: string, meta: { label: string; description: string; modes: BusinessMode[] }) => {
+    if (id === "booking.created") {
+      return { ...meta, label: `${cap(terms.booking)} Created`, description: `When a new ${terms.booking} is made` };
+    }
+    if (id === "booking.confirmed") {
+      return { ...meta, label: `${cap(terms.booking)} Confirmed`, description: `When a ${terms.booking} is confirmed` };
+    }
+    return meta;
+  };
+
   // Filter events by business mode
   const availableEvents = useMemo(() => {
     return Object.entries(EVENTS)
       .filter(([, meta]) => meta.modes.includes(businessMode))
-      .map(([id, meta]) => ({ id, ...meta }));
-  }, [businessMode]);
+      .map(([id, meta]) => ({ id, ...applyTerms(id, meta) }));
+  }, [businessMode, terms.booking]);
 
   // Get available actions based on connected integrations
   const availableActions = useMemo(() => {
@@ -210,7 +226,8 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
       {rules && rules.length > 0 ? (
         <div className="space-y-3">
           {rules.map((rule) => {
-            const event = EVENTS[rule.trigger_event];
+            const rawEvent = EVENTS[rule.trigger_event];
+            const event = rawEvent ? applyTerms(rule.trigger_event, rawEvent) : undefined;
             const action = ACTIONS[rule.action_type];
             const provider = PROVIDERS.find((p) => p.id === rule.destination_provider);
 

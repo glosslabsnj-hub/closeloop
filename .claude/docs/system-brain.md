@@ -1,19 +1,19 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 7:56 AM ET (receptionist_fix — 115 regression tests)
+## Last Session: 2026-03-03 8:33 AM ET (receptionist_ux — booking action terminology)
 
 ### What Was Done
-- **115 NEW REGRESSION TESTS**: Tests grew from 940 → 1055. Three new test files:
-  - `appointment-label-overlay.test.ts` (65 tests): Full chain testing of `applyAppointmentLabel()` for all 6 modes, 12 industry types (plumber→job, dentist→visit, trainer→session, lawyer→consultation, etc.), booking verb helpers, getDynamicStepTitle, resolveCardTitle
-  - `system-prompt-structure.test.ts` (40 tests): Guards `buildSystemPrompt` includes hours, FAQs, services, policies, tone, booking behavior, dispatch ETA, food ordering, HIPAA safety. Verifies text-conversation uses canonical buildBusinessContext (regression guard for handoffs #317/#321/#322)
-  - `template-services-regression.test.ts` (+10 tests): Expanded to electrical, cleaning, landscaping, pest_control, auto_detailing, auto_repair, salon. Cross-industry data quality + FAQ/policy existence checks.
+- **BookingDetailsSheet**: "Confirm Booking" button now uses `terms.booking` → plumber sees "Confirm Job"
+- **BookingCard**: "Cancel Booking" menu item now uses `terms.booking` → plumber sees "Cancel Job"
+- **ServiceCatalogEditor**: "book the appointment" help text now uses `terms.booking` → "book the job"
+- **LeadDetailPanel**: `getModeLabels()` now accepts `bookingTerm` for dynamic button label → "Book Job" for plumber
 - Build: Clean (0 errors), Tests: 1055/1055 passing
-- Commit: 8d4c7b7, pushed to main, deployed
+- Commit: 3d9b4eb, pushed to main, deployed
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 1055/1055 passing
-- Commit: 8d4c7b7
+- Commit: 3d9b4eb
 - Pushed to main + deployed
 
 ### MODE PROGRESS

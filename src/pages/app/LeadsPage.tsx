@@ -100,16 +100,20 @@ function TemperatureBadge({ temp, reason }: { temp: LeadTemperature; reason?: st
   );
 }
 
-function getModeLabels(mode: string) {
+function getModeLabels(mode: string, bookingTerm?: string) {
   const map: Record<string, { leadLabel: string; leadsLabel: string; contextLabel: string; bookingLabel: string }> = {
-    service: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Service Needed", bookingLabel: "Appointment" },
+    service: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Service Needed", bookingLabel: bookingTerm ? capitalize(bookingTerm) : "Appointment" },
     dispatch: { leadLabel: "Caller", leadsLabel: "Callers", contextLabel: "Job Request", bookingLabel: "Pickup" },
     food: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Order Interest", bookingLabel: "Order" },
     medical: { leadLabel: "Patient", leadsLabel: "Patients", contextLabel: "Visit Reason", bookingLabel: "Visit" },
     sales: { leadLabel: "Prospect", leadsLabel: "Prospects", contextLabel: "Interest", bookingLabel: "Meeting" },
-    general: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Request", bookingLabel: "Appointment" },
+    general: { leadLabel: "Lead", leadsLabel: "Leads", contextLabel: "Request", bookingLabel: bookingTerm ? capitalize(bookingTerm) : "Appointment" },
   };
   return map[mode] || map.service;
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 export default function LeadsPage() {
@@ -118,7 +122,7 @@ export default function LeadsPage() {
   const { terms, mode } = useIndustryContext();
   const navigate = useNavigate();
   const caps = useCapabilities();
-  const modeLabels = getModeLabels(mode);
+  const modeLabels = getModeLabels(mode, terms.booking);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");

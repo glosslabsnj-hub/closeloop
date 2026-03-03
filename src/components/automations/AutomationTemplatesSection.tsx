@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAutomationRuleMutations, useAutomationRules } from "@/hooks/useIntegrations";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface AutomationTemplatesSectionProps {
   tenantId: string;
@@ -130,12 +131,25 @@ const TEMPLATES: AutomationTemplate[] = [
 
 export function AutomationTemplatesSection({ tenantId }: AutomationTemplatesSectionProps) {
   const { businessMode } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const { data: existingRules } = useAutomationRules(tenantId);
   const { createRule } = useAutomationRuleMutations(tenantId);
   const [addingTemplate, setAddingTemplate] = useState<string | null>(null);
 
-  // Filter templates by business mode
-  const availableTemplates = TEMPLATES.filter((t) => t.modes.includes(businessMode));
+  // Capitalize helper
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  // Filter templates by business mode and apply dynamic terminology
+  const availableTemplates = TEMPLATES.filter((t) => t.modes.includes(businessMode)).map((t) => {
+    if (t.trigger_event.startsWith("booking.")) {
+      return {
+        ...t,
+        name: t.name.replace(/Booking/g, cap(terms.booking)),
+        description: t.description.replace(/booking/g, terms.booking),
+      };
+    }
+    return t;
+  });
 
   // Check which templates are already applied (by trigger + action combo)
   const appliedTemplateIds = new Set(
