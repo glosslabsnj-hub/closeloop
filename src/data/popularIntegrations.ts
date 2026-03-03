@@ -70,7 +70,7 @@ export const SELF_SETUP_INTEGRATIONS = [
   { id: "jobber", name: "Jobber", icon: "🔧", logo: "https://cdn.brandfetch.io/id2S3pCLbu/w/400/h/400/theme/dark/icon.png", description: "Field service scheduling & invoicing", modes: ["service", "dispatch"] },
   { id: "housecallpro", name: "Housecall Pro", icon: "🏠", logo: "https://cdn.brandfetch.io/idCQDfdhLz/w/400/h/400/theme/dark/icon.png", description: "Field service management", modes: ["service", "dispatch"] },
   { id: "fieldedge", name: "FieldEdge", icon: "⚙️", logo: "https://cdn.brandfetch.io/idHKtLfVPo/w/400/h/400/theme/dark/icon.png", description: "Sync bookings & dispatches with FieldEdge", modes: ["service", "dispatch"] },
-  { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL (Zapier, Make, etc.)" },
+  { id: "webhook", name: "Custom Connection", icon: "🔗", description: "Send data to any app (Zapier, Make, etc.)" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets and receipts", modes: ["food"] },
 ] as const;
 

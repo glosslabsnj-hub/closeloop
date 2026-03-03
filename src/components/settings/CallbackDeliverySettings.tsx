@@ -129,7 +129,7 @@ export function CallbackDeliverySettings() {
 
         {/* Webhook */}
         <div className="space-y-3">
-          <Label className="flex items-center gap-2"><Webhook className="h-4 w-4" /> Webhook (Optional)</Label>
+          <Label className="flex items-center gap-2"><Webhook className="h-4 w-4" /> Auto-Sync URL (Optional)</Label>
           <Input
             placeholder="https://your-crm.com/webhook"
             value={settings.webhook_url}
@@ -137,7 +137,7 @@ export function CallbackDeliverySettings() {
           />
           {settings.webhook_url && (
             <Input
-              placeholder="Webhook secret (optional)"
+              placeholder="Security code (optional)"
               value={settings.webhook_secret}
               onChange={(e) => setSettings(s => ({ ...s, webhook_secret: e.target.value }))}
             />

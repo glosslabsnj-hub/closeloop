@@ -1,4 +1,4 @@
-import { Check, Database, Webhook, Mail, Smartphone } from "lucide-react";
+import { Check, Database, RefreshCw, Mail, Smartphone } from "lucide-react";
 
 export function IntegrationsSection() {
   return (
@@ -52,7 +52,7 @@ export function IntegrationsSection() {
             <div className="p-8 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30 hover:border-primary/30 hover:bg-card/80 hover:shadow-[0_8px_32px_-8px_hsl(230_70%_62%/0.12)] transition-all duration-300 group">
               <div className="flex items-center gap-4 mb-5">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/10 flex items-center justify-center group-hover:bg-primary/15 group-hover:border-primary/20 transition-colors">
-                  <Webhook className="h-6 w-6 text-primary" />
+                  <RefreshCw className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-semibold text-xl">Push to Your System</h3>
               </div>
@@ -62,7 +62,7 @@ export function IntegrationsSection() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary shrink-0" />
-                  <span>Webhooks to any endpoint</span>
+                  <span>Auto-sync to any app (Zapier, Make, etc.)</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <Check className="h-5 w-5 text-primary shrink-0" />
@@ -79,7 +79,7 @@ export function IntegrationsSection() {
           {/* Delivery methods */}
           <div className="flex flex-wrap justify-center gap-6 sm:gap-10 mt-14 pt-10 border-t border-border/20">
             {[
-              { icon: Webhook, label: "Webhooks" },
+              { icon: RefreshCw, label: "Auto-Sync" },
               { icon: Mail, label: "Email" },
               { icon: Smartphone, label: "SMS" },
             ].map(({ icon: Ic, label }) => (

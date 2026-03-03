@@ -728,7 +728,7 @@ export default function IntegrationsPage() {
       <Dialog open={!!webhookConfigDialog} onOpenChange={() => setWebhookConfigDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configure Webhook</DialogTitle>
+            <DialogTitle>Set Up Connection</DialogTitle>
             <DialogDescription>
               Enter the URL where you want to receive data when {webhookConfigDialog?.trigger} fires
             </DialogDescription>
@@ -736,7 +736,7 @@ export default function IntegrationsPage() {
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="webhook-url">Webhook URL</Label>
+              <Label htmlFor="webhook-url">Connection URL</Label>
               <Input
                 id="webhook-url"
                 type="url"
@@ -745,7 +745,7 @@ export default function IntegrationsPage() {
                 onChange={(e) => setWebhookUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                We'll POST event data to this URL whenever the trigger fires
+                We'll send your data to this URL automatically whenever the trigger fires
               </p>
             </div>
           </div>

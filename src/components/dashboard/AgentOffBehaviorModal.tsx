@@ -83,7 +83,7 @@ export function AgentOffBehaviorModal({
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Configuration Failed",
+        title: "Couldn't save your settings",
         description: error.message,
       });
     } finally {

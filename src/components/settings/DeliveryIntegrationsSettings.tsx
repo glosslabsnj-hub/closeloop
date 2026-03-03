@@ -133,7 +133,7 @@ export function DeliveryIntegrationsSettings() {
             <div className="flex items-center gap-3">
               <Webhook className="h-5 w-5 text-muted-foreground" />
               <div>
-                <CardTitle className="text-base">Webhook (Zapier / Make / Custom)</CardTitle>
+                <CardTitle className="text-base">Auto-Sync (Zapier / Make / Custom)</CardTitle>
                 <CardDescription>Automatically send data to your other tools when new items are created</CardDescription>
               </div>
             </div>

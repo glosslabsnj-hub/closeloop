@@ -304,15 +304,15 @@ export function OneClickPresets({ tenantId }: OneClickPresetsProps) {
       <Dialog open={!!configDialog} onOpenChange={() => setConfigDialog(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Configure Webhook</DialogTitle>
+            <DialogTitle>Set Up Connection</DialogTitle>
             <DialogDescription>
-              Enter the URL where you want to receive data
+              Enter the URL where you want to send your data (e.g. from Zapier or Make)
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="webhook-url">Webhook URL</Label>
+              <Label htmlFor="webhook-url">Connection URL</Label>
               <Input
                 id="webhook-url"
                 type="url"
@@ -321,7 +321,7 @@ export function OneClickPresets({ tenantId }: OneClickPresetsProps) {
                 onChange={(e) => setWebhookUrl(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                We'll POST event data to this URL whenever the trigger fires
+                We'll send your data to this URL automatically whenever the trigger fires
               </p>
             </div>
           </div>

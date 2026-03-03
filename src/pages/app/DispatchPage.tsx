@@ -343,13 +343,18 @@ export default function DispatchPage() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-7 w-7 text-destructive" />
               </div>
-              <h2 className="text-xl font-semibold">Something went wrong</h2>
+              <h2 className="text-xl font-semibold">Couldn't load your dispatch jobs</h2>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                We couldn't load your dispatch jobs. Please refresh the page or try again later.
+                This is usually a temporary connection issue. Try again, or come back in a minute.
               </p>
-              <Button variant="outline" onClick={() => window.location.reload()}>
-                Refresh Page
+              <Button variant="outline" onClick={() => refetch()}>
+                Try again
               </Button>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <Link to="/app" className="text-primary hover:underline">Back to Dashboard</Link>
+                <span className="text-border">·</span>
+                <a href="mailto:support@getfluxdata.com" className="text-muted-foreground hover:underline">Contact Support</a>
+              </div>
             </CardContent>
           </Card>
         </div>
