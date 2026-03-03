@@ -13,7 +13,7 @@ interface Booking {
   start_at: string;
   status: string;
   services: { name: string } | null;
-  leads: { customers: { name: string | null } | null } | null;
+  leads: { full_name: string } | null;
 }
 
 export function TodayCalendarStrip() {
@@ -28,8 +28,9 @@ export function TodayCalendarStrip() {
       if (!tenant?.id) return [];
       const { data } = await supabase
         .from("bookings")
-        .select("id, start_at, status, services(name), leads(customers(name))")
+        .select("id, start_at, status, services(name), leads(full_name)")
         .eq("tenant_id", tenant.id)
+        .in("status", ["pending", "confirmed"])
         .gte("start_at", todayStart)
         .lte("start_at", todayEnd)
         .order("start_at", { ascending: true })
@@ -37,6 +38,7 @@ export function TodayCalendarStrip() {
       return (data || []) as unknown as Booking[];
     },
     enabled: !!tenant?.id,
+    refetchInterval: 60_000,
   });
 
   const now = new Date();
@@ -66,7 +68,7 @@ export function TodayCalendarStrip() {
           {bookings.map((b) => {
             const time = parseISO(b.start_at);
             const isPast = time < now;
-            const customerName = b.leads?.customers?.name;
+            const customerName = b.leads?.full_name;
             const serviceName = b.services?.name;
             return (
               <div

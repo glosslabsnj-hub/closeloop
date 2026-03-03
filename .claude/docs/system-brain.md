@@ -1,8 +1,21 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 8:49 PM ET (receptionist_eng — 4 critical QA bug fixes)
+## Last Session: 2026-03-02 9:00 PM ET (receptionist_ux — admin preview + mode terminology)
 
 ### What Was Done
+- **Admin Client Preview toggle** (commit 82082e3): Super admins can click Eye/EyeOff button on admin bar to hide all admin controls and see exact client experience. Uses existing `adminBarCollapsed` localStorage state.
+- **Mode-aware terminology in 6 components**: WelcomeBanner ("customers" → `terms.customers`), AIAssistantPage ("booking appointments" → `getActiveVerb()`), EmptyDashboard (sales/medical mode-specific verbs), QuickLinksCard (removed hardcoded "Appointments" fallback), TestAIPage (booking phrase + appointment label dynamic).
+- **New `getActiveVerb()` helper** in industryTerminology.ts: Returns present-participle forms like "scheduling jobs", "booking appointments", "taking orders" per appointmentLabel.
+
+### Build Status
+- Build: Clean (0 errors)
+- Tests: 678/678 passing
+- Commit: 82082e3
+- Pushed to main
+
+## Previous Session: 2026-03-02 8:49 PM ET (receptionist_eng — 4 critical QA bug fixes)
+
+### What Was Done (Previous)
 - **Fixed 4 critical bugs from QA HVAC Dashboard R2** (commit 75530c2, deployed to production):
   - Fix 1: **Desktop dashboard 0-data** — MetricsGrid used `tenant?.id` instead of `effectiveTenantId`. Admin testing showed 0/0/0 because queries hit wrong tenant. Also fixed useTenantConfig (SPINE file) to use `effectiveTenant ?? tenant`.
   - Fix 2: **Estimates RLS** — 7 competitive-features tables had `FOR ALL USING()` without `WITH CHECK`, blocking all INSERTs. Added WITH CHECK + service_role bypass to: estimates, service_agreements, time_entries, technician_locations, customer_equipment, integration_connections, review_requests.

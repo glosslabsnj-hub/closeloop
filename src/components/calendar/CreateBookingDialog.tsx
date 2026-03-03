@@ -63,13 +63,28 @@ export function CreateBookingDialog({
     }
   }, [open, initialCustomerName, initialCustomerPhone]);
 
+  const defaultDate = initialDate
+    ? format(initialDate, "yyyy-MM-dd")
+    : format(new Date(), "yyyy-MM-dd");
+  const defaultTime = `${String(initialHour).padStart(2, "0")}:00`;
+
+  const [date, setDate] = useState(defaultDate);
+  const [time, setTime] = useState(defaultTime);
+
+  useEffect(() => {
+    if (open) {
+      setDate(defaultDate);
+      setTime(defaultTime);
+    }
+  }, [open, defaultDate, defaultTime]);
+
   const selectedService = services.find((s) => s.id === serviceId);
   const durationMinutes = selectedService?.duration_minutes || 60;
 
-  const startTime = initialDate
-    ? setMinutes(setHours(initialDate, initialHour), 0)
-    : setMinutes(setHours(new Date(), initialHour), 0);
-
+  // Parse user-selected date and time into Date objects
+  const [year, month, day] = date.split("-").map(Number);
+  const [hours, mins] = time.split(":").map(Number);
+  const startTime = new Date(year, month - 1, day, hours, mins, 0);
   const endTime = addHours(startTime, durationMinutes / 60);
 
   const handleSubmit = async () => {
@@ -155,13 +170,29 @@ export function CreateBookingDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Date & Time</Label>
-            <p className="text-sm text-muted-foreground">
-              {format(startTime, "EEEE, MMMM d, yyyy")} at{" "}
-              {format(startTime, "h:mm a")} - {format(endTime, "h:mm a")}
-            </p>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="booking-date">Date</Label>
+              <Input
+                id="booking-date"
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="booking-time">Time</Label>
+              <Input
+                id="booking-time"
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </div>
           </div>
+          <p className="text-xs text-muted-foreground">
+            {format(startTime, "EEEE, MMMM d")} — {format(startTime, "h:mm a")} to {format(endTime, "h:mm a")}
+          </p>
 
           <div className="space-y-2">
             <Label htmlFor="customerName">{terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)} Name</Label>
