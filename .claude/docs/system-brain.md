@@ -1,18 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 6:17 AM ET (receptionist_eng — onboarding re-entry + sidebar unlock)
+## Last Session: 2026-03-03 6:27 AM ET (receptionist_ux — jargon pass 4 + plumbing terminology)
 
 ### What Was Done
-- **ONBOARDING RE-ENTRY**: Added `?force=true` URL param to bypass tenant redirect in OnboardingPage. Completed tenants can now re-test onboarding via `/app/onboarding?force=true`. Without param, normal redirect to dashboard preserved.
-- **SIDEBAR UNLOCK**: Unlocked sidebar navigation for tenants without subscription. Previously all links except Settings/Go-Live were `pointer-events-none` + `opacity-30`. Now users can explore Dashboard, Brain, Calls, Leads, Customers freely after onboarding. Go-Live page remains the payment CTA.
-- **REVIEW PREVIEW**: Expanded AI Knowledge Preview from 4 to 8 services (plumbing has 7, all now visible in review).
-- Build: Clean (0 errors), Tests: 932/932 passing
-- Commit: 6136367, pushed to main, deployed to production
+- **JARGON PASS 4**: 15 more webhook/endpoint/payload instances replaced with plain English across 9 files (AutomationTemplatesSection, ElevenLabsInitWebhookCard, QuickActionsMenu, errorMessages, CallbackDeliverySettings, MedicalIntakeDeliverySettings, NodeConfigEditor, useIntegrations, FieldEdgeSetupCard).
+- **FAQ PAYMENT TEXT**: Neutralized "We accept all major credit cards, debit cards, and cash" → generic wording that won't conflict with actual payment policy checkboxes. Fixes QA handoff #311.
+- **PLUMBING BRAIN TERMINOLOGY**: `home_services` category now has `policiesCardTitle: "Service Policies"` (was inheriting generic "Booking Policies"). `getDynamicStepTitle` now uses terminology system for policies + knowledge steps — all 6 modes get correct labels from centralized data.
+- Build: Clean (0 errors), Tests: 933/933 passing
+- Commit: 0d190b6, pushed to main, deployed to production
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 932/932 passing
-- Commit: 6136367
+- Tests: 933/933 passing
+- Commit: 0d190b6
 - Pushed to main + deployed
 
 ### MODE PROGRESS
@@ -37,9 +37,11 @@
 - **resolveCapabilities**: Pure function in `_shared/resolveCapabilities.ts`. Parses rawMode + enabled_modules + capabilities_json → Capabilities object. All 6 modes tested. Covered by 51 tests.
 - **Onboarding re-entry**: `?force=true` URL param on `/app/onboarding` bypasses tenant redirect. Without it, completed tenants redirect to dashboard.
 - **Sidebar subscription gating**: Sidebar passes `effectiveHasSubscription || !!tenant` to unlock nav for all tenants. Payment gate is on Go-Live page, not sidebar.
+- **getDynamicStepTitle**: Uses terminology system (`terms.policiesCardTitle`, `terms.faqsCardTitle`) instead of hardcoded strings. All 6 modes resolve correct labels automatically.
 
 ### Remaining Work
 - QA verification: complete_flow_works, smart_defaults_prefilled (both in_progress after commit 6136367)
 - QA verification: callback_request_works, booking_sms_confirmation (in_progress)
-- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (in_progress)
+- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (in_progress after commit 0d190b6)
 - 3 BLOCKED gates (Google Calendar OAuth, SMS A2P registration, transfer_to_human needs real call)
+- Pending fix handoffs: #310 (missing 2 plumbing services), #311 (payment method checkbox defaults)

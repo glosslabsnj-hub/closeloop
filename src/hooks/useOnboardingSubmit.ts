@@ -214,6 +214,8 @@ export function useOnboardingSubmit(userId?: string) {
           cancellation_policy: templatePolicies.cancellation || null,
           deposit_policy: templatePolicies.deposit || null,
           refund_policy: templatePolicies.refund || null,
+          // Default payment methods so AI answers match policies (QA handoff #311)
+          payment_methods: ["cash", "credit_card", "debit_card"],
         }).eq("id", tenantId!);
         if (error) throw error;
       });
