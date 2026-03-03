@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { BookingWithDetails } from "@/hooks/useBookings";
 import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export const bookingStatusColors: Record<string, string> = {
   pending: "bg-warning/10 text-warning border-warning/30",
@@ -47,6 +48,7 @@ function formatPrice(amount: number | null | undefined): string {
 
 export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }: BookingCardProps) {
   const [smsOpen, setSmsOpen] = useState(false);
+  const { terms } = useIndustryContext();
   const startDate = new Date(booking.start_at);
   const serviceName = booking.service?.name || "Service";
   const customerName = booking.lead?.full_name || "Unknown";
@@ -155,7 +157,7 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }
               onClick={() => onCancel?.(booking)}
               className="text-destructive focus:text-destructive"
             >
-              <X className="w-4 h-4 mr-2" /> Cancel Booking
+              <X className="w-4 h-4 mr-2" /> Cancel {terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

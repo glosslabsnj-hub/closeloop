@@ -72,14 +72,18 @@ const tempConfig: Record<LeadTemperature, { icon: typeof Flame; label: string; c
   cold: { icon: Snowflake, label: "Cold Lead", cls: "text-sky-600 dark:text-sky-400", bgCls: "bg-sky-500/10 border-sky-500/20" },
 };
 
-function getModeLabels(mode: string) {
+function getModeLabels(mode: string, bookingTerm?: string) {
+  const capTerm = bookingTerm ? bookingTerm.charAt(0).toUpperCase() + bookingTerm.slice(1) : null;
+  const bookAction = capTerm && capTerm !== "Booking" && capTerm !== "Appointment"
+    ? (bookingTerm === "order" || bookingTerm === "reservation" ? `Place ${capTerm}` : `Book ${capTerm}`)
+    : null;
   const map: Record<string, { contextLabel: string; bookingLabel: string; customerLabel: string }> = {
-    service: { contextLabel: "Service Needed", bookingLabel: "Book Appointment", customerLabel: "Customer" },
-    dispatch: { contextLabel: "Job Request", bookingLabel: "Schedule Pickup", customerLabel: "Customer" },
-    food: { contextLabel: "Order Interest", bookingLabel: "Create Order", customerLabel: "Guest" },
-    medical: { contextLabel: "Visit Reason", bookingLabel: "Schedule Visit", customerLabel: "Patient" },
-    sales: { contextLabel: "Interest", bookingLabel: "Schedule Meeting", customerLabel: "Prospect" },
-    general: { contextLabel: "Request", bookingLabel: "Book Appointment", customerLabel: "Customer" },
+    service: { contextLabel: "Service Needed", bookingLabel: bookAction || "Book Appointment", customerLabel: "Customer" },
+    dispatch: { contextLabel: "Job Request", bookingLabel: bookAction || "Schedule Pickup", customerLabel: "Customer" },
+    food: { contextLabel: "Order Interest", bookingLabel: bookAction || "Create Order", customerLabel: "Guest" },
+    medical: { contextLabel: "Visit Reason", bookingLabel: bookAction || "Schedule Visit", customerLabel: "Patient" },
+    sales: { contextLabel: "Interest", bookingLabel: bookAction || "Schedule Meeting", customerLabel: "Prospect" },
+    general: { contextLabel: "Request", bookingLabel: bookAction || "Book Appointment", customerLabel: "Customer" },
   };
   return map[mode] || map.service;
 }
@@ -107,8 +111,8 @@ export function LeadDetailPanel({
   temperatureReason,
 }: LeadDetailPanelProps) {
   const { tenant } = useAuth();
-  const { config, mode } = useIndustryContext();
-  const modeLabels = getModeLabels(mode);
+  const { config, mode, terms } = useIndustryContext();
+  const modeLabels = getModeLabels(mode, terms.booking);
   const [smsOpen, setSmsOpen] = useState(false);
 
   const canConvert = lead ? lead.status !== "won" && lead.status !== "lost" : false;

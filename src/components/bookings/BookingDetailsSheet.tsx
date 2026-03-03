@@ -84,7 +84,8 @@ export function BookingDetailsSheet({
 
   // Determine next primary action
   const getNextAction = () => {
-    if (isPending) return { label: "Confirm Booking", icon: CheckCircle2, action: () => onConfirm(booking), variant: "default" as const };
+    const capBooking = terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1);
+    if (isPending) return { label: `Confirm ${capBooking}`, icon: CheckCircle2, action: () => onConfirm(booking), variant: "default" as const };
     if (isConfirmed) return { label: "Mark Complete", icon: CheckCircle2, action: () => onComplete(booking), variant: "default" as const };
     return null;
   };

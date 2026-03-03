@@ -139,6 +139,7 @@ function ServiceForm({
   businessMode: string;
   complexityHints: { simple: string; complex: string };
 }) {
+  const { terms } = useIndustryContext();
   return (
     <div className="p-4 space-y-4 border-t bg-muted/20">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,8 +272,8 @@ function ServiceForm({
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            {formData.booking_type === "direct_book" && "AI will check availability and book the appointment on the call."}
-            {formData.booking_type === "estimate_first" && "AI will book an estimate visit instead of the full job. Good for jobs that need an on-site quote."}
+            {formData.booking_type === "direct_book" && `AI will check availability and book the ${terms.booking} on the call.`}
+            {formData.booking_type === "estimate_first" && `AI will book an estimate visit instead of the full ${terms.booking}. Good for ${terms.bookings} that need an on-site quote.`}
             {formData.booking_type === "consultation" && "AI will collect details and schedule a callback. Good for custom or complex projects."}
           </p>
         </div>
