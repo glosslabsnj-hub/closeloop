@@ -73,8 +73,8 @@ export default function CateringPage() {
       queryClient.invalidateQueries({ queryKey: ["catering-requests"] });
       toast({ title: "Request updated" });
     },
-    onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+    onError: () => {
+      toast({ variant: "destructive", title: "Couldn't update request", description: "Please try again." });
     },
   });
 
@@ -111,7 +111,7 @@ export default function CateringPage() {
       setIsDialogOpen(false);
       setNewReq({ customer_name: "", customer_phone: "", event_type: "", event_date: "", guest_count: "", location: "", notes: "" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Couldn't create request", description: "Please try again." });
     } finally {
       setIsCreating(false);
     }
@@ -212,7 +212,7 @@ export default function CateringPage() {
 
       {/* Requests Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

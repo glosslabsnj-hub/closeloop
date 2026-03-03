@@ -119,7 +119,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
               placeholder="+1 (555) 123-4567"
             />
             <p className="text-xs text-muted-foreground">
-              Will be stored in E.164 format (e.g. +15551234567)
+              Enter a 10-digit number or include country code (e.g. +1)
             </p>
             {dupWarning && (
               <p className="text-sm text-destructive">{dupWarning}</p>

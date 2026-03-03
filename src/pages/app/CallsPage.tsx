@@ -153,8 +153,8 @@ export default function CallsPage() {
       queryClient.invalidateQueries({ queryKey: ["ai_call_sessions", tenant?.id] });
       toast({ title: "Call updated", description: "Changes saved successfully." });
     },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: () => {
+      toast({ title: "Couldn't save changes", description: "Please try again.", variant: "destructive" });
     },
   });
 
@@ -170,8 +170,8 @@ export default function CallsPage() {
       queryClient.invalidateQueries({ queryKey: ["ai_call_sessions", tenant?.id] });
       toast({ title: "Status updated" });
     },
-    onError: (error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    onError: () => {
+      toast({ title: "Couldn't update status", description: "Please try again.", variant: "destructive" });
     },
   });
 

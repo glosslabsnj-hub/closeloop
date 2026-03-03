@@ -105,8 +105,8 @@ const PRESETS: Preset[] = [
   {
     id: "webhook-all",
     icon: <Webhook className="h-5 w-5" />,
-    label: "Send all outcomes to a webhook",
-    description: "Push every call outcome to your system",
+    label: "Forward all outcomes to your system",
+    description: "Push every call outcome to your external software",
     trigger: "call.completed",
     action: "send_webhook",
     provider: "webhook",

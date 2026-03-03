@@ -71,8 +71,8 @@ export default function MedicalIntakePage() {
       queryClient.invalidateQueries({ queryKey: ["medical-intakes"] });
       toast({ title: "Intake status updated" });
     },
-    onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+    onError: () => {
+      toast({ variant: "destructive", title: "Couldn't update intake", description: "Please try again." });
     },
   });
 
@@ -110,7 +110,7 @@ export default function MedicalIntakePage() {
         </div>
         <Badge variant="outline" className="gap-1">
           <Shield className="h-3 w-3" />
-          HIPAA Mode
+          Patient Privacy
         </Badge>
       </div>
 
@@ -202,7 +202,7 @@ export default function MedicalIntakePage() {
 
       {/* Intakes Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -300,7 +300,7 @@ export default function MedicalIntakePage() {
           <div className="flex items-start gap-3">
             <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
             <div>
-              <p className="font-medium">HIPAA Compliance Notice</p>
+              <p className="font-medium">Patient Privacy Notice</p>
               <p className="text-sm text-muted-foreground">
                 Full call transcripts and recordings are not stored by default. Only structured intake 
                 data and AI summaries are retained. Adjust retention settings in Medical Settings.

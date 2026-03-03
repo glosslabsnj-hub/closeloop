@@ -100,8 +100,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
        queryClient.invalidateQueries({ queryKey: ["food-orders", tenant?.id] });
        toast({ title: "Order status updated" });
      },
-     onError: (error: Error) => {
-       toast({ variant: "destructive", title: "Error", description: error.message });
+     onError: () => {
+       toast({ variant: "destructive", title: "Couldn't update order", description: "Please try again." });
      },
    });
  
@@ -135,7 +135,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
        setNewOrderOpen(false);
        setNewOrder({ customer_name: "", order_type: "pickup", items: "", special_instructions: "" });
      } catch (err: any) {
-       toast({ variant: "destructive", title: "Error", description: err.message });
+       toast({ variant: "destructive", title: "Couldn't create order", description: "Please try again." });
      } finally {
        setIsCreating(false);
      }

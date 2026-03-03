@@ -141,7 +141,7 @@ export default function TestAIPage() {
       toast({
         variant: "destructive",
         title: "Simulation failed",
-        description: err.message || "Could not reach AI backend",
+        description: "Could not reach AI backend. Please try again.",
       });
     } finally {
       setIsLoading(false);

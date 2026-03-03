@@ -29,7 +29,7 @@ export default function DriverLoginPage() {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message || "Please check your credentials and try again.",
+        description: "Please check your email and password and try again.",
       });
     } finally {
       setLoading(false);

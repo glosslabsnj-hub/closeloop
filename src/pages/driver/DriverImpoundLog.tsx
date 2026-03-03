@@ -108,7 +108,7 @@ export default function DriverImpoundLog() {
       toast({ 
         variant: "destructive", 
         title: "Error", 
-        description: error instanceof Error ? error.message : "Failed to log vehicle" 
+        description: "Failed to log vehicle. Please try again."
       });
     } finally {
       setIsSubmitting(false);

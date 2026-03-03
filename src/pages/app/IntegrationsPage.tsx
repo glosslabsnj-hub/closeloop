@@ -75,8 +75,8 @@ const QUICK_PRESETS: QuickPreset[] = [
   {
     id: "booking-webhook",
     icon: <Webhook className="h-5 w-5" />,
-    label: "Send bookings to webhook",
-    description: "POST booking data to your external system",
+    label: "Forward bookings to your system",
+    description: "Send booking data to your external software",
     trigger: "booking.created",
     action: "send_webhook",
     provider: "webhook",
@@ -97,8 +97,8 @@ const QUICK_PRESETS: QuickPreset[] = [
   {
     id: "order-webhook",
     icon: <Webhook className="h-5 w-5" />,
-    label: "Send orders to webhook",
-    description: "POST order data to your POS or external system",
+    label: "Forward orders to your system",
+    description: "Send order data to your POS or other software",
     trigger: "order.created",
     action: "send_webhook",
     provider: "webhook",
@@ -131,8 +131,8 @@ const QUICK_PRESETS: QuickPreset[] = [
   {
     id: "call-webhook",
     icon: <Webhook className="h-5 w-5" />,
-    label: "Send call summaries to webhook",
-    description: "POST call data after every completed call",
+    label: "Forward call summaries to your system",
+    description: "Send call data after every completed call",
     trigger: "call.completed",
     action: "send_webhook",
     provider: "webhook",
@@ -145,7 +145,7 @@ const QUICK_PRESETS: QuickPreset[] = [
 const _CONNECT_TOOLS = [
   { id: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync bookings to your calendar" },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", description: "Log data to spreadsheets" },
-  { id: "webhook", name: "Webhook", icon: "🔗", description: "Send data to any URL" },
+  { id: "webhook", name: "External App", icon: "🔗", description: "Send data to any external service" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets" },
 ] as const;
 

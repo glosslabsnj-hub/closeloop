@@ -85,7 +85,7 @@ export default function DriverVehicleSelect() {
       toast({ title: "Vehicle updated" });
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "Couldn't update vehicle", description: "Please try again." });
     },
   });
 

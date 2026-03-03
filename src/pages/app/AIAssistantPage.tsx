@@ -168,7 +168,7 @@ export default function AIAssistantPage() {
       toast({ 
         variant: "destructive", 
         title: "Failed to save", 
-        description: error.message 
+        description: "Something went wrong. Please try again."
       });
     } finally {
       setSaving(false);

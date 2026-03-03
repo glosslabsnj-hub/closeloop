@@ -1,20 +1,19 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 6:27 PM ET (receptionist_fix — test_drives schema bug + test expansion)
+## Last Session: 2026-03-02 6:52 PM ET (receptionist_eng — policy promotion fix)
 
 ### What Was Done
-- **Fixed test_drives.vehicle_interest bug**: `elevenlabs-webhook` persistTestDrive() used non-existent `vehicle_interest` column. PostgREST silently dropped it = data loss. Moved to `notes` field.
-- **Expanded schema safety tests**: 20→25 tests. Now covers test_drives, food_orders, medical_intakes, sales_leads with allowlist validation (not just banned column lists).
-- **Deployed**: elevenlabs-webhook edge function + frontend. Live 200.
+- **Fixed AI policy violation**: Policy-type `ai_knowledge_base` entries (e.g., "No Phone Quotes Over 500") were landing in weak "ADDITIONAL BUSINESS KNOWLEDGE" section of AI prompt. Promoted them to authoritative "POLICIES (MUST FOLLOW)" section in both `buildBusinessContext.ts` (ElevenLabs agent) and `ai-plan-response` (AI debugger). Also added `custom[]` array to `build-business-brain` brain.policies for downstream consumers.
+- **Deployed**: ai-plan-response, build-business-brain, twilio-inbound, elevenlabs-webhook. Frontend to VPS.
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 661/661 passing
-- Commit: 648955e
+- Commit: cdf4655
 - Pushed to main
 
 ### MODE PROGRESS
-- SERVICE: 23/42 QA-verified (55%) ← FOCUS
+- SERVICE: 24/42 QA-verified (57%) ← FOCUS
 - DISPATCH: 0/42 (0%)
 - FOOD: 0/42 (0%)
 - MEDICAL: 0/42 (0%)
@@ -23,8 +22,9 @@
 
 ### Key Architecture Patterns
 - **Super_admin auth**: TWO layers must both handle super_admin: (1) DB `has_tenant_access()` function (migration 20260301210000) and (2) edge function `requireAuthedTenant` in `_shared/tenant.ts`. Both now check `user_roles` for super_admin and allow any tenant.
-- **ai-plan-response**: Uses Anthropic Claude Haiku 4.5. Queries DB directly. Falls back gracefully if ANTHROPIC_API_KEY missing. FAQs+services always injected (commit 2c74dd1).
-- **build-business-brain**: Queries 23 tables in parallel. Mode-specific knowledge only for matching mode. FAQs+services unconditional.
+- **ai-plan-response**: Uses Anthropic Claude Haiku 4.5. Queries DB directly. Falls back gracefully if ANTHROPIC_API_KEY missing. FAQs+services always injected (commit 2c74dd1). Policy-type KB entries now in POLICIES section (commit cdf4655).
+- **build-business-brain**: Queries 23 tables in parallel. Mode-specific knowledge only for matching mode. FAQs+services unconditional. Custom policies now in brain.policies.custom[] (commit cdf4655).
+- **buildBusinessContext.ts policy flow**: Policy-type ai_knowledge_base entries are now promoted to the POLICIES section (not ADDITIONAL BUSINESS KNOWLEDGE). Non-policy supplementary items remain in ADDITIONAL BUSINESS KNOWLEDGE. This ensures the AI treats custom policies as hard constraints.
 - **Booking customer linkage**: bookings table has NO customer_id. Link is `lead_id → leads.customer_id`. ALL booking lookups must go through leads table. dispatch_jobs and ai_call_sessions DO have customer_id.
 - **tenant_id in agent tools**: MUST be `required: true` on ALL tools. Regression test guards this.
 - **twilio_call_sid in transfer tool**: MUST be `required: true`.

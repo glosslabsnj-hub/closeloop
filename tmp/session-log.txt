@@ -33,3 +33,9 @@ receptionist_fix session - 2026-03-02 6:27 PM ET
 
 ## Handoffs Filed
 - receptionist_qa: VERIFY schema fix deployed, test drive creation preserves vehicle interest
+receptionist_eng session 2026-03-02 6:52 PM ET
+- Fixed: AI policy violation - custom policies from ai_knowledge_base promoted to POLICIES section
+- Deployed: ai-plan-response, build-business-brain, twilio-inbound, elevenlabs-webhook + frontend
+- Commit: cdf4655
+- Tests: 661/661 passing
+- Handoff to QA: verify brain/edits_reflect_in_ai_behavior with No Phone Quotes policy

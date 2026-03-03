@@ -273,7 +273,7 @@ export default function EstimatesPage() {
         toast({ title: "PDF generated", description: "Check your downloads." });
       }
     } catch (err: any) {
-      toast({ variant: "destructive", title: "PDF generation failed", description: err.message || "Please try again." });
+      toast({ variant: "destructive", title: "PDF generation failed", description: "Please try again." });
     }
   };
 

@@ -74,8 +74,8 @@ export default function ReservationsPage() {
       queryClient.invalidateQueries({ queryKey: ["reservations"] });
       toast({ title: "Reservation updated" });
     },
-    onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+    onError: () => {
+      toast({ variant: "destructive", title: "Couldn't update reservation", description: "Please try again." });
     },
   });
 
@@ -111,7 +111,7 @@ export default function ReservationsPage() {
       setIsDialogOpen(false);
       setNewRes({ customer_name: "", customer_phone: "", date: "", time: "", party_size: "2" });
     } catch (err: any) {
-      toast({ variant: "destructive", title: "Error", description: err.message });
+      toast({ variant: "destructive", title: "Couldn't create reservation", description: "Please try again." });
     } finally {
       setIsCreating(false);
     }
@@ -211,7 +211,7 @@ export default function ReservationsPage() {
 
       {/* Reservations Table */}
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="p-0 overflow-x-auto">
           {filteredReservations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <Clock className="h-10 w-10 mx-auto text-muted-foreground/40 mb-4" />

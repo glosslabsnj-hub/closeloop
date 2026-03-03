@@ -200,7 +200,7 @@ export default function DispatchPage() {
       setAssignDialogOpen(false);
     },
     onError: (error: Error) => {
-      sonnerToast.error("Error", { description: error.message });
+      sonnerToast.error("Couldn't update job", { description: "Please try again." });
     },
   });
 
@@ -312,7 +312,7 @@ export default function DispatchPage() {
       setNewJobOpen(false);
       setNewJob({ customer_name: "", pickup_address: "", dropoff_address: "", job_type: "", priority: "normal", description: "" });
     } catch (err: any) {
-      sonnerToast.error("Error", { description: err.message });
+      sonnerToast.error("Couldn't create job", { description: "Please try again." });
     } finally {
       setIsCreatingJob(false);
     }

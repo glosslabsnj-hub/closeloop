@@ -60,7 +60,7 @@ export function AgentOffBehaviorModal({
         // Normalize phone to E.164 format
         const normalizedNumber = normalizePhoneNumber(forwardNumber);
         if (!normalizedNumber) {
-          throw new Error("Invalid phone number format. Use E.164 format like +1234567890");
+          throw new Error("Please enter a valid phone number (e.g. 555-123-4567)");
         }
         updates.owner_forward_number = normalizedNumber;
         updates.owner_forward_verified = true; // Stub for now - can add verification flow later
@@ -227,7 +227,7 @@ export function AgentOffBehaviorModal({
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                Enter in E.164 format (e.g., +12345678900) or 10-digit US number
+                Enter your 10-digit phone number or include country code (e.g. +1)
               </p>
             </div>
           )}

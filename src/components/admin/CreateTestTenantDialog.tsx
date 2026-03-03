@@ -35,7 +35,7 @@ const BUSINESS_MODES: { value: BusinessMode; label: string; description: string 
   { value: "service", label: "Service & Booking", description: "Plumbing, HVAC, contractors" },
   { value: "dispatch", label: "Dispatch", description: "Towing, roadside, delivery" },
   { value: "food", label: "Food & Restaurant", description: "Restaurants, cafes, catering" },
-  { value: "medical", label: "Medical Intake", description: "Clinics, healthcare (HIPAA)" },
+  { value: "medical", label: "Medical Intake", description: "Clinics, healthcare, patient privacy" },
   { value: "general", label: "General", description: "Callback and messaging" },
   { value: "sales", label: "Sales", description: "Dealerships, real estate, high-ticket" },
 ];

@@ -102,7 +102,7 @@ export default function DriverJobDetail() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save photos",
+        description: "Failed to save photos. Please try again.",
       });
     } finally {
       setSavingPhotos(false);

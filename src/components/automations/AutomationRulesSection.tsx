@@ -65,7 +65,7 @@ const EVENTS: Record<string, { label: string; description: string; modes: Busine
 
 // Action types
 const ACTIONS: Record<string, { label: string; description: string; providers: string[] }> = {
-  send_webhook: { label: "Send Webhook", description: "POST data to a URL", providers: ["webhook"] },
+  send_webhook: { label: "Send to External App", description: "Forward data to another service", providers: ["webhook"] },
   create_event: { label: "Create Calendar Event", description: "Add to Google Calendar", providers: ["google_calendar"] },
   append_row: { label: "Append to Sheet", description: "Add row to Google Sheets", providers: ["google_sheets"] },
   print_receipt: { label: "Print Receipt", description: "Print kitchen ticket", providers: ["printer"] },

@@ -103,7 +103,7 @@ export default function GoLivePage() {
       toast({
         variant: "destructive",
         title: "Failed to start checkout",
-        description: error.message || "Please try again.",
+        description: "Something went wrong. Please try again.",
       });
       setProcessing(false);
     }
