@@ -11,9 +11,22 @@ interface AdminModeContextType {
 
 const AdminModeContext = createContext<AdminModeContextType | undefined>(undefined);
 
+const VALID_MODES: BusinessMode[] = ["service", "dispatch", "food", "medical", "sales", "general"];
+const STORAGE_KEY = "flux_admin_active_mode";
+
 export function AdminModeProvider({ children }: { children: ReactNode }) {
   const { user, isSuperAdmin } = useAuth();
-  const [selectedMode, setSelectedModeState] = useState<BusinessMode>("service");
+  // Restore from localStorage on mount to prevent flash/reset when layout remounts
+  // (AppLayout and AdminLayout each create their own AdminModeProvider)
+  const [selectedMode, setSelectedModeState] = useState<BusinessMode>(() => {
+    try {
+      const cached = localStorage.getItem(STORAGE_KEY);
+      if (cached && VALID_MODES.includes(cached as BusinessMode)) {
+        return cached as BusinessMode;
+      }
+    } catch {}
+    return "service";
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch on mount
@@ -34,7 +47,9 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
         if (error) {
           console.error("Error fetching admin mode:", error);
         } else if (data?.admin_active_mode) {
-          setSelectedModeState(data.admin_active_mode as BusinessMode);
+          const mode = data.admin_active_mode as BusinessMode;
+          setSelectedModeState(mode);
+          try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
         }
       } finally {
         setIsLoading(false);
@@ -44,12 +59,13 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
     fetchMode();
   }, [user, isSuperAdmin]);
 
-  // Persist on change
+  // Persist on change (localStorage + Supabase)
   const setSelectedMode = async (mode: BusinessMode) => {
     if (!user) return;
-    
+
     setSelectedModeState(mode);
-    
+    try { localStorage.setItem(STORAGE_KEY, mode); } catch {}
+
     const { error } = await supabase
       .from("admin_settings")
       .upsert(

@@ -391,6 +391,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     try { localStorage.removeItem("flux_admin_active_tenant_id"); } catch {};
+    try { localStorage.removeItem("flux_admin_active_mode"); } catch {};
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };

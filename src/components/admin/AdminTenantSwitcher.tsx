@@ -50,18 +50,24 @@ export function AdminTenantSwitcher() {
     enabled: isSuperAdmin && !!user,
   });
 
+  // Don't auto-switch while mode context is still loading from DB —
+  // the mode may briefly default to "service" before the real value arrives,
+  // which would trigger a spurious tenant switch.
+  const modeIsLoading = adminModeContext?.isLoading ?? false;
+
   // Auto-switch tenant when mode changes and current tenant doesn't match
   useEffect(() => {
     if (!tenants || tenants.length === 0) return;
     if (isLoading) return;
+    if (modeIsLoading) return;
     if (autoSwitchInFlightRef.current) return;
 
     // Only run auto-switch at most once per (mode, currentTenant) combo to prevent loops.
     const key = `${selectedMode}:${effectiveTenantId ?? "none"}`;
     if (lastAutoSwitchKeyRef.current === key) return;
-    
+
     const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);
-    
+
     if (!currentTenantMatchesMode) {
       // Auto-select first tenant of this mode
       lastAutoSwitchKeyRef.current = key;
@@ -70,7 +76,7 @@ export function AdminTenantSwitcher() {
         autoSwitchInFlightRef.current = false;
       });
     }
-  }, [selectedMode, tenants, effectiveTenantId, setActiveTenantId, isLoading]);
+  }, [selectedMode, tenants, effectiveTenantId, setActiveTenantId, isLoading, modeIsLoading]);
 
   // Only render for super admins - must be after all hooks
   if (!user || !isSuperAdmin) return null;
