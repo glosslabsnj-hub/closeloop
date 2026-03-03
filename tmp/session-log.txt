@@ -1,14 +1,26 @@
-[2026-03-03 01:58 ET] receptionist_eng session
-Commit: 4fef504
-Build: Clean (0 errors), Tests: 685/685
-Deployed: ai-plan-response, elevenlabs-webhook, twilio-inbound, frontend
+receptionist_ux | 2026-03-03 02:06 ET | COMPLETED
 
-BUGS FIXED (5):
-1. ai-plan-response: Added conversationHistory param for multi-turn simulator context
-2. ai-plan-response: Injected current date/time in tenant timezone into AI system prompt
-3. scenarioQuestions.ts: overridesBase false on ai-books — booking module no longer removed
-4. elevenlabs-webhook: Mode-default modules always merged into enabled_modules
-5. twilio-inbound: current_date_time + current_timezone in ElevenLabs dynamic vars
+## Summary
+Fixed 14 jargon items across Settings pages (commit 06fb7e0). All labels now use plain English that a non-technical business owner would understand.
 
-HANDOFFS COMPLETED: #278, #281, #282, #283, #284
-HANDOFFS FILED: #286 (QA verify booking gates), #287 (QA verify simulator memory), #288 (note re customer_name)
+## Changes (all in commit 06fb7e0)
+- "Developer Tools" → "Troubleshooting" (sidebar, mobile nav, page content, icon Bug→Wrench)
+- "Debug Tools" description: removed patronizing "only use if comfortable with technical details"
+- "Webhook URL" → "Integration URL" in delivery integration settings
+- "Security" → "Connection Security" for auth mode dropdown
+- "Use 0 for immediate deletion" → "Set to 0 to never store that type of data"
+- Retention labels humanized: "Keep Recordings For", "Keep Transcripts For", "Keep Call Summaries For", "Keep Activity Logs For"
+- HIPAA badge: "Review Settings" → "Action Needed"
+- "ROI" spelled out as "return on investment" in 3 places
+- "quote-only services" → "call for a quote services"
+- "Monthly ROI Email" → "Monthly Revenue Report"
+- Integration success dialog: "Head to Settings > Automation to customize what gets sent"
+- Removed "(Coming Soon)" from SMS Messaging nav item
+- "via webhooks" removed from integrations page description
+
+## Build: Clean | Tests: 685/685 | Pushed: yes
+## Files changed: 7 (SettingsPage, SettingsSidebar, MobileSettingsNav, DeliveryIntegrationsSettings, DataControlsPanel, RevenueSettingsSection, IntegrationConnectDialog)
+## Gate updated: service/overall/non_technical_usable → in_progress
+## Handoff filed: QA to verify non_technical_usable gate
+
+[2026-03-03 07:19] receptionist_fix: Fixed 2 bugs + 6 tests. (1) Customer-booking linkage: useCustomerActivity changed from phone-only to customer_id FK primary match (commit b3a4feb). (2) transfer_to_owner: twilio_call_sid made required in all 6 deploy scripts (commit fead5c8). 691/691 tests pass. Deployed to production.
