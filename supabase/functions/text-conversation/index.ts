@@ -143,6 +143,35 @@ function getToolDefinitions(tenantId: string): Anthropic.Tool[] {
         required: ["address"],
       },
     },
+    {
+      name: "cancel_booking",
+      description: "Cancel an existing appointment booking. Use when the customer wants to cancel their upcoming appointment.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          customer_name: { type: "string", description: "Customer's full name to look up the booking" },
+          customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
+          booking_id: { type: "string", description: "Direct booking ID if known" },
+          reason: { type: "string", description: "Reason for cancellation" },
+        },
+        required: ["customer_name"],
+      },
+    },
+    {
+      name: "reschedule_booking",
+      description: "Reschedule an existing appointment to a new date and time. Use when the customer wants to move their appointment.",
+      input_schema: {
+        type: "object" as const,
+        properties: {
+          customer_name: { type: "string", description: "Customer's full name to look up the booking" },
+          customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
+          booking_id: { type: "string", description: "Direct booking ID if known" },
+          new_date: { type: "string", description: "New appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
+          new_time: { type: "string", description: "New appointment time (e.g. '9am', '2:30 PM', '14:00')" },
+        },
+        required: ["customer_name", "new_date", "new_time"],
+      },
+    },
   ];
 }
 
@@ -162,6 +191,8 @@ async function executeTool(
     check_availability: "elevenlabs-check-availability",
     create_callback: "elevenlabs-create-callback",
     check_service_area: "elevenlabs-check-service-area",
+    cancel_booking: "elevenlabs-cancel-booking",
+    reschedule_booking: "elevenlabs-reschedule-booking",
   };
 
   const endpoint = endpointMap[toolName];
@@ -255,6 +286,8 @@ serve(async (req) => {
     const toolCalls: Array<{ tool: string; input: Record<string, unknown>; result: Record<string, unknown> }> = [];
     let bookingCreated = false;
     let bookingId: string | null = null;
+    let bookingCancelled = false;
+    let bookingRescheduled = false;
 
     // Handle tool use loop (max 3 iterations to prevent infinite loops)
     let iterations = 0;
@@ -285,10 +318,16 @@ serve(async (req) => {
           result,
         });
 
-        // Track booking creation
+        // Track booking creation / cancellation / reschedule
         if (toolUse.name === "create_booking" && result.success && result.booking_id) {
           bookingCreated = true;
           bookingId = result.booking_id as string;
+        }
+        if (toolUse.name === "cancel_booking" && result.success) {
+          bookingCancelled = true;
+        }
+        if (toolUse.name === "reschedule_booking" && result.success) {
+          bookingRescheduled = true;
         }
 
         toolResults.push({
@@ -322,6 +361,8 @@ serve(async (req) => {
       toolCalls,
       bookingCreated,
       bookingId,
+      bookingCancelled,
+      bookingRescheduled,
       debug: {
         tenant_id: String(vars.tenant_id || tenantId),
         business_mode: String(vars.business_mode || ""),

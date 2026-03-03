@@ -119,6 +119,9 @@ verify_jwt = false
 [functions.elevenlabs-cancel-booking]
 verify_jwt = false
 
+[functions.elevenlabs-cancel-dispatch-job]
+verify_jwt = false
+
 [functions.elevenlabs-reschedule-booking]
 verify_jwt = false
 
