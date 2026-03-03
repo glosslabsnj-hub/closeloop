@@ -56,7 +56,7 @@ export default function LiveFAQList() {
       });
 
     if (error) {
-      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
+      toast({ variant: "destructive", title: "Couldn't add FAQ", description: "Please try again." });
     } else {
       toast({ title: "FAQ added", description: "Your AI can now answer this question." });
       setNewQuestion('');
@@ -73,7 +73,7 @@ export default function LiveFAQList() {
       .eq('id', id);
 
     if (error) {
-      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
+      toast({ variant: "destructive", title: "Couldn't update FAQ", description: "Please try again." });
     }
   };
 
@@ -84,7 +84,7 @@ export default function LiveFAQList() {
       .eq('id', id);
 
     if (error) {
-      toast({ variant: "destructive", title: "Something went wrong", description: "Try again?" });
+      toast({ variant: "destructive", title: "Couldn't delete FAQ", description: "Please try again." });
     } else {
       setFaqs(faqs.filter(f => f.id !== id));
     }

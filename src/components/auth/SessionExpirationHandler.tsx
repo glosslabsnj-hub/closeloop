@@ -53,7 +53,7 @@ export function SessionExpirationHandler() {
       }
     } catch (err) {
       toast.dismiss(loadingToastId);
-      toast.error("Something went wrong", {
+      toast.error("Session couldn't be refreshed", {
         description: "Please try signing in again.",
         duration: 5000,
       });

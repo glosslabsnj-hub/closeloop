@@ -130,7 +130,7 @@ export function AgencyApplicationForm() {
 
       setSubmitted(true);
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Couldn't submit your application. Please try again.");
     } finally {
       setLoading(false);
     }

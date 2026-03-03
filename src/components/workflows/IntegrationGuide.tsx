@@ -91,7 +91,7 @@ export function IntegrationGuide({
                 <AccordionContent>
                   <div className="space-y-3 pt-2">
                     <p className="text-xs text-muted-foreground">
-                      This is an example of the data that will be sent to your webhook. Use this to set up your Zap's fields.
+                      This is an example of the data that gets sent after each call. Use this to set up your Zap's fields.
                     </p>
                     <div className="relative">
                       <pre className="text-xs bg-muted rounded-lg p-3 overflow-x-auto">
@@ -166,17 +166,17 @@ export function IntegrationGuide({
         </Card>
       )}
 
-      {/* Direct Webhook Info */}
+      {/* Direct Connection Info */}
       <Card>
         <CardHeader>
-          <CardTitle>Direct Webhook</CardTitle>
+          <CardTitle>Direct Connection</CardTitle>
           <CardDescription>
-            For developers: Send data directly to your own endpoint
+            For developers: Send data directly to your own URL
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            If you have your own server or custom integration, you can receive webhook data directly:
+            If you have your own server or custom integration, you can receive call data directly:
           </p>
           <ul className="text-sm text-muted-foreground space-y-1.5">
             <li className="flex items-start gap-2">
@@ -185,7 +185,7 @@ export function IntegrationGuide({
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>
-              <span>Your endpoint should respond with status <code className="bg-muted px-1 rounded">200</code></span>
+              <span>Your URL should respond with status <code className="bg-muted px-1 rounded">200</code></span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary font-bold">•</span>

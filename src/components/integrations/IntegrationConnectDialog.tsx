@@ -360,7 +360,7 @@ export function IntegrationConnectDialog({
               </div>
               <DialogTitle className="mb-2">Connection Failed</DialogTitle>
               <DialogDescription>
-                {errorMessage || "Something went wrong. Please try again."}
+                {errorMessage || "Couldn't connect this integration. Please try again."}
               </DialogDescription>
             </div>
             <DialogFooter>

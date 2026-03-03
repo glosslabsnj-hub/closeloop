@@ -43,7 +43,7 @@ export function WebhookSetup({
   const handleSave = () => {
     onSave(url);
     setIsOpen(false);
-    toast({ title: "Webhook URL saved" });
+    toast({ title: "Connection URL saved" });
   };
 
   const handleTest = async () => {
@@ -58,14 +58,14 @@ export function WebhookSetup({
       // For demo purposes, assume success if URL is valid format
       if (url.startsWith("http://") || url.startsWith("https://")) {
         setTestResult("success");
-        toast({ title: "Test successful", description: "Webhook endpoint responded correctly" });
+        toast({ title: "Test successful", description: "Connection URL responded correctly" });
       } else {
         setTestResult("error");
         toast({ title: "Test failed", description: "Invalid URL format", variant: "destructive" });
       }
     } catch (error) {
       setTestResult("error");
-      toast({ title: "Test failed", description: "Could not reach webhook endpoint", variant: "destructive" });
+      toast({ title: "Test failed", description: "Could not reach connection URL", variant: "destructive" });
     } finally {
       setIsTesting(false);
     }
@@ -97,13 +97,13 @@ export function WebhookSetup({
         className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
       >
         <Settings2 className="h-3 w-3 mr-1" />
-        {isConfigured ? "Configure" : "Set up webhook"}
+        {isConfigured ? "Configure" : "Set up connection"}
       </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Webhook Integration</DialogTitle>
+            <DialogTitle>Data Connection</DialogTitle>
             <DialogDescription>
               Send data to your CRM, Zapier, or any external service
             </DialogDescription>
@@ -123,7 +123,7 @@ export function WebhookSetup({
 
             <TabsContent value="url" className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label>Webhook URL</Label>
+                <Label>Connection URL</Label>
                 <Input
                   placeholder="https://your-service.com/webhook"
                   value={url}
@@ -148,7 +148,7 @@ export function WebhookSetup({
                   ) : (
                     <ExternalLink className="h-4 w-4 mr-1" />
                   )}
-                  Test Webhook
+                  Test Connection
                 </Button>
               </div>
 

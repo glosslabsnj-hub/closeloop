@@ -61,7 +61,7 @@ export function SharePortalLinkDialog({
         setError("Unexpected response. Please try again.");
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError("Couldn't generate your portal link. Please try again.");
     } finally {
       setIsGenerating(false);
     }
