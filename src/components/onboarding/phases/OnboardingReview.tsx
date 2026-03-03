@@ -130,8 +130,8 @@ function AIKnowledgePreview({
   industrySlug,
 }: AIKnowledgePreviewProps) {
   const greeting = customGreeting || greetingByTone[aiTone].replace("{name}", businessName || "your business");
-  const serviceNames = services.slice(0, 4).map(s => s.name).filter(Boolean);
-  const moreServices = services.length > 4 ? ` +${services.length - 4} more` : "";
+  const serviceNames = services.slice(0, 8).map(s => s.name).filter(Boolean);
+  const moreServices = services.length > 8 ? ` +${services.length - 8} more` : "";
   const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
   const terms = getIndustryTerminology(businessMode, industryEntry?.category, industrySlug);
   const appointmentLabel = terms.appointmentLabel;

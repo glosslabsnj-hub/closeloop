@@ -239,7 +239,7 @@ function AppLayoutContent() {
           caps={caps}
           terms={terms}
           conflictsCount={conflictsCount}
-          effectiveHasSubscription={effectiveHasSubscription}
+          effectiveHasSubscription={effectiveHasSubscription || !!tenant}
           displayTenant={displayTenant}
           subtitle={sidebarSubtitle}
           open={sidebarOpen}

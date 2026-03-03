@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from "react";
 import { StepNavigator } from "@/components/onboarding/StepNavigator";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, Navigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -48,6 +48,8 @@ export default function OnboardingPage() {
   const { user, tenant, loading: authLoading } = useAuth();
   const userId = user?.id;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const forceReentry = searchParams.get("force") === "true";
   const { toast } = useToast();
 
   const {
@@ -101,10 +103,10 @@ export default function OnboardingPage() {
     form.a2pData, form.aiTone, form.bookingMode, form.afterHours, form.customGreeting,
     form.notificationPhone, form.otherDescription, submit.isComplete, resumeDecided, userId]);
 
-  // Redirect if already has tenant
+  // Redirect if already has tenant (skip if ?force=true for re-testing)
   useEffect(() => {
-    if (!authLoading && tenant) navigate("/app/dashboard", { replace: true });
-  }, [authLoading, tenant, navigate]);
+    if (!authLoading && tenant && !forceReentry) navigate("/app/dashboard", { replace: true });
+  }, [authLoading, tenant, navigate, forceReentry]);
 
   // Phase validation (5-phase flow)
   const canProceed = (phaseNum: number) => {
@@ -132,7 +134,7 @@ export default function OnboardingPage() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (tenant) {
+  if (tenant && !forceReentry) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">

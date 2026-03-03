@@ -1,20 +1,21 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 5:28 AM ET (receptionist_eng — 4 bug fixes from QA handoffs)
+## Last Session: 2026-03-03 5:53 AM ET (receptionist_fix — contextual errors + 143 regression tests)
 
 ### What Was Done
-- **BUG FIX [ID:302]**: `create_callback` tool not invoked in Text Test. Root cause: tool description too narrow ("when you cannot handle their request directly"), Claude didn't realize it must invoke the tool for callback requests. Fixed: improved tool description, added `callbackCreated`/`callbackId` tracking, added system prompt supplement reinforcing tool usage rules.
-- **BUG FIX [ID:305]**: Auth session drops on page navigation (full reload). Root cause: race condition where `getSession()` returns null before Supabase finishes localStorage recovery. Fixed: defensive retry in `AuthContext.initializeAuth` — if null returned but localStorage has session token, waits 300ms and retries once.
-- **BUG FIX [ID:303]**: Emergency AI lacks empathy ("Actually give me your ZIP"). Added EMPATHY-FIRST RULE before urgent flow steps in `agentBasePrompts.ts` — safety emergencies (baby in heat, gas leak, etc.) must lead with empathy before data collection.
-- **BUG FIX [ID:304]**: Call Test debug vars show "Not set". Pre-populated `DynamicVariablesDebugPanel` from `effectiveTenant` context before a call starts.
-- Build: Clean (0 errors), Tests: 789/789 passing
-- Commit: 89c51f9, pushed to main, deployed (frontend + text-conversation edge function)
+- **JARGON FIX**: Replaced 10 generic "Something went wrong" messages with contextual descriptions across 10 components (AIAssistantPage, GoLivePage, AgencyApplicationForm, LiveFAQList×3, SessionExpirationHandler, SharePortalLinkDialog, IntegrationConnectDialog). Also cleaned webhook/endpoint jargon in WebhookSetup + IntegrationGuide.
+- **NEW TESTS**: 143 regression tests in 3 new files:
+  - `error-recovery-patterns.test.ts` (84 tests): refetch pattern, contextual headings, recovery links, no window.location.reload
+  - `jargon-regression.test.ts` (8 tests): forbidden error phrases scanner
+  - `resolve-capabilities.test.ts` (51 tests): critical edge function had ZERO coverage
+- Build: Clean (0 errors), Tests: 932/932 passing
+- Commit: a99086c, pushed to main, deployed to production
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 789/789 passing
-- Commit: 89c51f9
-- Pushed to main, deployed
+- Tests: 932/932 passing
+- Commit: a99086c
+- Pushed to main + deployed
 
 ### MODE PROGRESS
 - SERVICE: 34/42 QA-verified (81%) ← FOCUS
@@ -34,9 +35,10 @@
 - **tenant_id in agent tools**: MUST be `required: true` on ALL tools.
 - **AI edge functions use Anthropic API**: ALL 12 use `ANTHROPIC_API_KEY` with model `claude-haiku-4-5-20251001`.
 - **tenants table address**: Single `address` text field. No separate `city`/`state` columns.
+- **Error recovery pattern**: All data pages use React Query `refetch()` for retry (never `window.location.reload()`). Each error state offers: Try again, Back to Dashboard, Contact Support. Covered by 84 regression tests.
+- **resolveCapabilities**: Pure function in `_shared/resolveCapabilities.ts`. Parses rawMode + enabled_modules + capabilities_json → Capabilities object. All 6 modes tested. Covered by 51 tests.
 
 ### Remaining Work
-- QA verification: callback_request_works (in_progress), booking_sms_confirmation (WIP)
+- QA verification: callback_request_works, booking_sms_confirmation, estimates_save_works, booking_date_picker_works (all in_progress)
 - QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (all in_progress)
-- 2 BLOCKED gates (Google Calendar OAuth, SMS A2P registration)
-- transfer_to_human_works cannot be tested via simulator (no real Twilio call SID)
+- 3 BLOCKED gates (Google Calendar OAuth, SMS A2P registration, transfer_to_human needs real call)
