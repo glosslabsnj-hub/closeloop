@@ -6,8 +6,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
 import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
+import TextConversationSimulator from "@/components/simulator/TextConversationSimulator";
 import { SuggestedTestsBanner } from "@/components/simulator/SuggestedTestsBanner";
-import { Phone, MessageSquare, Brain } from "lucide-react";
+import { Phone, MessageSquare, Brain, MessageCircle } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function SimulatorPage() {
@@ -47,6 +48,10 @@ export default function SimulatorPage() {
             <MessageSquare className="h-4 w-4" />
             SMS Test
           </TabsTrigger>
+          <TabsTrigger value="text" className="gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Text Test
+          </TabsTrigger>
           <TabsTrigger value="brain" className="gap-2">
             <Brain className="h-4 w-4" />
             Brain Debugger
@@ -62,6 +67,12 @@ export default function SimulatorPage() {
         <TabsContent value="sms" className="mt-4">
           <ErrorBoundary context="loading simulator">
             <SMSSimulator />
+          </ErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="text" className="mt-4">
+          <ErrorBoundary context="loading simulator">
+            <TextConversationSimulator />
           </ErrorBoundary>
         </TabsContent>
 

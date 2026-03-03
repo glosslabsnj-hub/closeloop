@@ -86,3 +86,18 @@ verify_jwt = false
 
 [functions.delete-demo-profile]
 verify_jwt = false
+
+[functions.ai-plan-response]
+verify_jwt = false
+
+[functions.ai-text-reply]
+verify_jwt = false
+
+[functions.generate-insights]
+verify_jwt = false
+
+[functions.partner-analysis]
+verify_jwt = false
+
+[functions.text-conversation]
+verify_jwt = false
