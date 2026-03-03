@@ -219,7 +219,7 @@ export default function AIAssistantPage() {
         </CardContent>
       </Card>
 
-      <ErrorBoundary>
+      <ErrorBoundary context="loading AI assistant">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="w-full justify-start flex-wrap">
           <TabsTrigger value="voice" className="gap-2">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -294,7 +295,7 @@ export default function EstimatesPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary context="loading your estimates">
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<FileText className="h-5 w-5" />}
@@ -510,6 +511,6 @@ export default function EstimatesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   );
 }

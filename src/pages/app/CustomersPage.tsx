@@ -135,7 +135,7 @@ export default function CustomersPage() {
   };
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading your customers">
     <PageContainer maxWidth="xl">
       <PageHeader
         title={modeLabels.customersLabel === "Customer" ? "Customers" : modeLabels.customersLabel}

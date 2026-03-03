@@ -40,31 +40,31 @@ export function LiveDashboard() {
       <SoundManager />
 
       {/* Agent Status */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading agent status">
         <AgentControlPanel />
       </ErrorBoundary>
 
       {/* Alerts (only when present) */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading alerts">
         <UnifiedAlertBanner />
         <CompleteProfileBanner />
         <NeedsAttentionBanner />
       </ErrorBoundary>
 
       {/* Key Metrics */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading your metrics">
         <MetricsGrid />
       </ErrorBoundary>
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6 min-w-0">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading your content">
             <ModeContentArea />
           </ErrorBoundary>
         </div>
         <div className="space-y-6 min-w-0">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading recent activity">
             <LiveActivityFeed />
           </ErrorBoundary>
         </div>

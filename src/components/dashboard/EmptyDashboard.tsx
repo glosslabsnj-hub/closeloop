@@ -107,7 +107,7 @@ export function EmptyDashboard() {
       <SoundManager />
 
       {/* Agent Status */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading your dashboard">
         <AgentControlPanel />
       </ErrorBoundary>
 
@@ -337,7 +337,7 @@ export function EmptyDashboard() {
       </div>
 
       {/* ── Setup Checklist ─────────────────────────────────────── */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading your dashboard">
         <SmartChecklist />
       </ErrorBoundary>
     </div>

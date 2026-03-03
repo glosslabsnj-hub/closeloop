@@ -511,7 +511,7 @@ export default function ReportsROIPage() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading your reports">
     <TooltipProvider>
       <PageContainer maxWidth="xl">
         <PageHeader

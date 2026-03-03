@@ -360,7 +360,7 @@ export default function DispatchPage() {
   return (
     <TooltipProvider>
       <PageContainer maxWidth="full">
-        <ErrorBoundary>
+        <ErrorBoundary context="loading dispatch jobs">
         <div className="space-y-6">
           <PageHeader
             title="Dispatch Command Center"

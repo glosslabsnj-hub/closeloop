@@ -515,7 +515,7 @@ export default function BusinessBrainPage() {
 
           {/* ═══ GUIDED SETUP MODE ═══ */}
           {shouldShowGuided && (
-            <ErrorBoundary>
+            <ErrorBoundary context="loading Business Brain">
               <Suspense fallback={<LazyFallback />}>
                 <GuidedSetupFlow onSwitchToFullBrain={handleSwitchToFullBrain} />
               </Suspense>
@@ -534,7 +534,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <ErrorBoundary>
+                <ErrorBoundary context="loading Business Brain">
                   <BrainDashboard onNavigate={handleSectionChange} onStartGuidedSetup={handleEnterGuidedMode} />
                 </ErrorBoundary>
               </motion.div>
@@ -549,7 +549,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <ErrorBoundary>
+                <ErrorBoundary context="loading Business Brain">
                   <Suspense fallback={<LazyFallback />}>
                     <IntelligenceDashboard businessMode={businessMode} />
                   </Suspense>
@@ -566,7 +566,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <ErrorBoundary>
+                <ErrorBoundary context="loading Business Brain">
                   <Suspense fallback={<LazyFallback />}>
                     <WorkflowConfigEditor />
                   </Suspense>
@@ -583,7 +583,7 @@ export default function BusinessBrainPage() {
                 animate="animate"
                 exit="exit"
               >
-                <ErrorBoundary>
+                <ErrorBoundary context="loading Business Brain">
                 <Suspense fallback={<LazyFallback />}>
                 <BrainSectionDetailHost
                   activeSection={activeSection}

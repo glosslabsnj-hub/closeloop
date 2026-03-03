@@ -197,7 +197,7 @@ export default function BookingsPage() {
 
   return (
     <PageContainer maxWidth="xl">
-      <ErrorBoundary>
+      <ErrorBoundary context="loading your bookings">
       <div className="space-y-6">
         <PageHeader
           title={terms.bookingsPageTitle || "Schedule"}

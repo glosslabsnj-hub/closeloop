@@ -3,7 +3,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function AutomationsPage() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading automations">
       <SmartAutomationsPage />
     </ErrorBoundary>
   );

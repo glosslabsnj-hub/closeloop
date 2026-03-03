@@ -152,9 +152,9 @@ describe("Error boundary coverage on data-heavy pages", () => {
       expect(content).toContain("ErrorBoundary");
     });
 
-    it(`${name} uses <ErrorBoundary> in render`, () => {
+    it(`${name} uses <ErrorBoundary in render`, () => {
       const content = readFileSync(resolve(file), "utf-8");
-      expect(content).toContain("<ErrorBoundary>");
+      expect(content).toContain("<ErrorBoundary");
     });
   }
 });

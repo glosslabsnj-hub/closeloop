@@ -52,13 +52,13 @@ export function IntegrationConnectDialog({
         });
       } else if (event.data?.type === "calendar-oauth-error") {
         setStep("error");
-        setErrorMessage(event.data.error || "OAuth failed");
+        setErrorMessage(event.data.error || "Connection failed. Please try again.");
       } else if (event.data?.type === "integration-oauth-success") {
         setStep("success");
         toast({ title: `${provider?.name || "Integration"} connected!` });
       } else if (event.data?.type === "integration-oauth-error") {
         setStep("error");
-        setErrorMessage(event.data.error || "OAuth failed");
+        setErrorMessage(event.data.error || "Connection failed. Please try again.");
       }
     };
 
@@ -112,7 +112,7 @@ export function IntegrationConnectDialog({
       } catch (error) {
         console.error("OAuth start error:", error);
         setStep("error");
-        setErrorMessage(error instanceof Error ? error.message : "Failed to start OAuth");
+        setErrorMessage(error instanceof Error ? error.message : "Couldn't connect. Please try again.");
       }
       return;
     }

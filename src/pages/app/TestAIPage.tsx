@@ -156,7 +156,7 @@ export default function TestAIPage() {
   const confidencePct = result ? confidenceToPercent(result.confidence) : 0;
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading AI test panel">
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Test Your AI Receptionist"

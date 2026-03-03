@@ -288,7 +288,7 @@ export default function CallsPage() {
   const needsFollowupCount = deduplicatedCalls.filter(c => c.followup_status === "new" || c.followup_status === "no_answer").length;
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading your call history">
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Calls"

@@ -1,3 +1,4 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { SectionCard } from "@/components/layout/SectionCard";
@@ -100,6 +101,7 @@ export default function BusinessBrainGapsPage() {
   } = useKnowledgeGaps();
 
   return (
+    <ErrorBoundary context="loading knowledge gaps">
     <PageContainer>
       <PageHeader
         title="Business Brain Gaps"
@@ -410,5 +412,6 @@ export default function BusinessBrainGapsPage() {
         </SectionCard>
       )}
     </PageContainer>
+    </ErrorBoundary>
   );
 }

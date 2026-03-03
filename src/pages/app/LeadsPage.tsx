@@ -205,7 +205,7 @@ export default function LeadsPage() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading your leads">
     <PageContainer maxWidth="xl">
       <PageHeader
         title={modeLabels.leadsLabel}

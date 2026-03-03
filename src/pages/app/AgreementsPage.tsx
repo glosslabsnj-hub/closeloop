@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -225,7 +226,7 @@ export default function AgreementsPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary context="loading your service agreements">
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<FileCheck className="h-5 w-5" />}
@@ -424,6 +425,6 @@ export default function AgreementsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </ErrorBoundary>
   );
 }

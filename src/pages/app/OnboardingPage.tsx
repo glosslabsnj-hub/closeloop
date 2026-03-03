@@ -239,7 +239,7 @@ export default function OnboardingPage() {
         {/* Step Content */}
         <div className={`flex-1 flex justify-center p-4 sm:p-6 overflow-y-auto ${phase === 0 ? "items-center" : "items-start"}`}>
           <div className="w-full max-w-2xl">
-            <ErrorBoundary>
+            <ErrorBoundary context="loading onboarding">
             <AnimatePresence mode="wait">
               {phase === 0 ? (
                 <motion.div

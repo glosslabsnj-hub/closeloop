@@ -219,7 +219,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 
    return (
      <PageContainer maxWidth="xl">
-       <ErrorBoundary>
+       <ErrorBoundary context="loading your orders">
        <div className="space-y-6">
          <PageHeader
            icon={<UtensilsCrossed className="h-5 w-5" />}

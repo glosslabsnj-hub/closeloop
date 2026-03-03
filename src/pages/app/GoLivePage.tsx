@@ -114,7 +114,7 @@ export default function GoLivePage() {
   const tierInfo = selectedTier ? TIERS.find((t) => t.tier === selectedTier) : null;
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary context="loading your setup status">
     <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -135,6 +136,7 @@ export default function CateringPage() {
   }
 
   return (
+    <ErrorBoundary context="loading catering requests">
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -362,5 +364,6 @@ export default function CateringPage() {
         </DialogContent>
       </Dialog>
     </div>
+    </ErrorBoundary>
   );
 }

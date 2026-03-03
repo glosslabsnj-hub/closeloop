@@ -19,7 +19,7 @@ export default function DashboardPage() {
     return (
       <PageContainer maxWidth="xl">
         <div className="pt-8">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading your dashboard">
             <LiveDashboard />
           </ErrorBoundary>
         </div>
@@ -30,7 +30,7 @@ export default function DashboardPage() {
   return (
     <PageContainer maxWidth="xl">
       <div className="pt-8">
-        <ErrorBoundary>
+        <ErrorBoundary context="loading your dashboard">
           {setupComplete ? (
             <LiveDashboard />
           ) : (

@@ -339,7 +339,7 @@ export default function UnifiedInboxPage() {
         description={terms.inboxPageSubtitle}
       />
 
-      <ErrorBoundary>
+      <ErrorBoundary context="loading your inbox">
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <TabsList>

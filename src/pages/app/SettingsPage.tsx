@@ -383,7 +383,7 @@ export default function SettingsPage() {
         <div className="px-4 sm:px-6 md:px-8 lg:px-12 py-4 sm:py-6 space-y-6 max-w-4xl">
 
           {/* Section Content */}
-          <ErrorBoundary>
+          <ErrorBoundary context="loading your settings">
             <div className="space-y-6">
               {renderSectionContent()}
             </div>

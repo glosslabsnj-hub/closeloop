@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,8 @@ interface ErrorBoundaryProps {
   fallback?: React.ReactNode;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
   className?: string;
+  /** User-friendly context about what section failed, e.g. "loading your bookings" */
+  context?: string;
 }
 
 interface ErrorBoundaryState {
@@ -39,6 +41,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         return this.props.fallback;
       }
 
+      const contextMsg = this.props.context
+        ? `We had trouble ${this.props.context}. This is usually temporary.`
+        : "Something didn't load correctly. This is usually temporary.";
+
       return (
         <div
           className={cn(
@@ -54,12 +60,21 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               Something went wrong
             </h3>
             <p className="text-sm text-muted-foreground">
-              An unexpected error occurred. Please try again.
+              {contextMsg}
             </p>
           </div>
-          <Button variant="outline" onClick={this.resetErrorBoundary}>
-            Try again
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" onClick={this.resetErrorBoundary}>
+              Try again
+            </Button>
+            <a
+              href="/app/dashboard"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Home className="h-3.5 w-3.5" />
+              Back to Dashboard
+            </a>
+          </div>
         </div>
       );
     }

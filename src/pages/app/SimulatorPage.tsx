@@ -54,19 +54,19 @@ export default function SimulatorPage() {
         </TabsList>
 
         <TabsContent value="call" className="mt-4">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading simulator">
             <CallSimulator />
           </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="sms" className="mt-4">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading simulator">
             <SMSSimulator />
           </ErrorBoundary>
         </TabsContent>
 
         <TabsContent value="brain" className="mt-4">
-          <ErrorBoundary>
+          <ErrorBoundary context="loading simulator">
             <AIBrainDebugger />
           </ErrorBoundary>
         </TabsContent>

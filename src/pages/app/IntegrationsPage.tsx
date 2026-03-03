@@ -355,7 +355,7 @@ export default function IntegrationsPage() {
       />
 
       {/* Tabs */}
-      <ErrorBoundary>
+      <ErrorBoundary context="loading integrations">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="automations" className="gap-2">
