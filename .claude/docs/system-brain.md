@@ -1,18 +1,24 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 11:03 PM ET (receptionist_fix — agency_applications RLS fix)
+## Last Session: 2026-03-02 11:43 PM ET (receptionist_ux — Mobile sidebar fix)
 
 ### What Was Done
-- **Fixed agency_applications HTTP 401 on every page load** (commit 4f1b876, deployed to production):
-  - ROOT CAUSE: RLS SELECT policy on `agency_applications` used `(SELECT email FROM auth.users WHERE id = auth.uid())` but the `authenticated` role CANNOT SELECT from `auth.users`. This caused "permission denied for table users" (HTTP 401) for EVERY `useMyAgencyApplication()` call in AppLayout — 22 errors per QA session across all 16 pages.
-  - FIX: Replaced `auth.users` subquery with `auth.jwt() ->> 'email'` which reads from JWT claims directly. Migration 20260303050000 applied.
-  - VERIFIED: curl test confirmed query now returns HTTP 200 (empty array) instead of 401.
-- **Triaged 5 other handoffs** (#247, #252, #254, #263, #264) — all already fixed by eng (3887730) and ux (8b5930c) agents. Marked completed.
+- **Fixed critical mobile sidebar UX bug** (commit fb24479): MobileSidebar at 375px was a full-screen solid overlay (`fixed inset-0`) with no backdrop-click-to-close, trapping users. Replaced with standard mobile sidebar pattern: semi-transparent backdrop (z-99, click to dismiss) + 280px slide-from-left panel (z-100, max 85vw). File: `src/components/ui/animated-sidebar.tsx`.
+- Build: Clean (0 errors), Tests: 678/678 passing
+
+### Previous Session: 2026-03-02 11:36 PM ET (receptionist_eng — Lovable→Anthropic AI migration)
+
+### What Was Done
+- **Migrated ALL 12 AI edge functions from dead Lovable gateway to Anthropic API** (commit 939d30a, deployed):
+  - ROOT CAUSE: LOVABLE_API_KEY was never configured on new Supabase project. All edge functions calling `ai.gateway.lovable.dev` returned 500 errors.
+  - FIX: Replaced all 12 functions to use ANTHROPIC_API_KEY (already configured) with `api.anthropic.com/v1/messages`, model `claude-haiku-4-5-20251001`.
+  - Functions fixed: partner-analysis (AI Insights page errors), ai-text-reply, generate-insights, parse-services-text, process-knowledge-upload (tool calling + vision), vin-ocr (vision), admin-marketing-chat (streaming with SSE translation), marketing-chat, admin-outreach-execute, admin-generate-ad-copy, admin-generate-social-batch, admin-outreach-response.
+  - Zero LOVABLE_API_KEY references remain in the codebase.
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 678/678 passing
-- Commit: 4f1b876
+- Commit: 939d30a
 - Pushed to main, deployed to production
 
 ### MODE PROGRESS
@@ -47,6 +53,7 @@
 - **_shared/tenant.ts redeploy**: When modifying `_shared/tenant.ts`, ALL 29 edge functions that import from it need redeployment.
 - **busy_blocks MUST be tenant-scoped**: All UPDATE/DELETE on busy_blocks must include .eq("tenant_id", tenantId). Cancel and reschedule functions both fixed in f0ef4c5.
 - **Date parsing**: elevenlabs-create-booking and elevenlabs-reschedule-booking both handle: today, tomorrow, ISO, MM/DD/YYYY, MM/DD, "March 5th", "next Monday". Webhook persistBooking uses tenant timezone offset via getTimezoneOffset().
+- **AI edge functions use Anthropic API**: ALL 12 AI-powered edge functions now use `ANTHROPIC_API_KEY` with `api.anthropic.com/v1/messages` and model `claude-haiku-4-5-20251001`. NO more Lovable gateway. Response parsing: `content[0].text` for text, `content.find(b => b.type === 'tool_use').input` for tool calling, `type: "image"` with `source.type: "base64"` for vision. Streaming functions use SSE format translation (Anthropic → OpenAI format).
 
 ### Remaining Work
 - 14 WIP gates awaiting QA verification (fixes deployed, handoffs filed)
