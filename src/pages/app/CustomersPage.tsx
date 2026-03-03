@@ -84,9 +84,10 @@ export default function CustomersPage() {
   const [bookingCustomerName, setBookingCustomerName] = useState("");
   const [bookingCustomerPhone, setBookingCustomerPhone] = useState("");
 
+  // Active = has calls or bookings in last 90 days (computed from enrichment data)
   const activeCustomers = useMemo(
-    () => customers.filter((c) => (c.tags as string[] | null)?.includes("active_customer")),
-    [customers]
+    () => customers.filter((c) => enrichmentMap?.get(c.id)?.isActive),
+    [customers, enrichmentMap]
   );
 
   const baseList = activeTab === "active" ? activeCustomers : customers;
@@ -293,7 +294,9 @@ export default function CustomersPage() {
                           <TableCell className="hidden md:table-cell text-muted-foreground text-sm">
                             {enrichment?.lastServiceDate
                               ? format(new Date(enrichment.lastServiceDate), "MMM d, yyyy")
-                              : "Never"}
+                              : enrichment?.nextBookingDate
+                                ? <span className="text-primary">Upcoming {format(new Date(enrichment.nextBookingDate), "MMM d")}</span>
+                                : "Never"}
                           </TableCell>
                           <TableCell className="hidden lg:table-cell">
                             {enrichment?.recentCallCount ? (

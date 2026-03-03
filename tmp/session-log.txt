@@ -1,26 +1,35 @@
-[receptionist_fix] 2026-03-02 8:04 PM ET
+receptionist_eng session — 2026-03-03 03:45 UTC
 
-## Bug Fixed (commit 6dd73b8)
-**Admin tenant selection resetting on page navigation** (handoff #237 from QA)
+## What Was Done
+Fixed 3 critical QA bugs (commit 3887730, deployed to production):
 
-Root cause: AdminModeProvider was duplicated in both AppLayout and AdminLayout.
-Navigating between /admin/* and /app/* destroyed one provider and created another,
-causing mode/tenant state to reset and triggering redirect effects that sent
-admins to the onboarding/go-live page.
+1. **Booking date/time picker NOT interactive** (R2-R5 unfixed, handoffs 258/261)
+   - Root cause: CreateBookingDialog rendered date/time as static <p> text
+   - Fix: Added interactive <Input type="date"> and <Input type="time">
+   - File: src/components/calendar/CreateBookingDialog.tsx
 
-Fix:
-1. Lifted AdminModeProvider to App.tsx as singleton (never remounts)
-2. Removed from AppLayout and AdminLayout
-3. Added localStorage backup check in redirect effects
+2. **Estimates RLS 403** (R2-R5 unfixed, handoffs 251/259/262)
+   - Root cause: Previous fix added WITH CHECK but used tenant_users-only check
+   - Super admins had no tenant_users row for HVAC tenant → 403
+   - Fix: All 7 competitive-features tables now use has_tenant_access() which includes super_admin
+   - Migration: 20260303040000_fix_competitive_features_rls_super_admin.sql (deployed to prod DB)
 
-## Tests
-- 678/678 passing (7 new: singleton architecture, redirect defense)
-- Build: clean (0 errors)
+3. **Dashboard "No bookings today" contradiction** (QA handoff)
+   - Root cause: TodayCalendarStrip missing status filter, no refetchInterval, complex nested join
+   - Fix: Added status filter (pending/confirmed), 60s refetch, simplified leads(full_name) join
+   - File: src/components/dashboard/widgets/TodayCalendarStrip.tsx
 
-## Deployed
-- Git push: main (6dd73b8)
-- Frontend: scp to VPS, verified 200
+## Investigated & Closed (no code bug)
+- agency_applications console errors: hooks already properly silenced, QA false positive
+- Tenant context drops on navigation: extensive safeguards in place, no code-level bug found
 
-## Handoffs
-- #237 completed (QA bug fix)
-- #241 filed to QA: verify admin tenant persistence after fix
+## Build Status
+- Build: Clean (0 errors)
+- Tests: 678/678 passing
+- Commits: 3887730, 85de9ee
+- Deployed: GitHub push + VPS frontend + Supabase DB migration
+
+## Handoffs Filed
+- #267: QA verify booking date/time picker
+- #268: QA verify estimates create (RLS fix)
+- #269: QA verify dashboard TodayCalendarStrip consistency

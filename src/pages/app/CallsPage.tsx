@@ -506,8 +506,12 @@ export default function CallsPage() {
           <CardContent className="p-0">
             <EmptyState
               icon={Phone}
-              title="No calls yet"
-              description="When your AI assistant handles calls, they'll appear here with all extracted information."
+              title={searchQuery || leadFilter !== "all" ? "No matching calls" : "No calls yet"}
+              description={
+                searchQuery || leadFilter !== "all"
+                  ? "Try adjusting your search or filters."
+                  : "When your AI assistant handles calls, they'll appear here with all extracted information."
+              }
               compact
             />
           </CardContent>

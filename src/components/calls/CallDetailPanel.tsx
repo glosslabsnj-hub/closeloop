@@ -82,7 +82,7 @@
      case "escalated":
        return { bg: "bg-info/10", text: "text-info", label: "Escalated" };
      default:
-       return { bg: "bg-muted", text: "text-muted-foreground", label: outcome || "Unknown" };
+       return { bg: "bg-muted", text: "text-muted-foreground", label: outcome || "Processing" };
    }
  }
 

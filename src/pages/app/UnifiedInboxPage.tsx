@@ -541,8 +541,12 @@ export default function UnifiedInboxPage() {
           ) : filteredCalls.length === 0 ? (
             <EmptyState
               icon={Phone}
-              title="No calls yet"
-              description="All incoming and outgoing calls will appear here."
+              title={searchQuery || outcomeFilter !== "all" ? "No matching calls" : "No calls yet"}
+              description={
+                searchQuery || outcomeFilter !== "all"
+                  ? "Try adjusting your search or filters."
+                  : "All incoming and outgoing calls will appear here."
+              }
             />
           ) : (
             <div className="divide-y divide-border/20 rounded-xl bg-card/60 backdrop-blur-sm border border-border/30">
