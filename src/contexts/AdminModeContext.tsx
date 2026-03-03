@@ -16,8 +16,7 @@ const STORAGE_KEY = "flux_admin_active_mode";
 
 export function AdminModeProvider({ children }: { children: ReactNode }) {
   const { user, isSuperAdmin } = useAuth();
-  // Restore from localStorage on mount to prevent flash/reset when layout remounts
-  // (AppLayout and AdminLayout each create their own AdminModeProvider)
+  // Restore from localStorage on mount to prevent flash/reset on initial load
   const [selectedMode, setSelectedModeState] = useState<BusinessMode>(() => {
     try {
       const cached = localStorage.getItem(STORAGE_KEY);

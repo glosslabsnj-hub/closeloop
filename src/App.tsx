@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { ThemeProvider } from "next-themes";
 import { SessionExpirationHandler } from "@/components/auth/SessionExpirationHandler";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -132,6 +133,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
     <AuthProvider>
+      <AdminModeProvider>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -276,6 +278,7 @@ const App = () => (
           </ErrorBoundary>
         </BrowserRouter>
         </TooltipProvider>
+      </AdminModeProvider>
       </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>

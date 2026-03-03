@@ -1,6 +1,5 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -112,7 +111,6 @@ export function AdminLayout() {
   }
 
   return (
-    <AdminModeProvider>
       <div className="min-h-screen bg-secondary/30">
         {/* Top Navigation */}
         <header className="sticky top-0 z-50 border-b border-border/40 bg-sidebar/98">
@@ -223,6 +221,5 @@ export function AdminLayout() {
           </main>
         </div>
       </div>
-    </AdminModeProvider>
   );
 }

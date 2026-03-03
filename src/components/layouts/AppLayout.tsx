@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { AdminModeProvider } from "@/contexts/AdminModeContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
@@ -124,6 +123,11 @@ function AppLayoutContent() {
 
   useEffect(() => {
     if (!loading && user && !tenant && !isSuperAdmin && !isAgency && !isAgencyLoading) {
+      // Belt-and-suspenders: check localStorage for admin tenant as synchronous backup.
+      // During layout transitions, React state may briefly lag behind localStorage.
+      try {
+        if (localStorage.getItem("flux_admin_active_tenant_id")) return;
+      } catch {}
       if (location.pathname !== "/app/onboarding") navigate("/app/onboarding");
     }
   }, [loading, user, tenant, isSuperAdmin, isAgency, isAgencyLoading, location.pathname, navigate]);
@@ -137,6 +141,10 @@ function AppLayoutContent() {
 
   useEffect(() => {
     if (isSuperAdmin) return;
+    // Synchronous backup: if localStorage says admin tenant is set, this is an admin session
+    try {
+      if (localStorage.getItem("flux_admin_active_tenant_id")) return;
+    } catch {}
     // Agency users accessing agency dashboard should never be redirected
     if (isAgency && location.pathname.startsWith("/app/agency")) return;
     // Don't redirect from /app/agency while agency status is still loading
@@ -361,10 +369,10 @@ function MobileHeader({
 
 export function AppLayout() {
   return (
-    <AdminModeProvider>
+    <>
       <DispatchJobListener />
       <CommandPalette />
       <AppLayoutContent />
-    </AdminModeProvider>
+    </>
   );
 }

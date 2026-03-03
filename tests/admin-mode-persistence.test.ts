@@ -1,16 +1,23 @@
 /**
- * Tests for admin mode/tenant persistence across layout remounts.
+ * Tests for admin mode/tenant persistence.
  *
- * Bug fixed: Admin tenant selection reset on page navigation because
- * AppLayout and AdminLayout each create separate AdminModeProvider instances.
- * When navigating between /admin/* and /app/*, the old provider unmounts and
- * the new one starts with selectedMode = "service" (default), causing the
- * AdminTenantSwitcher auto-switch to fire before the real mode loads from DB.
+ * @vitest-environment node
  *
- * Fix: AdminModeContext now caches selectedMode in localStorage for instant
- * restore, and AdminTenantSwitcher guards auto-switch against mode loading.
+ * Architecture: AdminModeProvider is a SINGLETON in App.tsx (above the router).
+ * This means it never remounts when navigating between /admin/* and /app/*.
+ * Previously, it was duplicated in both AppLayout and AdminLayout, causing
+ * mode resets and tenant auto-switches on layout transitions.
+ *
+ * Defense-in-depth: AppLayout redirect effects also check localStorage for
+ * admin tenant ID as a synchronous backup, preventing redirects during any
+ * brief React state lag.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const srcFile = (relPath: string) =>
+  readFileSync(join(process.cwd(), relPath), "utf-8");
 
 // The localStorage keys used by the admin system
 const TENANT_STORAGE_KEY = "flux_admin_active_tenant_id";
@@ -18,84 +25,85 @@ const MODE_STORAGE_KEY = "flux_admin_active_mode";
 
 const VALID_MODES = ["service", "dispatch", "food", "medical", "sales", "general"] as const;
 
-describe("Admin mode localStorage persistence", () => {
-  let storage: Record<string, string>;
-
-  beforeEach(() => {
-    storage = {};
-    vi.stubGlobal("localStorage", {
-      getItem: (key: string) => storage[key] ?? null,
-      setItem: (key: string, value: string) => { storage[key] = value; },
-      removeItem: (key: string) => { delete storage[key]; },
-    });
+/** Minimal localStorage mock for unit tests (no browser environment) */
+function createStorage(): Record<string, string> & {
+  getItem: (k: string) => string | null;
+  setItem: (k: string, v: string) => void;
+  removeItem: (k: string) => void;
+} {
+  const store: Record<string, string> = {};
+  return Object.assign(store, {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
   });
+}
 
+describe("Admin mode localStorage persistence", () => {
   it("stores mode in localStorage on set", () => {
-    // Simulate what AdminModeContext.setSelectedMode does
-    const mode = "food";
-    localStorage.setItem(MODE_STORAGE_KEY, mode);
-    expect(localStorage.getItem(MODE_STORAGE_KEY)).toBe("food");
+    const ls = createStorage();
+    ls.setItem(MODE_STORAGE_KEY, "food");
+    expect(ls.getItem(MODE_STORAGE_KEY)).toBe("food");
   });
 
   it("restores mode from localStorage on mount", () => {
-    storage[MODE_STORAGE_KEY] = "dispatch";
-    const cached = localStorage.getItem(MODE_STORAGE_KEY);
-    expect(cached).toBe("dispatch");
-    expect(VALID_MODES).toContain(cached);
+    const ls = createStorage();
+    ls[MODE_STORAGE_KEY] = "dispatch";
+    expect(ls.getItem(MODE_STORAGE_KEY)).toBe("dispatch");
+    expect(VALID_MODES).toContain(ls.getItem(MODE_STORAGE_KEY));
   });
 
   it("defaults to 'service' when localStorage is empty", () => {
-    const cached = localStorage.getItem(MODE_STORAGE_KEY);
+    const ls = createStorage();
+    const cached = ls.getItem(MODE_STORAGE_KEY);
     const mode = cached && VALID_MODES.includes(cached as any) ? cached : "service";
     expect(mode).toBe("service");
   });
 
   it("defaults to 'service' when localStorage has invalid mode", () => {
-    storage[MODE_STORAGE_KEY] = "invalid_mode";
-    const cached = localStorage.getItem(MODE_STORAGE_KEY);
+    const ls = createStorage();
+    ls[MODE_STORAGE_KEY] = "invalid_mode";
+    const cached = ls.getItem(MODE_STORAGE_KEY);
     const mode = cached && VALID_MODES.includes(cached as any) ? cached : "service";
     expect(mode).toBe("service");
   });
 
   it("stores tenant ID in localStorage on set", () => {
-    const tenantId = "abc-123";
-    localStorage.setItem(TENANT_STORAGE_KEY, tenantId);
-    expect(localStorage.getItem(TENANT_STORAGE_KEY)).toBe("abc-123");
+    const ls = createStorage();
+    ls.setItem(TENANT_STORAGE_KEY, "abc-123");
+    expect(ls.getItem(TENANT_STORAGE_KEY)).toBe("abc-123");
   });
 
   it("clears both mode and tenant on sign out", () => {
-    storage[MODE_STORAGE_KEY] = "food";
-    storage[TENANT_STORAGE_KEY] = "abc-123";
+    const ls = createStorage();
+    ls[MODE_STORAGE_KEY] = "food";
+    ls[TENANT_STORAGE_KEY] = "abc-123";
 
-    // Simulate signOut cleanup
-    localStorage.removeItem(TENANT_STORAGE_KEY);
-    localStorage.removeItem(MODE_STORAGE_KEY);
+    ls.removeItem(TENANT_STORAGE_KEY);
+    ls.removeItem(MODE_STORAGE_KEY);
 
-    expect(localStorage.getItem(MODE_STORAGE_KEY)).toBeNull();
-    expect(localStorage.getItem(TENANT_STORAGE_KEY)).toBeNull();
+    expect(ls.getItem(MODE_STORAGE_KEY)).toBeNull();
+    expect(ls.getItem(TENANT_STORAGE_KEY)).toBeNull();
   });
 
   it("all 6 business modes are valid for localStorage cache", () => {
+    const ls = createStorage();
     for (const mode of VALID_MODES) {
-      localStorage.setItem(MODE_STORAGE_KEY, mode);
-      const cached = localStorage.getItem(MODE_STORAGE_KEY);
-      expect(VALID_MODES).toContain(cached);
+      ls.setItem(MODE_STORAGE_KEY, mode);
+      expect(VALID_MODES).toContain(ls.getItem(MODE_STORAGE_KEY));
     }
   });
 });
 
 describe("Admin tenant auto-switch guard", () => {
   it("should not auto-switch when mode is loading", () => {
-    // This tests the logic: if (modeIsLoading) return;
     const modeIsLoading = true;
     const tenants = [{ id: "t1", business_mode: "service" }];
-    const effectiveTenantId = "t2"; // Different tenant (food mode)
+    const effectiveTenantId = "t2";
     const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);
 
-    // Without the guard, auto-switch would fire (tenant not in filtered list)
     expect(currentTenantMatchesMode).toBe(false);
 
-    // But with the modeIsLoading guard, the effect returns early
     let switched = false;
     if (!modeIsLoading && !currentTenantMatchesMode && tenants.length > 0) {
       switched = true;
@@ -119,7 +127,7 @@ describe("Admin tenant auto-switch guard", () => {
   it("should NOT auto-switch when tenant already matches mode", () => {
     const modeIsLoading = false;
     const tenants = [{ id: "t1", business_mode: "service" }];
-    const effectiveTenantId = "t1"; // Same tenant
+    const effectiveTenantId = "t1";
     const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);
 
     let switched = false;
@@ -127,5 +135,79 @@ describe("Admin tenant auto-switch guard", () => {
       switched = true;
     }
     expect(switched).toBe(false);
+  });
+});
+
+describe("AdminModeProvider singleton architecture", () => {
+  it("App.tsx imports and wraps with AdminModeProvider (singleton)", () => {
+    const appSrc = srcFile("src/App.tsx");
+    expect(appSrc).toContain("import { AdminModeProvider }");
+    expect(appSrc).toContain("<AdminModeProvider>");
+    expect(appSrc).toContain("</AdminModeProvider>");
+  });
+
+  it("AppLayout does NOT import or wrap with AdminModeProvider", () => {
+    const src = srcFile("src/components/layouts/AppLayout.tsx");
+    expect(src).not.toContain("AdminModeProvider");
+  });
+
+  it("AdminLayout does NOT import or wrap with AdminModeProvider", () => {
+    const src = srcFile("src/components/layouts/AdminLayout.tsx");
+    expect(src).not.toContain("AdminModeProvider");
+  });
+});
+
+describe("Redirect defense: localStorage backup for admin sessions", () => {
+  it("redirect to onboarding is blocked when localStorage has admin tenant", () => {
+    const ls = createStorage();
+    ls[TENANT_STORAGE_KEY] = "cool-comfort-hvac-id";
+
+    const isSuperAdmin = false; // brief state lag
+    const tenant = null; // brief state lag
+    const isAgency = false;
+    const isAgencyLoading = false;
+
+    // Without defense: would redirect
+    const wouldRedirectWithout = !tenant && !isSuperAdmin && !isAgency && !isAgencyLoading;
+    expect(wouldRedirectWithout).toBe(true);
+
+    // With localStorage defense: blocked
+    const hasLocalStorageAdmin = !!ls.getItem(TENANT_STORAGE_KEY);
+    const wouldRedirectWith = wouldRedirectWithout && !hasLocalStorageAdmin;
+    expect(wouldRedirectWith).toBe(false);
+  });
+
+  it("redirect to go-live is blocked when localStorage has admin tenant", () => {
+    const ls = createStorage();
+    ls[TENANT_STORAGE_KEY] = "cool-comfort-hvac-id";
+
+    const isSuperAdmin = false; // brief state lag
+
+    // Without defense: would redirect (isSuperAdmin is false)
+    expect(!isSuperAdmin).toBe(true);
+
+    // With localStorage defense: blocked
+    const hasLocalStorageAdmin = !!ls.getItem(TENANT_STORAGE_KEY);
+    expect(!isSuperAdmin && !hasLocalStorageAdmin).toBe(false);
+  });
+
+  it("redirect still works for non-admin users (no localStorage key)", () => {
+    const ls = createStorage();
+    const isSuperAdmin = false;
+    const tenant = null;
+    const isAgency = false;
+    const isAgencyLoading = false;
+
+    const wouldRedirect = !tenant && !isSuperAdmin && !isAgency && !isAgencyLoading;
+    const hasLocalStorageAdmin = !!ls.getItem(TENANT_STORAGE_KEY);
+    const finalRedirect = wouldRedirect && !hasLocalStorageAdmin;
+    expect(finalRedirect).toBe(true);
+  });
+
+  it("AppLayout redirect effects include localStorage backup check", () => {
+    const src = srcFile("src/components/layouts/AppLayout.tsx");
+    const matches = src.match(/localStorage\.getItem\("flux_admin_active_tenant_id"\)/g);
+    expect(matches).not.toBeNull();
+    expect(matches!.length).toBeGreaterThanOrEqual(2);
   });
 });
