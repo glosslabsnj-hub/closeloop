@@ -40,7 +40,7 @@ const DEFAULTS: AssistantConfig = {
   waitlist_enabled: false,
   deposit_required: false,
   deposit_amount: null,
-  service_default_flow: "confirm",
+  service_default_flow: "schedule_first",
   tax_rate_percent: 0,
   out_of_area_message: "",
 };

@@ -448,6 +448,19 @@ const SERVICE_SYNONYMS: Record<string, string[]> = {
 
 // ============= HELPER FUNCTIONS =============
 
+function getIndustryDefaultFlow(industry: string | undefined | null): "schedule_first" | "urgency_check" | "dispatch_first" {
+  if (!industry) return "schedule_first";
+  const lower = industry.toLowerCase();
+  const dispatchIndustries = ["locksmith", "towing", "roadside"];
+  if (dispatchIndustries.some(i => lower.includes(i))) return "dispatch_first";
+  const urgencyIndustries = [
+    "hvac", "heating", "cooling", "plumbing", "plumber", "electrical", "electrician",
+    "appliance_repair", "garage_door", "water_damage", "restoration"
+  ];
+  if (urgencyIndustries.some(i => lower.includes(i))) return "urgency_check";
+  return "schedule_first";
+}
+
 function truncate(text: string | null | undefined, maxLength: number): string {
   if (!text) return "";
   if (text.length <= maxLength) return text;
@@ -1345,7 +1358,7 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     // Trip fee prefix
     const tripFee = s.pricing_config?.trip_fee;
     const tripFeeText = tripFee?.enabled
-      ? `$${(tripFee.amount / 100).toFixed(2)} ${tripFee.label}${tripFee.waived_with_service ? " (waived if you book)" : ""} + `
+      ? `$${Number(tripFee.amount).toFixed(2)} ${tripFee.label}${tripFee.waived_with_service ? " (waived if you book)" : ""} + `
       : "";
 
     // AI quote behavior
@@ -1361,37 +1374,37 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
           : `Over ${tier.min_miles} miles`;
 
         if (tier.per_mile_price) {
-          return `${rangeText}: $${(tier.base_price / 100).toFixed(2)} base + $${(tier.per_mile_price / 100).toFixed(2)}/mile`;
+          return `${rangeText}: $${Number(tier.base_price).toFixed(2)} base + $${Number(tier.per_mile_price).toFixed(2)}/mile`;
         }
-        return `${rangeText}: $${(tier.base_price / 100).toFixed(2)}`;
+        return `${rangeText}: $${Number(tier.base_price).toFixed(2)}`;
       });
       priceText = `${tripFeeText}Distance-tiered:\n    - ${tierDescriptions.join("\n    - ")}`;
     } else if (model === "per_unit" && s.pricing_config?.per_unit_price) {
       const unitLabel = s.pricing_config.unit_label || "unit";
       const perUnit = s.pricing_config.per_unit_price;
       const minUnits = s.pricing_config.min_units;
-      priceText = `${tripFeeText}$${(perUnit / 100).toFixed(2)} per ${unitLabel}`;
+      priceText = `${tripFeeText}$${Number(perUnit).toFixed(2)} per ${unitLabel}`;
       if (minUnits && minUnits > 1) {
-        priceText += ` (${minUnits}-${unitLabel} minimum, starting at $${((perUnit * minUnits) / 100).toFixed(2)})`;
+        priceText += ` (${minUnits}-${unitLabel} minimum, starting at $${(perUnit * minUnits).toFixed(2)})`;
       }
       if (quoteBehavior === "quote_rate_only") {
         priceText += " [QUOTE RATE ONLY — do NOT compute total]";
       }
     } else if (model === "package" && s.pricing_config?.packages?.length) {
       const pkgs = s.pricing_config.packages;
-      const pkgList = pkgs.map(p => `${p.name}: $${(p.price / 100).toFixed(2)}${p.description ? ` (${p.description})` : ""}`);
+      const pkgList = pkgs.map(p => `${p.name}: $${Number(p.price).toFixed(2)}${p.description ? ` (${p.description})` : ""}`);
       priceText = `${tripFeeText}Packages:\n    - ${pkgList.join("\n    - ")}`;
     } else if (model === "flat" && s.price_amount) {
-      priceText = `${tripFeeText}$${(s.price_amount / 100).toFixed(2)} flat rate`;
+      priceText = `${tripFeeText}$${Number(s.price_amount).toFixed(2)} flat rate`;
       if (s.pricing_config?.included_miles && s.pricing_config?.overage_per_mile) {
-        priceText += ` (${s.pricing_config.included_miles} mi included, +$${(s.pricing_config.overage_per_mile / 100).toFixed(2)}/mi beyond)`;
+        priceText += ` (${s.pricing_config.included_miles} mi included, +$${Number(s.pricing_config.overage_per_mile).toFixed(2)}/mi beyond)`;
       }
     } else if (model === "variable") {
-      priceText = s.price_amount ? `${tripFeeText}Starting at $${(s.price_amount / 100).toFixed(2)} (varies by job)` : `${tripFeeText}Price varies by job`;
+      priceText = s.price_amount ? `${tripFeeText}Starting at $${Number(s.price_amount).toFixed(2)} (varies by job)` : `${tripFeeText}Price varies by job`;
     } else if (s.price_type === "fixed" && s.price_amount) {
-      priceText = `${tripFeeText}$${(s.price_amount / 100).toFixed(2)} (exact price)`;
+      priceText = `${tripFeeText}$${Number(s.price_amount).toFixed(2)} (exact price)`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
-      priceText = `${tripFeeText}Starting at $${(s.price_amount / 100).toFixed(2)} (final price varies)`;
+      priceText = `${tripFeeText}Starting at $${Number(s.price_amount).toFixed(2)} (final price varies)`;
     } else {
       priceText = `${tripFeeText}Quote required`;
     }
@@ -2790,7 +2803,7 @@ export async function buildBusinessContext(
       followup_cadence: (assistantSettings?.settings_json as any)?.followup_cadence || "moderate",
       ai_behavior_mode: (assistantSettings?.ai_behavior_mode as "full_service" | "callback_only")
         || ((tenant?.capabilities_json as any)?.callbackOnly === true ? "callback_only" : "full_service"),
-      service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || "schedule_first",
+      service_default_flow: (assistantSettings?.service_default_flow as "schedule_first" | "urgency_check" | "dispatch_first") || getIndustryDefaultFlow(tenant?.industry),
       ai_booking_mode: (assistantSettings?.ai_booking_mode as "pending" | "auto_confirm") || "pending",
       same_day_enabled: assistantSettings?.same_day_enabled !== false,
       emergency_surcharge: assistantSettings?.emergency_surcharge || "",

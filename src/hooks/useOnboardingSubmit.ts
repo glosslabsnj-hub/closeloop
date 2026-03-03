@@ -28,6 +28,14 @@ import type { WorkStyle } from "@/components/onboarding/phases/OnboardingIdentit
 import type { AfterHoursBehavior } from "@/components/onboarding/phases/OnboardingAI";
 import type { PlanCode } from "@/types/database";
 
+function getServiceDefaultFlow(industry: string): "schedule_first" | "urgency_check" | "dispatch_first" {
+  const lower = industry.toLowerCase();
+  if (["locksmith", "towing", "roadside"].some(i => lower.includes(i))) return "dispatch_first";
+  if (["hvac", "heating", "cooling", "plumbing", "plumber", "electrical", "electrician",
+    "appliance_repair", "garage_door", "water_damage", "restoration"].some(i => lower.includes(i))) return "urgency_check";
+  return "schedule_first";
+}
+
 const MAX_RETRIES = 3;
 
 interface SubmitParams {
@@ -333,6 +341,7 @@ export function useOnboardingSubmit(userId?: string) {
         const commUpdate: Record<string, unknown> = {
           ai_booking_mode: bookingMode,
           missed_call_behavior: communicationPrefs.missedCallBehavior,
+          service_default_flow: getServiceDefaultFlow(industrySlug),
         };
         if (mappedAfterHours) commUpdate.off_behavior = mappedAfterHours;
 

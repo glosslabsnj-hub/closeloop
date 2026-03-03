@@ -1,26 +1,25 @@
-receptionist_ux | 2026-03-03 02:06 ET | COMPLETED
+receptionist_eng 2026-03-03 2:00-2:20PM ET
 
-## Summary
-Fixed 14 jargon items across Settings pages (commit 06fb7e0). All labels now use plain English that a non-technical business owner would understand.
+## What was done
+1. CRITICAL FIX: Deployed check_availability timezone fix (commit 0c8432e)
+   - Bug: ALL non-UTC tenants rejected as "Outside business hours"
+   - Root cause: Commit was committed but NEVER DEPLOYED to Supabase
+   - Fix: Deployed both elevenlabs-check-availability + check-availability
+   - Verified: Phoenix tenant (UTC-7) at 2:30 PM → available=true
 
-## Changes (all in commit 06fb7e0)
-- "Developer Tools" → "Troubleshooting" (sidebar, mobile nav, page content, icon Bug→Wrench)
-- "Debug Tools" description: removed patronizing "only use if comfortable with technical details"
-- "Webhook URL" → "Integration URL" in delivery integration settings
-- "Security" → "Connection Security" for auth mode dropdown
-- "Use 0 for immediate deletion" → "Set to 0 to never store that type of data"
-- Retention labels humanized: "Keep Recordings For", "Keep Transcripts For", "Keep Call Summaries For", "Keep Activity Logs For"
-- HIPAA badge: "Review Settings" → "Action Needed"
-- "ROI" spelled out as "return on investment" in 3 places
-- "quote-only services" → "call for a quote services"
-- "Monthly ROI Email" → "Monthly Revenue Report"
-- Integration success dialog: "Head to Settings > Automation to customize what gets sent"
-- Removed "(Coming Soon)" from SMS Messaging nav item
-- "via webhooks" removed from integrations page description
+2. FIX: Save & Exit onboarding redirect (commit 49094b2)
+   - Bug: navigate("/") sent user to public landing page, auth lost
+   - Fix: navigate("/app/dashboard") keeps user authenticated
+   - Deployed: frontend rebuilt and pushed to VPS
 
-## Build: Clean | Tests: 685/685 | Pushed: yes
-## Files changed: 7 (SettingsPage, SettingsSidebar, MobileSettingsNav, DeliveryIntegrationsSettings, DataControlsPanel, RevenueSettingsSection, IntegrationConnectDialog)
-## Gate updated: service/overall/non_technical_usable → in_progress
-## Handoff filed: QA to verify non_technical_usable gate
+3. Deployed all priority edge functions (deploy-priority.sh running)
+4. Pushed to GitHub, deployed frontend to VPS (app.getfluxdata.com = 200)
 
-[2026-03-03 07:19] receptionist_fix: Fixed 2 bugs + 6 tests. (1) Customer-booking linkage: useCustomerActivity changed from phone-only to customer_id FK primary match (commit b3a4feb). (2) transfer_to_owner: twilio_call_sid made required in all 6 deploy scripts (commit fead5c8). 691/691 tests pass. Deployed to production.
+## Handoffs filed
+- #337 → receptionist_qa: Verify check_availability fix (plumbing tenant)
+- #338 → receptionist_qa: Verify Save & Exit redirect
+
+## Gate status (service mode): 34/42 QA-verified (81%)
+- 5 WIP gates: all engineering done, awaiting QA
+- 3 BLOCKED: google_calendar, sms_delivery, transfer_to_human
+[2026-03-03 19:29] receptionist_ux: Dynamic terminology in 3 more components (commit 13da456). BrainTabHeader hours/availability guidance, ServiceCallFlowSettings 3 strings, CommunicationPreferences 6 strings. Build clean, 1071/1071 tests. QA handoff #339.
