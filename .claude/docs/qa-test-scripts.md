@@ -73,10 +73,10 @@ FAIL IF: AI ignores transfer request.
 
 ### GATE: functional/ai_handles_edge_cases
 TYPE: AUTOMATED
-RUN: npx tsx C:/Users/jacka/lenard/scripts/qa-tests/index.ts --mode [MODE] --scenario edge-cases --verbose
-WHAT IT TESTS: Garbage input, very long messages, gibberish, empty messages — AI should handle gracefully.
-PASS IF: AI responds politely and doesn't crash for all edge case inputs.
-FAIL IF: AI crashes, hangs, or gives nonsensical responses.
+RUN: npx tsx C:/Users/jacka/lenard/scripts/qa-tests/index.ts --tag edge-case --verbose
+WHAT IT TESTS: Garbage input, very long messages, mid-conversation disconnect — AI should handle gracefully.
+PASS IF: AI responds politely and doesn't crash for all edge case inputs. No data corruption from disconnects.
+FAIL IF: AI crashes, hangs, gives nonsensical responses, or creates records from incomplete conversations.
 
 ---
 

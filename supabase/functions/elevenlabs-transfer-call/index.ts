@@ -114,7 +114,7 @@ serve(async (req) => {
       sessionId = session?.id || null;
     }
 
-    if (!callSid || callSid.startsWith("missing_")) {
+    if (!callSid || callSid.startsWith("missing_") || callSid === "undefined" || callSid === "null" || callSid.length < 20) {
       console.error(`[transfer-call] No valid twilio_call_sid found (got: ${callSid})`);
       return new Response(
         JSON.stringify({

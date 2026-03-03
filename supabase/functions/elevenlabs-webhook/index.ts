@@ -13,6 +13,29 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-elevenlabs-signature, x-eleven-labs-signature",
 };
 
+/**
+ * Compute real timezone offset using Intl.DateTimeFormat.
+ * Handles DST automatically for any IANA timezone.
+ */
+function getTimezoneOffset(tz: string): string {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz,
+      timeZoneName: "longOffset",
+    });
+    const parts = formatter.formatToParts(new Date());
+    const tzPart = parts.find((p) => p.type === "timeZoneName");
+    if (tzPart?.value) {
+      const match = tzPart.value.match(/GMT([+-]\d{2}:\d{2})/);
+      if (match) return match[1];
+      if (tzPart.value === "GMT") return "+00:00";
+    }
+    return "+00:00"; // Fallback to UTC
+  } catch {
+    return "+00:00";
+  }
+}
+
 // ===== CANONICAL PAYLOAD TYPES =====
 interface CanonicalCustomer {
   name: string | null;
@@ -2758,7 +2781,9 @@ async function persistBooking(
   })();
 
   const preferredTime = payload.booking.preferred_time || "10:00";
-  const startAt = new Date(`${preferredDate}T${preferredTime}:00`);
+  const tenantTz = payload._meta?.tenant_timezone || "America/New_York";
+  const tzOffset = getTimezoneOffset(tenantTz);
+  const startAt = new Date(`${preferredDate}T${preferredTime}:00${tzOffset}`);
   const durationMs = pricingResult.duration_minutes * 60 * 1000;
   const endAt = new Date(startAt.getTime() + durationMs);
 

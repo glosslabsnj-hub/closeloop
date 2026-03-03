@@ -248,10 +248,11 @@ serve(async (req: Request) => {
       );
     }
 
-    // Deactivate the busy_block
+    // Deactivate the busy_block (scoped to tenant for multi-tenant safety)
     await supabase
       .from("busy_blocks")
       .update({ is_active: false })
+      .eq("tenant_id", tenantId)
       .eq("booking_id", booking.id);
 
     // Update session if we have one
@@ -259,7 +260,7 @@ serve(async (req: Request) => {
       await supabase
         .from("ai_call_sessions")
         .update({
-          outcome: "cancellation",
+          outcome: "followup",
           extracted_payload: {
             cancelled_booking_id: booking.id,
             reason: reason,

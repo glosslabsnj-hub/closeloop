@@ -325,7 +325,7 @@ serve(async (req) => {
         }
 
         if (handoffMethod === "email" && settings?.notify_email) {
-          const customerName = payload.customer.name;
+          const customerName = payload.customer.name || "Customer";
           const serviceName = payload.service?.name || "Service";
           const startTime = new Date(payload.scheduled_start).toLocaleString("en-US", { timeZone: tenantTimezone });
           const businessName = payload.tenant_name || "Your Business";

@@ -53,10 +53,34 @@ function parseTime(input: string): string {
   return "09:00";
 }
 
-function parseDate(input: string, timezone: string): string {
-  const lower = input.toLowerCase().trim();
+const MONTH_NAMES: Record<string, number> = {
+  january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2,
+  april: 3, apr: 3, may: 4, june: 5, jun: 5, july: 6, jul: 6,
+  august: 7, aug: 7, september: 8, sep: 8, sept: 8, october: 9, oct: 9,
+  november: 10, nov: 10, december: 11, dec: 11,
+};
+
+const DAY_NAMES: Record<string, number> = {
+  sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2,
+  wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4,
+  friday: 5, fri: 5, saturday: 6, sat: 6,
+};
+
+function nextWeekday(targetDay: number): Date {
   const now = new Date();
-  if (lower === "today" || !input) {
+  const result = new Date(now);
+  result.setDate(now.getDate() + 1);
+  while (result.getDay() !== targetDay) {
+    result.setDate(result.getDate() + 1);
+  }
+  return result;
+}
+
+function parseDate(input: string, timezone: string): string {
+  const now = new Date();
+  const lower = input.toLowerCase().trim();
+
+  if (!input || lower === "today" || lower === "now") {
     return formatDate(now, timezone);
   }
   if (lower === "tomorrow") {
@@ -64,7 +88,57 @@ function parseDate(input: string, timezone: string): string {
     d.setDate(d.getDate() + 1);
     return formatDate(d, timezone);
   }
+
+  // ISO date: 2026-03-05
   if (/^\d{4}-\d{2}-\d{2}$/.test(input)) return input;
+
+  // MM/DD/YYYY or M/D/YYYY
+  const slashDate = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashDate) {
+    const [, m, d, y] = slashDate;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // MM/DD or M/D (assume current/next year)
+  const slashShort = input.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (slashShort) {
+    const [, m, d] = slashShort;
+    const year = now.getFullYear();
+    const candidate = new Date(year, parseInt(m) - 1, parseInt(d));
+    if (candidate < now) candidate.setFullYear(year + 1);
+    return formatDate(candidate, timezone);
+  }
+
+  // "March 5" / "March 5th" / "5th of March"
+  const monthDay = lower.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/) ||
+                   lower.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)$/);
+  if (monthDay) {
+    let monthStr: string, dayStr: string;
+    if (/^[a-z]/.test(monthDay[1])) {
+      [, monthStr, dayStr] = monthDay;
+    } else {
+      [, dayStr, monthStr] = monthDay;
+    }
+    const monthIndex = MONTH_NAMES[monthStr];
+    if (monthIndex !== undefined) {
+      const year = now.getFullYear();
+      const candidate = new Date(year, monthIndex, parseInt(dayStr));
+      if (candidate < now) candidate.setFullYear(year + 1);
+      return formatDate(candidate, timezone);
+    }
+  }
+
+  // "next Monday" / "this Friday" / just "friday"
+  const dayMatch = lower.match(/^(?:next\s+|this\s+)?([a-z]+)$/);
+  if (dayMatch) {
+    const dayIndex = DAY_NAMES[dayMatch[1]];
+    if (dayIndex !== undefined) {
+      return formatDate(nextWeekday(dayIndex), timezone);
+    }
+  }
+
+  // Log unparseable input and fall back to today (agent usually sends ISO)
+  console.warn(`[reschedule-booking] Could not parse date "${input}", defaulting to today`);
   return formatDate(now, timezone);
 }
 
@@ -299,13 +373,14 @@ serve(async (req: Request) => {
       })
       .eq("id", booking.id);
 
-    // Update busy_block
+    // Update busy_block (scoped to tenant for multi-tenant safety)
     await supabase
       .from("busy_blocks")
       .update({
         start_at: newStart.toISOString(),
         end_at: blockEnd.toISOString(),
       })
+      .eq("tenant_id", resolvedTenantId)
       .eq("booking_id", booking.id)
       .eq("is_active", true);
 

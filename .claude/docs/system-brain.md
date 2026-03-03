@@ -1,16 +1,15 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 6:52 PM ET (receptionist_eng — policy promotion fix)
+## Last Session: 2026-03-02 7:05 PM ET (receptionist_fix — admin tenant selection reset fix)
 
 ### What Was Done
-- **Fixed AI policy violation**: Policy-type `ai_knowledge_base` entries (e.g., "No Phone Quotes Over 500") were landing in weak "ADDITIONAL BUSINESS KNOWLEDGE" section of AI prompt. Promoted them to authoritative "POLICIES (MUST FOLLOW)" section in both `buildBusinessContext.ts` (ElevenLabs agent) and `ai-plan-response` (AI debugger). Also added `custom[]` array to `build-business-brain` brain.policies for downstream consumers.
-- **Deployed**: ai-plan-response, build-business-brain, twilio-inbound, elevenlabs-webhook. Frontend to VPS.
+- **Fixed admin tenant selection reset on navigation**: Root cause was dual AdminModeProvider instances (AppLayout + AdminLayout). When navigating between /admin/* and /app/*, the provider remounted with default "service" mode, triggering auto-switch before DB fetch completed. Fix: localStorage cache for instant mode restore + modeIsLoading guard on auto-switch.
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 661/661 passing
-- Commit: cdf4655
-- Pushed to main
+- Tests: 671/671 passing (10 new admin-mode-persistence tests)
+- Commit: 49d7bb2
+- Pushed to main, deployed to production
 
 ### MODE PROGRESS
 - SERVICE: 24/42 QA-verified (57%) ← FOCUS
