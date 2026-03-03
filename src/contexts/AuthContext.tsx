@@ -353,8 +353,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // INITIAL load (controls isLoading)
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        let { data: { session } } = await supabase.auth.getSession();
         if (!isMounted) return;
+
+        // Defensive retry: if getSession returned null but localStorage has a session
+        // token, Supabase may not have finished its internal async recovery. Wait briefly
+        // and try once more to avoid false redirects to /login on full page reload.
+        if (!session) {
+          const hasStoredSession = Object.keys(localStorage).some(
+            k => k.startsWith("sb-") && k.endsWith("-auth-token")
+          );
+          if (hasStoredSession) {
+            console.warn("[AuthContext] getSession() returned null but localStorage has session token — retrying");
+            await new Promise(r => setTimeout(r, 300));
+            if (!isMounted) return;
+            const retry = await supabase.auth.getSession();
+            session = retry.data.session;
+          }
+        }
 
         setSession(session);
         setUser(session?.user ?? null);

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useConversation } from "@elevenlabs/react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,13 +16,24 @@ interface DebugEvent {
 }
 
 export default function VoiceAgentTest() {
-  const { effectiveTenantId, isSuperAdmin } = useAuth();
+  const { effectiveTenantId, isSuperAdmin, effectiveTenant, assistantSettings } = useAuth();
   const { toast } = useToast();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [lastDynamicVars, setLastDynamicVars] = useState<Record<string, unknown> | null>(null);
+
+  // Pre-populate debug panel with tenant context before a call starts
+  const debugVars = useMemo(() => {
+    if (lastDynamicVars) return lastDynamicVars;
+    if (!effectiveTenant) return null;
+    return {
+      business_name: (effectiveTenant as Record<string, unknown>).name || "",
+      business_mode: (effectiveTenant as Record<string, unknown>).business_mode || "unknown",
+      _preloaded: true,
+    } as Record<string, unknown>;
+  }, [lastDynamicVars, effectiveTenant]);
 
   const addDebugEvent = useCallback((type: string, data: unknown) => {
     setDebugEvents(prev => [...prev.slice(-19), { timestamp: Date.now(), type, data }]);
@@ -353,7 +364,7 @@ export default function VoiceAgentTest() {
         {isSuperAdmin && (
           <DynamicVariablesDebugPanel
             tenantId={effectiveTenantId}
-            dynamicVariables={lastDynamicVars}
+            dynamicVariables={debugVars}
           />
         )}
       </CardContent>

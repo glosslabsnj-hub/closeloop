@@ -121,7 +121,7 @@ function getToolDefinitions(tenantId: string): Anthropic.Tool[] {
     },
     {
       name: "create_callback",
-      description: "Schedule a callback for the customer when you cannot handle their request directly (e.g. complex quotes, owner questions, complaints).",
+      description: "Create a callback request record. You MUST use this tool whenever: (1) a caller asks for someone to call them back, (2) a caller requests the owner or manager contact them, (3) you need to escalate a complex request like a custom quote, (4) the caller has a complaint, or (5) ai_behavior_mode is callback_only. Do NOT just verbally confirm a callback — always invoke this tool to create the record.",
       input_schema: {
         type: "object" as const,
         properties: {
@@ -258,7 +258,11 @@ serve(async (req) => {
 
     // Get system prompt template from ElevenLabs and fill variables
     const template = await getAgentSystemPrompt();
-    const systemPrompt = fillTemplate(template, vars as Record<string, string | number | boolean>);
+    const filledPrompt = fillTemplate(template, vars as Record<string, string | number | boolean>);
+
+    // Supplement: reinforce tool usage so Claude doesn't just verbally confirm actions
+    const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.\n- Every action must be backed by a tool call that creates a real record.`;
+    const systemPrompt = filledPrompt + toolReinforcement;
 
     // Build message history for Claude
     const messages: Anthropic.MessageParam[] = [
@@ -288,6 +292,8 @@ serve(async (req) => {
     let bookingId: string | null = null;
     let bookingCancelled = false;
     let bookingRescheduled = false;
+    let callbackCreated = false;
+    let callbackId: string | null = null;
 
     // Handle tool use loop (max 3 iterations to prevent infinite loops)
     let iterations = 0;
@@ -329,6 +335,10 @@ serve(async (req) => {
         if (toolUse.name === "reschedule_booking" && result.success) {
           bookingRescheduled = true;
         }
+        if (toolUse.name === "create_callback" && result.success) {
+          callbackCreated = true;
+          callbackId = (result.callback_id || result.opportunity_id) as string || null;
+        }
 
         toolResults.push({
           type: "tool_result",
@@ -363,6 +373,8 @@ serve(async (req) => {
       bookingId,
       bookingCancelled,
       bookingRescheduled,
+      callbackCreated,
+      callbackId,
       debug: {
         tenant_id: String(vars.tenant_id || tenantId),
         business_mode: String(vars.business_mode || ""),
