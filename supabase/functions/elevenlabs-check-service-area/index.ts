@@ -294,18 +294,14 @@ serve(async (req: Request) => {
     if (!distanceSettings?.distance_provider_enabled) {
       const radiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 50;
 
-      // Get tenant's base location for comparison
-      const { data: tenantFull } = await supabase
+      // Get tenant's base address for state comparison
+      const { data: tenantAddrData } = await supabase
         .from("tenants")
-        .select("address, city, state")
+        .select("address")
         .eq("id", tenantId)
         .single();
 
-      const tenantState = (tenantFull?.state || "").toUpperCase().trim();
-      const tenantCity = (tenantFull?.city || "").toLowerCase().trim();
-
-      // Extract state from customer address using common patterns
-      const addressUpper = address.toUpperCase().trim();
+      const tenantAddress = (tenantAddrData?.address || "").toUpperCase().trim();
 
       // US state abbreviations and full names
       const stateMap: Record<string, string> = {
@@ -325,17 +321,31 @@ serve(async (req: Request) => {
         WI:"WI",WISCONSIN:"WI",WY:"WY",WYOMING:"WY",DC:"DC","DISTRICT OF COLUMBIA":"DC",
       };
 
-      // Try to extract state from address
-      let customerState = "";
-      // Check for state name/abbrev at the end of the address
-      for (const [key, abbr] of Object.entries(stateMap)) {
-        // Match state at end of string or before zip code
-        const stateRegex = new RegExp(`\\b${key}\\b`, "i");
-        if (stateRegex.test(addressUpper)) {
-          customerState = abbr;
-          break;
+      // Extract state from an address string
+      function extractState(addr: string): string {
+        const upper = addr.toUpperCase();
+        // Try 2-letter state abbreviations first (most reliable — word boundary match)
+        const abbrMatch = upper.match(/\b([A-Z]{2})\s+\d{5}\b/);
+        if (abbrMatch && stateMap[abbrMatch[1]]) return stateMap[abbrMatch[1]];
+        // Try full state names (longer matches first to avoid "NEW" matching before "NEW JERSEY")
+        const sortedKeys = Object.keys(stateMap).sort((a, b) => b.length - a.length);
+        for (const key of sortedKeys) {
+          if (key.length < 3) continue; // Skip abbreviations, already checked
+          if (upper.includes(key)) return stateMap[key];
         }
+        // Final fallback: 2-letter abbrev anywhere
+        for (const key of Object.keys(stateMap)) {
+          if (key.length === 2 && new RegExp(`\\b${key}\\b`).test(upper)) return stateMap[key];
+        }
+        return "";
       }
+
+      const tenantState = extractState(tenantAddress);
+      const customerState = extractState(address);
+
+      // Extract city from tenant address for friendly messages
+      const tenantCityMatch = tenantAddress.match(/,\s*([^,]+),\s*[A-Z]{2}\s+\d{5}/i);
+      const tenantCity = tenantCityMatch ? tenantCityMatch[1].toLowerCase().trim() : "";
 
       // If we found both states and they differ, clearly reject
       if (tenantState && customerState && tenantState !== customerState) {
@@ -347,6 +357,14 @@ serve(async (req: Request) => {
           CT: ["NY", "MA", "RI"],
           DE: ["NJ", "PA", "MD"],
           MD: ["PA", "DE", "VA", "WV", "DC"],
+          VA: ["MD", "DC", "WV", "KY", "TN", "NC"],
+          CA: ["OR", "NV", "AZ"],
+          TX: ["NM", "OK", "AR", "LA"],
+          FL: ["GA", "AL"],
+          IL: ["WI", "IN", "IA", "MO", "KY"],
+          OH: ["PA", "WV", "KY", "IN", "MI"],
+          GA: ["FL", "AL", "TN", "NC", "SC"],
+          MA: ["CT", "RI", "NH", "VT", "NY"],
         };
         const neighbors = neighborStates[tenantState] || [];
         const isNeighborState = neighbors.includes(customerState);
