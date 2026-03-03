@@ -8,20 +8,33 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-closeloop-secret",
 };
 
-// Timezone offset map for common US timezones (simplified)
-const TIMEZONE_OFFSETS: Record<string, string> = {
-  "America/New_York": "-05:00",
-  "America/Chicago": "-06:00",
-  "America/Denver": "-07:00",
-  "America/Los_Angeles": "-08:00",
-  "America/Phoenix": "-07:00",
-  "America/Anchorage": "-09:00",
-  "America/Honolulu": "-10:00",
-  "UTC": "+00:00",
-};
+// DST-aware timezone offset calculator
+function getTimezoneOffset(tz: string, refDate?: Date): string {
+  try {
+    const d = refDate || new Date();
+    const utcStr = d.toLocaleString("en-US", { timeZone: "UTC" });
+    const localStr = d.toLocaleString("en-US", { timeZone: tz });
+    const diffMs = new Date(localStr).getTime() - new Date(utcStr).getTime();
+    const totalMin = Math.round(diffMs / 60000);
+    const sign = totalMin >= 0 ? "+" : "-";
+    const abs = Math.abs(totalMin);
+    return `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+  } catch {
+    return "-05:00";
+  }
+}
 
-function getTimezoneOffset(tz: string): string {
-  return TIMEZONE_OFFSETS[tz] || "-05:00"; // Default to EST
+// Compute end time string by adding minutes to a HH:MM string (stays in local time)
+function addMinutesToTimeStr(timeStr: string, minutes: number): string {
+  const [h, m] = timeStr.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+// Get day of week from YYYY-MM-DD string (avoids UTC/local day confusion)
+function dayOfWeekFromDateStr(dateStr: string): number {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)).getUTCDay();
 }
 
 /**
@@ -138,7 +151,7 @@ serve(async (req: Request) => {
 
     // Parse the requested date/time in the tenant's timezone
     // The requested_time is in tenant local time, so we build an ISO string with offset
-    const tzOffset = getTimezoneOffset(timezone);
+    const tzOffset = getTimezoneOffset(timezone, new Date(`${requested_date}T12:00:00Z`));
     const localDateTimeStr = `${requested_date}T${requested_time}:00${tzOffset}`;
     
     const requestedStart = new Date(localDateTimeStr);
@@ -157,7 +170,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: `Appointments require at least ${minLeadHours} hours notice`,
-          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json),
+          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json, timezone),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -165,7 +178,7 @@ serve(async (req: Request) => {
 
     // Check business hours for the day
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const dayOfWeek = dayNames[requestedStart.getDay()];
+    const dayOfWeek = dayNames[dayOfWeekFromDateStr(requested_date)];
     const rawDayHours = tenant.hours_json?.[dayOfWeek];
     const normalizedDay = normalizeHours(rawDayHours);
 
@@ -174,7 +187,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: `We are closed on ${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)}`,
-          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json),
+          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json, timezone),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -184,14 +197,14 @@ serve(async (req: Request) => {
     const openTime = normalizedDay.open;
     const closeTime = normalizedDay.close;
     const requestedTimeStr = requested_time;
-    const requestedEndTimeStr = `${String(requestedEnd.getHours()).padStart(2, "0")}:${String(requestedEnd.getMinutes()).padStart(2, "0")}`;
+    const requestedEndTimeStr = addMinutesToTimeStr(requested_time, duration_minutes + bufferMinutes);
 
     if (requestedTimeStr < openTime || requestedEndTimeStr > closeTime) {
       return new Response(
         JSON.stringify({
           available: false,
           conflict_reason: `That time is outside our business hours (${openTime} - ${closeTime})`,
-          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json),
+          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json, timezone),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -234,7 +247,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: reason,
-          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json),
+          alternative_slots: await getAlternativeSlots(supabase, tenantId, requested_date, duration_minutes, bufferMinutes, tenant.hours_json, timezone),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -319,7 +332,8 @@ async function getAlternativeSlots(
   dateStr: string,
   durationMinutes: number,
   bufferMinutes: number,
-  hoursJson: Record<string, unknown> | null
+  hoursJson: Record<string, unknown> | null,
+  timezone: string
 ): Promise<Array<{ start: string; end: string; display: string }>> {
   try {
     const { data: slots, error } = await supabase.rpc("fn_compute_available_slots", {
@@ -338,17 +352,17 @@ async function getAlternativeSlots(
 
     // Return up to 3 alternatives with formatted display times
     return (slots as Array<{ slot_start: string; slot_end: string }>).slice(0, 3).map((slot) => {
-      const start = new Date(slot.slot_start);
-      const hours = start.getHours();
-      const minutes = start.getMinutes();
-      const ampm = hours >= 12 ? "PM" : "AM";
-      const displayHours = hours % 12 || 12;
-      const displayMinutes = minutes === 0 ? "" : `:${String(minutes).padStart(2, "0")}`;
-      
+      const display = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(slot.slot_start));
+
       return {
         start: slot.slot_start,
         end: slot.slot_end,
-        display: `${displayHours}${displayMinutes} ${ampm}`,
+        display,
       };
     });
   } catch (error) {

@@ -68,18 +68,33 @@ interface CheckAvailabilityResponse {
   } | null;
 }
 
-// Timezone offset map
-const TIMEZONE_OFFSETS: Record<string, string> = {
-  "America/New_York": "-05:00",
-  "America/Chicago": "-06:00",
-  "America/Denver": "-07:00",
-  "America/Los_Angeles": "-08:00",
-  "America/Phoenix": "-07:00",
-  "UTC": "+00:00",
-};
+// DST-aware timezone offset calculator
+function getTimezoneOffset(tz: string, refDate?: Date): string {
+  try {
+    const d = refDate || new Date();
+    const utcStr = d.toLocaleString("en-US", { timeZone: "UTC" });
+    const localStr = d.toLocaleString("en-US", { timeZone: tz });
+    const diffMs = new Date(localStr).getTime() - new Date(utcStr).getTime();
+    const totalMin = Math.round(diffMs / 60000);
+    const sign = totalMin >= 0 ? "+" : "-";
+    const abs = Math.abs(totalMin);
+    return `${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+  } catch {
+    return "-05:00";
+  }
+}
 
-function getTimezoneOffset(tz: string): string {
-  return TIMEZONE_OFFSETS[tz] || "-05:00";
+// Compute end time string by adding minutes to a HH:MM string (stays in local time)
+function addMinutesToTimeStr(timeStr: string, minutes: number): string {
+  const [h, m] = timeStr.split(":").map(Number);
+  const total = h * 60 + m + minutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+// Get day of week from YYYY-MM-DD string (avoids UTC/local day confusion)
+function dayOfWeekFromDateStr(dateStr: string): number {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)).getUTCDay();
 }
 
 // Parse natural language time to HH:MM
@@ -266,7 +281,7 @@ serve(async (req: Request) => {
     }
 
     // Build timestamp in tenant timezone
-    const tzOffset = getTimezoneOffset(timezone);
+    const tzOffset = getTimezoneOffset(timezone, new Date(`${targetDate}T12:00:00Z`));
     const localDateTimeStr = `${targetDate}T${targetTime}:00${tzOffset}`;
     const requestedStart = new Date(localDateTimeStr);
     const requestedEnd = new Date(requestedStart.getTime() + (finalDuration + bufferMinutes) * 60 * 1000);
@@ -293,7 +308,7 @@ serve(async (req: Request) => {
 
     // Check business hours
     const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-    const dayOfWeek = dayNames[requestedStart.getDay()];
+    const dayOfWeek = dayNames[dayOfWeekFromDateStr(targetDate)];
     const dayHours = tenant?.hours_json?.[dayOfWeek];
 
     if (!dayHours || dayHours.closed === true) {
@@ -315,7 +330,7 @@ serve(async (req: Request) => {
     // Normalize business hours (handle both flat and windows format)
     const openTime = dayHours.windows?.length > 0 ? dayHours.windows[0].open : dayHours.open;
     const closeTime = dayHours.windows?.length > 0 ? dayHours.windows[0].close : dayHours.close;
-    const requestedEndTime = `${String(requestedEnd.getHours()).padStart(2, "0")}:${String(requestedEnd.getMinutes()).padStart(2, "0")}`;
+    const requestedEndTime = addMinutesToTimeStr(targetTime, finalDuration + bufferMinutes);
 
     if (targetTime < openTime || requestedEndTime > closeTime) {
       const alternatives = await getAlternatives(supabase, tenantId, targetDate, finalDuration, bufferMinutes, tenant?.hours_json);
