@@ -1,37 +1,22 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 9:00 PM ET (receptionist_ux — admin preview + mode terminology)
+## Last Session: 2026-03-02 10:44 PM ET (receptionist_eng — 3 critical QA bug fixes)
 
 ### What Was Done
-- **Admin Client Preview toggle** (commit 82082e3): Super admins can click Eye/EyeOff button on admin bar to hide all admin controls and see exact client experience. Uses existing `adminBarCollapsed` localStorage state.
-- **Mode-aware terminology in 6 components**: WelcomeBanner ("customers" → `terms.customers`), AIAssistantPage ("booking appointments" → `getActiveVerb()`), EmptyDashboard (sales/medical mode-specific verbs), QuickLinksCard (removed hardcoded "Appointments" fallback), TestAIPage (booking phrase + appointment label dynamic).
-- **New `getActiveVerb()` helper** in industryTerminology.ts: Returns present-participle forms like "scheduling jobs", "booking appointments", "taking orders" per appointmentLabel.
+- **Fixed 3 critical bugs from QA HVAC Dashboard R2-R5** (commit 3887730, deployed to production):
+  - Fix 1: **Booking date/time picker NOT interactive** — CreateBookingDialog showed date/time as static `<p>` text. User couldn't change date or time. Replaced with interactive `<Input type="date">` and `<Input type="time">` matching EditBookingDialog pattern.
+  - Fix 2: **Estimates RLS 403 (ROOT CAUSE)** — Previous fix (75530c2) added WITH CHECK but used `tenant_users`-only check. Super admins had no `tenant_users` row for HVAC tenant → 403 on INSERT. Fixed all 7 competitive-features tables to use `has_tenant_access()` which includes super_admin bypass. Migration 20260303040000 deployed.
+  - Fix 3: **Dashboard "No bookings today" vs "5 bookings today"** — TodayCalendarStrip lacked status filter (pending/confirmed), refetchInterval, and used complex nested join `leads(customers(name))`. Fixed to match UpcomingAppointmentsWidget pattern: status filter, 60s refetch, `leads(full_name)` join.
+- **Investigated and closed**: agency_applications console errors (hooks already silenced, QA false positive), tenant context drops (extensive safeguards already in place, no code bug found)
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 678/678 passing
-- Commit: 82082e3
-- Pushed to main
-
-## Previous Session: 2026-03-02 8:49 PM ET (receptionist_eng — 4 critical QA bug fixes)
-
-### What Was Done (Previous)
-- **Fixed 4 critical bugs from QA HVAC Dashboard R2** (commit 75530c2, deployed to production):
-  - Fix 1: **Desktop dashboard 0-data** — MetricsGrid used `tenant?.id` instead of `effectiveTenantId`. Admin testing showed 0/0/0 because queries hit wrong tenant. Also fixed useTenantConfig (SPINE file) to use `effectiveTenant ?? tenant`.
-  - Fix 2: **Estimates RLS** — 7 competitive-features tables had `FOR ALL USING()` without `WITH CHECK`, blocking all INSERTs. Added WITH CHECK + service_role bypass to: estimates, service_agreements, time_entries, technician_locations, customer_equipment, integration_connections, review_requests.
-  - Fix 3: **Lead stage update** — followup_status trigger only allowed 5 values (new, called_back, no_answer, completed, lost) but UI pipeline needed 'contacted' and 'quoted'. Expanded trigger. Also fixed UI to map 'won' → 'completed' and map 'completed'/'called_back' back to correct UI stages.
-  - Fix 4: **Admin context loss** — AppLayout had incomplete route whitelist missing /app/jobs, /app/inventory, etc. Replaced with `/app/` prefix check. All /app/ pages now accessible (inline paywall handles non-subscribers).
-- **Migration 20260302200000** applied via Management API (all 9 SQL statements verified)
-- **ai_call_sessions** RLS also got WITH CHECK added
-
-### Build Status
-- Build: Clean (0 errors)
-- Tests: 678/678 passing
-- Commit: 75530c2
+- Commit: 3887730
 - Pushed to main, deployed to production
 
 ### MODE PROGRESS
-- SERVICE: 25/42 QA-verified (60%) ← FOCUS
+- SERVICE: 28/42 QA-verified (67%) ← FOCUS
 - DISPATCH: 0/42 (0%)
 - FOOD: 0/42 (0%)
 - MEDICAL: 0/42 (0%)
@@ -50,7 +35,7 @@
 - **booking_status enum**: Has BOTH 'canceled' and 'cancelled'. Use either.
 - **ai_call_outcome enum**: booked, followup, lost, escalated, order, dispatch, message, lead_captured, referral_transfer. NO "cancellation" — use "followup" for cancel calls.
 - **order_status enum**: pending, confirmed, preparing, ready, out_for_delivery, completed, cancelled. NO 'ready_for_pickup'.
-- **RLS policy pattern**: All tenant-scoped tables need `FOR ALL USING(...) WITH CHECK(...)` + service_role bypass. Missing WITH CHECK blocks INSERT/UPDATE. 7 competitive-features tables fixed in 75530c2.
+- **RLS policy pattern**: All tenant-scoped tables need `FOR ALL USING(has_tenant_access(auth.uid(), tenant_id)) WITH CHECK(has_tenant_access(auth.uid(), tenant_id))` + service_role bypass. `has_tenant_access()` checks BOTH `tenant_users` AND `user_roles.super_admin`. Using `tenant_users`-only check causes 403 for super admins testing other tenants. 7 competitive-features tables fixed in 3887730.
 - **useTenantConfig uses effectiveTenant**: Changed from `tenant` to `effectiveTenant ?? tenant` so admin tenant switching shows correct mode/modules/industry. This is a SPINE file — changes affect all modes.
 - **AppLayout route gating**: Uses `/app/` prefix check (not a manual whitelist). All /app/ routes accessible; inline paywall card handles non-subscribers.
 - **followup_status valid values**: new, called_back, no_answer, completed, lost, contacted, quoted. DB trigger validates. UI maps: won→completed, contacted↔called_back.
@@ -63,10 +48,10 @@
 - **Date parsing**: elevenlabs-create-booking and elevenlabs-reschedule-booking both handle: today, tomorrow, ISO, MM/DD/YYYY, MM/DD, "March 5th", "next Monday". Webhook persistBooking uses tenant timezone offset via getTimezoneOffset().
 
 ### Remaining Work
-- 16 WIP gates awaiting QA verification (all have eng/ux fixes deployed, plus 4 new bug fixes from 75530c2)
+- 14 WIP gates awaiting QA verification (fixes deployed, handoffs filed)
 - 2 BLOCKED gates (Google Calendar OAuth, SMS A2P registration)
 
 ### Next Priorities
-1. QA verification of all WIP gates (handoff #249 filed)
-2. dashboard/correct_mode_terminology (FAIL) — admin UI leaking, needs UX fix
-3. ai_handles_edge_cases should now pass with fixed test scripts
+1. QA verification of all WIP gates (handoffs #267-269 filed)
+2. overall/no_console_errors gate — agency_applications query runs on every page (not a real error, hooks are silenced, but QA counts network 4xx as errors)
+3. Customers page Active=0 bug (handoff from QA fix team)
