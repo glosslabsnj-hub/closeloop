@@ -1190,10 +1190,20 @@ async function processCallData(
     ? tenant.enabled_modules
     : [];
 
+  // Always merge mode defaults — ensures mode-critical modules (e.g. "booking" for service)
+  // are present even if the tenant's enabled_modules array is non-empty but incomplete
+  const modeDefaults = MODE_MODULE_DEFAULTS[tenantBusinessMode] || MODE_MODULE_DEFAULTS.service;
   if (enabledModules.length === 0) {
-    const fallback = MODE_MODULE_DEFAULTS[tenantBusinessMode] || MODE_MODULE_DEFAULTS.service;
-    console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} — using ${tenantBusinessMode} mode defaults: ${fallback.join(", ")}`);
-    enabledModules = fallback;
+    console.warn(`[elevenlabs-webhook] enabled_modules is empty for tenant ${tenantId} — using ${tenantBusinessMode} mode defaults: ${modeDefaults.join(", ")}`);
+    enabledModules = modeDefaults;
+  } else {
+    // Ensure mode-critical modules are always present
+    for (const mod of modeDefaults) {
+      if (!enabledModules.includes(mod)) {
+        console.log(`[elevenlabs-webhook] Adding missing mode-default module "${mod}" for ${tenantBusinessMode} tenant ${tenantId}`);
+        enabledModules.push(mod);
+      }
+    }
   }
 
   // ===== RECORD CALL OUTCOME (Intelligence Layer) =====

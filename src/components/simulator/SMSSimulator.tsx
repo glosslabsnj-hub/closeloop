@@ -40,7 +40,7 @@ export default function SMSSimulator() {
   const [opportunityId, setOpportunityId] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  const getAIResponse = async (customerMessage: string): Promise<SimulatedSMS> => {
+  const getAIResponse = async (customerMessage: string, previousMessages: SimulatedSMS[]): Promise<SimulatedSMS> => {
     if (!tenant?.id) {
       return {
         direction: 'outbound',
@@ -49,6 +49,12 @@ export default function SMSSimulator() {
       };
     }
 
+    // Build conversation history from previous messages
+    const conversationHistory = previousMessages.map(msg => ({
+      role: msg.direction === 'inbound' ? 'customer' : 'assistant',
+      content: msg.content,
+    }));
+
     try {
       const { data, error } = await supabase.functions.invoke('ai-plan-response', {
         body: {
@@ -56,6 +62,7 @@ export default function SMSSimulator() {
           userMessage: customerMessage,
           channel: 'sms',
           customerId: resolvedCustomer?.id,
+          conversationHistory,
         },
       });
 
@@ -161,11 +168,12 @@ export default function SMSSimulator() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, inboundMsg]);
+    const updatedMessages = [...messages, inboundMsg];
+    setMessages(updatedMessages);
     setNewMessage('');
     setAiLoading(true);
 
-    const aiResponse = await getAIResponse(newMessage);
+    const aiResponse = await getAIResponse(newMessage, updatedMessages);
     setMessages(prev => [...prev, aiResponse]);
     setAiLoading(false);
   };

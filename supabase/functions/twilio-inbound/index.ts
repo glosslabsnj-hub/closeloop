@@ -630,9 +630,30 @@ Deno.serve(async (req) => {
       console.warn("[twilio-inbound] Business context build failed, using minimal vars:", err);
     }
 
+    // Build current date/time string in tenant's timezone for the agent
+    const tz = tenant.timezone || "America/New_York";
+    let currentDateTimeStr: string;
+    try {
+      currentDateTimeStr = new Date().toLocaleString("en-US", {
+        timeZone: tz,
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      currentDateTimeStr = new Date().toISOString();
+    }
+
     // Merge: rich context first, then call-specific overrides on top
     const dynamicVariables: Record<string, string> = {
       ...richDynamicVars,
+      // Current date/time so the agent knows what day/time it is
+      current_date_time: currentDateTimeStr,
+      current_timezone: tz,
       // Call-specific fields (always override context values)
       tenant_id: tenantId,
       business_name: businessName,

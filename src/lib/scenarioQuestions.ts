@@ -85,7 +85,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "If yes, choose how bookings are confirmed below",
     defaultValue: true,
     impliesModules: ["booking"],
-    overridesBase: true,
+    overridesBase: false,
     group: "core",
     requiredForAI: true,
     onboardingVisible: true,

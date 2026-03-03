@@ -241,12 +241,35 @@ async function generateReply(
   channel: string,
   allFaqs: any[],
   allObjections: any[],
+  conversationHistory?: Array<{ role: string; content: string }>,
+  tenantTimezone?: string,
 ): Promise<{ reply: string; next_action: string }> {
+
+  // Build current date/time string in tenant's timezone
+  const now = new Date();
+  const tz = tenantTimezone || 'America/New_York';
+  let currentDateTimeStr: string;
+  try {
+    currentDateTimeStr = now.toLocaleString('en-US', {
+      timeZone: tz,
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    currentDateTimeStr = now.toISOString();
+  }
 
   // Build system prompt from brain
   let systemPrompt = `You are an AI assistant for ${brain.business.name}`;
   if (brain.business.tagline) systemPrompt += ` - ${brain.business.tagline}`;
   systemPrompt += `.
+
+CURRENT DATE AND TIME: ${currentDateTimeStr} (${tz})
 
 COMMUNICATION STYLE: Be ${brain.ai_settings?.tone || 'friendly'} in your responses.
 CHANNEL: ${channel === 'sms' ? 'SMS (keep responses under 300 characters)' : 'Phone call (be conversational)'}
@@ -369,11 +392,24 @@ CRITICAL RULES:
 5. If the customer seems hesitant, address their concern directly.
 `;
 
-  // User prompt based on intent
+  // Build messages array with conversation history
+  const messages: Array<{ role: string; content: string }> = [];
+
+  if (conversationHistory && conversationHistory.length > 0) {
+    // Include prior conversation turns (last 10 exchanges max)
+    const recentHistory = conversationHistory.slice(-20);
+    for (const msg of recentHistory) {
+      const role = msg.role === 'customer' || msg.role === 'user' ? 'user' : 'assistant';
+      messages.push({ role, content: msg.content });
+    }
+  }
+
+  // Add current user message
   const userPrompt = `Customer message: "${userMessage}"
 Intent detected: ${intent}
 
 Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 characters.' : 'Be conversational.'}`;
+  messages.push({ role: "user", content: userPrompt });
 
   const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
   if (!anthropicApiKey) {
@@ -396,9 +432,7 @@ Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 
         model: "claude-haiku-4-5-20251001",
         max_tokens: channel === 'sms' ? 150 : 300,
         system: systemPrompt,
-        messages: [
-          { role: "user", content: userPrompt },
-        ],
+        messages,
       }),
     });
 
@@ -435,7 +469,7 @@ serve(async (req) => {
   try {
     // Parse body early to extract tenantId for validation
     const body = await req.json().catch(() => ({}));
-    const { userMessage, channel = 'call', customerId } = body;
+    const { userMessage, channel = 'call', customerId, conversationHistory } = body;
     const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
 
     if (!userMessage) {
@@ -569,6 +603,9 @@ serve(async (req) => {
       requiredInfo.push('Booking reference or date');
     }
 
+    // Get tenant timezone for date/time injection
+    const tenantTimezone = assistantSettings?.settings_json?.timezone || null;
+
     // Generate the reply — pass raw FAQs and objections so they're always in prompt
     const { reply, next_action } = await generateReply(
       brain,
@@ -578,6 +615,8 @@ serve(async (req) => {
       channel,
       faqs,
       objections,
+      Array.isArray(conversationHistory) ? conversationHistory : undefined,
+      tenantTimezone,
     );
 
     // Check for knowledge gap

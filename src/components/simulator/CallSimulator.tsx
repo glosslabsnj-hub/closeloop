@@ -76,7 +76,7 @@ export default function CallSimulator() {
     };
   }, [isCallActive]);
 
-  const getAIResponse = async (customerMessage: string): Promise<SimulatedMessage> => {
+  const getAIResponse = async (customerMessage: string, previousMessages: SimulatedMessage[]): Promise<SimulatedMessage> => {
     if (!effectiveTenantId) {
       return {
         role: 'ai',
@@ -98,6 +98,12 @@ export default function CallSimulator() {
       });
     }
 
+    // Build conversation history from previous messages
+    const conversationHistory = previousMessages.map(msg => ({
+      role: msg.role === 'customer' ? 'customer' : 'assistant',
+      content: msg.content,
+    }));
+
     try {
       const { data, error } = await supabase.functions.invoke('ai-plan-response', {
         body: {
@@ -105,6 +111,7 @@ export default function CallSimulator() {
           userMessage: customerMessage,
           channel: 'call',
           customerId: resolvedCustomer?.id,
+          conversationHistory,
         },
       });
 
@@ -182,8 +189,8 @@ export default function CallSimulator() {
         { phone: callerPhone, name: callerName, source: 'simulator_call' }
       );
 
-      // Get AI greeting
-      const greetingResponse = await getAIResponse('Hello');
+      // Get AI greeting (no prior messages)
+      const greetingResponse = await getAIResponse('Hello', []);
       
       setIsCallActive(true);
       setCallLog([greetingResponse]);
@@ -215,11 +222,12 @@ export default function CallSimulator() {
       timestamp: new Date(),
     };
 
-    setCallLog(prev => [...prev, customerMessage]);
+    const updatedLog = [...callLog, customerMessage];
+    setCallLog(updatedLog);
     setCustomerInput('');
     setAiLoading(true);
 
-    const aiResponse = await getAIResponse(customerInput);
+    const aiResponse = await getAIResponse(customerInput, updatedLog);
     setCallLog(prev => [...prev, aiResponse]);
     setAiLoading(false);
   };

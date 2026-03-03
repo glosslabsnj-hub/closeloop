@@ -1,35 +1,55 @@
-receptionist_eng session — 2026-03-03 03:45 UTC
+## receptionist_eng Session — 2026-03-03 04:37 UTC
 
-## What Was Done
-Fixed 3 critical QA bugs (commit 3887730, deployed to production):
+### What Was Done
+**Migrated ALL 12 AI edge functions from dead Lovable gateway to Anthropic API** (commit 939d30a, deployed to production)
 
-1. **Booking date/time picker NOT interactive** (R2-R5 unfixed, handoffs 258/261)
-   - Root cause: CreateBookingDialog rendered date/time as static <p> text
-   - Fix: Added interactive <Input type="date"> and <Input type="time">
-   - File: src/components/calendar/CreateBookingDialog.tsx
+**Root cause**: LOVABLE_API_KEY was never configured on the new Supabase project (yltzlvzgwkidbeqaoevp). All edge functions calling `ai.gateway.lovable.dev` returned 500 errors. The partner-analysis function caused 4 console errors on the AI Insights page (handoff #274).
 
-2. **Estimates RLS 403** (R2-R5 unfixed, handoffs 251/259/262)
-   - Root cause: Previous fix added WITH CHECK but used tenant_users-only check
-   - Super admins had no tenant_users row for HVAC tenant → 403
-   - Fix: All 7 competitive-features tables now use has_tenant_access() which includes super_admin
-   - Migration: 20260303040000_fix_competitive_features_rls_super_admin.sql (deployed to prod DB)
+**Functions fixed** (12 total):
+| Function | Type | Notes |
+|----------|------|-------|
+| partner-analysis | Text completion | AI Insights page — was causing console errors |
+| ai-text-reply | Text completion | SMS auto-reply generation |
+| generate-insights | Text completion (2 calls) | Daily insight + FAQ draft generation |
+| parse-services-text | Text completion | Service/menu text parsing during onboarding |
+| process-knowledge-upload | Tool calling + vision | Document classification + extraction |
+| vin-ocr | Vision | VIN image extraction |
+| admin-marketing-chat | Streaming | SSE format translation (Anthropic → OpenAI) |
+| marketing-chat | Text completion | Marketing chat |
+| admin-outreach-execute | Text completion | Outreach message personalization |
+| admin-generate-ad-copy | Text completion | Ad copy generation |
+| admin-generate-social-batch | Text completion | Social media batch generation |
+| admin-outreach-response | Text completion | Sentiment analysis |
 
-3. **Dashboard "No bookings today" contradiction** (QA handoff)
-   - Root cause: TodayCalendarStrip missing status filter, no refetchInterval, complex nested join
-   - Fix: Added status filter (pending/confirmed), 60s refetch, simplified leads(full_name) join
-   - File: src/components/dashboard/widgets/TodayCalendarStrip.tsx
+**All functions now use**:
+- ANTHROPIC_API_KEY (already configured in Supabase secrets)
+- https://api.anthropic.com/v1/messages endpoint
+- claude-haiku-4-5-20251001 model
+- Anthropic response format (content[0].text, tool_use blocks, base64 images)
 
-## Investigated & Closed (no code bug)
-- agency_applications console errors: hooks already properly silenced, QA false positive
-- Tenant context drops on navigation: extensive safeguards in place, no code-level bug found
-
-## Build Status
+### Build Status
 - Build: Clean (0 errors)
 - Tests: 678/678 passing
-- Commits: 3887730, 85de9ee
-- Deployed: GitHub push + VPS frontend + Supabase DB migration
+- Commit: 939d30a
+- Deployed: Frontend (Hetzner VPS) + 12 edge functions (Supabase)
 
-## Handoffs Filed
-- #267: QA verify booking date/time picker
-- #268: QA verify estimates create (RLS fix)
-- #269: QA verify dashboard TodayCalendarStrip consistency
+### Handoffs Filed
+- → receptionist_qa [high] (#275): VERIFY GATE: service overall/no_console_errors — all 12 AI edge functions migrated
+
+### Risks
+1. admin-marketing-chat SSE stream translation (Anthropic→OpenAI format) — untested with real browser, could have edge cases
+2. process-knowledge-upload tool calling format may differ slightly — Anthropic tool_use vs OpenAI tool_calls
+3. vin-ocr image URL vs base64 handling — Anthropic may not support all URL formats
+
+### Mode Matrix
+- SERVICE: All AI-powered features should now work (partner-analysis, parse-services-text, ai-text-reply)
+- ALL MODES: generate-insights, process-knowledge-upload work for all modes
+- DISPATCH/IMPOUND: vin-ocr now functional
+- ADMIN: All admin AI tools (marketing chat, ad copy, social batch, outreach) now functional
+
+=== receptionist_ux 2026-03-03 04:46 ===
+Fixed 1 critical UX bug (commit fb24479):
+- MobileSidebar at 375px: full-screen solid overlay with no backdrop dismiss → standard sidebar pattern (280px panel + backdrop click-to-close)
+Gate: dashboard/mobile_375px_usable → in_progress (handoff #276 to QA)
+Build: clean, Tests: 678/678
+2026-03-03 05:03 receptionist_fix: Fixed admin tenant context persistence (commit 810d29f). 3 gaps sealed: (1) auto-create localStorage, (2) effectiveTenantId bridge during loading, (3) skip redundant re-fetch. 685/685 tests, deployed. Handoffs: #272 completed, #273 already fixed.
