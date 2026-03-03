@@ -104,8 +104,9 @@ function parseDate(input: string, timezone: string): string {
   if (slashShort) {
     const [, m, d] = slashShort;
     const year = now.getFullYear();
-    const candidate = new Date(year, parseInt(m) - 1, parseInt(d));
-    if (candidate < now) candidate.setFullYear(year + 1);
+    // Use noon UTC to avoid timezone day-shift when formatting in local tz
+    const candidate = new Date(Date.UTC(year, parseInt(m) - 1, parseInt(d), 12, 0, 0));
+    if (candidate < now) candidate.setUTCFullYear(year + 1);
     return formatDate(candidate, timezone);
   }
 
@@ -122,8 +123,9 @@ function parseDate(input: string, timezone: string): string {
     const monthIndex = MONTH_NAMES[monthStr];
     if (monthIndex !== undefined) {
       const year = now.getFullYear();
-      const candidate = new Date(year, monthIndex, parseInt(dayStr));
-      if (candidate < now) candidate.setFullYear(year + 1);
+      // Use noon UTC to avoid timezone day-shift
+      const candidate = new Date(Date.UTC(year, monthIndex, parseInt(dayStr), 12, 0, 0));
+      if (candidate < now) candidate.setUTCFullYear(year + 1);
       return formatDate(candidate, timezone);
     }
   }
