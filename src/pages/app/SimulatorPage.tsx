@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import CallSimulator from "@/components/simulator/CallSimulator";
+import VoiceAgentTest from "@/components/ai/VoiceAgentTest";
 import SMSSimulator from "@/components/simulator/SMSSimulator";
 import AIBrainDebugger from "@/components/simulator/AIBrainDebugger";
 import { SuggestedTestsBanner } from "@/components/simulator/SuggestedTestsBanner";
@@ -55,7 +55,7 @@ export default function SimulatorPage() {
 
         <TabsContent value="call" className="mt-4">
           <ErrorBoundary context="loading simulator">
-            <CallSimulator />
+            <VoiceAgentTest />
           </ErrorBoundary>
         </TabsContent>
 
