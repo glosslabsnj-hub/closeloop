@@ -27,13 +27,19 @@ function groupByCategory(events: NotificationEvent[]) {
   return groups;
 }
 
+/** Pluralize a noun: "dispatch" → "dispatches", "job" → "jobs" */
+function pluralizeNoun(word: string): string {
+  if (/(?:ch|sh|s|x|z)$/i.test(word)) return `${word}es`;
+  return `${word}s`;
+}
+
 /**
  * Resolve notification event labels using mode-aware terminology.
  * A plumber sees "New jobs" instead of "New bookings".
  */
 function resolveEventLabel(event: NotificationEvent, apptLabel: string): { label: string; description: string } {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const plural = `${apptLabel}s`;
+  const plural = pluralizeNoun(apptLabel);
 
   switch (event.eventType) {
     case "new_booking":
@@ -55,7 +61,7 @@ export function NotificationPreferencesPanel() {
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const categoryLabels: Record<string, string> = {
     ...BASE_CATEGORY_LABELS,
-    bookings: `${cap(terminology.appointmentLabel)}s`,
+    bookings: pluralizeNoun(cap(terminology.appointmentLabel)),
   };
 
   if (isLoading) {

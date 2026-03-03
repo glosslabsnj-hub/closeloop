@@ -267,10 +267,9 @@ export function PriceModifiersEditor() {
         if (!config.modes.includes(businessMode)) return false;
         // If no industry restrictions, show it
         if (config.industries.length === 0) return true;
-        // Check if industry matches
-        return config.industries.some(ind =>
-          tenantIndustry.includes(ind) || ind.includes(tenantIndustry)
-        );
+        // Check if industry matches (exact slug match only)
+        if (!tenantIndustry) return false;
+        return config.industries.some(ind => ind === tenantIndustry);
       })
       .map(([key, config]) => ({
         key: key as ModifierType,
