@@ -47,19 +47,25 @@ export function useCustomerActivity(customerId: string | null, customerPhone: st
   });
 
   const relatedLeadsQuery = useQuery({
-    queryKey: ["customer-leads", tenant?.id, customerPhone],
+    queryKey: ["customer-leads", tenant?.id, customerId, customerPhone],
     queryFn: async () => {
-      if (!tenant?.id || !customerPhone) return [];
+      if (!tenant?.id || (!customerId && !customerPhone)) return [];
+
+      // Match by customer_id (primary, reliable FK) OR phone (fallback)
+      const orFilters: string[] = [];
+      if (customerId) orFilters.push(`customer_id.eq.${customerId}`);
+      if (customerPhone) orFilters.push(`phone.eq.${customerPhone}`);
+
       const { data, error } = await supabase
         .from("leads")
         .select("id, full_name, phone, status, source, created_at")
         .eq("tenant_id", tenant.id)
-        .eq("phone", customerPhone)
+        .or(orFilters.join(","))
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as RelatedLead[];
     },
-    enabled: !!tenant?.id && !!customerPhone,
+    enabled: !!tenant?.id && (!!customerId || !!customerPhone),
   });
 
   const leadIds = relatedLeadsQuery.data?.map((l) => l.id) ?? [];
