@@ -6,8 +6,9 @@ import {
   useNotificationPreferences,
   type NotificationEvent,
 } from "@/hooks/useNotificationPreferences";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
-const CATEGORY_LABELS: Record<string, string> = {
+const BASE_CATEGORY_LABELS: Record<string, string> = {
   calls: "Calls & Leads",
   bookings: "Bookings",
   intelligence: "Intelligence",
@@ -28,6 +29,12 @@ function groupByCategory(events: NotificationEvent[]) {
 
 export function NotificationPreferencesPanel() {
   const { visibleEvents, isLoading, getPreference, togglePreference } = useNotificationPreferences();
+  const { terminology } = useIndustryContext();
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const categoryLabels: Record<string, string> = {
+    ...BASE_CATEGORY_LABELS,
+    bookings: `${cap(terminology.appointmentLabel)}s`,
+  };
 
   if (isLoading) {
     return (
@@ -61,7 +68,7 @@ export function NotificationPreferencesPanel() {
         {CATEGORY_ORDER.filter((cat) => grouped[cat]?.length > 0).map((category) => (
           <div key={category}>
             <h4 className="text-sm font-medium text-muted-foreground mb-3">
-              {CATEGORY_LABELS[category] || category}
+              {categoryLabels[category] || category}
             </h4>
             <div className="space-y-1">
               {grouped[category].map((event) => {

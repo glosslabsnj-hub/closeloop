@@ -40,6 +40,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { format, addDays } from "date-fns";
 
 interface CalendarConnectionWizardProps {
@@ -80,6 +81,8 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const { tenant, updateTenant, isUpdating } = useTenantSettings();
   const { settings: assistantSettings, updateSettings: updateAssistantSettings } = useAssistantSettings();
   const { toast } = useToast();
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel; // "job", "appointment", "visit", etc.
   
   const [step, setStep] = useState(1);
   const [selectedProvider, setSelectedProvider] = useState<CalendarConnection["provider"] | "internal" | null>(null);
@@ -1024,7 +1027,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         {step === 3 && (
           <div className="py-4">
             <p className="text-sm text-muted-foreground mb-4">
-              AI will only offer appointments during these hours.
+              AI will only offer {apptLabel}s during these hours.
             </p>
             <BusinessHoursEditor hours={businessHours} onChange={setBusinessHours} />
           </div>
@@ -1069,7 +1072,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
             </div>
 
             <div className="space-y-2">
-              <Label>Buffer between appointments</Label>
+              <Label>Buffer between {apptLabel}s</Label>
               <select
                 value={bufferMinutes}
                 onChange={(e) => setBufferMinutes(Number(e.target.value))}
@@ -1082,7 +1085,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 <option value={60}>1 hour</option>
               </select>
               <p className="text-xs text-muted-foreground">
-                Time between back-to-back appointments
+                Time between back-to-back {apptLabel}s
               </p>
             </div>
           </div>
@@ -1115,7 +1118,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                     <Badge variant="secondary" className="text-xs">Recommended</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    AI confirms appointments instantly and syncs to your calendar. 
+                    AI confirms {apptLabel}s instantly and syncs to your calendar.
                     Best for established businesses with predictable schedules.
                   </p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
@@ -1304,7 +1307,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
             </div>
             <DialogTitle className="mb-2">Schedule Connected!</DialogTitle>
             <DialogDescription>
-              AI can now see your availability and book appointments without conflicts.
+              AI can now see your availability and book {apptLabel}s without conflicts.
             </DialogDescription>
             
             <div className="mt-6 p-4 rounded-lg bg-muted/50 text-left space-y-2">

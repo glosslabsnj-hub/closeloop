@@ -9,11 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, Webhook, Mail, MessageSquare, Lock, TestTube2, Eye, EyeOff, Info } from "lucide-react";
 import { useUniversalDeliverySettings, useTestDelivery, type AuthMode } from "@/hooks/useUniversalDelivery";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function DeliveryIntegrationsSettings() {
   const { settings, isLoading, updateSettings, isUpdating } = useUniversalDeliverySettings();
   const { businessMode } = useTenantConfig();
+  const { terminology } = useIndustryContext();
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
   const testDelivery = useTestDelivery();
 
   const [webhookEnabled, setWebhookEnabled] = useState(false);
@@ -69,7 +72,7 @@ export function DeliveryIntegrationsSettings() {
   const getModeHelpText = () => {
     switch (businessMode) {
       case "service":
-        return "Bookings can be pushed to your scheduler or CRM.";
+        return `${cap(terminology.appointmentLabel)}s can be pushed to your scheduler or CRM.`;
       case "dispatch":
         return "Dispatch jobs can be pushed to your dispatch system.";
       case "food":
@@ -77,7 +80,7 @@ export function DeliveryIntegrationsSettings() {
       case "medical":
         return "Intake can be pushed with minimal data; HIPAA mode respects retention settings.";
       case "sales":
-        return "Leads and appointments can be pushed to your CRM or DMS system.";
+        return `Leads and ${terminology.appointmentLabel}s can be pushed to your CRM or DMS system.`;
       default:
         return "Outcomes can be pushed to your existing systems.";
     }

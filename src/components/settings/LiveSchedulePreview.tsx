@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isTomorrow, addDays, startOfDay, endOfDay, parseISO } from "date-fns";
 import { Calendar, Clock, CheckCircle2, XCircle, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface AvailabilitySlot {
   day_of_week: number;
@@ -35,6 +36,7 @@ const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 
 export function LiveSchedulePreview() {
   const { tenant, assistantSettings } = useAuth();
+  const { terminology } = useIndustryContext();
 
   // Fetch weekly availability slots
   const { data: slots, isLoading: slotsLoading } = useQuery({
@@ -264,7 +266,7 @@ export function LiveSchedulePreview() {
             {/* Helpful Tip */}
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
               <p>
-                💡 Your AI uses this schedule to answer "Are you open?" and to book appointments only during available hours.
+                💡 Your AI uses this schedule to answer "Are you open?" and to book {terminology.appointmentLabel}s only during available hours.
               </p>
             </div>
           </>

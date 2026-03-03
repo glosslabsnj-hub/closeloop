@@ -265,6 +265,15 @@ export function RequiredQuestionsEditor() {
   const { tenant } = useAuth();
   const { businessMode } = useTenantConfig();
   const { terminology } = useIndustryContext();
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const dynamicIntentLabels: Record<Intent, string> = {
+    ...intentLabels,
+    booking: cap(terminology.appointmentLabel),
+  };
+  const dynamicIntentDescs: Record<Intent, string> = {
+    ...intentDescriptions,
+    booking: `Service ${terminology.appointmentLabel}s and scheduling`,
+  };
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -431,8 +440,8 @@ export function RequiredQuestionsEditor() {
       const rulesToInsert = relevantIntents.map((intent) => ({
         tenant_id: tenant.id,
         rule_type: "required_inputs",
-        name: `Required Questions: ${intentLabels[intent]}`,
-        description: `Input requirements for ${intentLabels[intent].toLowerCase()} intent`,
+        name: `Required Questions: ${dynamicIntentLabels[intent]}`,
+        description: `Input requirements for ${dynamicIntentLabels[intent].toLowerCase()} intent`,
         condition_json: {},
         action_json: configs[intent] as any,
         priority: 0,
@@ -509,7 +518,7 @@ export function RequiredQuestionsEditor() {
             return (
               <TabsTrigger key={intent} value={intent} className="gap-2">
                 <Icon className="h-4 w-4" />
-                <span className="hidden sm:inline">{intentLabels[intent]}</span>
+                <span className="hidden sm:inline">{dynamicIntentLabels[intent]}</span>
                 <Badge variant="secondary" className="text-xs">
                   {requiredCount}
                 </Badge>
@@ -528,9 +537,9 @@ export function RequiredQuestionsEditor() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    {intentLabels[intent]} Questions
+                    {dynamicIntentLabels[intent]} Questions
                   </CardTitle>
-                  <CardDescription>{intentDescriptions[intent]}</CardDescription>
+                  <CardDescription>{dynamicIntentDescs[intent]}</CardDescription>
                 </CardHeader>
               </Card>
 

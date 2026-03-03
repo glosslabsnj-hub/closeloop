@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Clock, Info, TrendingUp } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export interface BusynessLevelConfig {
   etaMultiplier: number;   // 1.0 = normal, 1.5 = 50% longer
@@ -27,6 +28,7 @@ export interface BusynessRulesConfig {
 
 export function BusynessRulesEditor() {
   const { tenant } = useAuth();
+  const { terminology } = useIndustryContext();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -339,7 +341,7 @@ export function BusynessRulesEditor() {
               <div>
                 <p className="font-medium">Set your base prep time</p>
                 <p className="text-muted-foreground text-xs">
-                  This is how long you need when you have zero appointments/orders
+                  This is how long you need when you have zero {terminology.appointmentLabel}s
                 </p>
               </div>
             </div>
