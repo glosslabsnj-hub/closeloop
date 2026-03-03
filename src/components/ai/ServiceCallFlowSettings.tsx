@@ -25,21 +25,21 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
   const [serviceFlow, setServiceFlow] = useState<ServiceDefaultFlow>("schedule_first");
   const [saving, setSaving] = useState(false);
 
-  // Determine default based on industry
+  // Determine recommended flow based on industry
   const getIndustryDefault = (industry: string | undefined): ServiceDefaultFlow => {
     if (!industry) return "schedule_first";
-    
+
     const urgencyCheckIndustries = [
       "hvac", "heating", "cooling", "plumbing", "plumber", "electrical", "electrician",
       "appliance_repair", "garage_door", "water_damage", "restoration"
     ];
-    
+
     const dispatchFirstIndustries = [
       "locksmith", "towing", "roadside"
     ];
-    
+
     const lowerIndustry = industry.toLowerCase();
-    
+
     if (dispatchFirstIndustries.some(i => lowerIndustry.includes(i))) {
       return "dispatch_first";
     }
@@ -49,14 +49,15 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
     return "schedule_first";
   };
 
+  const industryRecommended = getIndustryDefault(tenant?.industry);
+
   useEffect(() => {
     if (assistantSettings) {
       const savedFlow = (assistantSettings as any).service_default_flow;
       if (savedFlow) {
         setServiceFlow(savedFlow);
       } else {
-        // Use industry default if not set
-        setServiceFlow(getIndustryDefault(tenant?.industry));
+        setServiceFlow(industryRecommended);
       }
     }
   }, [assistantSettings, tenant?.industry]);
@@ -145,10 +146,14 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           }`}>
             <RadioGroupItem value="schedule_first" className="mt-1" />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Calendar className="h-4 w-4" />
                 <span className="font-medium">Schedule {apptLabelPlural.charAt(0).toUpperCase() + apptLabelPlural.slice(1)}</span>
-                <Badge variant="default" className="text-xs">Recommended for salons, detailing, cleaning</Badge>
+                {industryRecommended === "schedule_first" ? (
+                  <Badge variant="default" className="text-xs">Recommended for your business</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Common for salons, detailing, cleaning</Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 AI goes straight to scheduling. No urgency questions.
@@ -167,10 +172,14 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           }`}>
             <RadioGroupItem value="urgency_check" className="mt-1" />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="font-medium">Ask if Urgent</span>
-                <Badge variant="secondary" className="text-xs">Best for HVAC, plumbing, electrical</Badge>
+                {industryRecommended === "urgency_check" ? (
+                  <Badge variant="default" className="text-xs">Recommended for your business</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Common for HVAC, plumbing, electrical</Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 AI asks if it's urgent first, then schedules or expedites accordingly.
@@ -189,10 +198,14 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           }`}>
             <RadioGroupItem value="dispatch_first" className="mt-1" />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Truck className="h-4 w-4" />
                 <span className="font-medium">Immediate Dispatch</span>
-                <Badge variant="outline" className="text-xs">For locksmiths, towing-style services</Badge>
+                {industryRecommended === "dispatch_first" ? (
+                  <Badge variant="default" className="text-xs">Recommended for your business</Badge>
+                ) : (
+                  <Badge variant="outline" className="text-xs">Common for locksmiths, towing</Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 AI treats every call as immediate dispatch, like a tow truck service.
