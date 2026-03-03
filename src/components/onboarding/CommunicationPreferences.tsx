@@ -48,8 +48,15 @@ const DEFAULT_ESCALATION: EscalationRules = {
   fallbackAction: "callback",
 };
 
-/** Sensible defaults per mode */
-export function getDefaultCommunicationPrefs(mode: BusinessMode): CommunicationPrefs {
+/** Categories where the business travels to the customer, so service address is required */
+const ADDRESS_REQUIRED_CATEGORIES = new Set([
+  "home_services", "dispatch_logistics",
+]);
+
+/** Sensible defaults per mode, with optional industry-aware required fields */
+export function getDefaultCommunicationPrefs(mode: BusinessMode, industryCategory?: string): CommunicationPrefs {
+  const needsAddress = mode === "service" && industryCategory && ADDRESS_REQUIRED_CATEGORIES.has(industryCategory);
+
   switch (mode) {
     case "medical":
       return {
@@ -84,7 +91,9 @@ export function getDefaultCommunicationPrefs(mode: BusinessMode): CommunicationP
         followUpCadence: "moderate",
         customGreeting: "",
         aiGuardrails: "",
-        requiredIntakeFields: ["customer_name", "customer_phone"],
+        requiredIntakeFields: needsAddress
+          ? ["customer_name", "customer_phone", "address"]
+          : ["customer_name", "customer_phone"],
         escalationRules: DEFAULT_ESCALATION,
       };
   }

@@ -36,6 +36,12 @@ function getServiceDefaultFlow(industry: string): "schedule_first" | "urgency_ch
   return "schedule_first";
 }
 
+function getPaymentDefaults(industryCategory: string): string[] {
+  // Home services (plumbing, HVAC, electrical) commonly accept checks
+  if (industryCategory === "home_services") return ["cash", "credit_card", "debit_card", "check"];
+  return ["cash", "credit_card", "debit_card"];
+}
+
 const MAX_RETRIES = 3;
 
 interface SubmitParams {
@@ -222,8 +228,8 @@ export function useOnboardingSubmit(userId?: string) {
           cancellation_policy: templatePolicies.cancellation || null,
           deposit_policy: templatePolicies.deposit || null,
           refund_policy: templatePolicies.refund || null,
-          // Default payment methods so AI answers match policies (QA handoff #311)
-          payment_methods: ["cash", "credit_card", "debit_card"],
+          // Default payment methods — industry-aware (QA handoff #311, #349)
+          payment_methods: getPaymentDefaults(industryEntry?.category || ""),
         }).eq("id", tenantId!);
         if (error) throw error;
       });

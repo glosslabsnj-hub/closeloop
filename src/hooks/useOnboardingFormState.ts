@@ -152,13 +152,13 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
     const newMode = industryEntry?.businessMode || businessMode;
     if (industryEntry?.businessMode) {
       setBusinessMode(newMode);
-      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
+      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode, industryEntry.category));
       setSchedulingPrefs(getDefaultSchedulingPrefs(newMode, undefined, industrySlug));
       const ctx = { slug: industrySlug, category: industryEntry.category };
       const defaults = getDefaultAnswers(newMode, ctx);
       const onboardingConfig = getIndustryOnboardingConfig(newMode, industryEntry.category, industrySlug);
       setScenarioAnswers({ ...defaults, ...onboardingConfig.preAnswers });
-      const modePrefs = getDefaultCommunicationPrefs(newMode);
+      const modePrefs = getDefaultCommunicationPrefs(newMode, industryEntry.category);
       setAiTone(modePrefs.aiTone);
       setBookingMode(modePrefs.aiBookingMode);
     }
@@ -212,11 +212,11 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
     const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
     const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
     setScenarioAnswers(getDefaultAnswers(mode, ctx));
-    setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
+    setCommunicationPrefs(getDefaultCommunicationPrefs(mode, industryEntry?.category));
     setSchedulingPrefs(getDefaultSchedulingPrefs(mode, undefined, industrySlug));
     setBusinessHours(getDefaultHoursForMode(mode));
     setServiceArea(getDefaultServiceArea(mode, industrySlug));
-    const modePrefs = getDefaultCommunicationPrefs(mode);
+    const modePrefs = getDefaultCommunicationPrefs(mode, industryEntry?.category);
     setAiTone(modePrefs.aiTone);
     setBookingMode(modePrefs.aiBookingMode);
   }, [industrySlug]);

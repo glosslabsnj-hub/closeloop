@@ -108,7 +108,7 @@ export default function AdminTestOnboardingPage() {
     if (industryEntry?.businessMode) {
       const newMode = industryEntry.businessMode;
       setBusinessMode(newMode);
-      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode));
+      setCommunicationPrefs(getDefaultCommunicationPrefs(newMode, industryEntry.category));
       setSchedulingPrefs(getDefaultSchedulingPrefs(newMode));
       setBusinessHours(getDefaultHoursForMode(newMode));
       const ctx = { slug: industrySlug, category: industryEntry.category };
@@ -142,7 +142,7 @@ export default function AdminTestOnboardingPage() {
     const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
     const ctx = industryEntry ? { slug: industrySlug, category: industryEntry.category } : undefined;
     setScenarioAnswers(getDefaultAnswers(mode, ctx));
-    setCommunicationPrefs(getDefaultCommunicationPrefs(mode));
+    setCommunicationPrefs(getDefaultCommunicationPrefs(mode, industryEntry?.category));
     setSchedulingPrefs(getDefaultSchedulingPrefs(mode));
     setBusinessHours(getDefaultHoursForMode(mode));
   };
