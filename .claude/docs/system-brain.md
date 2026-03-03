@@ -1,29 +1,20 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-02 7:40 PM ET (receptionist_eng — call flow audit + 6 bug fixes)
+## Last Session: 2026-03-02 8:04 PM ET (receptionist_fix — admin tenant persistence)
 
 ### What Was Done
-- **Audited entire call flow** (booking-handoff, create-booking, webhook, reschedule, cancel, transfer, lookup) for production bugs
-- **Fixed 6 edge function bugs** (commit f0ef4c5, all deployed to production):
-  1. **CRITICAL: Webhook booking timezone** — persistBooking parsed dates as UTC instead of tenant timezone. Bookings were off by hours. Added getTimezoneOffset() and tenant timezone offset.
-  2. **CRITICAL: Cancel-booking invalid enum** — outcome "cancellation" is not a valid ai_call_outcome value. Changed to "followup". Was causing silent DB update failure.
-  3. **CRITICAL: Reschedule busy_blocks missing tenant_id** — UPDATE not scoped by tenant_id. Fixed with .eq("tenant_id", resolvedTenantId).
-  4. **CRITICAL: Cancel busy_blocks missing tenant_id** — Same issue. Fixed.
-  5. **MEDIUM: Transfer-call weak call_sid validation** — Didn't catch "undefined"/"null" string literals or short strings. Added stricter checks.
-  6. **MEDIUM: Booking-handoff email null name** — customerName in email subject could be null. Added fallback to "Customer".
-  7. **MEDIUM: Reschedule date parsing** — Only handled today/tomorrow/ISO. Ported robust parser from create-booking (MM/DD, "March 5th", "next Monday", etc.)
-- **Fixed QA test framework** for ai_handles_edge_cases gate:
-  - qa-test-scripts.md: `--scenario edge-cases` → `--tag edge-case` (was matching zero scenarios)
-  - X05 garbage-input: Removed redundant waitForAgent step (caused WS timeout waiting for spontaneous response)
-  - X07 long-message: Same fix
-  - X08 mid-disconnect: Added steps 2-3 so disconnect actually triggers at currentStepIndex >= 2
-- **Deployed 10 edge functions** total (5 recently changed + 5 bug fixes)
+- **Fixed CRITICAL admin tenant persistence bug** (commit 6dd73b8, deployed to production):
+  - Root cause: AdminModeProvider was duplicated in both AppLayout and AdminLayout. Navigating between /admin/* and /app/* destroyed one provider and created another, causing mode/tenant state to reset and triggering redirect effects.
+  - Fix 1: Lifted AdminModeProvider to App.tsx as a singleton — never remounts on route changes
+  - Fix 2: Added localStorage backup check in AppLayout redirect effects (belt-and-suspenders)
+  - Fix 3: Removed AdminModeProvider from both AppLayout and AdminLayout
+- **7 new tests** covering singleton architecture and redirect defense
 - **Deployed frontend** to VPS (verified 200)
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 671/671 passing
-- Commit: f0ef4c5
+- Tests: 678/678 passing
+- Commit: 6dd73b8
 - Pushed to main, deployed to production
 
 ### MODE PROGRESS
@@ -36,6 +27,7 @@
 
 ### Key Architecture Patterns
 - **Super_admin auth**: TWO layers must both handle super_admin: (1) DB `has_tenant_access()` function (migration 20260301210000) and (2) edge function `requireAuthedTenant` in `_shared/tenant.ts`. Both now check `user_roles` for super_admin and allow any tenant.
+- **AdminModeProvider is a SINGLETON in App.tsx**: NEVER put it inside layout components (AppLayout/AdminLayout). It must persist across all route changes. Layout components remount when switching between /admin/* and /app/*, destroying any providers they contain.
 - **ai-plan-response**: Uses Anthropic Claude Haiku 4.5. Queries DB directly. Falls back gracefully if ANTHROPIC_API_KEY missing. FAQs+services always injected (commit 2c74dd1). Policy-type KB entries now in POLICIES section (commit cdf4655).
 - **build-business-brain**: Queries 23 tables in parallel. Mode-specific knowledge only for matching mode. FAQs+services unconditional. Custom policies now in brain.policies.custom[] (commit cdf4655).
 - **buildBusinessContext.ts policy flow**: Policy-type ai_knowledge_base entries are now promoted to the POLICIES section (not ADDITIONAL BUSINESS KNOWLEDGE). Non-policy supplementary items remain in ADDITIONAL BUSINESS KNOWLEDGE. This ensures the AI treats custom policies as hard constraints.

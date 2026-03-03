@@ -57,11 +57,9 @@ interface NavItem {
   badge?: number;
 }
 
-// Routes that are always accessible (even without subscription)
-// Brain + dashboard + AI assistant are config/setup tools — users must configure before paying
-// All /app/ routes are included since the inline paywall card (line 246) handles non-subscribers
+// All /app/ routes are accessible — the inline paywall card handles non-subscribers
 // gracefully without hard-redirecting, which broke direct URL navigation.
-const alwaysAccessibleRoutes = ["/app/settings", "/app/go-live", "/app/agency", "/app/business-brain", "/app/dashboard", "/app/ai-assistant", "/app/onboarding", "/app/customers", "/app/estimates", "/app/bookings", "/app/inbox", "/app/orders", "/app/dispatch", "/app/sales-pipeline", "/app/leads", "/app/reports", "/app/integrations", "/app/help"];
+// Previously this was a manual whitelist that fell out of sync when new pages were added.
 
 function AppLayoutContent() {
   const { user, tenant, effectiveTenant, signOut, loading, hasActiveSubscription, isSuperAdmin, assistantSettings } = useAuth();
@@ -152,7 +150,7 @@ function AppLayoutContent() {
     const justCompletedOnboarding = sessionStorage.getItem("selectedPlan") !== null;
     if (justCompletedOnboarding) return;
     if (!loading && tenant && !hasActiveSubscription) {
-      const isAllowedRoute = alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route));
+      const isAllowedRoute = location.pathname.startsWith("/app/");
       if (!isAllowedRoute && location.pathname !== "/app/go-live") {
         navigate("/app/go-live");
       }
@@ -174,7 +172,7 @@ function AppLayoutContent() {
 
   if (!user) return null;
 
-  const isRouteAccessible = effectiveHasSubscription || alwaysAccessibleRoutes.some(route => location.pathname.startsWith(route)) || (isAgency && location.pathname.startsWith("/app/agency"));
+  const isRouteAccessible = effectiveHasSubscription || location.pathname.startsWith("/app/") || (isAgency && location.pathname.startsWith("/app/agency"));
 
   return (
     <>

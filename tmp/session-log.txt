@@ -1,41 +1,26 @@
-receptionist_fix session - 2026-03-02 6:27 PM ET
+[receptionist_fix] 2026-03-02 8:04 PM ET
 
-## What I Fixed
-1. **CRITICAL: test_drives.vehicle_interest data loss** (commit 648955e)
-   - `elevenlabs-webhook` persistTestDrive() used `vehicle_interest` column which doesn't exist on test_drives table
-   - PostgREST silently drops unknown columns — vehicle interest data was being lost on every test drive creation
-   - Fix: moved vehicle_interest data into the `notes` field (combined with any existing booking notes)
-   - Note: `vehicle_interest` IS valid on `sales_leads` table — confusing schema asymmetry
+## Bug Fixed (commit 6dd73b8)
+**Admin tenant selection resetting on page navigation** (handoff #237 from QA)
 
-2. **Expanded schema safety tests** (20→25 tests)
-   - Added allowlist-based validation for: test_drives, food_orders, medical_intakes, sales_leads
-   - Previous tests only covered dispatch_jobs + bookings with banned column lists
-   - New approach: extract all INSERT columns and validate against known valid column set
+Root cause: AdminModeProvider was duplicated in both AppLayout and AdminLayout.
+Navigating between /admin/* and /app/* destroyed one provider and created another,
+causing mode/tenant state to reset and triggering redirect effects that sent
+admins to the onboarding/go-live page.
 
-## Deployment
-- Edge function: elevenlabs-webhook deployed
+Fix:
+1. Lifted AdminModeProvider to App.tsx as singleton (never remounts)
+2. Removed from AppLayout and AdminLayout
+3. Added localStorage backup check in redirect effects
+
+## Tests
+- 678/678 passing (7 new: singleton architecture, redirect defense)
+- Build: clean (0 errors)
+
+## Deployed
+- Git push: main (6dd73b8)
 - Frontend: scp to VPS, verified 200
-- Git: pushed to main
 
-## Build Status
-- Build: Clean (0 errors)
-- Tests: 661/661 passing (was 656)
-
-## What Could Break
-1. If sales.vehicle_interest contains very long text, combined notes field could be truncated
-2. Schema safety tests depend on types.ts staying in sync with actual DB schema
-3. test_drives missing individual vehicle_* fields still unfilled (no AI extraction for make/model/year yet)
-
-## Mode Matrix
-- SERVICE: not affected (no test_drives)
-- SALES: FIXED — test drive data now preserved
-- Other modes: no changes
-
-## Handoffs Filed
-- receptionist_qa: VERIFY schema fix deployed, test drive creation preserves vehicle interest
-receptionist_eng session 2026-03-02 6:52 PM ET
-- Fixed: AI policy violation - custom policies from ai_knowledge_base promoted to POLICIES section
-- Deployed: ai-plan-response, build-business-brain, twilio-inbound, elevenlabs-webhook + frontend
-- Commit: cdf4655
-- Tests: 661/661 passing
-- Handoff to QA: verify brain/edits_reflect_in_ai_behavior with No Phone Quotes policy
+## Handoffs
+- #237 completed (QA bug fix)
+- #241 filed to QA: verify admin tenant persistence after fix

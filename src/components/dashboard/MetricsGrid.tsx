@@ -20,7 +20,8 @@ interface Metric {
 
 export function MetricsGrid() {
   const navigate = useNavigate();
-  const { tenant, assistantSettings } = useAuth();
+  const { tenant, effectiveTenantId, assistantSettings } = useAuth();
+  const tenantId = effectiveTenantId ?? tenant?.id;
   const { businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { terms } = useIndustryContext();
@@ -32,101 +33,101 @@ export function MetricsGrid() {
   const weekStart = startOfWeek(new Date()).toISOString();
 
   const { data: callsToday = 0 } = useQuery({
-    queryKey: ["metrics-calls", tenant?.id, todayStart],
+    queryKey: ["metrics-calls", tenantId, todayStart],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("ai_call_sessions")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .gte("started_at", todayStart)
         .lte("started_at", todayEnd);
       return count || 0;
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenantId,
   });
 
   const { data: bookingsWeek = 0 } = useQuery({
-    queryKey: ["metrics-bookings", tenant?.id, weekStart],
+    queryKey: ["metrics-bookings", tenantId, weekStart],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("bookings")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .gte("created_at", weekStart);
       return count || 0;
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenantId,
   });
 
   const { data: totalCustomers = 0 } = useQuery({
-    queryKey: ["metrics-customers", tenant?.id],
+    queryKey: ["metrics-customers", tenantId],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("customers")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id);
+        .eq("tenant_id", tenantId);
       return count || 0;
     },
-    enabled: !!tenant?.id,
+    enabled: !!tenantId,
   });
 
   const { data: ordersToday = 0 } = useQuery({
-    queryKey: ["metrics-orders", tenant?.id, todayStart],
+    queryKey: ["metrics-orders", tenantId, todayStart],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("food_orders")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .gte("created_at", todayStart);
       return count || 0;
     },
-    enabled: !!tenant?.id && caps.hasFoodOrders,
+    enabled: !!tenantId && caps.hasFoodOrders,
   });
 
   const { data: jobsPending = 0 } = useQuery({
-    queryKey: ["metrics-dispatch", tenant?.id],
+    queryKey: ["metrics-dispatch", tenantId],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("dispatch_jobs")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .in("status", ["pending", "assigned"]);
       return count || 0;
     },
-    enabled: !!tenant?.id && caps.hasDispatchQueue,
+    enabled: !!tenantId && caps.hasDispatchQueue,
   });
 
   const { data: intakesToday = 0 } = useQuery({
-    queryKey: ["metrics-intakes", tenant?.id, todayStart],
+    queryKey: ["metrics-intakes", tenantId, todayStart],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("medical_intakes")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .gte("created_at", todayStart);
       return count || 0;
     },
-    enabled: !!tenant?.id && caps.hasMedicalIntake,
+    enabled: !!tenantId && caps.hasMedicalIntake,
   });
 
   const { data: newLeadsCount = 0 } = useQuery({
-    queryKey: ["metrics-new-leads", tenant?.id],
+    queryKey: ["metrics-new-leads", tenantId],
     queryFn: async () => {
-      if (!tenant?.id) return 0;
+      if (!tenantId) return 0;
       const { count } = await supabase
         .from("leads")
         .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
+        .eq("tenant_id", tenantId)
         .eq("status", "new");
       return count || 0;
     },
-    enabled: !!tenant?.id && isCallbackOnly,
+    enabled: !!tenantId && isCallbackOnly,
   });
 
   const getMetrics = (): Metric[] => {

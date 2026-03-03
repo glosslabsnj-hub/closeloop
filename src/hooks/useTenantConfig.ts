@@ -23,11 +23,12 @@ const defaultModulesByMode: Record<BusinessMode, string[]> = {
 };
 
 export function useTenantConfig(): TenantConfig {
-  const { tenant } = useAuth();
+  const { tenant, effectiveTenant } = useAuth();
+  const activeTenant = effectiveTenant ?? tenant;
   const capabilities = useCapabilities();
 
   return useMemo(() => {
-    if (!tenant) {
+    if (!activeTenant) {
       return {
         businessMode: "service" as BusinessMode,
         enabledModules: defaultModulesByMode.service,
@@ -37,13 +38,13 @@ export function useTenantConfig(): TenantConfig {
       };
     }
 
-    const businessMode = tenant.business_mode as BusinessMode || "service";
+    const businessMode = activeTenant.business_mode as BusinessMode || "service";
 
     // When capabilities_json is populated, derive enabledModules from it
     // so existing enabledModules.includes() checks work automatically.
     const hasExplicitCaps = (() => {
       try {
-        const raw = (tenant as Record<string, unknown>).capabilities_json;
+        const raw = (activeTenant as Record<string, unknown>).capabilities_json;
         return raw && typeof raw === "object" && !Array.isArray(raw) && Object.keys(raw).length > 0;
       } catch {
         return false;
@@ -61,7 +62,7 @@ export function useTenantConfig(): TenantConfig {
       // Parse enabled_modules from tenant (original logic)
       enabledModules = [];
       try {
-        const modules = tenant.enabled_modules;
+        const modules = activeTenant.enabled_modules;
         if (Array.isArray(modules)) {
           enabledModules = modules.filter((m): m is string => typeof m === "string");
         } else if (typeof modules === "string") {
@@ -84,9 +85,9 @@ export function useTenantConfig(): TenantConfig {
       }
     }
 
-    const hipaaMode = businessMode === "medical" || tenant.hipaa_mode === true;
+    const hipaaMode = businessMode === "medical" || activeTenant.hipaa_mode === true;
 
-    const industrySlug = (tenant.industry as string) || null;
+    const industrySlug = (activeTenant.industry as string) || null;
 
     return {
       businessMode,
@@ -95,7 +96,7 @@ export function useTenantConfig(): TenantConfig {
       capabilities,
       industrySlug,
     };
-  }, [tenant, capabilities]);
+  }, [activeTenant, capabilities]);
 }
 
 export function useModuleEnabled(moduleId: string): boolean {

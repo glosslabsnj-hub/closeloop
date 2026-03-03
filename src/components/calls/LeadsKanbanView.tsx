@@ -66,10 +66,11 @@ function getLeadStage(call: CallSession): PipelineStage {
   if (call.outcome === "lost") return "lost";
 
   // Use followup_status for pipeline stage
+  // DB stores "completed" for won leads, map back to UI stage
   const status = call.followup_status;
-  if (status === "contacted") return "contacted";
+  if (status === "contacted" || status === "called_back") return "contacted";
   if (status === "quoted") return "quoted";
-  if (status === "won") return "won";
+  if (status === "completed" || status === "won") return "won";
   if (status === "lost") return "lost";
 
   // Default: new lead
@@ -121,13 +122,14 @@ export function LeadsKanbanView({
   }, [leads, priorityConfig]);
 
   const handleStageChange = async (callId: string, newStage: PipelineStage) => {
-    // Map stage to followup_status and optionally outcome
+    // Map UI pipeline stage to valid DB followup_status values
+    // Valid followup_status: new, called_back, no_answer, completed, lost, contacted, quoted
     let followup_status: string | null = newStage;
     let outcome: string | undefined;
 
     if (newStage === "won") {
       outcome = "booked";
-      followup_status = "won";
+      followup_status = "completed";
     } else if (newStage === "lost") {
       outcome = "lost";
       followup_status = "lost";

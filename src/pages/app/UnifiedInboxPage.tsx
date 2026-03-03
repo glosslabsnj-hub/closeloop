@@ -101,10 +101,11 @@ function getCustomerName(call: CallSession): string {
 function getLeadStage(call: CallSession): PipelineStage {
   if (call.outcome === "booked") return "won";
   if (call.outcome === "lost") return "lost";
+  // DB stores "completed" for won leads, "called_back" for contacted
   const status = call.followup_status;
-  if (status === "contacted") return "contacted";
+  if (status === "contacted" || status === "called_back") return "contacted";
   if (status === "quoted") return "quoted";
-  if (status === "won") return "won";
+  if (status === "completed" || status === "won") return "won";
   if (status === "lost") return "lost";
   return "new";
 }
@@ -286,10 +287,11 @@ export default function UnifiedInboxPage() {
   };
 
   const handleStageChange = async (callId: string, newStage: PipelineStage) => {
+    // Map UI pipeline stage to valid DB followup_status values
     let followup_status: string | null = newStage;
     let outcome: string | undefined;
 
-    if (newStage === "won") { outcome = "booked"; followup_status = "won"; }
+    if (newStage === "won") { outcome = "booked"; followup_status = "completed"; }
     else if (newStage === "lost") { outcome = "lost"; followup_status = "lost"; }
     else if (newStage === "new") { followup_status = null; }
 
