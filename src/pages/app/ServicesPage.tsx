@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Brain, DollarSign, Clock, Briefcase, Loader2 } from "lucide-react";
+import { Brain, DollarSign, Clock, Briefcase, Loader2, AlertTriangle } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 /**
  * ServicesPage - Read-only view with CTA to Business Brain
@@ -14,7 +15,7 @@ import { Brain, DollarSign, Clock, Briefcase, Loader2 } from "lucide-react";
  * This page now shows a read-only list with a redirect to edit in Brain.
  */
 export default function ServicesPage() {
-  const { services, isLoading } = useServices();
+  const { services, isLoading, error, refetch } = useServices();
   const { terms } = useIndustryContext();
 
   const formatDuration = (minutes: number) => {
@@ -43,7 +44,36 @@ export default function ServicesPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-6 md:p-8">
+        <div className="mx-auto max-w-lg py-8">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Couldn't load your services</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                This is usually a temporary connection issue. Try again, or come back in a minute.
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                Try again
+              </Button>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <Link to="/app" className="text-primary hover:underline">Back to Dashboard</Link>
+                <span className="text-border">·</span>
+                <a href="mailto:support@getfluxdata.com" className="text-muted-foreground hover:underline">Contact Support</a>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
+    <ErrorBoundary context="loading your services">
     <div className="p-6 md:p-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -141,5 +171,6 @@ export default function ServicesPage() {
         </Card>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

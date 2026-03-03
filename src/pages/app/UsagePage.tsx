@@ -12,6 +12,7 @@ import {
   ArrowUpRight, Calendar, DollarSign, ExternalLink, Loader2
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   getLadderStep,
   getTierInfo,
@@ -21,7 +22,7 @@ import {
 
 export default function UsagePage() {
   const { tenant } = useAuth();
-  const { subscription, planSku, hasVoice, hasSms, loading: subLoading } = useSubscription(tenant?.id || null);
+  const { subscription, planSku, hasVoice, hasSms, loading: subLoading, error: subError, refetch: refetchSub } = useSubscription(tenant?.id || null);
   const { usage, loading: usageLoading, nextUpgrade } = useUsage(tenant?.id || null, planSku);
   const { openPortal, loading: portalLoading } = useBillingPortal(tenant?.id || null);
 
@@ -40,6 +41,38 @@ export default function UsagePage() {
         <div className="grid gap-6 md:grid-cols-2">
           <Skeleton className="h-64" />
           <Skeleton className="h-64" />
+        </div>
+      </div>
+    );
+  }
+
+  if (subError) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">Usage</h1>
+          <p className="text-muted-foreground">Track your voice minutes</p>
+        </div>
+        <div className="mx-auto max-w-lg py-8">
+          <Card>
+            <CardContent className="pt-8 pb-8 text-center space-y-4">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
+                <AlertTriangle className="h-7 w-7 text-destructive" />
+              </div>
+              <h2 className="text-xl font-semibold">Couldn't load your usage data</h2>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                This is usually a temporary connection issue. Try again, or come back in a minute.
+              </p>
+              <Button variant="outline" onClick={() => refetchSub()}>
+                Try again
+              </Button>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <Link to="/app" className="text-primary hover:underline">Back to Dashboard</Link>
+                <span className="text-border">·</span>
+                <a href="mailto:support@getfluxdata.com" className="text-muted-foreground hover:underline">Contact Support</a>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -72,6 +105,7 @@ export default function UsagePage() {
   const totalOverage = (usage?.projectedVoiceOverage || 0) + (usage?.projectedSmsOverage || 0);
 
   return (
+    <ErrorBoundary context="loading your usage data">
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Usage</h1>
@@ -283,5 +317,6 @@ export default function UsagePage() {
         </Card>
       )}
     </div>
+    </ErrorBoundary>
   );
 }

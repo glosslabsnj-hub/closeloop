@@ -546,17 +546,20 @@ serve(async (req: Request) => {
     }
 
     // Create busy_block to prevent double-booking
-    await supabase.from("busy_blocks").insert({
+    const { error: busyBlockError } = await supabase.from("busy_blocks").insert({
       tenant_id: tenantId,
       booking_id: booking.id,
       start_at: startAt.toISOString(),
       end_at: blockEndAt.toISOString(),
       block_type: initialStatus === "confirmed" ? "confirmed_booking" : "hold",
       is_active: true,
-      expires_at: initialStatus === "pending" 
+      expires_at: initialStatus === "pending"
         ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 min hold for pending
         : null,
     });
+    if (busyBlockError) {
+      console.error("[create-booking] CRITICAL: Failed to create busy_block — double-booking risk:", busyBlockError);
+    }
 
     // Update session with booking outcome — CRITICAL for duplicate prevention.
     // The webhook checks session.booking_id to skip creating a second booking.

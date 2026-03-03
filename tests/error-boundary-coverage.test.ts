@@ -40,6 +40,10 @@ const CRITICAL_PAGES = [
   "GoLivePage.tsx",
   "TestAIPage.tsx",
   "AutomationsPage.tsx",
+  "UsagePage.tsx",
+  "ServicesPage.tsx",
+  "AgreementsPage.tsx",
+  "HelpCenterPage.tsx",
 ];
 
 describe("Error boundary coverage: critical pages", () => {

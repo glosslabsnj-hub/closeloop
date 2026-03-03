@@ -30,6 +30,7 @@ import { HelpGuideMedical } from "@/components/help/HelpGuideMedical";
 import { HelpGuideBrain } from "@/components/help/HelpGuideBrain";
 import { HelpGuideSettings } from "@/components/help/HelpGuideSettings";
 import { HelpGuideWorkflows } from "@/components/help/HelpGuideWorkflows";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface GuideCategory {
   id: string;
@@ -160,6 +161,7 @@ export default function HelpCenterPage() {
   };
 
   return (
+    <ErrorBoundary context="loading the help center">
     <div className="p-4 md:p-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="text-center mb-10">
@@ -244,5 +246,6 @@ export default function HelpCenterPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </ErrorBoundary>
   );
 }

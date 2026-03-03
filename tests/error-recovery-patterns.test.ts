@@ -23,7 +23,7 @@ function readPage(filename: string): string {
   return readFileSync(path, "utf-8");
 }
 
-// Pages that were updated in the error recovery pass (commit 58cf36b)
+// Pages that have full error recovery (refetch + contextual heading + recovery links)
 const PAGES_WITH_ERROR_RECOVERY = [
   "InboxPage.tsx",
   "BookingsPage.tsx",
@@ -34,6 +34,9 @@ const PAGES_WITH_ERROR_RECOVERY = [
   "ReportsROIPage.tsx",
   "AgencyDashboardPage.tsx",
   "UnifiedInboxPage.tsx",
+  "UsagePage.tsx",
+  "ServicesPage.tsx",
+  "AgreementsPage.tsx",
 ];
 
 describe("Error recovery pattern: refetch not reload", () => {
@@ -130,6 +133,7 @@ describe("Error recovery pattern: no reload anywhere in app pages", () => {
     "TestAIPage.tsx",
     "AutomationsPage.tsx",
     "SimulatorPage.tsx",
+    "HelpCenterPage.tsx",
   ];
 
   for (const page of ALL_PAGES) {
