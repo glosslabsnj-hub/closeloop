@@ -31,25 +31,30 @@ interface SmsSettings {
   review_request: SmsTemplate;
 }
 
-const DEFAULT_SETTINGS: SmsSettings = {
-  appointment_confirmation: {
-    enabled: true,
-    message:
-      "Hi {{customer_name}}! Your appointment with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.",
-  },
-  appointment_reminder: {
-    enabled: true,
-    message:
-      "Reminder: You have an appointment with {{business_name}} tomorrow at {{appointment_time}}. See you soon! Reply STOP to unsubscribe.",
-    delayMinutes: 1440,
-  },
-  review_request: {
-    enabled: false,
-    message:
-      "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.",
-    delayMinutes: 60,
-  },
-};
+function getDefaultSettings(appointmentLabel: string): SmsSettings {
+  return {
+    appointment_confirmation: {
+      enabled: true,
+      message:
+        `Hi {{customer_name}}! Your ${appointmentLabel} with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.`,
+    },
+    appointment_reminder: {
+      enabled: true,
+      message:
+        `Reminder: You have a ${appointmentLabel} with {{business_name}} tomorrow at {{appointment_time}}. See you soon! Reply STOP to unsubscribe.`,
+      delayMinutes: 1440,
+    },
+    review_request: {
+      enabled: false,
+      message:
+        "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.",
+      delayMinutes: 60,
+    },
+  };
+}
+
+// Static fallback for useState initialization (before terminology loads)
+const DEFAULT_SETTINGS = getDefaultSettings("appointment");
 
 const REMINDER_OPTIONS = [
   { label: "1 hour before", value: 60 },
@@ -143,12 +148,14 @@ export function SmsSettingsSection() {
   const [reviewLink, setReviewLink] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
-  // Sync from server when data loads
+  // Sync from server when data loads — use terminology-aware defaults if no saved settings
   useEffect(() => {
     if (savedSmsSettings) {
       setSettings(savedSmsSettings);
+    } else if (terminology.appointmentLabel) {
+      setSettings(getDefaultSettings(terminology.appointmentLabel));
     }
-  }, [savedSmsSettings]);
+  }, [savedSmsSettings, terminology.appointmentLabel]);
 
   useEffect(() => {
     if (tenantData?.review_link) {

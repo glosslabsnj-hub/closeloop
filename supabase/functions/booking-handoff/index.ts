@@ -3,6 +3,7 @@ import { requireAuthedTenant, requireInternalSecret, serviceClient } from "../_s
 import { captureException } from "../_shared/sentry.ts";
 import { sendEmail } from "../_shared/sendEmail.ts";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { getAppointmentLabel } from "../_shared/terminology.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -191,10 +192,10 @@ serve(async (req) => {
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
-    // Fetch tenant info
+    // Fetch tenant info (including mode + industry for terminology)
     const { data: tenantData } = await supabase
       .from("tenants")
-      .select("name")
+      .select("name, business_mode, industry")
       .eq("id", tenantId)
       .single();
 
@@ -478,13 +479,14 @@ serve(async (req) => {
             timeZone: tenantTimezone,
           });
 
+          const apptLabel = getAppointmentLabel(tenantData?.business_mode || "service", tenantData?.industry);
           const template = confirmationConfig?.message ||
-            "Hi {{customer_name}}! Your appointment with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.";
+            `Hi {{customer_name}}! Your ${apptLabel} with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.`;
 
           const message = template
             .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
             .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
-            .replace(/\{\{service_name\}\}/g, booking.service?.name || "your appointment")
+            .replace(/\{\{service_name\}\}/g, booking.service?.name || `your ${apptLabel}`)
             .replace(/\{\{appointment_time\}\}/g, startTime)
             .replace(/\{\{appointment_date\}\}/g, startDate);
 

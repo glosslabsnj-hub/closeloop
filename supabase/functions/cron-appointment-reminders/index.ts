@@ -9,12 +9,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { getAppointmentLabel } from "../_shared/terminology.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const DEFAULT_REMINDER_TEMPLATE =
-  "Hi {{customer_name}}, this is a reminder that your {{service_name}} appointment with {{business_name}} is coming up at {{appointment_time}}. We look forward to seeing you!";
+function getDefaultReminderTemplate(apptLabel: string): string {
+  return `Hi {{customer_name}}, this is a reminder that your {{service_name}} ${apptLabel} with {{business_name}} is coming up at {{appointment_time}}. We look forward to seeing you!`;
+}
 
 function resolveTemplate(
   template: string,
@@ -56,12 +58,12 @@ serve(async (_req: Request) => {
       settingsMap.set(s.tenant_id, s.settings_json || {});
     }
 
-    // Get tenant business names
+    // Get tenant business names + mode/industry for terminology
     const { data: tenants } = await supabase
       .from("tenants")
-      .select("id, name")
+      .select("id, name, business_mode, industry")
       .in("id", tenantIds);
-    const tenantNameMap = new Map((tenants || []).map((t: any) => [t.id, t.name]));
+    const tenantInfoMap = new Map((tenants || []).map((t: any) => [t.id, t]));
 
     // Process each tenant
     for (const tenantId of tenantIds) {
@@ -69,7 +71,9 @@ serve(async (_req: Request) => {
       const smsTemplates = tenantSettings.sms_templates || {};
       const reminderConfig = smsTemplates.appointment_reminder || {};
       const delayMinutes = reminderConfig.delayMinutes || 1440;
-      const template = reminderConfig.message || DEFAULT_REMINDER_TEMPLATE;
+      const tenantInfo = tenantInfoMap.get(tenantId);
+      const apptLabel = getAppointmentLabel(tenantInfo?.business_mode || "service", tenantInfo?.industry);
+      const template = reminderConfig.message || getDefaultReminderTemplate(apptLabel);
 
       // Window: target time ± 15 min (cron frequency)
       const targetMs = delayMinutes * 60 * 1000;
@@ -91,7 +95,7 @@ serve(async (_req: Request) => {
       if (!bookings?.length) continue;
       results.checked += bookings.length;
 
-      const businessName = tenantNameMap.get(tenantId) || "";
+      const businessName = tenantInfo?.name || "";
 
       for (const booking of bookings) {
         try {
@@ -111,7 +115,7 @@ serve(async (_req: Request) => {
 
           const message = resolveTemplate(template, {
             customer_name: lead?.full_name || "there",
-            service_name: (booking.services as any)?.name || "your appointment",
+            service_name: (booking.services as any)?.name || `your ${apptLabel}`,
             business_name: businessName,
             appointment_time: startTime,
             appointment_date: startDate,
