@@ -1,9 +1,10 @@
 /**
  * text-conversation
  *
- * Text-mode interface to the ElevenLabs voice agent WITH tool calling.
+ * Text-mode interface to the AI voice agent WITH tool calling.
  * Used by QA to test all scenarios (including booking creation) without voice.
- * Same system prompt + business context + tools as the real voice agent.
+ * Uses the CANONICAL system prompt from buildBusinessContext — same business
+ * knowledge as real voice calls (hours, FAQs, greeting, services, policies, etc.)
  * LLM: Claude Haiku — tool calls execute against real edge functions.
  *
  * POST body:
@@ -26,64 +27,6 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-// Cache the ElevenLabs system prompt template for 1 hour
-let cachedTemplate: string | null = null;
-let templateCachedAt = 0;
-const TEMPLATE_TTL_MS = 60 * 60 * 1000;
-
-async function getAgentSystemPrompt(): Promise<string> {
-  const now = Date.now();
-  if (cachedTemplate && (now - templateCachedAt) < TEMPLATE_TTL_MS) {
-    return cachedTemplate;
-  }
-
-  const agentId = Deno.env.get("ELEVENLABS_AGENT_ID") || "agent_4701kg1vwhzqfxmvzh032nhvx434";
-  const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
-
-  if (!apiKey) {
-    console.warn("[text-conversation] No ELEVENLABS_API_KEY — using fallback prompt");
-    return getFallbackPrompt();
-  }
-
-  try {
-    const res = await fetch(`https://api.elevenlabs.io/v1/convai/agents/${agentId}`, {
-      headers: { "xi-api-key": apiKey },
-    });
-
-    if (!res.ok) {
-      console.warn("[text-conversation] ElevenLabs fetch failed:", res.status);
-      return cachedTemplate || getFallbackPrompt();
-    }
-
-    const data = await res.json();
-    const prompt = data?.conversation_config?.agent?.prompt?.prompt;
-
-    if (!prompt) {
-      console.warn("[text-conversation] No prompt in agent config");
-      return cachedTemplate || getFallbackPrompt();
-    }
-
-    cachedTemplate = prompt;
-    templateCachedAt = now;
-    return prompt;
-  } catch (err) {
-    console.error("[text-conversation] Error fetching agent config:", err);
-    return cachedTemplate || getFallbackPrompt();
-  }
-}
-
-function getFallbackPrompt(): string {
-  return `You are the front-desk receptionist for {{business_name}}. You sound like a real human: warm, quick, confident, and helpful. Your job is to identify what the caller needs, collect minimum required details, and complete the correct outcome: book an appointment, answer a quick question, or take a message/callback. Your tone is: {{tone}}. You must be accurate. You are not a chatbot.`;
-}
-
-function fillTemplate(template: string, variables: Record<string, string | number | boolean>): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_match, key) => {
-    const val = variables[key];
-    if (val === undefined || val === null) return "";
-    return String(val);
-  });
-}
 
 /**
  * Claude tool definitions matching the ElevenLabs agent tools.
@@ -245,9 +188,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Build business context (same as elevenlabs-init)
+    // Build business context — the canonical source of truth for all AI context
+    // systemPrompt already includes: hours, FAQs, greeting, services, policies, tone, mode-specific prompts
     const callerPhoneE164 = callerPhone || "+15550000000";
-    const { context } = await buildBusinessContext(supabase, {
+    const { context, systemPrompt: contextPrompt } = await buildBusinessContext(supabase, {
       tenantId,
       channel: "browser_test",
       sessionId: crypto.randomUUID(),
@@ -256,13 +200,30 @@ serve(async (req) => {
     });
     const vars = buildDynamicVariables(context, callerPhoneE164, customerId || null);
 
-    // Get system prompt template from ElevenLabs and fill variables
-    const template = await getAgentSystemPrompt();
-    const filledPrompt = fillTemplate(template, vars as Record<string, string | number | boolean>);
+    // Add current date/time for scheduling awareness
+    const now = new Date();
+    const tz = context.tenant.timezone || 'America/New_York';
+    let currentDateTime: string;
+    try {
+      currentDateTime = now.toLocaleString('en-US', {
+        timeZone: tz,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      currentDateTime = now.toISOString();
+    }
 
-    // Supplement: reinforce tool usage so Claude doesn't just verbally confirm actions
+    // Reinforce tool usage so Claude doesn't just verbally confirm actions
     const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.\n- Every action must be backed by a tool call that creates a real record.`;
-    const systemPrompt = filledPrompt + toolReinforcement;
+
+    // Assemble final system prompt: date/time + canonical business context + tool rules
+    const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${toolReinforcement}`;
 
     // Build message history for Claude
     const messages: Anthropic.MessageParam[] = [
@@ -382,7 +343,7 @@ serve(async (req) => {
         has_booking: String(vars.has_booking || ""),
         has_dispatch: String(vars.has_dispatch || ""),
         llm: "claude-haiku-4-5-20251001",
-        template_cached: cachedTemplate !== null,
+        prompt_source: "buildBusinessContext",
         tool_calls_count: toolCalls.length,
       },
     }), {
