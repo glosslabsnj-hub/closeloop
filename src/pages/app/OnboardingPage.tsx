@@ -417,7 +417,7 @@ export default function OnboardingPage() {
                     variant="outline"
                     onClick={() => {
                       toast({ title: "Progress saved", description: "You can resume anytime." });
-                      navigate("/");
+                      navigate("/app/dashboard");
                     }}
                   >
                     Save & Exit
