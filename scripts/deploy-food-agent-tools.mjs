@@ -148,7 +148,7 @@ const FOOD_TOOLS = [
       twilio_call_sid: prop("string", "The twilio_call_sid from your system prompt context. Always include this."),
       conversation_id: prop("string", "Conversation tracking ID if available"),
     },
-    ["tenant_id"]
+    ["tenant_id", "twilio_call_sid"]
   ),
   buildToolConfig(
     "add_to_waitlist",

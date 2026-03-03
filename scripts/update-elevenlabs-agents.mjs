@@ -2962,7 +2962,7 @@ function transferToOwnerTool() {
       customer_name: prop("string", "Customer's name if collected"),
       reason: prop("string", "Why the caller wants to be transferred"),
     },
-    ["tenant_id"]
+    ["tenant_id", "twilio_call_sid"]
   );
 }
 

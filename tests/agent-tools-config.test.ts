@@ -87,6 +87,33 @@ describe("Agent Tools Config: tenant_id invariants", () => {
   });
 });
 
+describe("Deploy scripts: transfer_to_owner requires twilio_call_sid", () => {
+  const deployScripts = [
+    "scripts/deploy-service-agent.mjs",
+    "scripts/deploy-dispatch-agent.mjs",
+    "scripts/deploy-food-agent-tools.mjs",
+    "scripts/deploy-medical-agent-tools.mjs",
+    "scripts/deploy-sales-agent.mjs",
+    "scripts/update-elevenlabs-agents.mjs",
+  ];
+
+  for (const scriptPath of deployScripts) {
+    it(`${scriptPath} has twilio_call_sid required for transfer_to_owner`, () => {
+      const scriptSource = readFileSync(join(process.cwd(), scriptPath), "utf-8");
+
+      // Find transfer_to_owner tool definition and its required array
+      const transferMatch = scriptSource.match(
+        /["']transfer_to_owner["'][\s\S]*?\[([^\]]*)\]\s*\)/
+      );
+      expect(transferMatch).not.toBeNull();
+
+      const requiredArray = transferMatch![1];
+      expect(requiredArray).toContain("twilio_call_sid");
+      expect(requiredArray).toContain("tenant_id");
+    });
+  }
+});
+
 describe("Agent Tools Config: mode coverage", () => {
   it("defines tools for all 6 business modes", () => {
     const modes = [

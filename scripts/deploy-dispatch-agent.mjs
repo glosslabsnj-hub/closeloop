@@ -213,7 +213,7 @@ const TOOLS = [
       customer_name: prop("string", "Caller's name if collected"),
       conversation_id: prop("string", "Conversation tracking ID"),
     },
-    ["tenant_id"]
+    ["tenant_id", "twilio_call_sid"]
   ),
 ];
 
