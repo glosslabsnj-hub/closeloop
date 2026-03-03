@@ -1,19 +1,19 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 8:33 AM ET (receptionist_ux — booking action terminology)
+## Last Session: 2026-03-03 8:55 AM ET (receptionist_eng — SMS terminology fix)
 
 ### What Was Done
-- **BookingDetailsSheet**: "Confirm Booking" button now uses `terms.booking` → plumber sees "Confirm Job"
-- **BookingCard**: "Cancel Booking" menu item now uses `terms.booking` → plumber sees "Cancel Job"
-- **ServiceCatalogEditor**: "book the appointment" help text now uses `terms.booking` → "book the job"
-- **LeadDetailPanel**: `getModeLabels()` now accepts `bookingTerm` for dynamic button label → "Book Job" for plumber
-- Build: Clean (0 errors), Tests: 1055/1055 passing
-- Commit: 3d9b4eb, pushed to main, deployed
+- **SMS templates**: Created `_shared/terminology.ts` with `getAppointmentLabel(mode, industrySlug)` for edge functions
+- **SmsSettingsSection**: Default templates now use `terminology.appointmentLabel` — plumber sees "Your job..." not "Your appointment..."
+- **booking-handoff**: Fallback SMS template uses tenant's mode+industry for correct label
+- **cron-appointment-reminders**: Reminder template + service_name fallback use dynamic label
+- Build: Clean (0 errors), Tests: 1071/1071 passing
+- Commit: d96e1ca, pushed to main, deployed (frontend + 2 edge functions)
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 1055/1055 passing
-- Commit: 3d9b4eb
+- Tests: 1071/1071 passing
+- Commit: d96e1ca
 - Pushed to main + deployed
 
 ### MODE PROGRESS
@@ -25,6 +25,7 @@
 - GENERAL: 0/42 (0%)
 
 ### Key Architecture Patterns
+- **_shared/terminology.ts**: Edge function helper `getAppointmentLabel(mode, industrySlug)` mirrors frontend `industryTerminology.ts` appointmentLabel resolution. Maps mode defaults (dispatch→"dispatch", food→"reservation", medical→"visit") + slug overrides (plumbing→"job", lawyer→"consultation", etc.). Used in booking-handoff and cron-appointment-reminders.
 - **applyAppointmentLabel**: `lib/terminology.ts` function that overlays industry `appointmentLabel` onto mode-level UI terms. Called in `useIndustryContext()`. Affects booking/bookings/bookingCreated/bookingConfirmed/newBooking/viewBookings/pendingBooking/pendingBookings/bookingsMetricLabel/bookingsPageSubtitle. Does NOT override if appointmentLabel is "appointment" or "booking" (defaults) or already matches (e.g. dispatch "job"→"job").
 - **verify_jwt = false**: Required for ALL ElevenLabs tool endpoints and internally-called functions in `config.toml`. Covered by `verify-jwt-coverage.test.ts` (37 tests).
 - **text-conversation**: Uses canonical `systemPrompt` from `buildBusinessContext()` + Claude tool-calling. Has 6 tools: create_booking, check_availability, create_callback, check_service_area, cancel_booking, reschedule_booking. Tool descriptions must be explicit about WHEN to invoke. System prompt supplement reinforces tool usage. NO longer fetches ElevenLabs template.
@@ -45,6 +46,6 @@
 - QA verification: brain/edits_reflect_in_ai_behavior (in_progress after commit 83bbb7d — CRITICAL gate)
 - QA verification: complete_flow_works, smart_defaults_prefilled (both in_progress after commits 6136367 + 0f7e451)
 - QA verification: callback_request_works, booking_sms_confirmation (in_progress)
-- QA verification: terminology overlay (handoff #325 filed for plumbing term verification)
-- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (in_progress after commit 0d190b6)
+- QA verification: SMS template terminology (handoff #332 filed for plumbing SMS templates)
+- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (in_progress)
 - 3 BLOCKED gates (Google Calendar OAuth, SMS A2P registration, transfer_to_human needs real call)
