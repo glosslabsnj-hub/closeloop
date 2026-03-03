@@ -131,7 +131,7 @@ export function useBookings() {
             entity_type: "booking",
             entity_id: id,
           },
-        }).catch((err) => console.error("trigger-workflow error:", err));
+        }).catch((err) => console.error("[completeBooking] trigger-workflow error:", err));
       }
 
       return data;
@@ -161,15 +161,31 @@ export function useBookings() {
         .update({ block_type: "confirmed_booking", expires_at: null })
         .eq("booking_id", id)
         .then(({ error: bbErr }) => {
-          if (bbErr) console.error("busy_blocks update error:", bbErr);
+          if (bbErr) console.error("[confirmBooking] busy_blocks update failed:", bbErr);
         })
-        .catch((err) => console.error("busy_blocks promise error:", err));
+        .catch((err) => console.error("[confirmBooking] busy_blocks error:", err));
 
       // Call booking-handoff to notify customer (SMS, email) and create calendar event
       if (tenant?.id) {
         supabase.functions.invoke("booking-handoff", {
           body: { booking_id: id, tenant_id: tenant.id },
-        }).catch((err) => console.error("booking-handoff error:", err));
+        }).then(({ error: handoffErr }) => {
+          if (handoffErr) {
+            console.error("[confirmBooking] booking-handoff failed:", handoffErr);
+            toast({
+              title: "Notification issue",
+              description: "Booking confirmed but customer notification may not have sent. Consider contacting them directly.",
+              variant: "default",
+            });
+          }
+        }).catch((err) => {
+          console.error("[confirmBooking] booking-handoff error:", err);
+          toast({
+            title: "Notification issue",
+            description: "Booking confirmed but customer notification may not have sent.",
+            variant: "default",
+          });
+        });
       }
 
       // Fire booking.confirmed workflow trigger for automations
@@ -181,14 +197,14 @@ export function useBookings() {
             entity_type: "booking",
             entity_id: id,
           },
-        }).catch((err) => console.error("trigger-workflow error:", err));
+        }).catch((err) => console.error("[confirmBooking] trigger-workflow error:", err));
       }
 
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking confirmed", description: "Customer has been notified." });
+      toast({ title: "Booking confirmed" });
     },
     onError: () => {
       toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });

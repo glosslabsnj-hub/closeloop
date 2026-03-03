@@ -179,8 +179,39 @@ serve(async (req: Request) => {
       .single();
 
     if (opportunityError) {
-      console.error("[create-callback] Opportunity error:", opportunityError);
-      // Still succeed - we captured the intent
+      console.error("[create-callback] CRITICAL: Opportunity insert failed:", JSON.stringify(opportunityError));
+
+      // Still capture the intent on the session so it's not completely lost
+      if (sessionId) {
+        await supabase
+          .from("ai_call_sessions")
+          .update({
+            outcome: "callback",
+            extracted_payload: {
+              intent: "callback",
+              callback_reason: reason,
+              customer_name: customerName,
+              customer_phone: phoneE164,
+              department: department,
+              preferred_time: preferredTime,
+              notes: notes,
+              _error: "opportunity_insert_failed",
+            },
+          })
+          .eq("id", sessionId);
+      }
+
+      // Return failure so ElevenLabs knows the tool had an issue
+      // (HTTP 200 required by ElevenLabs, but success: false signals the problem)
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: "I'll make sure someone calls you back soon.",
+          error: "Failed to save callback request",
+          _version: VERSION,
+        } as CreateCallbackResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Update session with callback outcome
