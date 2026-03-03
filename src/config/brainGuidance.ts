@@ -172,7 +172,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     what: "Choose where confirmed bookings get sent — email, calendar, or your booking system.",
     why: "Without this, your AI confirms bookings but you might not see them in time.",
     tips: {
-      default: "Email is the quickest to set up. Add a webhook later if you use a booking platform.",
+      default: "Email is the quickest to set up. Connect your booking software later if you use one.",
     },
   },
   "ai-behavior-mode": {

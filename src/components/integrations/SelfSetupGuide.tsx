@@ -41,11 +41,11 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
     tip: "Call data and leads will be logged automatically to your spreadsheet.",
   },
   webhook: {
-    title: "How to set up a Webhook",
+    title: "How to connect another app",
     steps: [
-      { step: 1, text: "Get your webhook URL from Zapier, Make, or your system" },
+      { step: 1, text: "Get your connection URL from Zapier, Make, or your system" },
       { step: 2, text: "Paste the URL below" },
-      { step: 3, text: "We'll send JSON data whenever events happen" },
+      { step: 3, text: "We'll automatically send updates whenever something happens" },
     ],
     tip: "Perfect for connecting to automation tools like Zapier or Make.",
     links: [
@@ -55,8 +55,8 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
   printer: {
     title: "How to set up printing",
     steps: [
-      { step: 1, text: "Option A (Cloud): Get a PrintNode account and enter your API key" },
-      { step: 2, text: "Option B (Local): Leave API key blank for browser-based printing" },
+      { step: 1, text: "Option A (PrintNode): Sign up at PrintNode and enter your access code" },
+      { step: 2, text: "Option B (Direct): Leave the access code blank to print from your browser" },
       { step: 3, text: "New orders will trigger prints automatically" },
     ],
     tip: "Cloud printing works from anywhere. Local printing uses your browser's print dialog.",

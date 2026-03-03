@@ -22,7 +22,7 @@ export const AUTOMATION_TEMPLATES: AutomationTemplate[] = [
   {
     id: "booking-full-workflow",
     name: "Complete Booking Workflow",
-    description: "When a booking is created, sync to calendar, send SMS confirmation, and notify via webhook",
+    description: "When a booking is created, sync to calendar, send SMS confirmation, and forward to your other software",
     category: "booking",
     businessModes: ["service", "medical", "general"],
     recommended: true,

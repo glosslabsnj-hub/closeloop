@@ -210,7 +210,7 @@ export const NODE_TYPE_METADATA: Record<WorkflowNodeType, { label: string; icon:
   print_ticket: { label: "Print Ticket", icon: "🖨️", description: "Print a ticket for the order" },
   notify_sms: { label: "Send SMS", icon: "📱", description: "Send an SMS notification" },
   notify_email: { label: "Send Email", icon: "📧", description: "Send an email notification" },
-  webhook_push: { label: "Webhook", icon: "🔗", description: "Send data to an external URL" },
+  webhook_push: { label: "Forward to App", icon: "🔗", description: "Send info to your other business software" },
   update_crm: { label: "Update CRM", icon: "🔄", description: "Sync with your CRM" },
   create_calendar_event: { label: "Calendar Event", icon: "📅", description: "Create a calendar event" },
   assign_to_user: { label: "Assign", icon: "👤", description: "Assign to a team member" },

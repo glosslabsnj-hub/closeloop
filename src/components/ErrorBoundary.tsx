@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertTriangle, Home } from "lucide-react";
+import { AlertTriangle, Home, LifeBuoy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -63,16 +63,25 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
               {contextMsg}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={this.resetErrorBoundary}>
-              Try again
-            </Button>
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={this.resetErrorBoundary}>
+                Try again
+              </Button>
+              <a
+                href="/app/dashboard"
+                className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Home className="h-3.5 w-3.5" />
+                Back to Dashboard
+              </a>
+            </div>
             <a
-              href="/app/dashboard"
-              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              href="mailto:support@getfluxdata.com"
+              className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Home className="h-3.5 w-3.5" />
-              Back to Dashboard
+              <LifeBuoy className="h-3 w-3" />
+              Still stuck? Contact support
             </a>
           </div>
         </div>

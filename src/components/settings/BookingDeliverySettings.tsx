@@ -273,23 +273,23 @@ export function BookingDeliverySettings() {
                         id="webhook-url"
                         value={webhookUrl}
                         onChange={(e) => setWebhookUrl(e.target.value)}
-                        placeholder="https://your-crm.com/api/bookings"
+                        placeholder="https://your-crm.com/bookings"
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Paste the webhook URL from your CRM or scheduling software
+                        Paste the connection address from your CRM or scheduling software
                       </p>
                     </div>
                     <div>
-                      <Label htmlFor="webhook-secret">Secret key (optional)</Label>
+                      <Label htmlFor="webhook-secret">Security code (optional)</Label>
                       <Input
                         id="webhook-secret"
                         type="password"
                         value={webhookSecret}
                         onChange={(e) => setWebhookSecret(e.target.value)}
-                        placeholder={settings?.webhook_secret ? "••••••••" : "your-secret-key"}
+                        placeholder={settings?.webhook_secret ? "••••••••" : "your-security-code"}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        For secure webhooks — leave empty to keep existing
+                        For extra security — leave empty to keep existing
                       </p>
                     </div>
                     <Button
