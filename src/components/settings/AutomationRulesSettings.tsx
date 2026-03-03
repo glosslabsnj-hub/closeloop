@@ -22,10 +22,10 @@ interface EntityConfig {
 const ENTITY_CONFIGS: EntityConfig[] = [
   {
     type: "booking",
-    label: "Bookings / Appointments",
+    label: "Bookings",
     icon: <Calendar className="h-5 w-5" />,
     module: "booking",
-    description: "Service appointments scheduled by callers",
+    description: "Scheduled by callers via AI",
     defaultAutoConfirm: false,
   },
   {

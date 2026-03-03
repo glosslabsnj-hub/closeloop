@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Webhook, Mail, Phone, Info, Send, CheckCircle2, Calendar, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface BookingDeliverySettingsData {
   tenant_id: string;
@@ -40,14 +41,16 @@ const HANDOFF_METHODS: Array<{
 }> = [
   { id: "internal", label: "Show on Flux Receptionist calendar", description: "Always saved here first", icon: Calendar, always: true },
   { id: "webhook", label: "Send to my other software", description: "For CRMs, scheduling tools, etc.", icon: Webhook, always: false },
-  { id: "email", label: "Email me", description: "Get an email for each booking", icon: Mail, always: false },
-  { id: "sms", label: "Text me", description: "Get a text for each booking", icon: Phone, always: false },
+  { id: "email", label: "Email me", description: "Get an email for each new one", icon: Mail, always: false },
+  { id: "sms", label: "Text me", description: "Get a text for each new one", icon: Phone, always: false },
 ];
 
 export function BookingDeliverySettings() {
   const { tenant } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { terms } = useIndustryContext();
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const [enabled, setEnabled] = useState(true);
   const [methods, setMethods] = useState<string[]>(["internal"]);
@@ -192,16 +195,16 @@ export function BookingDeliverySettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Where Bookings Go</CardTitle>
+          <CardTitle>Where {cap(terms.bookings)} Go</CardTitle>
           <CardDescription>
-            Choose how you want to receive new bookings
+            Choose how you want to receive new {terms.bookings}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Bookings are always saved internally in Flux Receptionist first. External delivery methods 
+              {cap(terms.bookings)} are always saved internally in Flux Receptionist first. External delivery methods
               push a copy to your existing systems (calendar, CRM, etc).
             </AlertDescription>
           </Alert>
@@ -227,9 +230,9 @@ export function BookingDeliverySettings() {
           {/* Master Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-base">Send bookings somewhere?</Label>
+              <Label className="text-base">Send {terms.bookings} somewhere?</Label>
               <p className="text-sm text-muted-foreground">
-                Turn on to automatically send bookings to your calendar, email, or other tools
+                Turn on to automatically send {terms.bookings} to your calendar, email, or other tools
               </p>
             </div>
             <Switch checked={enabled} onCheckedChange={setEnabled} />
@@ -303,7 +306,7 @@ export function BookingDeliverySettings() {
                       ) : (
                         <Send className="h-4 w-4 mr-2" />
                       )}
-                      Send Test Booking
+                      Send Test {cap(terms.booking)}
                     </Button>
                   </div>
                 </div>
@@ -315,7 +318,7 @@ export function BookingDeliverySettings() {
                   <Label className="text-base">Email Notifications</Label>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="notify-email">Send booking emails to</Label>
+                      <Label htmlFor="notify-email">Send {terms.booking} emails to</Label>
                       <Input
                         id="notify-email"
                         type="email"
@@ -347,7 +350,7 @@ export function BookingDeliverySettings() {
                   <Label className="text-base">Text Notifications</Label>
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="notify-phone">Send booking texts to</Label>
+                      <Label htmlFor="notify-phone">Send {terms.booking} texts to</Label>
                       <Input
                         id="notify-phone"
                         value={notifyPhone}

@@ -54,7 +54,7 @@ export default function AIAssistantPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { _context, loading: _contextLoading, _refetch } = useBusinessContext(tenant?.id || null);
-  const { terminology } = useIndustryContext();
+  const { terminology, terms } = useIndustryContext();
   const activeVerbPhrase = getActiveVerb(terminology.appointmentLabel);
   
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -236,7 +236,7 @@ export default function AIAssistantPage() {
           </TabsTrigger>
           <TabsTrigger value="booking" className="gap-2">
             <CalendarCheck className="h-4 w-4" />
-            Booking
+            {terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)}
           </TabsTrigger>
           <TabsTrigger value="scripts" className="gap-2">
             <MessageSquare className="h-4 w-4" />

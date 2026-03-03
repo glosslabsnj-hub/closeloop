@@ -62,19 +62,19 @@ const standardFields: Record<Intent, InputField[]> = {
       key: "customer_name",
       label: "Customer Name", // resolved dynamically at render
       ask_prompt: "May I have your name please?",
-      why_needed: "Required to identify the booking"
+      why_needed: "Required to identify the customer"
     },
     {
       key: "customer_phone",
       label: "Phone Number",
       ask_prompt: "What's the best phone number to reach you at?",
-      why_needed: "Required for booking confirmation and updates"
+      why_needed: "Required for confirmation and updates"
     },
     {
       key: "service_requested",
       label: "Service",
       ask_prompt: "Which service are you interested in?",
-      why_needed: "Required to schedule the appropriate service"
+      why_needed: "Required to schedule the right service"
     },
     {
       key: "preferred_date",
@@ -86,7 +86,7 @@ const standardFields: Record<Intent, InputField[]> = {
       key: "preferred_time",
       label: "Preferred Time",
       ask_prompt: "What time would you prefer?",
-      why_needed: "Required to schedule the appointment"
+      why_needed: "Required to schedule the service"
     },
     {
       key: "address",
@@ -254,7 +254,7 @@ const intentLabels: Record<Intent, string> = {
 };
 
 const intentDescriptions: Record<Intent, string> = {
-  booking: "Service bookings and appointments",
+  booking: "Service scheduling and confirmations",
   dispatch: "Towing, delivery, and dispatch requests",
   order: "Food orders and product purchases",
   reservation: "Restaurant reservations",

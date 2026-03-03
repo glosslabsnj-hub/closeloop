@@ -206,7 +206,7 @@ export default function BookingsPage() {
       <div className="space-y-6">
         <PageHeader
           title={terms.bookingsPageTitle || "Schedule"}
-          description={terms.bookingsPageSubtitle || "Your calendar and upcoming appointments"}
+          description={terms.bookingsPageSubtitle || "Your calendar and upcoming schedule"}
           action={
             <Button onClick={() => setCreateDialogOpen(true)}>
               <Plus className="h-4 w-4" />
