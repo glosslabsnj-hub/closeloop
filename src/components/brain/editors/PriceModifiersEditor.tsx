@@ -150,6 +150,47 @@ const MODIFIER_TYPES = {
   },
 };
 
+// Industry-specific suggestion overrides (slug → modifier type → suggestions)
+// Home services (plumbing, HVAC, electrical) charge more for emergency/after-hours
+const INDUSTRY_SUGGESTION_OVERRIDES: Record<string, Partial<Record<string, { name: string; adjustment: number }[]>>> = {
+  plumbing: {
+    urgency: [
+      { name: "Same-Day Service Call", adjustment: 75 },
+      { name: "Emergency Call (2-4 hrs)", adjustment: 150 },
+      { name: "After-Hours Emergency", adjustment: 200 },
+    ],
+    time_of_day: [
+      { name: "After Hours (6pm-8am)", adjustment: 75 },
+      { name: "Weekend", adjustment: 50 },
+      { name: "Holiday", adjustment: 100 },
+    ],
+  },
+  hvac: {
+    urgency: [
+      { name: "Same-Day Service Call", adjustment: 75 },
+      { name: "Emergency Call (2-4 hrs)", adjustment: 150 },
+      { name: "After-Hours Emergency", adjustment: 200 },
+    ],
+    time_of_day: [
+      { name: "After Hours (6pm-8am)", adjustment: 75 },
+      { name: "Weekend", adjustment: 50 },
+      { name: "Holiday", adjustment: 100 },
+    ],
+  },
+  electrical: {
+    urgency: [
+      { name: "Same-Day Service Call", adjustment: 75 },
+      { name: "Emergency Call (2-4 hrs)", adjustment: 150 },
+      { name: "After-Hours Emergency", adjustment: 200 },
+    ],
+    time_of_day: [
+      { name: "After Hours (6pm-8am)", adjustment: 75 },
+      { name: "Weekend", adjustment: 50 },
+      { name: "Holiday", adjustment: 100 },
+    ],
+  },
+};
+
 type ModifierType = keyof typeof MODIFIER_TYPES;
 type AdjustmentType = "fixed" | "percentage" | "multiplier";
 
@@ -217,8 +258,9 @@ export function PriceModifiersEditor() {
   // Get industry from tenant
   const tenantIndustry = tenant?.industry?.toLowerCase() || "";
 
-  // Filter modifier types relevant to this business
+  // Filter modifier types relevant to this business + apply industry-specific suggestions
   const relevantTypes = useMemo(() => {
+    const industryOverrides = INDUSTRY_SUGGESTION_OVERRIDES[tenantIndustry] || {};
     return Object.entries(MODIFIER_TYPES)
       .filter(([_, config]) => {
         // Check if mode matches
@@ -226,11 +268,15 @@ export function PriceModifiersEditor() {
         // If no industry restrictions, show it
         if (config.industries.length === 0) return true;
         // Check if industry matches
-        return config.industries.some(ind => 
+        return config.industries.some(ind =>
           tenantIndustry.includes(ind) || ind.includes(tenantIndustry)
         );
       })
-      .map(([key, config]) => ({ key: key as ModifierType, ...config }));
+      .map(([key, config]) => ({
+        key: key as ModifierType,
+        ...config,
+        suggestions: industryOverrides[key] || config.suggestions,
+      }));
   }, [businessMode, tenantIndustry]);
 
   // Group modifiers by type

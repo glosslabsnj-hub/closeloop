@@ -27,6 +27,28 @@ function groupByCategory(events: NotificationEvent[]) {
   return groups;
 }
 
+/**
+ * Resolve notification event labels using mode-aware terminology.
+ * A plumber sees "New jobs" instead of "New bookings".
+ */
+function resolveEventLabel(event: NotificationEvent, apptLabel: string): { label: string; description: string } {
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const plural = `${apptLabel}s`;
+
+  switch (event.eventType) {
+    case "new_booking":
+      return { label: `New ${plural}`, description: `When a ${apptLabel} is created` };
+    case "booking_cancelled":
+      return { label: `${cap(apptLabel)} cancellations`, description: `When a ${apptLabel} is cancelled` };
+    case "daily_summary":
+      return { label: event.label, description: `A daily digest of calls and ${plural}` };
+    case "handoff_failure":
+      return { label: event.label, description: `When a ${apptLabel} handoff fails` };
+    default:
+      return { label: event.label, description: event.description };
+  }
+}
+
 export function NotificationPreferencesPanel() {
   const { visibleEvents, isLoading, getPreference, togglePreference } = useNotificationPreferences();
   const { terminology } = useIndustryContext();
@@ -73,14 +95,15 @@ export function NotificationPreferencesPanel() {
             <div className="space-y-1">
               {grouped[category].map((event) => {
                 const enabled = getPreference(event.eventType);
+                const resolved = resolveEventLabel(event, terminology.appointmentLabel);
                 return (
                   <div
                     key={event.eventType}
                     className="flex items-center justify-between py-2.5 px-1 rounded hover:bg-muted/30 transition-colors"
                   >
                     <div className="min-w-0 mr-4">
-                      <p className="font-medium text-sm">{event.label}</p>
-                      <p className="text-sm text-muted-foreground">{event.description}</p>
+                      <p className="font-medium text-sm">{resolved.label}</p>
+                      <p className="text-sm text-muted-foreground">{resolved.description}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <Switch
