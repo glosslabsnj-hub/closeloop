@@ -173,6 +173,7 @@ const CATEGORY_OVERRIDES: Partial<Record<IndustryCategory, Partial<IndustryTermi
   home_services: {
     teamMemberLabel: "technician",
     appointmentLabel: "job",
+    policiesCardTitle: "Service Policies",
     exampleServices: ["Service Call", "Diagnostic", "Installation", "Emergency Repair"],
     exampleFAQs: ["Do you charge a trip fee?", "Are you licensed and insured?", "Do you offer financing?"],
   },
@@ -380,12 +381,9 @@ export function getDynamicStepTitle(
       return mode === "medical" ? "Appointment Calendar" : "Schedule & Availability";
     case "policies":
       if (mode === "medical") return "Patient Intake & HIPAA";
-      if (mode === "dispatch") return "Dispatch Policies";
-      return "Booking Policies";
+      return terms.policiesCardTitle;
     case "knowledge":
-      if (mode === "medical") return "Patient FAQs";
-      if (mode === "food") return "Menu FAQs";
-      return "Customer FAQs";
+      return terms.faqsCardTitle;
     default:
       return "";
   }

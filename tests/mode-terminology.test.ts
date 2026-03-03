@@ -393,18 +393,22 @@ describe("getDynamicStepTitle", () => {
     expect(getDynamicStepTitle("calendar", "food")).toBe("Schedule & Availability");
   });
 
-  it("'policies' returns mode-specific title", () => {
+  it("'policies' returns mode-specific title from terminology", () => {
     expect(getDynamicStepTitle("policies", "medical")).toBe("Patient Intake & HIPAA");
     expect(getDynamicStepTitle("policies", "dispatch")).toBe("Dispatch Policies");
     expect(getDynamicStepTitle("policies", "service")).toBe("Booking Policies");
-    expect(getDynamicStepTitle("policies", "food")).toBe("Booking Policies");
+    expect(getDynamicStepTitle("policies", "food")).toBe("Restaurant Policies");
+    expect(getDynamicStepTitle("policies", "general")).toBe("Business Policies");
+    expect(getDynamicStepTitle("policies", "sales")).toBe("Sales Policies");
   });
 
-  it("'knowledge' returns mode-specific FAQ title", () => {
+  it("'knowledge' returns mode-specific FAQ title from terminology", () => {
     expect(getDynamicStepTitle("knowledge", "medical")).toBe("Patient FAQs");
-    expect(getDynamicStepTitle("knowledge", "food")).toBe("Menu FAQs");
+    expect(getDynamicStepTitle("knowledge", "food")).toBe("Guest FAQs");
     expect(getDynamicStepTitle("knowledge", "service")).toBe("Customer FAQs");
-    expect(getDynamicStepTitle("knowledge", "dispatch")).toBe("Customer FAQs");
+    expect(getDynamicStepTitle("knowledge", "dispatch")).toBe("Caller FAQs");
+    expect(getDynamicStepTitle("knowledge", "general")).toBe("Client FAQs");
+    expect(getDynamicStepTitle("knowledge", "sales")).toBe("Prospect FAQs");
   });
 
   it("unknown stepId returns empty string", () => {
@@ -414,6 +418,12 @@ describe("getDynamicStepTitle", () => {
   it("slug overrides apply to offerings title", () => {
     expect(getDynamicStepTitle("offerings", "service", "beauty_wellness", "hair-salon")).toBe("Salon Services");
     expect(getDynamicStepTitle("offerings", "dispatch", "dispatch_logistics", "towing")).toBe("Tow Rates");
+  });
+
+  it("home_services category overrides policies to 'Service Policies'", () => {
+    expect(getDynamicStepTitle("policies", "service", "home_services", "plumbing")).toBe("Service Policies");
+    expect(getDynamicStepTitle("policies", "service", "home_services", "hvac")).toBe("Service Policies");
+    expect(getDynamicStepTitle("policies", "service", "home_services", "electrical")).toBe("Service Policies");
   });
 });
 

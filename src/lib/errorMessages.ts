@@ -149,13 +149,13 @@ const errorMessages: Record<ErrorCode, Omit<ErrorInfo, "code">> = {
 
   // Webhook errors
   WEBHOOK_DELIVERY_FAILED: {
-    title: "Webhook delivery failed",
-    description: "We couldn't deliver data to your webhook endpoint.",
-    suggestion: "Check that your webhook URL is correct and responding.",
+    title: "Delivery failed",
+    description: "We couldn't send data to your connected service.",
+    suggestion: "Check that your connection URL is correct and the service is online.",
   },
   WEBHOOK_INVALID_URL: {
-    title: "Invalid webhook URL",
-    description: "The webhook URL you entered is not valid.",
+    title: "Invalid connection URL",
+    description: "The URL you entered is not valid.",
     suggestion: "Make sure it starts with https:// and is a complete URL.",
   },
 

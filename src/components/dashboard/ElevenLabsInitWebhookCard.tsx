@@ -76,7 +76,7 @@ export function ElevenLabsInitWebhookCard() {
         </div>
 
         <div className="rounded-lg border bg-muted/50 p-3 space-y-2">
-          <p className="text-xs font-medium">This webhook provides:</p>
+          <p className="text-xs font-medium">This connection provides:</p>
           <ul className="text-xs text-muted-foreground space-y-1">
             <li>• Business name, hours, and services pricing</li>
             <li>• Menu items (for food businesses)</li>

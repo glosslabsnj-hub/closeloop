@@ -1,24 +1,22 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-03 5:53 AM ET (receptionist_fix — contextual errors + 143 regression tests)
+## Last Session: 2026-03-03 6:17 AM ET (receptionist_eng — onboarding re-entry + sidebar unlock)
 
 ### What Was Done
-- **JARGON FIX**: Replaced 10 generic "Something went wrong" messages with contextual descriptions across 10 components (AIAssistantPage, GoLivePage, AgencyApplicationForm, LiveFAQList×3, SessionExpirationHandler, SharePortalLinkDialog, IntegrationConnectDialog). Also cleaned webhook/endpoint jargon in WebhookSetup + IntegrationGuide.
-- **NEW TESTS**: 143 regression tests in 3 new files:
-  - `error-recovery-patterns.test.ts` (84 tests): refetch pattern, contextual headings, recovery links, no window.location.reload
-  - `jargon-regression.test.ts` (8 tests): forbidden error phrases scanner
-  - `resolve-capabilities.test.ts` (51 tests): critical edge function had ZERO coverage
+- **ONBOARDING RE-ENTRY**: Added `?force=true` URL param to bypass tenant redirect in OnboardingPage. Completed tenants can now re-test onboarding via `/app/onboarding?force=true`. Without param, normal redirect to dashboard preserved.
+- **SIDEBAR UNLOCK**: Unlocked sidebar navigation for tenants without subscription. Previously all links except Settings/Go-Live were `pointer-events-none` + `opacity-30`. Now users can explore Dashboard, Brain, Calls, Leads, Customers freely after onboarding. Go-Live page remains the payment CTA.
+- **REVIEW PREVIEW**: Expanded AI Knowledge Preview from 4 to 8 services (plumbing has 7, all now visible in review).
 - Build: Clean (0 errors), Tests: 932/932 passing
-- Commit: a99086c, pushed to main, deployed to production
+- Commit: 6136367, pushed to main, deployed to production
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 932/932 passing
-- Commit: a99086c
+- Commit: 6136367
 - Pushed to main + deployed
 
 ### MODE PROGRESS
-- SERVICE: 34/42 QA-verified (81%) ← FOCUS
+- SERVICE: 32/42 QA-verified (76%) ← FOCUS
 - DISPATCH: 0/42 (0%)
 - FOOD: 0/42 (0%)
 - MEDICAL: 0/42 (0%)
@@ -37,8 +35,11 @@
 - **tenants table address**: Single `address` text field. No separate `city`/`state` columns.
 - **Error recovery pattern**: All data pages use React Query `refetch()` for retry (never `window.location.reload()`). Each error state offers: Try again, Back to Dashboard, Contact Support. Covered by 84 regression tests.
 - **resolveCapabilities**: Pure function in `_shared/resolveCapabilities.ts`. Parses rawMode + enabled_modules + capabilities_json → Capabilities object. All 6 modes tested. Covered by 51 tests.
+- **Onboarding re-entry**: `?force=true` URL param on `/app/onboarding` bypasses tenant redirect. Without it, completed tenants redirect to dashboard.
+- **Sidebar subscription gating**: Sidebar passes `effectiveHasSubscription || !!tenant` to unlock nav for all tenants. Payment gate is on Go-Live page, not sidebar.
 
 ### Remaining Work
-- QA verification: callback_request_works, booking_sms_confirmation, estimates_save_works, booking_date_picker_works (all in_progress)
-- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (all in_progress)
+- QA verification: complete_flow_works, smart_defaults_prefilled (both in_progress after commit 6136367)
+- QA verification: callback_request_works, booking_sms_confirmation (in_progress)
+- QA verification: non_technical_usable, error_states_have_recovery, no_console_errors (in_progress)
 - 3 BLOCKED gates (Google Calendar OAuth, SMS A2P registration, transfer_to_human needs real call)

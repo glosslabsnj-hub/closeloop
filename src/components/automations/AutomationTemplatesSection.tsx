@@ -119,7 +119,7 @@ const TEMPLATES: AutomationTemplate[] = [
   {
     id: "universal-call-webhook",
     name: "Push Call Summary to CRM",
-    description: "Send call data to your CRM via webhook",
+    description: "Automatically send call data to your CRM",
     trigger_event: "call.ended",
     action_type: "send_webhook",
     destination_provider: "webhook",

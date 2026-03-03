@@ -101,19 +101,19 @@ export function QuickActionsMenu({
             id: "view-last-delivery",
             label: "View last delivery",
             icon: <Eye className="h-4 w-4" />,
-            description: "See the payload and response of the last webhook call",
+            description: "See the data and response of the last delivery",
             onClick: () => {
               toast({
                 title: "View in History",
-                description: "Check the History tab for detailed webhook logs",
+                description: "Check the History tab for detailed connection logs",
               });
             },
           },
           {
             id: "test-webhook",
-            label: "Send test payload",
+            label: "Send test data",
             icon: <RefreshCw className="h-4 w-4" />,
-            description: "Send a sample payload to test your webhook",
+            description: "Send sample data to test your connection",
             onClick: () => onTest?.(),
             disabled: !onTest,
           },

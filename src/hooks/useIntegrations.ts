@@ -188,7 +188,7 @@ export const PROVIDERS: ProviderInfo[] = [
     description: "Print kitchen tickets and receipts",
     configFields: [
       { key: "printer_type", label: "Printer Type", type: "select", required: true },
-      { key: "printer_endpoint", label: "Printer API Endpoint", type: "url", required: false },
+      { key: "printer_endpoint", label: "Printer Address", type: "url", required: false },
     ],
   },
   {

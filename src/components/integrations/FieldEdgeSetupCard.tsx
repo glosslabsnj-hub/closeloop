@@ -141,7 +141,7 @@ export function FieldEdgeSetupCard() {
             onChange={(e) => setBaseUrl(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
-            Leave blank to use the default FieldEdge API endpoint
+            Leave blank to use the default FieldEdge address
           </p>
         </div>
         <Button

@@ -193,7 +193,7 @@ export function NodeConfigEditor({
                 <Input
                   value={config.url || ""}
                   onChange={(e) => updateField("url", e.target.value)}
-                  placeholder="https://your-api.com/webhook"
+                  placeholder="https://your-service.com/api/data"
                 />
               </div>
               <div className="space-y-2">
