@@ -87,7 +87,7 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarCheck className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">AI Booking Mode</span>
+            <span className="text-sm font-medium">AI {bookingLabel} Mode</span>
           </div>
           <Badge variant={bookingMode === 'auto_book' ? 'default' : 'secondary'}>
             {bookingMode === 'auto_book' ? 'Auto-Book' : 'Pending Approval'}

@@ -69,7 +69,7 @@ const WORKFLOW_TEMPLATES: Record<BusinessMode, WorkflowTemplate[]> = {
           name: "Send SMS Confirmation",
           config: {
             to: "{{customer_phone}}",
-            message: "Hi {{customer_name}}! Your appointment for {{service_name}} on {{start_date}} is confirmed. See you soon!",
+            message: "Hi {{customer_name}}! Your {{service_name}} on {{start_date}} is confirmed. We'll see you then!",
           },
         },
         {

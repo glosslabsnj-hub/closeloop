@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { 
   useIntegrations, 
   useIntegrationMutations,
@@ -143,7 +144,7 @@ const QUICK_PRESETS: QuickPreset[] = [
 
 // Tool connections (used for status checking)
 const _CONNECT_TOOLS = [
-  { id: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync bookings to your calendar" },
+  { id: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync your schedule to your calendar" },
   { id: "google_sheets", name: "Google Sheets", icon: "📊", description: "Log data to spreadsheets" },
   { id: "webhook", name: "External App", icon: "🔗", description: "Send data to any external service" },
   { id: "printer", name: "Printer", icon: "🖨️", description: "Print kitchen tickets" },
@@ -153,6 +154,7 @@ export default function IntegrationsPage() {
   const { tenant } = useAuth();
   const tenantId = tenant?.id ?? null;
   const { businessMode } = useTenantConfig();
+  const { terms } = useIndustryContext();
   const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState("automations");
@@ -243,8 +245,17 @@ export default function IntegrationsPage() {
     );
   }
 
-  // Filter presets by business mode
-  const availablePresets = QUICK_PRESETS.filter(p => p.modes.includes(businessMode));
+  // Filter presets by business mode and apply dynamic terminology
+  const availablePresets = QUICK_PRESETS.filter(p => p.modes.includes(businessMode)).map(p => {
+    if (p.trigger.startsWith("booking.")) {
+      return {
+        ...p,
+        label: p.label.replace(/bookings/gi, terms.bookings).replace(/booking/gi, terms.booking),
+        description: p.description.replace(/bookings/gi, terms.bookings).replace(/booking/gi, terms.booking),
+      };
+    }
+    return p;
+  });
   const connectedIntegrations = (integrations || []).filter(i => i.status === "connected");
 
   // Check if integration is connected
