@@ -135,12 +135,36 @@ function parseTime(input: string): string {
   return "09:00";
 }
 
-// Parse natural language date
+const MONTH_NAMES: Record<string, number> = {
+  january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2,
+  april: 3, apr: 3, may: 4, june: 5, jun: 5, july: 6, jul: 6,
+  august: 7, aug: 7, september: 8, sep: 8, sept: 8, october: 9, oct: 9,
+  november: 10, nov: 10, december: 11, dec: 11,
+};
+
+const DAY_NAMES: Record<string, number> = {
+  sunday: 0, sun: 0, monday: 1, mon: 1, tuesday: 2, tue: 2, tues: 2,
+  wednesday: 3, wed: 3, thursday: 4, thu: 4, thur: 4, thurs: 4,
+  friday: 5, fri: 5, saturday: 6, sat: 6,
+};
+
+/** Get the next occurrence of a weekday (0=Sun … 6=Sat), at least 1 day from now */
+function nextWeekday(targetDay: number): Date {
+  const now = new Date();
+  const result = new Date(now);
+  result.setDate(now.getDate() + 1);
+  while (result.getDay() !== targetDay) {
+    result.setDate(result.getDate() + 1);
+  }
+  return result;
+}
+
+// Parse natural language date to YYYY-MM-DD
 function parseDate(input: string, timezone: string): string {
   const now = new Date();
   const lower = input.toLowerCase().trim();
-  
-  if (lower === "today" || lower === "now" || !input) {
+
+  if (!input || lower === "today" || lower === "now") {
     return formatDateLocal(now, timezone);
   }
   if (lower === "tomorrow") {
@@ -148,11 +172,60 @@ function parseDate(input: string, timezone: string): string {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return formatDateLocal(tomorrow, timezone);
   }
-  
+
+  // ISO date: 2026-03-05
   if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
     return input;
   }
-  
+
+  // MM/DD/YYYY or M/D/YYYY
+  const slashDate = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (slashDate) {
+    const [, m, d, y] = slashDate;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  // MM/DD or M/D (assume current/next year)
+  const slashShort = input.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (slashShort) {
+    const [, m, d] = slashShort;
+    const year = now.getFullYear();
+    // Use noon UTC to avoid timezone day-shift when formatting in local tz
+    const candidate = new Date(Date.UTC(year, parseInt(m) - 1, parseInt(d), 12, 0, 0));
+    if (candidate < now) candidate.setUTCFullYear(year + 1);
+    return formatDateLocal(candidate, timezone);
+  }
+
+  // "March 5" / "March 5th" / "5th of March"
+  const monthDay = lower.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/) ||
+                   lower.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)$/);
+  if (monthDay) {
+    let monthStr: string, dayStr: string;
+    if (/^[a-z]/.test(monthDay[1])) {
+      [, monthStr, dayStr] = monthDay;
+    } else {
+      [, dayStr, monthStr] = monthDay;
+    }
+    const monthIndex = MONTH_NAMES[monthStr];
+    if (monthIndex !== undefined) {
+      const year = now.getFullYear();
+      // Use noon UTC to avoid timezone day-shift
+      const candidate = new Date(Date.UTC(year, monthIndex, parseInt(dayStr), 12, 0, 0));
+      if (candidate < now) candidate.setUTCFullYear(year + 1);
+      return formatDateLocal(candidate, timezone);
+    }
+  }
+
+  // "next Monday" / "this Friday" / just "friday"
+  const dayMatch = lower.match(/^(?:next\s+|this\s+)?([a-z]+)$/);
+  if (dayMatch) {
+    const dayIndex = DAY_NAMES[dayMatch[1]];
+    if (dayIndex !== undefined) {
+      return formatDateLocal(nextWeekday(dayIndex), timezone);
+    }
+  }
+
+  // Fallback: today
   return formatDateLocal(now, timezone);
 }
 

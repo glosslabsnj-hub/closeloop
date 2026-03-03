@@ -72,8 +72,9 @@ function parseDate(input: string, timezone: string): string {
   if (slashShort) {
     const [, m, d] = slashShort;
     const year = now.getFullYear();
-    const candidate = new Date(year, parseInt(m) - 1, parseInt(d));
-    if (candidate < now) candidate.setFullYear(year + 1);
+    // Use noon UTC to avoid timezone day-shift when formatting in local tz
+    const candidate = new Date(Date.UTC(year, parseInt(m) - 1, parseInt(d), 12, 0, 0));
+    if (candidate < now) candidate.setUTCFullYear(year + 1);
     return formatDateLocal(candidate, timezone);
   }
 
@@ -89,8 +90,9 @@ function parseDate(input: string, timezone: string): string {
     const monthIndex = MONTH_NAMES[monthStr];
     if (monthIndex !== undefined) {
       const year = now.getFullYear();
-      const candidate = new Date(year, monthIndex, parseInt(dayStr));
-      if (candidate < now) candidate.setFullYear(year + 1);
+      // Use noon UTC to avoid timezone day-shift
+      const candidate = new Date(Date.UTC(year, monthIndex, parseInt(dayStr), 12, 0, 0));
+      if (candidate < now) candidate.setUTCFullYear(year + 1);
       return formatDateLocal(candidate, timezone);
     }
   }
@@ -239,5 +241,115 @@ describe("parseTime", () => {
   it("falls back to 09:00 for unknown formats", () => {
     expect(parseTime("noon")).toBe("09:00"); // fallback
     expect(parseTime("")).toBe("09:00");
+  });
+});
+
+// ===== Regression tests for date bugs =====
+
+describe("parseDate - timezone day-shift regression (#360)", () => {
+  // Bug: new Date(year, month, day) creates midnight LOCAL/UTC time.
+  // When formatted in America/New_York (UTC-5), midnight UTC = previous day 7 PM.
+  // Fix: Use Date.UTC with noon (12:00) so any timezone stays on same calendar day.
+
+  it("'March 15' must parse to day 15 in any US timezone", () => {
+    const timezones = [
+      "America/New_York",
+      "America/Chicago",
+      "America/Denver",
+      "America/Los_Angeles",
+      "Pacific/Honolulu",
+    ];
+    for (const tz of timezones) {
+      const result = parseDate("March 15", tz);
+      expect(result).toMatch(/-03-15$/);
+    }
+  });
+
+  it("'December 25' must parse to day 25 regardless of timezone", () => {
+    expect(parseDate("December 25", "America/New_York")).toMatch(/-12-25$/);
+    expect(parseDate("December 25", "America/Los_Angeles")).toMatch(/-12-25$/);
+  });
+
+  it("'3/15' must parse to day 15 regardless of timezone", () => {
+    expect(parseDate("3/15", "America/New_York")).toMatch(/-03-15$/);
+    expect(parseDate("3/15", "America/Los_Angeles")).toMatch(/-03-15$/);
+  });
+
+  it("'March 1st' must parse to day 01 not previous month", () => {
+    expect(parseDate("March 1st", "America/New_York")).toMatch(/-03-01$/);
+    expect(parseDate("March 1st", "Pacific/Honolulu")).toMatch(/-03-01$/);
+  });
+
+  it("ordinals parse to correct day in all timezones", () => {
+    expect(parseDate("April 2nd", "America/New_York")).toMatch(/-04-02$/);
+    expect(parseDate("June 3rd", "America/Los_Angeles")).toMatch(/-06-03$/);
+    expect(parseDate("July 22nd", "Pacific/Honolulu")).toMatch(/-07-22$/);
+  });
+});
+
+describe("parseDate - comprehensive format support regression (#359)", () => {
+  // Bug: check-availability only handled "today", "tomorrow", ISO format.
+  // Natural language dates like "March 15" fell through to today,
+  // causing the min_lead_hours check to reject all future dates.
+
+  it("handles full month names with day", () => {
+    expect(parseDate("January 10", TZ)).toMatch(/^\d{4}-01-10$/);
+    expect(parseDate("February 28", TZ)).toMatch(/^\d{4}-02-28$/);
+    expect(parseDate("April 1", TZ)).toMatch(/^\d{4}-04-01$/);
+    expect(parseDate("May 5", TZ)).toMatch(/^\d{4}-05-05$/);
+    expect(parseDate("June 15", TZ)).toMatch(/^\d{4}-06-15$/);
+    expect(parseDate("July 4", TZ)).toMatch(/^\d{4}-07-04$/);
+    expect(parseDate("August 20", TZ)).toMatch(/^\d{4}-08-20$/);
+    expect(parseDate("September 1", TZ)).toMatch(/^\d{4}-09-01$/);
+    expect(parseDate("October 31", TZ)).toMatch(/^\d{4}-10-31$/);
+    expect(parseDate("November 11", TZ)).toMatch(/^\d{4}-11-11$/);
+    expect(parseDate("December 25", TZ)).toMatch(/^\d{4}-12-25$/);
+  });
+
+  it("handles abbreviated month names with day", () => {
+    expect(parseDate("Jan 10", TZ)).toMatch(/^\d{4}-01-10$/);
+    expect(parseDate("Feb 14", TZ)).toMatch(/^\d{4}-02-14$/);
+    expect(parseDate("Sep 1", TZ)).toMatch(/^\d{4}-09-01$/);
+    expect(parseDate("Oct 31", TZ)).toMatch(/^\d{4}-10-31$/);
+    expect(parseDate("Nov 11", TZ)).toMatch(/^\d{4}-11-11$/);
+    expect(parseDate("Dec 25", TZ)).toMatch(/^\d{4}-12-25$/);
+  });
+
+  it("handles 'Xth of Month' format", () => {
+    expect(parseDate("15th of March", TZ)).toMatch(/^\d{4}-03-15$/);
+    expect(parseDate("1st of April", TZ)).toMatch(/^\d{4}-04-01$/);
+    expect(parseDate("2nd of May", TZ)).toMatch(/^\d{4}-05-02$/);
+    expect(parseDate("3rd of June", TZ)).toMatch(/^\d{4}-06-03$/);
+  });
+
+  it("handles weekday names", () => {
+    const result = parseDate("friday", TZ);
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const dayOfWeek = new Date(result + "T12:00:00").getDay();
+    expect(dayOfWeek).toBe(5); // Friday
+  });
+
+  it("handles 'next [weekday]'", () => {
+    const result = parseDate("next wednesday", TZ);
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const dayOfWeek = new Date(result + "T12:00:00").getDay();
+    expect(dayOfWeek).toBe(3); // Wednesday
+  });
+
+  it("handles 'this [weekday]'", () => {
+    const result = parseDate("this saturday", TZ);
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    const dayOfWeek = new Date(result + "T12:00:00").getDay();
+    expect(dayOfWeek).toBe(6); // Saturday
+  });
+
+  it("handles MM/DD short format", () => {
+    expect(parseDate("3/15", TZ)).toMatch(/^\d{4}-03-15$/);
+    expect(parseDate("12/25", TZ)).toMatch(/^\d{4}-12-25$/);
+  });
+
+  it("handles MM/DD/YYYY full format", () => {
+    expect(parseDate("3/15/2026", TZ)).toBe("2026-03-15");
+    expect(parseDate("12/25/2027", TZ)).toBe("2027-12-25");
   });
 });
