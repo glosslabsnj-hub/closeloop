@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useCalendarConnections } from "@/hooks/useCalendarConnections";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface ScheduleConnectionCardProps {
   variant?: "compact" | "full";
@@ -13,6 +14,7 @@ interface ScheduleConnectionCardProps {
 export function ScheduleConnectionCard({ variant = "full", showIfConnected = true }: ScheduleConnectionCardProps) {
   const navigate = useNavigate();
   const { connections, hasConnectedCalendar, isLoading } = useCalendarConnections();
+  const { terms } = useIndustryContext();
 
   const connectedCalendar = connections.find(c => c.status === "connected");
   const lastSync = connectedCalendar?.last_sync_at 
@@ -92,9 +94,9 @@ export function ScheduleConnectionCard({ variant = "full", showIfConnected = tru
           )}
         </div>
         <CardDescription>
-          {hasConnectedCalendar 
+          {hasConnectedCalendar
             ? "Your calendar is synced. The AI won't double-book."
-            : "Connect your calendar so AI never books over real appointments."
+            : `Connect your calendar so AI never books over real ${terms.bookings}.`
           }
         </CardDescription>
       </CardHeader>

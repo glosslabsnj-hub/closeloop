@@ -199,9 +199,12 @@ export default function CallsPage() {
   const filteredCalls = leadFiltered.filter(call => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+    const queryDigits = query.replace(/\D/g, "");
     const customerName = getCustomerName(call);
     const serviceRequested = getServiceRequested(call);
+    const phoneDigits = (call.caller_phone || "").replace(/\D/g, "");
     return (
+      (queryDigits.length >= 3 && phoneDigits.includes(queryDigits)) ||
       call.caller_phone?.toLowerCase().includes(query) ||
       call.summary?.toLowerCase().includes(query) ||
       customerName.toLowerCase().includes(query) ||

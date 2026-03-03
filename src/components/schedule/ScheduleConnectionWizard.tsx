@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCalendarConnections } from "@/hooks/useCalendarConnections";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -108,6 +109,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
   const { tenant } = useAuth();
   const { toast } = useToast();
   const { connections, createConnection, refetch, hasConnectedCalendar } = useCalendarConnections();
+  const { terms } = useIndustryContext();
   
   const [step, setStep] = useState(1);
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
@@ -377,9 +379,9 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
         return (
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-semibold mb-2">What do you use to manage bookings?</h2>
+              <h2 className="text-xl font-semibold mb-2">What do you use to manage {terms.bookings}?</h2>
               <p className="text-muted-foreground">
-                Connect your calendar so AI never double-books your appointments
+                Connect your calendar so AI never double-books your {terms.bookings}
               </p>
             </div>
 
@@ -551,7 +553,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
                     Connect {selectedProvider === "google" ? "Google Calendar" : "Outlook"}
                   </h2>
                   <p className="text-muted-foreground">
-                    This prevents the AI from booking over your real appointments
+                    This prevents the AI from booking over your real {terms.bookings}
                   </p>
                 </div>
 
@@ -728,7 +730,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
             <div>
               <h2 className="text-xl font-semibold mb-2">Schedule Connected!</h2>
               <p className="text-muted-foreground">
-                Your AI will now avoid double-booking appointments
+                Your AI will now avoid double-booking {terms.bookings}
               </p>
             </div>
 
@@ -740,7 +742,7 @@ export function ScheduleConnectionWizard({ embedded = false, onComplete, onSkip 
               <ul className="text-sm text-muted-foreground space-y-1 ml-6 list-disc">
                 <li>Busy events sync to your Flux Receptionist schedule</li>
                 <li>AI only offers slots that are actually free</li>
-                <li>No more overlapping appointments</li>
+                <li>No more overlapping {terms.bookings}</li>
               </ul>
             </div>
 

@@ -66,7 +66,12 @@ function getAddressLabel(mode: string, category: string | null): string {
   return "Address";
 }
 
-function getBookingsTabLabel(mode: string): string {
+function getBookingsTabLabel(mode: string, appointmentLabel?: string): string {
+  // Use industry-specific label when available (e.g. "Jobs" for plumber)
+  if (appointmentLabel && appointmentLabel !== "appointment" && appointmentLabel !== "booking") {
+    const cap = appointmentLabel.charAt(0).toUpperCase() + appointmentLabel.slice(1);
+    return cap + "s";
+  }
   switch (mode) {
     case "service": return "Bookings";
     case "medical": return "Visits";
@@ -83,7 +88,13 @@ function getHistoryTabLabel(mode: string, category: string | null): string {
   return "Service History";
 }
 
-function getBookActionLabel(mode: string): string {
+function getBookActionLabel(mode: string, appointmentLabel?: string): string {
+  // Use industry-specific label when available (e.g. "Book Job" for plumber)
+  if (appointmentLabel && appointmentLabel !== "appointment" && appointmentLabel !== "booking") {
+    const cap = appointmentLabel.charAt(0).toUpperCase() + appointmentLabel.slice(1);
+    if (appointmentLabel === "order" || appointmentLabel === "reservation") return `Place ${cap}`;
+    return `Book ${cap}`;
+  }
   switch (mode) {
     case "medical": return "Schedule Visit";
     case "food": return "Place Order";
@@ -108,7 +119,8 @@ export function CustomerDetailSheet({
     customer?.id ?? null,
     customer?.phone_e164 ?? null,
   );
-  const { mode, category } = useIndustryContext();
+  const { mode, category, terminology } = useIndustryContext();
+  const appointmentLabel = terminology.appointmentLabel;
   const caps = useCapabilities();
 
   const [notes, setNotes] = useState(customer?.notes || "");
@@ -209,7 +221,7 @@ export function CustomerDetailSheet({
               onClick={() => onBookAppointment(customer)}
             >
               <Calendar className="h-4 w-4 mr-1" />
-              {getBookActionLabel(mode)}
+              {getBookActionLabel(mode, appointmentLabel)}
             </Button>
           )}
           <Button
@@ -243,7 +255,7 @@ export function CustomerDetailSheet({
             </TabsTrigger>
             <TabsTrigger value="bookings" className="flex-1 min-w-0">
               <Calendar className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">{getBookingsTabLabel(mode)}</span>
+              <span className="hidden sm:inline">{getBookingsTabLabel(mode, appointmentLabel)}</span>
             </TabsTrigger>
             <TabsTrigger value="notes" className="flex-1 min-w-0">
               <FileText className="h-3.5 w-3.5 mr-1" />
@@ -319,7 +331,7 @@ export function CustomerDetailSheet({
               </div>
             ) : bookings.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">
-                No {getBookingsTabLabel(mode).toLowerCase()} yet
+                No {getBookingsTabLabel(mode, appointmentLabel).toLowerCase()} yet
               </p>
             ) : (
               <div className="space-y-3">
