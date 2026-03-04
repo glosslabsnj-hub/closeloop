@@ -1,21 +1,18 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-04 3:34 PM ET (receptionist_fix — edge case tests + console fix)
+## Last Session: 2026-03-04 3:56 PM ET (receptionist_eng — dispatch hardening + critical auth fix)
 
 ### What Was Done
-- **AuthContext console.warn fix** (commit 7f6d394): Removed `console.warn("setActiveTenantId called without super admin privileges")` which fired during normal non-admin user login. Replaced with silent comment.
-- **47 new edge case tests** across 3 test files:
-  - `booking-handoff-sms.test.ts` (12 tests): SMS template substitution, timezone formatting, fallback values, enabled defaults
-  - `booking-date-parser-edge-cases.test.ts` (15 tests): bare hour ambiguity, AM/PM overrides, invalid timezone fallback
-  - `webhook-idempotency.test.ts` (20 tests): duplicate webhook detection, late transcript update, fallback session lookup, outcome enums
-- Build: Clean (0 errors), Tests: 1346/1346 passing
-- Deployed to VPS + pushed to GitHub
+- **CRITICAL: Dispatch handoff auth fix** (commit 75d8b24): `elevenlabs-create-dispatch-job` and `create-dispatch-request` called `dispatch-handoff` with `Authorization: Bearer serviceKey`. But `dispatch-handoff.validateAccess` calls `requireAuthedTenant` which fails because service role key is NOT a user JWT. This silently broke ALL post-dispatch actions (audit, customer SMS, owner notifications, workflows). Fixed: switched to `x-closeloop-secret` header (matching booking-handoff pattern). Both edge functions redeployed.
+- **DispatchMapView ErrorBoundary** (commit 6ec0529): Added ErrorBoundary around DispatchMapView in DispatchMapPage to prevent full page crash if Mapbox GL fails during initialization.
+- **ActiveJobQueue status fix** (commit 6ec0529): Removed dead `in_progress` status color key, added `on_site` to match actual DB enum (pending/assigned/en_route/on_site/completed).
+- **Dispatch audit**: Full audit of dispatch onboarding, dashboard, edge functions, brain config. All infrastructure verified complete.
 
 ### Build Status
 - Build: Clean (0 errors)
 - Tests: 1346/1346 passing
-- Commit: 7f6d394
-- Deployed to VPS + pushed to GitHub
+- Commit: 75d8b24
+- Deployed to VPS + GitHub + 2 edge functions
 
 ### Console Statement Inventory (accurate count)
 ~206 console statements remain in src/ — 202 are in error-only catch blocks (acceptable), 4 non-error:
@@ -34,6 +31,7 @@ These are acceptable — they only fire on actual errors, not during normal oper
 - GENERAL: 0/42 (0%)
 
 ### Key Architecture Patterns
+- **dispatch-handoff auth**: Internal calls to `dispatch-handoff` MUST use `x-closeloop-secret` header, NOT `Authorization: Bearer serviceKey`. The service role key is not a user JWT and fails `requireAuthedTenant`. booking-handoff already used the correct pattern.
 - **check-availability hours comparison**: Uses `timeToMinutes()` for numeric comparison (not string). Both `check-availability/index.ts` and `elevenlabs-check-availability/index.ts`. Covered by 15 regression tests.
 - **getTimezoneOffset (5 edge functions)**: All use `Intl.DateTimeFormat` with `timeZoneName: "longOffset"`. Functions: check-availability, elevenlabs-check-availability, elevenlabs-create-booking, elevenlabs-reschedule-booking, elevenlabs-webhook.
 - **_shared/terminology.ts**: Edge function helper `getAppointmentLabel(mode, industrySlug)` mirrors frontend `industryTerminology.ts`. Used in booking-handoff and cron-appointment-reminders.
