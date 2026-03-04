@@ -9,10 +9,12 @@ import { BellRing } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 
-const DEFAULT_24H =
-  "Hi {{customer_name}}, this is a reminder that your {{service_name}} appointment is tomorrow at {{time}}. Reply CONFIRM to confirm or call us to reschedule.";
-const DEFAULT_1H =
-  "Hi {{customer_name}}, your {{service_name}} appointment is in about 1 hour at {{time}}. We look forward to seeing you!";
+function defaultTemplate24h(label: string): string {
+  return `Hi {{customer_name}}, this is a reminder that your {{service_name}} ${label} is tomorrow at {{time}}. Reply CONFIRM to confirm or call us to reschedule.`;
+}
+function defaultTemplate1h(label: string): string {
+  return `Hi {{customer_name}}, your {{service_name}} ${label} is in about 1 hour at {{time}}. We look forward to seeing you!`;
+}
 
 function capitalize(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -24,19 +26,20 @@ export default function AppointmentReminderSettings() {
   const { terminology } = useIndustryContext();
   const bookingLabel = capitalize(terminology.appointmentLabel);
 
+  const apptLabel = terminology.appointmentLabel;
   const [enabled, setEnabled] = useState(false);
-  const [template24h, setTemplate24h] = useState(DEFAULT_24H);
-  const [template1h, setTemplate1h] = useState(DEFAULT_1H);
+  const [template24h, setTemplate24h] = useState(defaultTemplate24h(apptLabel));
+  const [template1h, setTemplate1h] = useState(defaultTemplate1h(apptLabel));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (assistantSettings?.settings_json) {
       const json = assistantSettings.settings_json as Record<string, any>;
       setEnabled(json.reminders_enabled ?? false);
-      setTemplate24h(json.reminder_24h_template || DEFAULT_24H);
-      setTemplate1h(json.reminder_1h_template || DEFAULT_1H);
+      setTemplate24h(json.reminder_24h_template || defaultTemplate24h(apptLabel));
+      setTemplate1h(json.reminder_1h_template || defaultTemplate1h(apptLabel));
     }
-  }, [assistantSettings]);
+  }, [assistantSettings, apptLabel]);
 
   const handleSave = async () => {
     if (!tenant?.id) return;

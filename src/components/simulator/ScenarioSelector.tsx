@@ -1,4 +1,5 @@
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
 
@@ -6,13 +7,16 @@ interface ScenarioSelectorProps {
   onSelect: (prompt: string) => void;
 }
 
-const SCENARIOS: Record<string, { label: string; prompt: string }[]> = {
-  service: [
-    { label: "Book an appointment", prompt: "Hi, I'd like to book an appointment for tomorrow morning." },
+function getServiceScenarios(apptLabel: string): { label: string; prompt: string }[] {
+  return [
+    { label: `Book a ${apptLabel}`, prompt: `Hi, I'd like to book a ${apptLabel} for tomorrow morning.` },
     { label: "Ask about pricing", prompt: "How much do you charge for your services?" },
     { label: "Emergency request", prompt: "I have an emergency, can someone come out today?" },
-    { label: "Cancel appointment", prompt: "I need to cancel my appointment scheduled for Friday." },
-  ],
+    { label: `Cancel ${apptLabel}`, prompt: `I need to cancel my ${apptLabel} scheduled for Friday.` },
+  ];
+}
+
+const SCENARIOS: Record<string, { label: string; prompt: string }[]> = {
   dispatch: [
     { label: "Emergency tow", prompt: "My car broke down on the highway, I need a tow truck right away." },
     { label: "Get a quote", prompt: "How much would it cost to tow my car about 15 miles?" },
@@ -47,7 +51,10 @@ const SCENARIOS: Record<string, { label: string; prompt: string }[]> = {
 
 export function ScenarioSelector({ onSelect }: ScenarioSelectorProps) {
   const { businessMode } = useTenantConfig();
-  const scenarios = SCENARIOS[businessMode] || SCENARIOS.general;
+  const { terminology } = useIndustryContext();
+  const scenarios = businessMode === "service"
+    ? getServiceScenarios(terminology.appointmentLabel)
+    : (SCENARIOS[businessMode] || SCENARIOS.general);
 
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
