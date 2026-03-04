@@ -1,18 +1,29 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-04 3:56 PM ET (receptionist_eng — console cleanup, dispatch audit)
+## Last Session: 2026-03-04 3:34 PM ET (receptionist_fix — edge case tests + console fix)
 
 ### What Was Done
-- **Console noise cleanup** (commit b453ec5): Removed debug console.log from templateResolver (fired every config lookup), writeBrainFact audit stub, useSubscription provisioning logs, AdminTestOnboardingPage, createDefaultWorkflows. 5 files, 28 lines removed.
-- **DISPATCH mode audit**: Full infrastructure audit confirms 85% complete. All edge functions, config.toml verify_jwt, terminology, onboarding config, brain layout, pricing models — all correct. No fixes needed.
-- **Deployed**: Frontend to VPS + pushed to GitHub successfully.
-- Build: Clean (0 errors), Tests: 1299/1299 passing
+- **AuthContext console.warn fix** (commit 7f6d394): Removed `console.warn("setActiveTenantId called without super admin privileges")` which fired during normal non-admin user login. Replaced with silent comment.
+- **47 new edge case tests** across 3 test files:
+  - `booking-handoff-sms.test.ts` (12 tests): SMS template substitution, timezone formatting, fallback values, enabled defaults
+  - `booking-date-parser-edge-cases.test.ts` (15 tests): bare hour ambiguity, AM/PM overrides, invalid timezone fallback
+  - `webhook-idempotency.test.ts` (20 tests): duplicate webhook detection, late transcript update, fallback session lookup, outcome enums
+- Build: Clean (0 errors), Tests: 1346/1346 passing
+- Deployed to VPS + pushed to GitHub
 
 ### Build Status
 - Build: Clean (0 errors)
-- Tests: 1299/1299 passing
-- Commit: b453ec5
+- Tests: 1346/1346 passing
+- Commit: 7f6d394
 - Deployed to VPS + pushed to GitHub
+
+### Console Statement Inventory (accurate count)
+~206 console statements remain in src/ — 202 are in error-only catch blocks (acceptable), 4 non-error:
+- AuthContext.tsx (2): admin settings fetch/create failures (catch blocks)
+- AuthContext.tsx (1): setActiveTenantId guard — FIXED: now silent comment (was console.warn)
+- CreateTestTenantDialog.tsx (1): assistant_settings create failure (catch block, admin-only)
+- useDriverJobs.ts (1): ETA calculation failure
+These are acceptable — they only fire on actual errors, not during normal operation.
 
 ### MODE PROGRESS
 - SERVICE: 35/42 QA-verified (83%) ← FOCUS (all eng work done, 6 awaiting QA, 3 blocked)
@@ -27,12 +38,12 @@
 - **getTimezoneOffset (5 edge functions)**: All use `Intl.DateTimeFormat` with `timeZoneName: "longOffset"`. Functions: check-availability, elevenlabs-check-availability, elevenlabs-create-booking, elevenlabs-reschedule-booking, elevenlabs-webhook.
 - **_shared/terminology.ts**: Edge function helper `getAppointmentLabel(mode, industrySlug)` mirrors frontend `industryTerminology.ts`. Used in booking-handoff and cron-appointment-reminders.
 - **applyAppointmentLabel**: `lib/terminology.ts` overlays industry `appointmentLabel` onto mode-level UI terms. Called in `useIndustryContext()`. Does NOT override if appointmentLabel is "appointment" or "booking" (defaults).
-- **ROI page terminology**: `ReportsROIPage` overrides static `data.entityName` from `industryRevenueConfig.ts` with `terms.bookingsMetricLabel` from `useIndustryContext()`. This ensures plumber sees "Jobs", salon sees "Appointments", etc.
-- **Service deletion with bookings**: `ServiceCatalogEditor.handleDelete` detects `bookings_service_id_fkey` FK errors and shows toast with "Deactivate" action. `ON DELETE RESTRICT` FK intentionally prevents silent data loss.
+- **ROI page terminology**: `ReportsROIPage` overrides static `data.entityName` from `industryRevenueConfig.ts` with `terms.bookingsMetricLabel` from `useIndustryContext()`.
+- **Service deletion with bookings**: `ServiceCatalogEditor.handleDelete` detects `bookings_service_id_fkey` FK errors and shows toast with "Deactivate" action.
 - **verify_jwt = false**: Required for ALL ElevenLabs tool endpoints and internally-called functions in `config.toml`. Covered by `verify-jwt-coverage.test.ts` (37 tests).
-- **text-conversation**: Uses canonical `systemPrompt` from `buildBusinessContext()` + Claude tool-calling. 6 tools. System prompt supplement reinforces tool usage.
+- **text-conversation**: Uses canonical `systemPrompt` from `buildBusinessContext()` + Claude tool-calling. 6 tools.
 - **Auth session retry**: `AuthContext.initializeAuth` retries once if `getSession()` returns null but localStorage has a session token.
-- **Auth 429 backoff**: `fetchWithRateLimitRetry` in supabase/client.ts retries 429 responses with exponential backoff (2s/4s/8s). Prevents auth death spiral.
+- **Auth 429 backoff**: `fetchWithRateLimitRetry` in supabase/client.ts retries 429 responses with exponential backoff (2s/4s/8s).
 - **Booking customer linkage**: bookings table has NO customer_id. Link is `lead_id → leads.customer_id`.
 - **tenant_id in agent tools**: MUST be `required: true` on ALL tools.
 - **AI edge functions use Anthropic API**: ALL 12 use `ANTHROPIC_API_KEY` with model `claude-haiku-4-5-20251001`.
@@ -42,11 +53,11 @@
 
 ### DISPATCH Mode Readiness (Audit 2026-03-04)
 - Edge functions: 9 dispatch functions, all with verify_jwt=false
-- ElevenLabs agent: 10 tools configured (check_service_area, create_dispatch_job, lookup_dispatch_status, cancel_dispatch_job, etc.)
-- Pricing: 5 models (flat, distance_tiered, per_unit, package, variable), 27 presets, vehicle modifiers
-- Onboarding: 5 dispatch industries (towing, roadside, courier, medical_transport, mobile_mechanic)
-- Brain layout: Dispatch-specific tabs (Rates & Services, dispatch-zones, fleet management)
-- Terminology: All correct (dispatch/driver/coverage zone, not appointment/team/service area)
+- ElevenLabs agent: 10 tools configured
+- Pricing: 5 models, 27 presets, vehicle modifiers
+- Onboarding: 5 dispatch industries
+- Brain layout: Dispatch-specific tabs
+- Terminology: All correct
 - NOT built: Driver mobile app, real-time websockets, customer ETA tracking, proof-of-service
 
 ### Remaining Work

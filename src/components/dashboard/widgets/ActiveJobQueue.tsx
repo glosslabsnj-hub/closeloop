@@ -8,8 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 const statusColors: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-600 border-amber-500/30",
   assigned: "bg-blue-500/10 text-blue-600 border-blue-500/30",
-  in_progress: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
-  en_route: "bg-violet-500/10 text-violet-600 border-violet-500/30",
+  en_route: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30",
+  on_site: "bg-violet-500/10 text-violet-600 border-violet-500/30",
 };
 
 export function ActiveJobQueue() {

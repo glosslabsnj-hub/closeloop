@@ -16,3 +16,32 @@ receptionist_eng session — 2026-03-04 3:56 PM ET
 
 ## Handoffs Filed
 - → receptionist_qa [high]: Verify console noise reduction (commit b453ec5)
+[2026-03-04 20:00] receptionist_eng: Fixed 3 bugs (commit a77eb47): (1) Text simulator auto-greeting, (2) GREETING prompt newline fix, (3) Brain URL nav bypass. Build clean, 1299 tests, deployed.
+
+[2026-03-04 20:19] receptionist_eng
+WHAT: Console noise cleanup round 2 (commit c768609, deployed)
+- Removed 29 console statements from 4 files (VoiceAgentTest 14, useKnowledgeMergeQueue 5, useFinancing 1, supabase/client 1)
+- Only 8 error-only console statements remain in entire src/ directory
+- Settings terminology audit for plumbing: PASS (all dynamic)
+- Build: 0 errors, Tests: 1299/1299
+DEPLOYED: GitHub + VPS (verified 200)
+HANDOFF: #387 to QA for no_console_errors gate verification
+
+2026-03-04 20:25 [receptionist_ux] Dynamic terminology fix (5625b35): 3 components — AppointmentReminderSettings defaults, ScheduleCalendar empty state, ScenarioSelector labels. Plumber sees 'job' not 'appointment'. 1299 tests pass.
+
+## receptionist_fix — 2026-03-04 3:25 PM ET
+
+### What Was Done
+- Fixed AuthContext.tsx console.warn that fired during normal non-admin login (commit 7f6d394)
+- Added 47 new edge case tests across 3 files:
+  - booking-handoff-sms.test.ts (12 tests): SMS template, timezone, fallbacks
+  - booking-date-parser-edge-cases.test.ts (15 tests): bare hour, AM/PM, invalid TZ
+  - webhook-idempotency.test.ts (20 tests): duplicate detection, late transcript, fallback lookup
+- Tests: 1299 → 1346 (all passing)
+- Build: Clean
+- Deployed to VPS + GitHub
+
+### Risks
+1. bare hour parseTime("7") = 19:00 (PM) — could surprise users wanting 7 AM. Documented in tests.
+2. 202 console.error statements in catch blocks remain — all acceptable error-only paths.
+3. No pending bugs found — all SERVICE gates awaiting QA verification only.

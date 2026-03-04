@@ -24,6 +24,7 @@ import { useTechnicianLocations, useAutoLocationReporting } from "@/hooks/useTec
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { DispatchMapView } from "@/components/dispatch/DispatchMapView";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 function formatCoordinate(value: number, isLat: boolean): string {
   const direction = isLat ? (value >= 0 ? "N" : "S") : (value >= 0 ? "E" : "W");
@@ -109,7 +110,9 @@ export default function DispatchMapPage() {
       {/* Live Map */}
       {mapboxToken ? (
         <div className="mb-6">
-          <DispatchMapView token={mapboxToken} locations={locations} />
+          <ErrorBoundary>
+            <DispatchMapView token={mapboxToken} locations={locations} />
+          </ErrorBoundary>
           {locations.length > 0 && (
             <p className="text-xs text-muted-foreground mt-2">
               {locations.length} technician{locations.length !== 1 ? "s" : ""} online · Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
