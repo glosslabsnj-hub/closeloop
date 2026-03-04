@@ -18,6 +18,7 @@ import {
   Settings,
 } from "lucide-react";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface HelpGuideBookingsProps {
   mode: BusinessMode;
@@ -25,6 +26,10 @@ interface HelpGuideBookingsProps {
 }
 
 export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookingsProps) {
+  const { terms, terminology } = useIndustryContext();
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const bookingsLabel = cap(terms.bookings);
+  const bookingLabel = cap(terminology.appointmentLabel);
   const matchesSearch = (text: string) => {
     if (!searchQuery) return true;
     return text.toLowerCase().includes(searchQuery.toLowerCase());
@@ -33,12 +38,12 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
   const sections = [
     {
       id: "overview",
-      title: "How Bookings Work",
+      title: `How ${bookingsLabel} Work`,
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            When your AI takes a call, it can schedule appointments based on your availability. 
-            Bookings appear here for you to confirm, reschedule, or cancel.
+            When your AI takes a call, it can schedule {terms.bookings} based on your availability.
+            {bookingsLabel} appear here for you to confirm, reschedule, or cancel.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-lg border bg-card">
@@ -52,7 +57,7 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
               <Bell className="h-5 w-5 text-primary mb-2" />
               <h4 className="font-medium mb-1">Instant Notifications</h4>
               <p className="text-sm text-muted-foreground">
-                Get notified immediately when new bookings come in
+                Get notified immediately when new {terms.bookings} come in
               </p>
             </div>
           </div>
@@ -65,15 +70,15 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            The calendar shows all your appointments for the selected date. Click any date 
-            to see that day's bookings.
+            The calendar shows all your {terms.bookings} for the selected date. Click any date
+            to see that day's schedule.
           </p>
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
             <h4 className="font-medium mb-3">Calendar features:</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                <span><strong>Date picker</strong> - Click any date to view appointments</span>
+                <span><strong>Date picker</strong> - Click any date to view {terms.bookings}</span>
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
@@ -90,11 +95,11 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
     },
     {
       id: "booking-statuses",
-      title: "Understanding Booking Statuses",
+      title: `Understanding ${bookingLabel} Statuses`,
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            Each booking has a status that shows where it is in the process:
+            Each {terminology.appointmentLabel} has a status that shows where it is in the process:
           </p>
           <div className="space-y-3">
             <div className="flex gap-4 p-4 rounded-lg border bg-card">
@@ -115,7 +120,7 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
               <div>
                 <h4 className="font-medium">Confirmed</h4>
                 <p className="text-sm text-muted-foreground">
-                  Deposit paid and appointment is locked in.
+                  Deposit paid and {terminology.appointmentLabel} is locked in.
                 </p>
               </div>
             </div>
@@ -126,7 +131,7 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
               <div>
                 <h4 className="font-medium">Cancelled</h4>
                 <p className="text-sm text-muted-foreground">
-                  Appointment was cancelled by you or the customer.
+                  {bookingLabel} was cancelled by you or the customer.
                 </p>
               </div>
             </div>
@@ -140,7 +145,7 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            Require deposits to reduce no-shows and secure bookings.
+            Require deposits to reduce no-shows and secure {terms.bookings}.
           </p>
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">
             <h4 className="font-medium mb-3 flex items-center gap-2">
@@ -203,9 +208,9 @@ export function HelpGuideBookings({ _mode, searchQuery = "" }: HelpGuideBookings
               <Calendar className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <CardTitle>Bookings & Calendar</CardTitle>
+              <CardTitle>{bookingsLabel} & Calendar</CardTitle>
               <CardDescription>
-                Manage appointments and scheduling
+                Manage {terms.bookings} and scheduling
               </CardDescription>
             </div>
           </div>

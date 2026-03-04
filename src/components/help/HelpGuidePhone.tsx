@@ -27,6 +27,8 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getReadinessVerb } from "@/data/industryTerminology";
 
 interface HelpGuidePhoneProps {
   searchQuery?: string;
@@ -35,6 +37,8 @@ interface HelpGuidePhoneProps {
 export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
   const { toast } = useToast();
   const { assistantSettings } = useAuth();
+  const { terminology } = useIndustryContext();
+  const readinessVerb = getReadinessVerb(terminology.appointmentLabel);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   const closeloopNumber = assistantSettings?.closeloop_number || "+1 (555) 123-4567";
@@ -60,7 +64,7 @@ export function HelpGuidePhone({ searchQuery = "" }: HelpGuidePhoneProps) {
         <div className="space-y-4">
           <p className="text-muted-foreground">
             Flux Receptionist gives you a dedicated AI phone number. When customers call this number, 
-            your AI answers professionally, handles inquiries, and can book appointments or take messages.
+            your AI answers professionally, handles inquiries, and can {readinessVerb} or take messages.
           </p>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="p-4 rounded-lg border bg-card">

@@ -464,3 +464,32 @@ describe("Booking action helpers", () => {
     expect(getReadinessVerb("xyz")).toBe("book appointments");
   });
 });
+
+// ─── ROI empty state terminology ─────────────────────────────────────────────
+describe("ROI empty state does not hardcode 'appointment' for non-appointment industries", () => {
+  // These industries should NEVER see "appointment" in their empty state
+  const NON_APPOINTMENT_INDUSTRIES = [
+    { label: "job", readinessVerb: "schedule jobs", autoSummary: "schedule jobs automatically" },
+    { label: "reservation", readinessVerb: "take reservations", autoSummary: "take reservations automatically" },
+    { label: "dispatch", readinessVerb: "dispatch jobs", autoSummary: "dispatch jobs automatically" },
+    { label: "visit", readinessVerb: "schedule visits", autoSummary: "schedule visits automatically" },
+    { label: "session", readinessVerb: "book sessions", autoSummary: "book sessions automatically" },
+    { label: "consultation", readinessVerb: "schedule consultations", autoSummary: "schedule consultations automatically" },
+  ];
+
+  for (const { label, readinessVerb } of NON_APPOINTMENT_INDUSTRIES) {
+    it(`service mode with appointmentLabel="${label}" uses "${readinessVerb}" not "book appointments"`, () => {
+      const verb = getReadinessVerb(label);
+      expect(verb).toBe(readinessVerb);
+      expect(verb).not.toContain("appointment");
+    });
+  }
+
+  it("plumbing (job) readinessVerb is 'schedule jobs'", () => {
+    expect(getReadinessVerb("job")).toBe("schedule jobs");
+  });
+
+  it("salon (appointment) readinessVerb is 'book appointments'", () => {
+    expect(getReadinessVerb("appointment")).toBe("book appointments");
+  });
+});

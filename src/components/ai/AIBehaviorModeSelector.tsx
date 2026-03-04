@@ -17,7 +17,7 @@ function getFullServiceDesc(mode: BusinessMode, appointmentLabel: string): strin
     case "service": return `AI schedules ${appointmentLabel}s and handles everything — fully automated`;
     case "dispatch": return "AI dispatches jobs and coordinates drivers — fully automated";
     case "food": return "AI takes orders and handles reservations — fully automated";
-    case "medical": return "AI schedules appointments and handles patient intake — fully automated";
+    case "medical": return `AI schedules ${appointmentLabel}s and handles patient intake — fully automated`;
     case "sales": return "AI qualifies leads and schedules follow-ups — fully automated";
     default: return "AI captures caller info and schedules callbacks — fully automated";
   }

@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getReadinessVerb, getAutoBookSummary } from "@/data/industryTerminology";
 import { supabase } from "@/integrations/supabase/client";
 import { getIndustryRevenueConfig, type HeroIconName } from "@/config/industryRevenueConfig";
 import { getLadderStep, mapLegacyToNewSku } from "@/config/pricing";
@@ -58,28 +60,31 @@ interface ModeEmptyStateConfig {
   encouragement: string;
 }
 
-const MODE_EMPTY_STATES: Record<string, ModeEmptyStateConfig> = {
-  service: {
-    steps: ["Add your services & pricing", "Connect your phone", "Book appointments via AI"],
-    encouragement: "Your AI is ready to book appointments and answer questions 24/7.",
-  },
-  dispatch: {
-    steps: ["Add service types & rates", "Connect your phone", "Dispatch jobs via AI calls"],
-    encouragement: "Your AI is ready to dispatch jobs and provide ETAs around the clock.",
-  },
-  food: {
-    steps: ["Add your menu items", "Configure order settings", "Take orders via AI calls"],
-    encouragement: "Your AI is ready to take orders, reservations, and answer menu questions.",
-  },
-  medical: {
-    steps: ["Add services & visit types", "Configure patient intake", "Schedule patients via AI"],
-    encouragement: "Your AI is ready to schedule appointments and handle patient inquiries securely.",
-  },
-  general: {
-    steps: ["Add your offerings", "Connect your phone", "Capture leads via AI calls"],
-    encouragement: "Your AI is ready to answer calls and capture leads for your business.",
-  },
-};
+function getModeEmptyState(mode: string, autoSummary: string, readinessVerb: string): ModeEmptyStateConfig {
+  const cap = readinessVerb.charAt(0).toUpperCase() + readinessVerb.slice(1);
+  switch (mode) {
+    case "service": return {
+      steps: ["Add your services & pricing", "Connect your phone", `${cap} via AI`],
+      encouragement: `Your AI is ready to ${readinessVerb} and answer questions 24/7.`,
+    };
+    case "dispatch": return {
+      steps: ["Add service types & rates", "Connect your phone", "Dispatch jobs via AI calls"],
+      encouragement: "Your AI is ready to dispatch jobs and provide ETAs around the clock.",
+    };
+    case "food": return {
+      steps: ["Add your menu items", "Configure order settings", "Take orders via AI calls"],
+      encouragement: "Your AI is ready to take orders, reservations, and answer menu questions.",
+    };
+    case "medical": return {
+      steps: ["Add services & visit types", "Configure patient intake", "Schedule patients via AI"],
+      encouragement: `Your AI is ready to ${autoSummary} and handle patient inquiries securely.`,
+    };
+    default: return {
+      steps: ["Add your offerings", "Connect your phone", "Capture leads via AI calls"],
+      encouragement: "Your AI is ready to answer calls and capture leads for your business.",
+    };
+  }
+}
 
 async function fetchMonthStats(tenantId: string, monthStart: string, monthEnd: string) {
   // Fetch AI-attributed entities for this month
@@ -116,10 +121,13 @@ async function fetchMonthStats(tenantId: string, monthStart: string, monthEnd: s
 export function useROIDashboard() {
   const { tenant, subscription } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { terminology, terms } = useIndustryContext();
   const config = getIndustryRevenueConfig(businessMode);
 
-  // Get mode-specific empty state config
-  const modeEmptyState = MODE_EMPTY_STATES[businessMode] || MODE_EMPTY_STATES.general;
+  // Get mode-specific empty state config with dynamic terminology
+  const readinessVerb = getReadinessVerb(terminology.appointmentLabel);
+  const autoSummary = getAutoBookSummary(terminology.appointmentLabel);
+  const modeEmptyState = getModeEmptyState(businessMode, autoSummary, readinessVerb);
 
   const query = useQuery({
     queryKey: ["roi-dashboard", tenant?.id, businessMode],
