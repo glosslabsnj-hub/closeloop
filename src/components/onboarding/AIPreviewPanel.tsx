@@ -83,7 +83,7 @@ function getCallerMessage(mode: BusinessMode, slug?: string): string {
     case "sales":
       return "I'm interested in what you have available. Can you tell me more?";
     default:
-      return "Hi, I'd like to schedule an appointment.";
+      return "Hi, I'd like to schedule a service call.";
   }
 }
 

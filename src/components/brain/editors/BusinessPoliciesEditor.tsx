@@ -18,7 +18,7 @@ import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 // Mode-specific tips for policies
 const POLICY_TIPS: Record<BusinessMode, string> = {
-  service: "Write policies as if speaking aloud — your AI reads them naturally to callers when explaining booking terms.",
+  service: "Write policies as if speaking aloud — your AI reads them naturally to callers when explaining service terms.",
   dispatch: "Key policies for dispatch: payment timing, cancellation fees after driver dispatch, and storage rates if you have an impound lot.",
   food: "Clear delivery minimums and fees prevent confusion. The AI will explain these when customers ask about delivery.",
   medical: "Keep policies HIPAA-compliant. The AI won't discuss specific medical information but will explain appointment and billing policies.",

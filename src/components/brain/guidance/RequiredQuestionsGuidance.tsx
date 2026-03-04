@@ -101,7 +101,7 @@ export function RequiredQuestionsGuidance({
           <div className="flex-1">
             <h4 className="font-medium text-sm">What your AI must ask every time</h4>
             <p className="text-xs text-muted-foreground mt-0.5">
-              These are mandatory intake questions the AI must collect before confirming a booking/order/dispatch.
+              These are mandatory intake questions the AI must collect before confirming a {businessMode === "dispatch" ? "dispatch" : businessMode === "food" ? "order" : "booking"}.
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export function RequiredQuestionsGuidance({
               <li>• Food orders need at minimum: items, pickup/delivery preference, and contact info.</li>
             )}
             {businessMode === "service" && (
-              <li>• Service appointments need the job type, preferred time, and property address (if mobile).</li>
+              <li>• Service calls need the job type, preferred time, and property address (if mobile).</li>
             )}
           </ul>
         </div>

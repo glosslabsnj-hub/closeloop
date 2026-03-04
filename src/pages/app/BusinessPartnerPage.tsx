@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -99,7 +100,7 @@ export default function BusinessPartnerPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary context="loading AI insights">
       <PageHeader
         title="AI Insights"
         description={stageDescription}
@@ -145,6 +146,6 @@ export default function BusinessPartnerPage() {
           </div>
         </Tabs>
       </PageContainer>
-    </>
+    </ErrorBoundary>
   );
 }

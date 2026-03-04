@@ -52,7 +52,7 @@ const SERVICE_AREA_EXAMPLES: SectionExample[] = [
       },
       {
         field: "Out-of-area message",
-        value: "That's outside our mobile zone. If you'd like, you can book an in-shop appointment or I can have someone follow up.",
+        value: "That's outside our service area. I can take your info and have someone follow up with options.",
       },
     ],
   },

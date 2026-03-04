@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   UtensilsCrossed,
   Clock,
@@ -326,6 +327,7 @@ export default function KitchenDisplayPage() {
   }
 
   return (
+    <ErrorBoundary context="loading kitchen display">
     <div className={cn("min-h-screen", isFullscreen ? "bg-gray-900" : "")}>
       <PageContainer maxWidth="full" className={isFullscreen ? "p-4" : ""}>
         <PageHeader
@@ -440,5 +442,6 @@ export default function KitchenDisplayPage() {
         </div>
       </PageContainer>
     </div>
+    </ErrorBoundary>
   );
 }

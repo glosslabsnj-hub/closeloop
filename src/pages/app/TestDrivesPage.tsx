@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,7 @@ export default function TestDrivesPage() {
   }
 
   return (
+    <ErrorBoundary context="loading test drives">
     <PageContainer maxWidth="xl">
       <div className="space-y-6">
         <PageHeader
@@ -311,5 +313,6 @@ export default function TestDrivesPage() {
         </DialogContent>
       </Dialog>
     </PageContainer>
+    </ErrorBoundary>
   );
 }

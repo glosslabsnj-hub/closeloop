@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus, Building2, Clock, ArrowRight, XCircle, AlertTriangle, Sparkles, Copy, Check, LinkIcon } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { AgencyOverview } from "@/components/agency/AgencyOverview";
 import { AgencyTenantList } from "@/components/agency/AgencyTenantList";
 import { AgencyCommissionHistory } from "@/components/agency/AgencyCommissionHistory";
@@ -194,6 +195,7 @@ export default function AgencyDashboardPage() {
   const hasClients = (tenants?.length ?? 0) > 0;
 
   return (
+    <ErrorBoundary context="loading your agency dashboard">
     <div className="container max-w-6xl py-8 px-4 sm:px-6 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -323,5 +325,6 @@ export default function AgencyDashboardPage() {
         />
       )}
     </div>
+    </ErrorBoundary>
   );
 }
