@@ -8,10 +8,42 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Custom fetch with automatic retry + exponential backoff for 429 (rate limit) responses.
+ * Prevents the auth death spiral: when Supabase rate-limits token refresh, the JS client
+ * fires SIGNED_OUT → clears session → retry → 429 again → infinite loop.
+ * By retrying at the fetch level, the token refresh succeeds after backoff and
+ * SIGNED_OUT is never fired.
+ */
+const fetchWithRateLimitRetry: typeof fetch = async (input, init) => {
+  const MAX_RETRIES = 3;
+  let delay = 2000;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    const response = await fetch(input, init);
+
+    if (response.status !== 429 || attempt === MAX_RETRIES) {
+      return response;
+    }
+
+    const retryAfter = response.headers.get("Retry-After");
+    const waitMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 30000) : delay;
+    console.warn(`[Supabase] 429 rate limited. Retry ${attempt + 1}/${MAX_RETRIES} in ${waitMs}ms`);
+    await new Promise(r => setTimeout(r, waitMs));
+    delay *= 2;
+  }
+
+  // Unreachable, but satisfies TypeScript
+  return fetch(input, init);
+};
+
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  }
+  },
+  global: {
+    fetch: fetchWithRateLimitRetry,
+  },
 });
