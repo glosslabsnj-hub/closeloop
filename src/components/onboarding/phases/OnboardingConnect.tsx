@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Phone, MessageSquare, HelpCircle, ArrowRight, Check, ExternalLink } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface OnboardingConnectProps {
@@ -28,6 +29,8 @@ export const OnboardingConnect = React.memo(function OnboardingConnect({
   calendarConnected,
   onConnectCalendar,
 }: OnboardingConnectProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel;
 
   return (
     <div className="space-y-8">
@@ -135,7 +138,7 @@ export const OnboardingConnect = React.memo(function OnboardingConnect({
                       <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-[200px]">Get a text alert whenever your AI books an appointment or captures a lead.</p>
+                      <p className="text-xs max-w-[200px]">{`Get a text alert whenever your AI books a ${apptLabel} or captures a lead.`}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

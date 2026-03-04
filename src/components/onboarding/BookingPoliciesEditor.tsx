@@ -2,6 +2,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BusinessHours } from "./BusinessHoursEditor";
 import BusinessHoursEditor from "./BusinessHoursEditor";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export interface BookingPolicies {
   businessHours: BusinessHours;
@@ -43,6 +44,9 @@ const bufferOptions = [
 ];
 
 export default function BookingPoliciesEditor({ data, onChange }: BookingPoliciesEditorProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel;
+  const apptLabelPlural = apptLabel === "appointment" ? "appointments" : `${apptLabel}s`;
   const update = (field: keyof BookingPolicies, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -104,7 +108,7 @@ export default function BookingPoliciesEditor({ data, onChange }: BookingPolicie
           </div>
           
           <div className="space-y-1.5">
-            <Label className="text-xs">Buffer between appointments</Label>
+            <Label className="text-xs">Buffer between {apptLabelPlural}</Label>
             <Select
               value={data.appointmentBufferMinutes.toString()}
               onValueChange={(value) => update('appointmentBufferMinutes', parseInt(value))}
@@ -120,7 +124,7 @@ export default function BookingPoliciesEditor({ data, onChange }: BookingPolicie
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">Time between back-to-back appointments</p>
+            <p className="text-xs text-muted-foreground">Time between back-to-back {apptLabelPlural}</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import BusinessHoursEditor, { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import { AlertCircle } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export interface BusinessBasicsData {
   businessName: string;
@@ -45,6 +46,8 @@ const TIMEZONES = [
  * UI only - no database writes. Validation logic included.
  */
 export default function BusinessBasicsForm({ data, onChange }: BusinessBasicsFormProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabelPlural = terminology.appointmentLabel === "appointment" ? "appointments" : `${terminology.appointmentLabel}s`;
   const updateField = <K extends keyof BusinessBasicsData>(
     field: K,
     value: BusinessBasicsData[K]
@@ -182,7 +185,7 @@ export default function BusinessBasicsForm({ data, onChange }: BusinessBasicsFor
           />
         </div>
         <p className="text-xs text-muted-foreground">
-          When your business is available to take calls and appointments
+          {`When your business is available to take calls and ${apptLabelPlural}`}
         </p>
       </div>
     </div>

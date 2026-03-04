@@ -24,6 +24,7 @@ import {
   PhoneCall,
 } from "lucide-react";
 import { useBusinessAwareness, type BusinessAwareness } from "@/hooks/useBusinessAwareness";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
 
 interface HelpGuideDashboardProps {
@@ -55,6 +56,8 @@ function prioritizeSections(
 
 export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboardProps) {
   const awareness = useBusinessAwareness();
+  const { terminology } = useIndustryContext();
+  const apptLabelPlural = terminology.appointmentLabel === "appointment" ? "appointments" : `${terminology.appointmentLabel}s`;
   const matchesSearch = (text: string) => {
     if (!searchQuery) return true;
     return text.toLowerCase().includes(searchQuery.toLowerCase());
@@ -65,7 +68,7 @@ export function HelpGuideDashboard({ mode, searchQuery = "" }: HelpGuideDashboar
       case "service":
         return {
           primary: "Bookings",
-          primaryDesc: "View pending and confirmed appointments",
+          primaryDesc: `View pending and confirmed ${apptLabelPlural}`,
           icon: Calendar,
           link: "/app/bookings",
         };

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 type SoundType = "order" | "call" | "lead" | "urgent" | "notification";
 
@@ -83,6 +84,7 @@ export function SoundManager() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { playSound, setSoundEnabled, initAudio } = useSoundManager();
+  const { terminology } = useIndustryContext();
   const processedEventsRef = useRef<Set<string>>(new Set());
 
   // Load sound preference
@@ -164,7 +166,7 @@ export function SoundManager() {
           playSound("lead");
           toast({
             title: "📅 New Booking!",
-            description: "A new appointment was just scheduled.",
+            description: `A new ${terminology.appointmentLabel} was just scheduled.`,
             action: (
               <Button 
                 size="sm" 

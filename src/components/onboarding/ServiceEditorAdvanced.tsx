@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { durationOptions, priceTypeOptions } from "@/data/industryTemplates";
 import type { ModeFieldContract } from "@/lib/businessModeContract";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export interface AdvancedService {
   name: string;
@@ -28,6 +29,7 @@ interface ServiceEditorAdvancedProps {
 }
 
 export default function ServiceEditorAdvanced({ services, onChange, modeContract }: ServiceEditorAdvancedProps) {
+  const { terminology } = useIndustryContext();
   const [expandedIndex, setExpandedIndex] = useState<number | null>(0);
 
   // Filter price type options based on mode contract
@@ -212,7 +214,7 @@ export default function ServiceEditorAdvanced({ services, onChange, modeContract
                     <Textarea
                       value={service.preparationInstructions}
                       onChange={(e) => updateService(index, 'preparationInstructions', e.target.value)}
-                      placeholder="What should the customer do before the appointment?"
+                      placeholder={`What should the ${terminology.customerLabel} do before the ${terminology.appointmentLabel}?`}
                       rows={2}
                       className="text-sm"
                     />

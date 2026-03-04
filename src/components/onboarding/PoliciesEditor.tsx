@@ -1,6 +1,7 @@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 export interface BusinessPolicies {
   cancellationPolicy: string;
@@ -27,6 +28,8 @@ const paymentMethodOptions = [
 ];
 
 export default function PoliciesEditor({ data, onChange }: PoliciesEditorProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabel = terminology.appointmentLabel;
   const update = (field: keyof BusinessPolicies, value: any) => {
     onChange({ ...data, [field]: value });
   };
@@ -48,7 +51,7 @@ export default function PoliciesEditor({ data, onChange }: PoliciesEditorProps) 
         <Textarea
           value={data.cancellationPolicy}
           onChange={(e) => update('cancellationPolicy', e.target.value)}
-          placeholder="e.g., Free cancellation up to 24 hours before appointment. Less than 24 hours notice may incur a $50 fee."
+          placeholder={`e.g., Free cancellation up to 24 hours before your ${apptLabel}. Less than 24 hours notice may incur a $50 fee.`}
           rows={3}
         />
         <p className="text-xs text-muted-foreground">The AI will explain this when asked</p>
@@ -60,7 +63,7 @@ export default function PoliciesEditor({ data, onChange }: PoliciesEditorProps) 
         <Textarea
           value={data.depositPolicy}
           onChange={(e) => update('depositPolicy', e.target.value)}
-          placeholder="e.g., We require a 25% deposit to secure your appointment. Deposit is applied to your final bill."
+          placeholder={`e.g., We require a 25% deposit to secure your ${apptLabel}. Deposit is applied to your final bill.`}
           rows={3}
         />
       </div>
@@ -101,11 +104,11 @@ export default function PoliciesEditor({ data, onChange }: PoliciesEditorProps) 
         <Textarea
           value={(data.aiNeverPromise || []).join('\n')}
           onChange={(e) => update('aiNeverPromise', e.target.value.split('\n').filter(Boolean))}
-          placeholder="Enter each item on a new line, e.g.:
-Same-day appointments
+          placeholder={`Enter each item on a new line, e.g.:
+Same-day ${apptLabel}s
 Price matching
 Free services
-Work outside our service area"
+Work outside our service area`}
           rows={4}
         />
         <p className="text-xs text-muted-foreground">One per line. AI will never agree to these.</p>

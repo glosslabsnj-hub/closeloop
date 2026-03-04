@@ -16,6 +16,7 @@ import {
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface ModuleDefinition {
   id: string;
@@ -113,10 +114,19 @@ interface ModuleSelectorProps {
 }
 
 export function ModuleSelector({ businessMode, enabledModules, onChange }: ModuleSelectorProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabelPlural = terminology.appointmentLabel === "appointment" ? "appointments" : `${terminology.appointmentLabel}s`;
   // Filter modules available for this business mode
   const availableModules = allModules.filter(
     (module) => !module.requiresMode || module.requiresMode.includes(businessMode)
-  );
+  ).map((module) => {
+    // Dynamic label for booking module based on industry terminology
+    if (module.id === "booking") {
+      const label = terminology.appointmentLabel === "appointment" ? "Appointment Booking" : `${terminology.appointmentLabel.charAt(0).toUpperCase() + terminology.appointmentLabel.slice(1)} Booking`;
+      return { ...module, label, description: `AI books ${apptLabelPlural} directly into your calendar` };
+    }
+    return module;
+  });
 
   const toggleModule = (moduleId: string) => {
     const module = allModules.find(m => m.id === moduleId);

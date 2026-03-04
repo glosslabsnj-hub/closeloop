@@ -16,12 +16,15 @@ import {
   CheckCircle2,
   Building,
 } from "lucide-react";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface HelpGuideSettingsProps {
   searchQuery?: string;
 }
 
 export function HelpGuideSettings({ searchQuery = "" }: HelpGuideSettingsProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabelPlural = terminology.appointmentLabel === "appointment" ? "appointments" : `${terminology.appointmentLabel}s`;
   const matchesSearch = (text: string) => {
     if (!searchQuery) return true;
     return text.toLowerCase().includes(searchQuery.toLowerCase());
@@ -49,7 +52,7 @@ export function HelpGuideSettings({ searchQuery = "" }: HelpGuideSettingsProps) 
               <Clock className="h-5 w-5 text-primary mb-2" />
               <h4 className="font-medium mb-1">Hours</h4>
               <p className="text-sm text-muted-foreground">
-                When you're available for appointments
+                {`When you're available for ${apptLabelPlural}`}
               </p>
             </div>
             <div className="p-4 rounded-lg border bg-card">
@@ -108,7 +111,7 @@ export function HelpGuideSettings({ searchQuery = "" }: HelpGuideSettingsProps) 
       content: (
         <div className="space-y-4">
           <p className="text-muted-foreground">
-            Your AI only offers appointments during your business hours. Set each day's 
+            {`Your AI only offers ${apptLabelPlural} during your business hours. Set each day's`} 
             availability here.
           </p>
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-4">

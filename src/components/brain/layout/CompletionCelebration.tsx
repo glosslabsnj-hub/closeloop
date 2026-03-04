@@ -8,6 +8,7 @@
 import { PartyPopper, Check, ArrowRight, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface Enhancement {
   id: string;
@@ -33,6 +34,8 @@ export function CompletionCelebration({
   onGoToDashboard,
   className,
 }: CompletionCelebrationProps) {
+  const { terminology } = useIndustryContext();
+  const apptLabelPlural = terminology.appointmentLabel === "appointment" ? "appointments" : `${terminology.appointmentLabel}s`;
   return (
     <div
       className={cn(
@@ -63,7 +66,7 @@ export function CompletionCelebration({
         {[
           "Answer pricing questions",
           "Check availability",
-          "Book appointments",
+          `Book ${apptLabelPlural}`,
           "Handle common questions",
         ].map((capability, idx) => (
           <div
