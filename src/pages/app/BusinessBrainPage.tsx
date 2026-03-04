@@ -151,7 +151,9 @@ export default function BusinessBrainPage() {
   const { p0Flags: _readinessP0Flags, score: readinessScore } = useAIReadinessV2();
 
   // Auto-trigger guided setup for new users with low readiness
-  const isNewUserFirstVisit = !modeParam && readinessScore < 50 &&
+  // BUT: if section/item params are present, user navigated directly — skip guided mode
+  const hasSectionParam = searchParams.has("section") || searchParams.has("item");
+  const isNewUserFirstVisit = !modeParam && !hasSectionParam && readinessScore < 50 &&
     !localStorage.getItem("brain_guided_dismissed");
   const shouldShowGuided = isGuidedMode || isNewUserFirstVisit;
 

@@ -29,11 +29,33 @@ export default function TextConversationSimulator() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
+  const [greetingLoaded, setGreetingLoaded] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Auto-show greeting when conversation starts (mirrors real phone call behavior)
+  useEffect(() => {
+    if (!effectiveTenantId || greetingLoaded || messages.length > 0) return;
+    setGreetingLoaded(true);
+    (async () => {
+      const { data } = await supabase
+        .from("ai_assistants")
+        .select("greeting_script")
+        .eq("tenant_id", effectiveTenantId)
+        .maybeSingle();
+      const greeting = data?.greeting_script;
+      if (greeting) {
+        setMessages([{
+          role: "assistant",
+          content: greeting,
+          timestamp: new Date(),
+        }]);
+      }
+    })();
+  }, [effectiveTenantId, greetingLoaded, messages.length]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading || !effectiveTenantId) return;
@@ -76,7 +98,7 @@ export default function TextConversationSimulator() {
     }
   };
 
-  const reset = () => setMessages([]);
+  const reset = () => { setMessages([]); setGreetingLoaded(false); };
 
   return (
     <Card>

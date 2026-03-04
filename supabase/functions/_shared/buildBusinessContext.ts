@@ -3947,11 +3947,11 @@ IMPORTANT GUIDELINES:
 
 
   if (ctx.ai_settings.greeting_script) {
-    prompt += `GREETING: "${ctx.ai_settings.greeting_script}"\\n\\n`;
+    prompt += `\nGREETING (use this EXACT greeting when the caller first contacts you — do NOT paraphrase or substitute the business name): "${ctx.ai_settings.greeting_script}"\n\n`;
   }
 
   if (ctx.ai_settings.fallback_script) {
-    prompt += `FALLBACK (use when you can't help): "${ctx.ai_settings.fallback_script}"\\n`;
+    prompt += `FALLBACK (use when you can't help): "${ctx.ai_settings.fallback_script}"\n`;
   }
 
   // ===== APPEND MODE-SPECIFIC BASE PROMPT =====
