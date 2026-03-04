@@ -3289,6 +3289,17 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   if (ctx.tenant.tagline) prompt += ` - ${ctx.tenant.tagline}`;
   prompt += `.\n\nBUSINESS INFORMATION:\n- Industry: ${ctx.tenant.industry_slug || "service business"}\n${ctx.tenant.address ? `- Location: ${ctx.tenant.address}` : ""}\n${ctx.tenant.phone_e164 ? `- Phone: ${ctx.tenant.phone_e164}` : ""}\n${ctx.tenant.website ? `- Website: ${ctx.tenant.website}` : ""}\n${ctx.tenant.years_in_business ? `- In business for ${ctx.tenant.years_in_business} years` : ""}\n\n`;
 
+  // Anti-hallucination guardrail — CRITICAL
+  prompt += `STRICT ACCURACY RULES (NEVER VIOLATE):
+- ONLY state facts explicitly provided in this prompt. Do NOT invent, assume, or embellish.
+- Do NOT mention discounts (military, senior, first-time, etc.) unless listed in POLICIES or SERVICES above.
+- Do NOT claim years of experience unless "In business for X years" appears in BUSINESS INFORMATION above.
+- Do NOT mention fees (after-hours, emergency, scheduling, cancellation, etc.) unless listed in POLICIES above.
+- Do NOT invent certifications, awards, guarantees, or specializations not listed above.
+- If a customer asks about something not covered in your context, say you'll have someone follow up with details — do NOT make up an answer.
+
+`;
+
   if (ctx.ai_settings.tone) {
     const toneInstructions: Record<string, string> = {
       professional: "Maintain a professional, business-like tone. Be polished, precise, and use complete sentences.",

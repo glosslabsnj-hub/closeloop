@@ -207,9 +207,58 @@ export function getTodayHoursPreview(hours: BusinessHours): string {
  */
 export function getIs24x7(hours: BusinessHours): boolean {
   return Object.values(hours).every(
-    day => !day.closed && 
-           day.windows.length === 1 && 
-           day.windows[0].open === "00:00" && 
+    day => !day.closed &&
+           day.windows.length === 1 &&
+           day.windows[0].open === "00:00" &&
            day.windows[0].close === "23:59"
   );
+}
+
+/**
+ * Build a human-readable hours summary for FAQ answers.
+ * Groups consecutive days with same hours for concise output.
+ * Example: "Monday through Friday 9:00 AM - 5:00 PM, Saturday 10:00 AM - 2:00 PM. Closed Sunday."
+ */
+export function buildHoursForFAQ(hours: BusinessHours): string {
+  if (getIs24x7(hours)) return "We're available 24/7!";
+
+  const dayOrder: Array<keyof BusinessHours> = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  const dayNames: Record<string, string> = {
+    monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+    thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+  };
+
+  interface Group { startDay: string; endDay: string; display: string; closed: boolean }
+  const groups: Group[] = [];
+
+  for (const day of dayOrder) {
+    const d = hours[day];
+    const closed = !d || d.closed || d.windows.length === 0;
+    const display = closed ? "Closed" : formatWindowsForDisplay(d.windows);
+    const last = groups[groups.length - 1];
+    if (last && last.display === display && last.closed === closed) {
+      last.endDay = day;
+    } else {
+      groups.push({ startDay: day, endDay: day, display, closed });
+    }
+  }
+
+  const openParts: string[] = [];
+  const closedDays: string[] = [];
+  for (const g of groups) {
+    const range = g.startDay === g.endDay
+      ? dayNames[g.startDay]
+      : `${dayNames[g.startDay]} through ${dayNames[g.endDay]}`;
+    if (g.closed) {
+      closedDays.push(range);
+    } else {
+      openParts.push(`${range} ${g.display}`);
+    }
+  }
+
+  let result = openParts.join(", ");
+  if (closedDays.length > 0) {
+    result += `. Closed ${closedDays.join(" and ")}`;
+  }
+  return result + ".";
 }

@@ -15,6 +15,8 @@ import { updateCapabilityFlags } from "@/hooks/useBusinessCapabilities";
 import { applyScenarioSeeds } from "@/lib/scenarioSeeding";
 import { createDefaultWorkflowsForMode } from "@/lib/createDefaultWorkflows";
 import { clearOnboardingData } from "@/hooks/useOnboardingFormState";
+import { buildHoursForFAQ } from "@/lib/hoursUtils";
+import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import type { EditableService } from "@/components/onboarding/ServicePreviewStep";
 import type { EditableFAQ } from "@/components/onboarding/FAQPreviewStep";
@@ -200,9 +202,20 @@ export function useOnboardingSubmit(userId?: string) {
 
       // 3. FAQs (idempotent: clear + insert)
       await runStep("FAQs", async () => {
+        // Customize generic hours FAQ with actual business hours
+        const hoursAnswer = businessHours && Object.keys(businessHours).length > 0
+          ? buildHoursForFAQ(businessHours as BusinessHours)
+          : null;
         const faqsToInsert = templateFAQs
           .filter(f => f.enabled && f.question.trim().length > 0 && f.answer.trim().length > 0)
-          .map((faq, i) => ({ tenant_id: tenantId!, question: faq.question, answer: faq.answer, priority_weight: i }));
+          .map((faq, i) => {
+            let answer = faq.answer;
+            // Replace generic hours answer with actual business hours
+            if (hoursAnswer && faq.question.toLowerCase().includes("hours")) {
+              answer = hoursAnswer;
+            }
+            return { tenant_id: tenantId!, question: faq.question, answer, priority_weight: i };
+          });
         if (faqsToInsert.length > 0) {
           await supabase.from("business_faqs").delete().eq("tenant_id", tenantId!);
           const { error } = await supabase.from("business_faqs").insert(faqsToInsert);
