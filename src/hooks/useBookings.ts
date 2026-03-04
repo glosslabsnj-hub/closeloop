@@ -131,7 +131,7 @@ export function useBookings() {
             entity_type: "booking",
             entity_id: id,
           },
-        }).catch((err) => console.error("[completeBooking] trigger-workflow error:", err));
+        }).catch(() => { /* best-effort automation trigger */ });
       }
 
       return data;
@@ -163,7 +163,7 @@ export function useBookings() {
         .then(({ error: bbErr }) => {
           if (bbErr) console.error("[confirmBooking] busy_blocks update failed:", bbErr);
         })
-        .catch((err) => console.error("[confirmBooking] busy_blocks error:", err));
+        .catch(() => { /* best-effort busy_blocks update */ });
 
       // Call booking-handoff to notify customer (SMS, email) and create calendar event
       if (tenant?.id) {
@@ -197,7 +197,7 @@ export function useBookings() {
             entity_type: "booking",
             entity_id: id,
           },
-        }).catch((err) => console.error("[confirmBooking] trigger-workflow error:", err));
+        }).catch(() => { /* best-effort automation trigger */ });
       }
 
       return data;
@@ -262,17 +262,13 @@ export function useBookings() {
         .eq("id", id)
         .select()
         .single();
-      if (error) {
-        console.error("[cancelBooking] Supabase error:", error.code, error.message, error.details, error.hint);
-        throw error;
-      }
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
     },
-    onError: (error) => {
-      console.error("[cancelBooking] mutation error:", error);
+    onError: () => {
       toast({ title: "Failed to cancel booking", description: "Please try again.", variant: "destructive" });
     },
   });

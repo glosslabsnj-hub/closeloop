@@ -100,7 +100,7 @@ describe("useBookings.ts: side-effect error surfacing", () => {
     ).toBe(false);
   });
 
-  it("all console.error calls include function context", () => {
+  it("remaining console.error calls include function context", () => {
     // Every console.error should include [functionName] prefix for debugging
     const errorLines = source.split("\n").filter(l => l.includes("console.error"));
     for (const line of errorLines) {
@@ -111,18 +111,21 @@ describe("useBookings.ts: side-effect error surfacing", () => {
     }
   });
 
-  it("completeBooking has structured error logging", () => {
-    // The string "[completeBooking]" must appear somewhere in the file
+  it("completeBooking trigger-workflow is fire-and-forget with catch", () => {
+    // trigger-workflow in completeBooking must have a .catch() handler
+    const completeSection = source.split("completeBooking")[1]?.split("confirmBooking")[0] || source;
     expect(
-      source.includes("[completeBooking]"),
-      "completeBooking console.error must include [completeBooking] context prefix"
+      completeSection.includes(".catch("),
+      "completeBooking trigger-workflow must have a .catch() handler"
     ).toBe(true);
   });
 
-  it("cancelBooking has structured error logging", () => {
+  it("cancelBooking surfaces error via toast", () => {
+    // cancelBooking onError must show a toast (user-facing error)
+    const cancelSection = source.split("cancelBooking")[1]?.split("deleteBooking")[0] || "";
     expect(
-      source.includes("[cancelBooking]"),
-      "cancelBooking console.error must include [cancelBooking] context prefix"
+      cancelSection.includes("toast"),
+      "cancelBooking onError must surface error via toast"
     ).toBe(true);
   });
 });

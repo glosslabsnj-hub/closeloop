@@ -258,7 +258,7 @@ describe("fetchAdminSettings auto-create sets localStorage", () => {
   it("AuthContext auto-create branch persists to localStorage", () => {
     const src = srcFile("src/contexts/AuthContext.tsx");
     // Find the auto-create section (after upsert success, before early return)
-    const autoCreateSection = src.indexOf("Auto-creating admin_settings");
+    const autoCreateSection = src.indexOf("Auto-create admin_settings");
     const earlyReturn = src.indexOf("return;", autoCreateSection);
     const sectionBetween = src.slice(autoCreateSection, earlyReturn);
     // Must include localStorage.setItem call

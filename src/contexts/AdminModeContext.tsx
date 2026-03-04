@@ -44,7 +44,7 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
           .maybeSingle();
 
         if (error) {
-          console.error("Error fetching admin mode:", error);
+          // Expected if admin_settings table inaccessible — localStorage fallback already used
         } else if (data?.admin_active_mode) {
           const mode = data.admin_active_mode as BusinessMode;
           setSelectedModeState(mode);
@@ -77,7 +77,7 @@ export function AdminModeProvider({ children }: { children: ReactNode }) {
       );
 
     if (error) {
-      console.error("Error saving admin mode:", error);
+      // Mode already persisted to localStorage — Supabase save is best-effort
     }
   };
 

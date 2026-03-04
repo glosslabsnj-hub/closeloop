@@ -1,2 +1,25 @@
-receptionist_ux 2026-03-03 5:52-6:03PM ET. No pending handoffs. Added ErrorBoundary crash recovery to 13 app pages (commit 6b5b0c3, deployed): WorkflowEditPage, WorkflowRunsPage, WorkflowRunDetailPage, LeadRecoveryPage, ReadinessFixCenterPage, TimeTrackingPage, SalesPipelinePage, SalesInventoryPage, FleetPage, InventoryPage, LoyaltyPage, MedicalIntakePage, OrderTicketPage. Total error recovery coverage now ~41/97 pages (was ~28). Each shows contextual "Try again" + "Back to Dashboard" + "Contact support". Build clean, 1274/1274 tests passing. Filed QA handoff #366 for error_states_have_recovery gate.
-receptionist_fix 2026-03-03 6:02-6:18PM ET. Fixed 5 bugs (commit 1b457a6, deployed): (1) CRITICAL: check-availability string comparison broken with non-padded hours — replaced with numeric timeToMinutes(). (2) getTimezoneOffset() replaced with reliable Intl longOffset pattern. (3) ReportsROIPage terminology now mode-aware (plumber sees "jobs" not "bookings"). (4) ModeAwareQuestions labels localized (plumber sees "AI Books Jobs"). (5) EstimateBuilder placeholder industry-specific. 15 new tests. Build clean, 1289/1289 passing. 2 handoffs filed to QA (#367 #368).
+receptionist_eng 2026-03-04 12:15-12:22AM ET
+
+## What I built/fixed
+1. **Service deletion FK constraint** (ServiceCatalogEditor.tsx): Detects `bookings_service_id_fkey` error when deleting a service with bookings. Shows toast with "Deactivate" action button instead of generic error. Dialog text updated.
+2. **ROI page industry terminology** (ReportsROIPage.tsx): Entity names now override static config with `useIndustryContext` terms. Plumber sees "Jobs" not "Appointments" in entity card, story headline, conversion funnel, chart tooltips.
+
+Commit: 03836ed, pushed + deployed (frontend to VPS, verified 200)
+
+## What could break
+1. Toast action callback in service deletion creates a synthetic MouseEvent — edge case if handleToggleActive validation changes
+2. ROI page relies on `terms.bookingsMetricLabel` being set — should always be truthy via terminology defaults
+3. If new modes are added without terminology entries, ROI entityName falls back to static config
+
+## Mode matrix
+- SERVICE: tested (both fixes are service-mode specific)
+- DISPATCH/FOOD/MEDICAL/SALES/GENERAL: ROI fix uses mode-aware terms, should work correctly for all modes
+
+## Weakest part
+The service deletion FK detection relies on error message string matching ("bookings_service_id_fkey"). If Supabase changes error format, the detection could miss. But the fallback is the generic error toast, so it degrades gracefully.
+
+## Handoffs filed
+- #371 → receptionist_qa: Verify service deletion FK fix
+- #372 → receptionist_qa: Verify ROI terminology fix
+2026-03-04 05:29:39 receptionist_ux: Fixed 4 terminology gaps (commit fd52d88, pushed). AIBehaviorModeSelector, PolicyTemplateButtons, ModeFAQSuggestions, SettingsPage team roles. Build clean, 1289 tests.
+receptionist_fix 2026-03-04 12:30-12:40AM ET. Fixed 4 terminology bugs (commit cebc3f0, deployed): (1) useROIDashboard service empty state - dynamic readinessVerb (plumber: Schedule jobs via AI), (2) HelpGuideBookings - 8 strings dynamicized via useIndustryContext, (3) HelpGuidePhone - readinessVerb, (4) AIBehaviorModeSelector - medical dynamic appointmentLabel. 8 regression tests added. Build clean, 1297 tests. Filed QA handoff #374.

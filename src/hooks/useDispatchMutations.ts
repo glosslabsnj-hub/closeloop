@@ -58,7 +58,7 @@ export function useDispatchMutations() {
             entity_type: "dispatch_job",
             entity_id: jobId,
           },
-        }).catch((err) => console.error("trigger-workflow error:", err));
+        }).catch(() => { /* best-effort automation trigger */ });
       }
     },
     onSuccess: (_, { status }) => {

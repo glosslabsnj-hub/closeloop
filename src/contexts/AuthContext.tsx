@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // If no admin_settings row exists and we have a default tenant, auto-create it
       if (!data && defaultTenantId) {
-        console.log("[AuthContext] Auto-creating admin_settings for super admin");
+        // Auto-create admin_settings for super admin
         const { error: upsertError } = await supabase
           .from("admin_settings")
           .upsert({
@@ -194,11 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSubscription(subRes.data);
       setAssistantSettings(settingsRes.data);
 
-      console.log("[AuthContext] Tenant switch complete:", {
-        tenantId,
-        subscription: subRes.data?.status,
-        hasSettings: !!settingsRes.data,
-      });
+      // Tenant switch complete
     } catch (error: any) {
       console.error("Failed to set active tenant:", error);
       toast.error("Failed to switch tenant");
@@ -372,7 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             k => k.startsWith("sb-") && k.endsWith("-auth-token")
           );
           if (hasStoredSession) {
-            console.warn("[AuthContext] getSession() returned null but localStorage has session token — retrying");
+            // getSession() returned null but localStorage has token — retry once
             await new Promise(r => setTimeout(r, 300));
             if (!isMounted) return;
             const retry = await supabase.auth.getSession();
