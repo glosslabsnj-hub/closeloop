@@ -8,30 +8,36 @@ import { useToast } from "@/hooks/use-toast";
 import { Bot, Loader2 } from "lucide-react";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 type AIBehaviorMode = "full_service" | "callback_only";
 
-const FULL_SERVICE_DESC: Record<BusinessMode, string> = {
-  service: "AI books appointments and handles scheduling — fully automated",
-  dispatch: "AI dispatches jobs and coordinates drivers — fully automated",
-  food: "AI takes orders and handles reservations — fully automated",
-  medical: "AI schedules appointments and handles patient intake — fully automated",
-  sales: "AI qualifies leads and schedules follow-ups — fully automated",
-  general: "AI captures caller info and schedules callbacks — fully automated",
-};
+function getFullServiceDesc(mode: BusinessMode, appointmentLabel: string): string {
+  switch (mode) {
+    case "service": return `AI schedules ${appointmentLabel}s and handles everything — fully automated`;
+    case "dispatch": return "AI dispatches jobs and coordinates drivers — fully automated";
+    case "food": return "AI takes orders and handles reservations — fully automated";
+    case "medical": return "AI schedules appointments and handles patient intake — fully automated";
+    case "sales": return "AI qualifies leads and schedules follow-ups — fully automated";
+    default: return "AI captures caller info and schedules callbacks — fully automated";
+  }
+}
 
-const CALLBACK_DESC: Record<BusinessMode, string> = {
-  service: "AI answers questions and captures caller info, but you handle booking yourself",
-  dispatch: "AI answers questions and captures caller info, but you handle dispatching yourself",
-  food: "AI answers questions and captures caller info, but you handle orders yourself",
-  medical: "AI answers questions and captures caller info, but you handle scheduling yourself",
-  sales: "AI answers questions and captures caller info, but you handle follow-ups yourself",
-  general: "AI answers questions and captures caller info, you call them back to follow up",
-};
+function getCallbackDesc(mode: BusinessMode, appointmentLabel: string): string {
+  switch (mode) {
+    case "service": return `AI answers questions and captures caller info, but you handle ${appointmentLabel}s yourself`;
+    case "dispatch": return "AI answers questions and captures caller info, but you handle dispatching yourself";
+    case "food": return "AI answers questions and captures caller info, but you handle orders yourself";
+    case "medical": return "AI answers questions and captures caller info, but you handle scheduling yourself";
+    case "sales": return "AI answers questions and captures caller info, but you handle follow-ups yourself";
+    default: return "AI answers questions and captures caller info, you call them back to follow up";
+  }
+}
 
 export default function AIBehaviorModeSelector() {
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { terminology } = useIndustryContext();
   const { toast } = useToast();
 
   const [behaviorMode, setBehaviorMode] = useState<AIBehaviorMode>(
@@ -110,7 +116,7 @@ export default function AIBehaviorModeSelector() {
               <div className="flex-1">
                 <span className="font-medium">Full Service</span>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {FULL_SERVICE_DESC[businessMode] || FULL_SERVICE_DESC.general}
+                  {getFullServiceDesc(businessMode, terminology.appointmentLabel)}
                 </p>
               </div>
             </Label>
@@ -128,7 +134,7 @@ export default function AIBehaviorModeSelector() {
               <div className="flex-1">
                 <span className="font-medium">Capture & Callback</span>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {CALLBACK_DESC[businessMode] || CALLBACK_DESC.general}
+                  {getCallbackDesc(businessMode, terminology.appointmentLabel)}
                 </p>
               </div>
             </Label>

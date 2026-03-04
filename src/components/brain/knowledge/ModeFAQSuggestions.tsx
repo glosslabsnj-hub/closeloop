@@ -17,7 +17,7 @@ const FAQ_BY_MODE: Record<BusinessMode, SuggestedFAQ[]> = {
     { question: "What are your hours?", answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM." },
     { question: "Do you offer free estimates?", answer: "Yes, we provide free estimates for most services. We can schedule a time that works for you." },
     { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed and insured. We'd be happy to provide our credentials upon request." },
-    { question: "How far in advance should I book?", answer: "We recommend booking at least a week in advance, though we can often accommodate same-day appointments." },
+    { question: "How far in advance should I book?", answer: "We recommend booking at least a week in advance, though we can often accommodate same-day requests." },
     { question: "Do you offer a warranty?", answer: "Yes, all our work comes with a satisfaction guarantee. We stand behind our services." },
     { question: "What forms of payment do you accept?", answer: "We accept cash, all major credit cards, and digital payments like Apple Pay and Venmo." },
     { question: "Do you charge for travel time?", answer: "Travel within our service area is typically included in our service price." },

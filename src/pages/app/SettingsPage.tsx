@@ -53,7 +53,7 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { isFoodMode } = useFoodMode();
   const { hipaaMode } = useTenantConfig();
-  const { _terms } = useIndustryContext();
+  const { terms } = useIndustryContext();
   const isBookingEnabled = useModuleEnabled("booking");
   const isDispatchEnabled = useModuleEnabled("dispatch_queue");
   const isMedicalMode = useModuleEnabled("medical_intake");
@@ -260,7 +260,7 @@ export default function SettingsPage() {
                     </Select>
                     <p className="text-xs text-muted-foreground">
                       {inviteRole === "manager" && "Full access to manage settings, team, and data."}
-                      {inviteRole === "staff" && "Can manage bookings, leads, and day-to-day operations."}
+                      {inviteRole === "staff" && `Can manage ${terms.bookings}, leads, and day-to-day operations.`}
                       {inviteRole === "viewer" && "Read-only access to dashboards and reports."}
                     </p>
                   </div>

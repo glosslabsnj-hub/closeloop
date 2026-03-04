@@ -28,12 +28,12 @@ const MODE_TEMPLATES: Record<BusinessMode, {
       { label: "Flexible", text: "We understand things come up! Just give us a call as soon as you can if you need to reschedule." },
     ],
     deposit: [
-      { label: "$50 Deposit", text: "A $50 deposit is required to secure your booking. This deposit is applied toward your final bill." },
-      { label: "50% Deposit", text: "A 50% deposit is required at the time of booking. The remaining balance is due upon completion of service." },
+      { label: "$50 Deposit", text: "A $50 deposit is required to secure your spot. This deposit is applied toward your final bill." },
+      { label: "50% Deposit", text: "A 50% deposit is required when scheduling. The remaining balance is due upon completion of service." },
       { label: "No Deposit", text: "No deposit is required. Full payment is due at the time of service." },
     ],
     refund: [
-      { label: "Full Refund", text: "Full refunds are available if you cancel at least 48 hours before your scheduled appointment." },
+      { label: "Full Refund", text: "Full refunds are available if you cancel at least 48 hours before your scheduled service." },
       { label: "Partial Refund", text: "Cancellations made 24-48 hours in advance receive a 50% refund. Less than 24 hours notice is non-refundable." },
       { label: "No Refunds", text: "All sales are final. We encourage you to reschedule rather than cancel if your plans change." },
     ],
@@ -97,7 +97,7 @@ const MODE_TEMPLATES: Record<BusinessMode, {
     ],
     deposit: [
       { label: "50% Deposit", text: "A 50% deposit is required at the time of booking. The remaining balance is due upon completion." },
-      { label: "Full Prepay", text: "Full payment is required at the time of booking to secure your appointment." },
+      { label: "Full Prepay", text: "Full payment is required when scheduling to secure your spot." },
       { label: "No Deposit", text: "No deposit is required. Payment is due upon completion of service." },
     ],
     refund: [
