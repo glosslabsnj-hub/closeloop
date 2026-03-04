@@ -365,7 +365,8 @@ export function useOnboardingSubmit(userId?: string) {
 
         // AI assistant tone & greeting (upsert pattern)
         const assistantData: Record<string, unknown> = { tone: aiTone };
-        if (customGreeting) assistantData.greeting_script = customGreeting;
+        // Always set a greeting — use custom if provided, otherwise generate from business name
+        assistantData.greeting_script = customGreeting || `Thanks for calling ${businessName.trim()}! How can I help you today?`;
         const { data: existingAssistant } = await supabase.from("ai_assistants").select("id").eq("tenant_id", tenantId!).maybeSingle();
         if (existingAssistant) {
           await supabase.from("ai_assistants").update(assistantData).eq("tenant_id", tenantId!);

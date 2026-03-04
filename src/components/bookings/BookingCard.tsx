@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { format } from "date-fns";
 import { MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatBookingDate, formatBookingTime, formatBookingDatetime } from "@/lib/formatBookingTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -49,7 +50,8 @@ function formatPrice(amount: number | null | undefined): string {
 export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }: BookingCardProps) {
   const [smsOpen, setSmsOpen] = useState(false);
   const { terms } = useIndustryContext();
-  const startDate = new Date(booking.start_at);
+  const { assistantSettings } = useAuth();
+  const tenantTz = (assistantSettings?.settings_json as any)?.timezone as string | undefined;
   const serviceName = booking.service?.name || "Service";
   const customerName = booking.lead?.full_name || "Unknown";
   const phone = booking.lead?.phone;
@@ -63,14 +65,14 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }
         {/* Top row: date/time + status */}
         <div className="flex items-center justify-between gap-2 mb-1">
           <span className="text-sm font-medium">
-            {format(startDate, "EEE, MMM d")} at {format(startDate, "h:mm a")}
+            {formatBookingDate(booking.start_at, tenantTz)} at {formatBookingTime(booking.start_at, tenantTz)}
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
             {(booking as any).customer_confirmed_at && (
               <Badge
                 variant="outline"
                 className="text-[11px] h-5 bg-emerald-50 text-emerald-600 border-emerald-200 gap-0.5"
-                title={`Customer confirmed ${format(new Date((booking as any).customer_confirmed_at), "MMM d, h:mm a")}`}
+                title={`Customer confirmed ${formatBookingDatetime((booking as any).customer_confirmed_at, tenantTz)}`}
               >
                 <UserCheck className="h-3 w-3" />
                 Confirmed

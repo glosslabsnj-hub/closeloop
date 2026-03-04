@@ -111,7 +111,7 @@ export function useDriverJobs() {
               updates.estimated_arrival_at = etaTime.toISOString();
             }
           } catch (e) {
-            console.warn("Could not calculate ETA:", e);
+            // ETA calculation is best-effort; failure is expected when location unavailable
           }
         }
       } else if (status === "on_site") {

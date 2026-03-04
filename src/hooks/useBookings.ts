@@ -161,7 +161,7 @@ export function useBookings() {
         .update({ block_type: "confirmed_booking", expires_at: null })
         .eq("booking_id", id)
         .then(({ error: bbErr }) => {
-          if (bbErr) console.error("[confirmBooking] busy_blocks update failed:", bbErr);
+          // busy_blocks update is best-effort; booking is already confirmed
         })
         .catch(() => { /* best-effort busy_blocks update */ });
 
@@ -171,15 +171,13 @@ export function useBookings() {
           body: { booking_id: id, tenant_id: tenant.id },
         }).then(({ error: handoffErr }) => {
           if (handoffErr) {
-            console.error("[confirmBooking] booking-handoff failed:", handoffErr);
             toast({
               title: "Notification issue",
               description: "Booking confirmed but customer notification may not have sent. Consider contacting them directly.",
               variant: "default",
             });
           }
-        }).catch((err) => {
-          console.error("[confirmBooking] booking-handoff error:", err);
+        }).catch(() => {
           toast({
             title: "Notification issue",
             description: "Booking confirmed but customer notification may not have sent.",

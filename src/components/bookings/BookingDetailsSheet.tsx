@@ -5,7 +5,9 @@
  * and action buttons (confirm, reschedule, complete, no-show, cancel, message).
  */
 import { useState } from "react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { formatBookingDateLong, formatBookingTime, formatBookingDatetime } from "@/lib/formatBookingTime";
 import {
   Sheet,
   SheetContent,
@@ -61,11 +63,11 @@ export function BookingDetailsSheet({
 }: BookingDetailsSheetProps) {
   const { toast } = useToast();
   const { terms } = useIndustryContext();
+  const { assistantSettings } = useAuth();
+  const tenantTz = (assistantSettings?.settings_json as any)?.timezone as string | undefined;
   const [smsOpen, setSmsOpen] = useState(false);
 
   if (!booking) return null;
-
-  const startDate = new Date(booking.start_at);
   const serviceName = booking.service?.name || "Service";
   const customerName = booking.lead?.full_name || "Unknown";
   const phone = booking.lead?.phone;
@@ -130,14 +132,17 @@ export function BookingDetailsSheet({
               </div>
               <div className="rounded-lg border p-3 space-y-1">
                 <p className="font-medium">
-                  {format(startDate, "EEEE, MMMM d, yyyy")}
+                  {formatBookingDateLong(booking.start_at, tenantTz)}
                 </p>
                 <p className="text-sm">
-                  {format(startDate, "h:mm a")}
-                  {duration ? ` — ${format(new Date(startDate.getTime() + duration * 60000), "h:mm a")} (${duration} min)` : ""}
+                  {formatBookingTime(booking.start_at, tenantTz)}
+                  {duration ? (() => {
+                    const endAt = new Date(new Date(booking.start_at).getTime() + duration * 60000).toISOString();
+                    return ` — ${formatBookingTime(endAt, tenantTz)} (${duration} min)`;
+                  })() : ""}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {formatDistanceToNow(startDate, { addSuffix: true })}
+                  {formatDistanceToNow(new Date(booking.start_at), { addSuffix: true })}
                 </p>
               </div>
             </div>
@@ -255,35 +260,41 @@ export function BookingDetailsSheet({
                 <TimelineItem
                   label="Created"
                   date={booking.created_at}
+                  timezone={tenantTz}
                 />
                 {(booking as any).confirmed_at && (
                   <TimelineItem
                     label="Confirmed"
                     date={(booking as any).confirmed_at}
+                    timezone={tenantTz}
                   />
                 )}
                 {(booking as any).customer_confirmed_at && (
                   <TimelineItem
                     label="Customer confirmed"
                     date={(booking as any).customer_confirmed_at}
+                    timezone={tenantTz}
                   />
                 )}
                 {booking.status === "completed" && (
                   <TimelineItem
                     label="Completed"
                     date={(booking as any).completed_at || (booking as any).updated_at}
+                    timezone={tenantTz}
                   />
                 )}
                 {(booking.status === "canceled" || booking.status === "cancelled") && (
                   <TimelineItem
                     label="Cancelled"
                     date={(booking as any).updated_at}
+                    timezone={tenantTz}
                   />
                 )}
                 {booking.status === "no_show" && (
                   <TimelineItem
                     label="No-show"
                     date={(booking as any).updated_at}
+                    timezone={tenantTz}
                   />
                 )}
               </div>
@@ -346,13 +357,12 @@ export function BookingDetailsSheet({
   );
 }
 
-function TimelineItem({ label, date }: { label: string; date: string | null | undefined }) {
+function TimelineItem({ label, date, timezone }: { label: string; date: string | null | undefined; timezone?: string }) {
   if (!date) return null;
-  const d = new Date(date);
   return (
     <div className="flex items-center justify-between text-xs">
       <span className="text-muted-foreground">{label}</span>
-      <span>{format(d, "MMM d, h:mm a")}</span>
+      <span>{formatBookingDatetime(date, timezone)}</span>
     </div>
   );
 }

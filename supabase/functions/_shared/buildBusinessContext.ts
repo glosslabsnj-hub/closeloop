@@ -3307,7 +3307,15 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 
   // Services section with pricing
   if (ctx.offerings.services.length > 0) {
-    prompt += `SERVICES AND PRICING:\nIMPORTANT: You have full access to service pricing. Quote prices when they exist!\n\n${ctx.offerings.services_for_prompt}\n\n`;
+    // Check if there's a price-cap policy that restricts phone quotes
+    const priceCapPolicy = customPolicies.find(p => {
+      const text = `${p.title} ${p.content}`.toLowerCase();
+      return (text.includes("quote") || text.includes("price")) && (text.includes("over") || text.includes("above") || text.includes("exceed"));
+    });
+    const pricingNote = priceCapPolicy
+      ? `IMPORTANT: You have access to service pricing below, but CHECK POLICIES before quoting. Some services may require an in-person estimate per business policy.`
+      : `IMPORTANT: You have full access to service pricing. Quote prices when they exist!`;
+    prompt += `SERVICES AND PRICING:\n${pricingNote}\n\n${ctx.offerings.services_for_prompt}\n\n`;
   }
 
   // Menu for food mode - with detailed ordering instructions
@@ -3779,7 +3787,18 @@ WHEN A CUSTOMER ASKS ABOUT PRICING:
 
 CRITICAL RULES:
 ${hasPricing ? "- YOU HAVE PRICING DATA ABOVE. Use it! Never say you don't have access to pricing when it's listed." : "- This business has not configured pricing yet. Politely explain and offer a callback."}
-- If pricing exists for an item → STATE IT DIRECTLY
+${(() => {
+  // Detect price-cap policies (e.g. "no quotes over $500 on phone")
+  const priceCap = customPolicies.find(p => {
+    const text = `${p.title} ${p.content}`.toLowerCase();
+    return (text.includes("quote") || text.includes("price")) && (text.includes("over") || text.includes("above") || text.includes("exceed"));
+  });
+  if (priceCap) {
+    return `- ⚠️ POLICY OVERRIDE: ${priceCap.title} — ${priceCap.content}. When a service costs more than the threshold in this policy, do NOT quote the price directly. Instead offer a free on-site estimate or have someone call back with details.\n`;
+  }
+  return "";
+})()}- If pricing exists for an item AND no policy restricts quoting it → STATE IT DIRECTLY
+- If a policy restricts quoting high-value services → follow the policy (offer estimate/callback instead)
 - If pricing doesn't exist for an item → Explain why and offer the next step (quote, callback, etc.)
 - NEVER vocalize "None", "null", or empty placeholders
 - NEVER make up prices that aren't in your data

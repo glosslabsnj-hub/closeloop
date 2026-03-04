@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.warn("Failed to fetch admin settings:", error);
+        // Expected when admin_settings row doesn't exist yet — not actionable
         return;
       }
 
@@ -102,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
 
         if (upsertError) {
-          console.warn("Failed to auto-create admin settings:", upsertError);
+          // Non-critical: admin settings will be created on next login
         } else {
           setAdminSettings({ admin_active_tenant_id: defaultTenantId });
           // Persist to localStorage so page reload has synchronous backup
