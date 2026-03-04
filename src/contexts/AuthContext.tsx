@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Set the active tenant for admin testing
   const setActiveTenantId = useCallback(async (tenantId: string) => {
     if (!user || !isSuperAdmin) {
-      console.warn("setActiveTenantId called without super admin privileges");
+      // Guard: only super admins can switch active tenant
       return;
     }
 
