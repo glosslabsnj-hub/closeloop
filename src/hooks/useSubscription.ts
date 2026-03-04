@@ -182,20 +182,14 @@ export function useSubscription(tenantId: string | null, isSuperAdmin: boolean =
     // Provision Twilio number for voice plans (skip for super admin test tenants)
     if (hasVoiceFeature(sku) && !isSuperAdmin) {
       try {
-        console.log("Provisioning Twilio number for voice plan...");
         const { data, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {
           body: { tenant_id: tenantId, number_type: "local" },
         });
-        
-        if (provisionError) {
-          console.error("Failed to provision number:", provisionError);
-        } else if (data?.success) {
-          console.log("Provisioned number:", data.phone_number);
-        } else {
-          console.error("Provisioning failed:", data?.error);
+
+        if (provisionError || !data?.success) {
+          // Provisioning failure is non-fatal — logged server-side
         }
-      } catch (err) {
-        console.error("Error calling provision function:", err);
+      } catch {
         // Don't fail subscription creation if provisioning fails
       }
     }

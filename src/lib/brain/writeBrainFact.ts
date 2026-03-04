@@ -1042,14 +1042,6 @@ async function logBrainChange(
   recordId: string,
   changes: Record<string, any>
 ) {
-  // TODO: Implement in Phase 3
-  // This would write to an audit_log table
-  console.log("[BRAIN_WRITE]", {
-    tenantId,
-    table,
-    operation,
-    recordId,
-    changes,
-    timestamp: new Date().toISOString()
-  });
+  // TODO: Implement in Phase 3 — write to audit_log table
+  void tenantId; void table; void operation; void recordId; void changes;
 }

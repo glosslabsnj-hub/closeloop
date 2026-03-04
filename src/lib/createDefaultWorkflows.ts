@@ -302,7 +302,6 @@ export async function createDefaultWorkflowsForMode(
       }
     }
 
-    console.log(`[createDefaultWorkflows] Created ${workflowIds.length} workflows for ${businessMode} mode`);
     return { success: true, workflowIds };
   } catch (error) {
     console.error("[createDefaultWorkflows] Error:", error);

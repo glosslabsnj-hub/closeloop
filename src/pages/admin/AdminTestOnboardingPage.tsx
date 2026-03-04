@@ -120,8 +120,6 @@ export default function AdminTestOnboardingPage() {
     setEnabledModules(modules);
     baseModulesRef.current = modules;
 
-    console.log(`[AdminTestOnboarding] Loading template for industry: ${industrySlug}`);
-
     // Mark this industry as initialized
     initializedIndustryRef.current = industrySlug;
   }, [industrySlug, businessMode]);

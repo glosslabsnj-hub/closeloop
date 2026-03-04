@@ -43,19 +43,16 @@ export function resolveIndustryTemplate(industry: string): IndustryConfig {
   // Fall back to legacy industryConfigs
   if (industry in industryConfigs) {
     const config = industryConfigs[industry as ExtendedIndustryType];
-    console.log(`[templateResolver] Found legacy config for: ${industry}, Label: ${config.label}`);
     return config;
   }
-  
+
   // Also try the normalized slug in legacy configs
   if (normalizedSlug in industryConfigs) {
     const config = industryConfigs[normalizedSlug as ExtendedIndustryType];
-    console.log(`[templateResolver] Found legacy config for normalized: ${normalizedSlug}, Label: ${config.label}`);
     return config;
   }
-  
+
   // Fallback to "other" template (generic service business)
-  console.warn(`[templateResolver] No template found for industry: ${industry}, falling back to generic`);
   return industryConfigs.other;
 }
 
