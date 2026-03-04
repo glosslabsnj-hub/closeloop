@@ -298,6 +298,10 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Faucet Installation', duration: 60, price: 149, priceType: 'starting_at' },
       { name: 'Sewer Line Inspection', duration: 90, price: 199, priceType: 'fixed' },
       { name: 'Emergency Service', duration: 60, price: 199, priceType: 'starting_at' },
+      { name: 'Whole-House Repipe', duration: 1440, price: 4500, priceType: 'starting_at' },
+      { name: 'Water Filtration Install', duration: 150, price: 550, priceType: 'starting_at' },
+      { name: 'Sewer Line Repair', duration: 480, price: 2500, priceType: 'starting_at' },
+      { name: 'Water Heater Installation', duration: 240, price: 1500, priceType: 'starting_at' },
     ],
     contextFields: [
       { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Condo', 'Commercial'], required: true },

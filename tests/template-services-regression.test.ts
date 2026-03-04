@@ -15,9 +15,9 @@ import { getIndustryBySlug } from "@/data/industryCatalog";
 
 describe("resolveIndustryTemplate — service completeness", () => {
   // ─── Plumbing ───────────────────────────────────────────────────
-  it("plumbing template resolves all 7 services", () => {
+  it("plumbing template resolves all 11 services", () => {
     const config = resolveIndustryTemplate("plumbing");
-    expect(config.services).toHaveLength(7);
+    expect(config.services).toHaveLength(11);
     const names = config.services.map((s) => s.name);
     expect(names).toContain("Drain Cleaning");
     expect(names).toContain("Leak Detection");
@@ -26,13 +26,18 @@ describe("resolveIndustryTemplate — service completeness", () => {
     expect(names).toContain("Faucet Installation");
     expect(names).toContain("Sewer Line Inspection");
     expect(names).toContain("Emergency Service");
+    expect(names).toContain("Whole-House Repipe");
+    expect(names).toContain("Water Filtration Install");
+    expect(names).toContain("Sewer Line Repair");
+    expect(names).toContain("Water Heater Installation");
   });
 
-  it("legacy 'plumber' slug also resolves all 7 services", () => {
+  it("legacy 'plumber' slug also resolves all 11 services", () => {
     const config = resolveIndustryTemplate("plumber");
-    expect(config.services).toHaveLength(7);
+    expect(config.services).toHaveLength(11);
     expect(config.services.map((s) => s.name)).toContain("Toilet Repair");
     expect(config.services.map((s) => s.name)).toContain("Sewer Line Inspection");
+    expect(config.services.map((s) => s.name)).toContain("Whole-House Repipe");
   });
 
   it("plumbing services have valid prices and durations", () => {
@@ -43,6 +48,22 @@ describe("resolveIndustryTemplate — service completeness", () => {
       expect(svc.price).toBeGreaterThan(0);
       expect(["fixed", "starting_at", "quote_only"]).toContain(svc.priceType);
     }
+  });
+
+  it("whole-house repipe has multi-day duration (not 1h)", () => {
+    const config = resolveIndustryTemplate("plumbing");
+    const repipe = config.services.find((s) => s.name === "Whole-House Repipe");
+    expect(repipe).toBeDefined();
+    expect(repipe!.duration).toBeGreaterThanOrEqual(960); // 16+ hours
+    expect(repipe!.priceType).toBe("starting_at");
+  });
+
+  it("water filtration price is consistent ($550 starting)", () => {
+    const config = resolveIndustryTemplate("plumbing");
+    const filtration = config.services.find((s) => s.name === "Water Filtration Install");
+    expect(filtration).toBeDefined();
+    expect(filtration!.price).toBe(550);
+    expect(filtration!.priceType).toBe("starting_at");
   });
 
   // ─── HVAC ───────────────────────────────────────────────────────
