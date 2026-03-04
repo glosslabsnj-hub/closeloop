@@ -50,7 +50,6 @@ export function formatFinancingAmount(cents: number): string {
   const [isCreatingApplication, setIsCreatingApplication] = useState(false);
 
   const createApplication = async (_estimateId: string) => {
-    console.log("Financing application would be created");
     return { success: false, message: "Financing not configured" };
   };
 

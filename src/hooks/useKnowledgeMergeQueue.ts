@@ -237,7 +237,7 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
               description: proposed_value.description as string || null,
             })
             .eq("id", existing_value.id as string);
-          if (error) console.warn("Menu category update error:", error);
+          void error;
         } else {
           const { error } = await supabase
             .from("menu_categories" as any)
@@ -247,10 +247,10 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
               description: proposed_value.description as string || null,
               display_order: proposed_value.display_order as number || 0,
             });
-          if (error) console.warn("Menu category insert error:", error);
+          void error;
         }
-      } catch (e) {
-        console.warn("Menu category operation failed:", e);
+      } catch {
+        // Menu categories table may not exist — non-critical
       }
       break;
     }
@@ -274,7 +274,7 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
         .update({ policies: updatedPolicies })
         .eq("id", tenantId);
 
-      if (policyError) console.warn("Policy update error:", policyError);
+      void policyError;
       break;
     }
 
@@ -307,7 +307,7 @@ async function applyMergeItem(item: KnowledgeMergeItem, tenantId: string) {
         .update({ intake_fields: updatedFields })
         .eq("id", tenantId);
 
-      if (intakeError) console.warn("Intake field update error:", intakeError);
+      void intakeError;
       break;
     }
   }

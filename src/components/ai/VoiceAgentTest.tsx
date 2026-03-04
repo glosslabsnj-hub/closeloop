@@ -67,7 +67,6 @@ export default function VoiceAgentTest() {
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log("🎙️ [VoiceTest] ✓ CONNECTED to ElevenLabs agent");
       addDebugEvent("CONNECTED", { status: conversation.status });
       toast({
         title: "Connected",
@@ -75,15 +74,12 @@ export default function VoiceAgentTest() {
       });
     },
     onDisconnect: (details) => {
-      console.log("🎙️ [VoiceTest] ⚠️ DISCONNECTED from ElevenLabs agent", details);
       addDebugEvent("DISCONNECTED", { status: conversation.status, details });
     },
     onMessage: (message) => {
-      console.log("🎙️ [VoiceTest] Message:", message);
       addDebugEvent("MESSAGE", { role: message.role, source: message.source });
     },
     onError: (error: string) => {
-      console.error("🎙️ [VoiceTest] ✗ ERROR:", error);
       addDebugEvent("ERROR", { message: error });
       toast({
         variant: "destructive",
@@ -92,17 +88,14 @@ export default function VoiceAgentTest() {
       });
     },
     onDebug: (event) => {
-      console.log("🎙️ [VoiceTest] DEBUG:", event);
       addDebugEvent("DEBUG", event);
     },
     onStatusChange: (status) => {
-      console.log("🎙️ [VoiceTest] STATUS_CHANGE:", status);
       addDebugEvent("STATUS", { status });
     },
   });
 
   const startConversation = useCallback(async () => {
-    console.log("🎙️ [VoiceTest] Starting conversation flow...", { tenantId: effectiveTenantId });
     setIsConnecting(true);
     setDebugEvents([]); // Clear previous debug events
     setConversationId(null);
@@ -110,16 +103,13 @@ export default function VoiceAgentTest() {
 
     try {
       // Request microphone permission
-      console.log("🎙️ [VoiceTest] Step 1: Requesting microphone...");
       addDebugEvent("MIC_REQUEST", { status: "requesting" });
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log("🎙️ [VoiceTest] ✓ Microphone granted");
       addDebugEvent("MIC_GRANTED", { status: "granted" });
 
       // Try WebRTC first, fallback to WebSocket
       const connectionMode: "webrtc" | "websocket" = "webrtc";
 
-      console.log("🎙️ [VoiceTest] Step 2: Fetching token (WebRTC mode)...");
       addDebugEvent("TOKEN_REQUEST", { mode: "webrtc", tenantId: effectiveTenantId });
 
       const { data, error } = await supabase.functions.invoke(
@@ -128,22 +118,9 @@ export default function VoiceAgentTest() {
       );
 
       if (error) {
-        console.error("🎙️ [VoiceTest] ✗ Token error:", error);
         addDebugEvent("TOKEN_ERROR", { error: error.message });
         throw new Error(error.message || "Failed to get conversation token");
       }
-
-      console.log("🎙️ [VoiceTest] ✓ Token response:", {
-        connectionType: data?.connectionType,
-        hasSignedUrl: !!data?.signedUrl,
-        hasToken: !!data?.token,
-        hasConversationId: !!data?.conversationId,
-        tokenPrefix: data?.token ? String(data.token).slice(0, 12) : undefined,
-        conversationId: data?.conversationId,
-        businessName: data?.dynamicVariables?.business_name,
-        deployedVersion: data?.deployedVersion || "OLD_VERSION",
-        fullDebug: data?._debug,
-      });
 
       addDebugEvent("TOKEN_RECEIVED", {
         connectionType: data?.connectionType,
@@ -162,10 +139,8 @@ export default function VoiceAgentTest() {
       const debugId = (data?.token as string | undefined) || (data?.conversationId as string | undefined) || null;
       if (debugId) {
         setConversationId(debugId);
-        console.log("🎙️ [VoiceTest] DebugID:", debugId);
       }
 
-      console.log("🎙️ [VoiceTest] Step 3: Starting session...");
       addDebugEvent("STARTING_SESSION", { mode: data?.connectionType || connectionMode });
 
       // Build greeting override if custom greeting exists
@@ -202,10 +177,8 @@ export default function VoiceAgentTest() {
         throw new Error("No token, conversationId, or signedUrl received from server");
       }
 
-      console.log("🎙️ [VoiceTest] ✓ Session started");
       addDebugEvent("SESSION_STARTED", { status: "success" });
     } catch (error: unknown) {
-      console.error("🎙️ [VoiceTest] ✗ Failed:", error);
       const message = error instanceof Error ? error.message : "Could not start voice conversation";
       addDebugEvent("SESSION_ERROR", { error: message });
       toast({

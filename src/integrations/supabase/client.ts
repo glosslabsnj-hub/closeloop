@@ -28,7 +28,6 @@ const fetchWithRateLimitRetry: typeof fetch = async (input, init) => {
 
     const retryAfter = response.headers.get("Retry-After");
     const waitMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 30000) : delay;
-    console.warn(`[Supabase] 429 rate limited. Retry ${attempt + 1}/${MAX_RETRIES} in ${waitMs}ms`);
     await new Promise(r => setTimeout(r, waitMs));
     delay *= 2;
   }
