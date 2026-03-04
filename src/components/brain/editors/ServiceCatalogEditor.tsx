@@ -657,7 +657,22 @@ export function ServiceCatalogEditor() {
       setDeleteDialogOpen(false);
       setDeletingService(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to delete service");
+      const msg = error.message || "";
+      if (msg.includes("bookings_service_id_fkey") || msg.includes("violates foreign key")) {
+        toast.error("This service has bookings — deactivate it instead.", {
+          action: {
+            label: "Deactivate",
+            onClick: () => {
+              handleToggleActive(deletingService, { stopPropagation: () => {} } as React.MouseEvent);
+              setDeleteDialogOpen(false);
+              setDeletingService(null);
+            },
+          },
+          duration: 8000,
+        });
+      } else {
+        toast.error(msg || "Failed to delete service");
+      }
     }
   };
 
@@ -889,7 +904,7 @@ export function ServiceCatalogEditor() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Service</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingService?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{deletingService?.name}"? This action cannot be undone. Services with existing bookings will be deactivated instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

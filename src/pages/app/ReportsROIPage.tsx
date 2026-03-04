@@ -475,12 +475,17 @@ export default function ReportsROIPage() {
 
   const _HeroIcon = data ? HERO_ICONS[data.heroIcon] : BarChart3;
 
+  // Override static entityName with industry-aware terminology
+  // e.g. plumber sees "Jobs" instead of generic "Appointments"
+  const entityName = terms.bookingsMetricLabel || data?.entityName || "Bookings";
+  const entityNameLower = terms.bookings || data?.entityName.toLowerCase() || "bookings";
+
   // Build story-driven content when we have data
   const storyHeadline = data
     ? buildStoryHeadline(data.storyTemplate, {
         verb: data.actionVerbPast,
         count: data.entitiesCreated,
-        entity: data.entityName.toLowerCase(),
+        entity: entityNameLower,
         value: formatRevenue(data.aiRevenueCents),
       })
     : "";
@@ -568,7 +573,7 @@ export default function ReportsROIPage() {
             <NarrativeSummary data={data} storyHeadline={storyHeadline} />
 
             {/* Key Metrics (Level 2 — Overview) */}
-            <KeyMetrics data={data} bookingLabel={terms.booking} bookingsLabel={terms.bookings} />
+            <KeyMetrics data={data} bookingLabel={terms.booking} bookingsLabel={terms.bookings} entityName={entityName} />
 
             {/* ROI Breakdown */}
             <ROIBreakdown data={data} />
@@ -617,7 +622,7 @@ export default function ReportsROIPage() {
                     <CardContent>
                       <ConversionFunnelChart
                         funnel={data.conversionFunnel}
-                        entityName={data.entityName}
+                        entityName={entityName}
                         funnelLabels={data.funnelLabels}
                       />
                     </CardContent>
@@ -717,10 +722,12 @@ function KeyMetrics({
   data,
   bookingLabel,
   bookingsLabel,
+  entityName,
 }: {
   data: NonNullable<ReturnType<typeof useROIReport>["data"]>;
   bookingLabel: string;
   bookingsLabel: string;
+  entityName: string;
 }) {
   const roiBadge = getROIBadge(data.roiMultiplier, data.celebratoryTone);
 
@@ -765,7 +772,7 @@ function KeyMetrics({
       <Card className="card-elevated card-interactive bg-card/60 backdrop-blur-sm border-border/30">
         <CardContent className="p-5">
           <div className="flex items-start justify-between mb-2">
-            <p className="text-sm font-medium text-muted-foreground">{data.entityName}</p>
+            <p className="text-sm font-medium text-muted-foreground">{entityName}</p>
             <div className="p-2 rounded-lg bg-muted text-muted-foreground">
               <Target className="h-4 w-4" />
             </div>
