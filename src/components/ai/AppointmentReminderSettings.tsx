@@ -16,6 +16,10 @@ function defaultTemplate1h(label: string): string {
   return `Hi {{customer_name}}, your {{service_name}} ${label} is in about 1 hour at {{time}}. We look forward to seeing you!`;
 }
 
+// Detect uncustomized templates so we can regenerate with correct terminology
+const DEFAULT_24H_PATTERN = /^Hi \{\{customer_name\}\}, this is a reminder that your \{\{service_name\}\} \w+ is tomorrow/;
+const DEFAULT_1H_PATTERN = /^Hi \{\{customer_name\}\}, your \{\{service_name\}\} \w+ is in about 1 hour/;
+
 function capitalize(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -36,8 +40,15 @@ export default function AppointmentReminderSettings() {
     if (assistantSettings?.settings_json) {
       const json = assistantSettings.settings_json as Record<string, any>;
       setEnabled(json.reminders_enabled ?? false);
-      setTemplate24h(json.reminder_24h_template || defaultTemplate24h(apptLabel));
-      setTemplate1h(json.reminder_1h_template || defaultTemplate1h(apptLabel));
+      // If saved template matches uncustomized default, regenerate with correct terminology
+      const saved24h = json.reminder_24h_template;
+      const saved1h = json.reminder_1h_template;
+      setTemplate24h(
+        saved24h && !DEFAULT_24H_PATTERN.test(saved24h) ? saved24h : defaultTemplate24h(apptLabel)
+      );
+      setTemplate1h(
+        saved1h && !DEFAULT_1H_PATTERN.test(saved1h) ? saved1h : defaultTemplate1h(apptLabel)
+      );
     }
   }, [assistantSettings, apptLabel]);
 

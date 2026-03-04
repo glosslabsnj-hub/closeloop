@@ -41,16 +41,28 @@ function getDefaultSettings(appointmentLabel: string): SmsSettings {
     appointment_reminder: {
       enabled: true,
       message:
-        `Reminder: You have a ${appointmentLabel} with {{business_name}} tomorrow at {{appointment_time}}. See you soon! Reply STOP to unsubscribe.`,
+        `Reminder: Your ${appointmentLabel} with {{business_name}} is tomorrow at {{appointment_time}}. See you then! Reply STOP to unsubscribe.`,
       delayMinutes: 1440,
     },
     review_request: {
       enabled: false,
       message:
-        "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.",
+        `Thank you for choosing {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.`,
       delayMinutes: 60,
     },
   };
+}
+
+// Known default message patterns — if saved template matches one of these,
+// it was never customized and should regenerate with correct terminology.
+const DEFAULT_PATTERNS = [
+  /^Hi \{\{customer_name\}\}! Your \w+ with \{\{business_name\}\} is confirmed/,
+  /^Reminder: (You have a|Your) \w+ with \{\{business_name\}\} (is )?tomorrow/,
+  /^Thank you for (visiting|choosing) \{\{business_name\}\}/,
+];
+
+function isDefaultTemplate(message: string, index: number): boolean {
+  return DEFAULT_PATTERNS[index]?.test(message) ?? false;
 }
 
 // Static fallback for useState initialization (before terminology loads)
@@ -148,12 +160,22 @@ export function SmsSettingsSection() {
   const [reviewLink, setReviewLink] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
-  // Sync from server when data loads — use terminology-aware defaults if no saved settings
+  // Sync from server when data loads — use terminology-aware defaults if no saved settings.
+  // If saved templates match a known default pattern, regenerate with correct terminology
+  // so that a plumber sees "job" not "appointment".
   useEffect(() => {
+    const terminologyDefaults = getDefaultSettings(terminology.appointmentLabel);
     if (savedSmsSettings) {
-      setSettings(savedSmsSettings);
+      const keys: (keyof SmsSettings)[] = ["appointment_confirmation", "appointment_reminder", "review_request"];
+      const merged = { ...savedSmsSettings };
+      keys.forEach((key, i) => {
+        if (merged[key] && isDefaultTemplate(merged[key].message, i)) {
+          merged[key] = { ...merged[key], message: terminologyDefaults[key].message };
+        }
+      });
+      setSettings(merged);
     } else if (terminology.appointmentLabel) {
-      setSettings(getDefaultSettings(terminology.appointmentLabel));
+      setSettings(terminologyDefaults);
     }
   }, [savedSmsSettings, terminology.appointmentLabel]);
 
