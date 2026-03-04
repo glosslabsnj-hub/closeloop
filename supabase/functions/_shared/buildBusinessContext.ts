@@ -3316,6 +3316,9 @@ function buildSystemPrompt(ctx: BusinessContext): string {
     prompt += `UNKNOWN QUESTIONS: If you don't know the answer, let the caller know someone will follow up.\n\n`;
   }
 
+  // Pre-compute custom policies (needed by services pricing and policy sections below)
+  const customPolicies = ctx.knowledge.supplementary.filter(item => item.type === 'policy');
+
   // Services section with pricing
   if (ctx.offerings.services.length > 0) {
     // Check if there's a price-cap policy that restricts phone quotes
@@ -3395,7 +3398,6 @@ Do NOT claim you cannot take orders if menu IS available above.
   }
 
   // Policies (tenant-level + all policy-type knowledge base entries)
-  const customPolicies = ctx.knowledge.supplementary.filter(item => item.type === 'policy');
   const hasAnyPolicy = ctx.policies.cancellation || ctx.policies.deposit || ctx.policies.refund || customPolicies.length > 0;
   if (hasAnyPolicy) {
     prompt += `POLICIES (MUST FOLLOW — these are hard rules set by the business owner):\\n`;
