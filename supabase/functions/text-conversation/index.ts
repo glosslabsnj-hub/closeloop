@@ -10,10 +10,15 @@
  * POST body:
  *   tenantId: string
  *   message: string
+ *   sessionId?: string     (PREFERRED for multi-turn — server persists history by this ID in DB)
  *   history?: Array<{role: "user"|"assistant", content: string}>  (LEGACY — lossy, drops tool blocks)
- *   conversationMessages?: Array<MessageParam>  (PREFERRED — full API-level history with tool blocks)
+ *   conversationMessages?: Array<MessageParam>  (client-managed history — full API-level with tool blocks)
  *   callerPhone?: string   (default: +15550000000 for test)
  *   customerId?: string    (optional — for returning customer context)
+ *
+ * sessionId usage: Pass the same sessionId across multiple calls and the server
+ * automatically loads + saves conversation history. No need to thread conversationMessages.
+ * Sessions are stored in text_conversation_sessions table. Ideal for QA agents.
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -190,6 +195,50 @@ function getToolDefinitions(businessMode: string): Anthropic.Tool[] {
 }
 
 /**
+ * Load conversation messages from server-side session storage.
+ * Returns null if session not found (start fresh).
+ */
+async function loadSession(
+  supabase: ReturnType<typeof createClient>,
+  sessionId: string,
+): Promise<Anthropic.MessageParam[] | null> {
+  const { data, error } = await supabase
+    .from("text_conversation_sessions")
+    .select("messages")
+    .eq("id", sessionId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`[text-conversation] Session load error for ${sessionId}:`, error.message);
+    return null;
+  }
+  return data ? (data.messages as Anthropic.MessageParam[]) : null;
+}
+
+/**
+ * Save/upsert conversation messages to server-side session storage.
+ */
+async function saveSession(
+  supabase: ReturnType<typeof createClient>,
+  sessionId: string,
+  tenantId: string,
+  messages: Anthropic.MessageParam[],
+): Promise<void> {
+  const { error } = await supabase
+    .from("text_conversation_sessions")
+    .upsert({
+      id: sessionId,
+      tenant_id: tenantId,
+      messages: messages as unknown as Record<string, unknown>[],
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" });
+
+  if (error) {
+    console.error(`[text-conversation] Session save error for ${sessionId}:`, error.message);
+  }
+}
+
+/**
  * Execute a tool by calling the corresponding edge function.
  */
 async function executeTool(
@@ -252,7 +301,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, message, history = [], conversationMessages, callerPhone, customerId } = await req.json();
+    const { tenantId, message, sessionId, history = [], conversationMessages, callerPhone, customerId } = await req.json();
 
     if (!tenantId || !message) {
       return new Response(JSON.stringify({ error: "tenantId and message required" }), {
@@ -306,14 +355,27 @@ serve(async (req) => {
     // Assemble final system prompt: date/time + canonical business context + tool rules
     const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${toolReinforcement}`;
 
-    // Build message history for Claude
-    // Prefer conversationMessages (full API-level history with tool blocks) over legacy history (string-only, lossy)
-    const messages: Anthropic.MessageParam[] = conversationMessages
-      ? [...conversationMessages, { role: "user", content: message }]
-      : [
-          ...(history as Array<{ role: "user" | "assistant"; content: string }>),
-          { role: "user", content: message },
-        ];
+    // --- Resolve starting conversation history ---
+    // Priority: sessionId (server-stored) > conversationMessages (client-managed) > history (legacy string-only)
+    let startingMessages: Anthropic.MessageParam[];
+
+    if (sessionId) {
+      const sessionMessages = await loadSession(supabase, sessionId);
+      startingMessages = sessionMessages || [];
+      console.log(`[text-conversation] Session ${sessionId}: loaded ${startingMessages.length} messages`);
+    } else if (conversationMessages) {
+      startingMessages = conversationMessages as Anthropic.MessageParam[];
+    } else {
+      startingMessages = (history as Array<{ role: "user" | "assistant"; content: string }>).map(m => ({
+        role: m.role,
+        content: m.content,
+      }));
+    }
+
+    const messages: Anthropic.MessageParam[] = [
+      ...startingMessages,
+      { role: "user", content: message },
+    ];
 
     // Get tool definitions based on business mode
     const tools = getToolDefinitions(businessMode);
@@ -423,15 +485,21 @@ serve(async (req) => {
     );
     const reply = textBlocks.map(b => b.text).join("\n") || "";
 
-    // Return full conversation history so the frontend can send it back on the next turn
-    // This preserves tool_use and tool_result blocks that the legacy string-only history drops
+    // Build full conversation history including this turn's assistant response
     const conversationMessagesOut = messages.concat([
       { role: "assistant", content: response.content },
     ]);
 
+    // Persist session if sessionId was provided (enables stateful multi-turn for QA curl calls)
+    if (sessionId) {
+      await saveSession(supabase, sessionId, tenantId, conversationMessagesOut);
+      console.log(`[text-conversation] Session ${sessionId}: saved ${conversationMessagesOut.length} messages`);
+    }
+
     return new Response(JSON.stringify({
       reply,
       toolCalls,
+      sessionId: sessionId || null,
       conversationMessages: conversationMessagesOut,
       bookingCreated,
       bookingId,
@@ -452,6 +520,7 @@ serve(async (req) => {
         llm: "claude-haiku-4-5-20251001",
         prompt_source: "buildBusinessContext",
         tool_calls_count: toolCalls.length,
+        session_mode: sessionId ? "server_session" : (conversationMessages ? "client_managed" : "legacy"),
       },
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
