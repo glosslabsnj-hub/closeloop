@@ -30,93 +30,163 @@ const corsHeaders = {
 };
 
 /**
- * Claude tool definitions matching the ElevenLabs agent tools.
+ * Shared tools available to ALL business modes.
  */
-function getToolDefinitions(tenantId: string): Anthropic.Tool[] {
-  return [
-    {
-      name: "create_booking",
-      description: "Create an appointment booking after the customer has confirmed the date, time, and service. Use this when you have collected all required details and the customer agrees to book.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          customer_name: { type: "string", description: "Customer's full name" },
-          customer_phone: { type: "string", description: "Customer's phone number" },
-          customer_email: { type: "string", description: "Customer's email (optional)" },
-          date: { type: "string", description: "Appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
-          time: { type: "string", description: "Appointment time (e.g. '9am', '2:30 PM', '14:00')" },
-          service_name: { type: "string", description: "Name of the service being booked" },
-          notes: { type: "string", description: "Any additional notes from the customer" },
-        },
-        required: ["customer_name", "date", "time"],
+const SHARED_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "create_callback",
+    description: "Create a callback request record. You MUST use this tool whenever: (1) a caller asks for someone to call them back, (2) a caller requests the owner or manager contact them, (3) you need to escalate a complex request like a custom quote, (4) the caller has a complaint, or (5) ai_behavior_mode is callback_only. Do NOT just verbally confirm a callback — always invoke this tool to create the record.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name" },
+        customer_phone: { type: "string", description: "Customer's phone number" },
+        reason: { type: "string", description: "Why the callback is needed" },
       },
+      required: ["customer_name", "customer_phone", "reason"],
     },
-    {
-      name: "check_availability",
-      description: "Check if a specific date and time slot is available for booking.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          date: { type: "string", description: "Date to check (e.g. 'tomorrow', 'March 5')" },
-          time: { type: "string", description: "Time to check (e.g. '9am', '2:30 PM')" },
-        },
-        required: ["date", "time"],
+  },
+  {
+    name: "check_service_area",
+    description: "Check if an address is within the business's service area. Returns distance, ETA, and pricing info.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        address: { type: "string", description: "Customer's address to validate" },
+        vehicle_type: { type: "string", description: "Vehicle type (for dispatch pricing)" },
       },
+      required: ["address"],
     },
-    {
-      name: "create_callback",
-      description: "Create a callback request record. You MUST use this tool whenever: (1) a caller asks for someone to call them back, (2) a caller requests the owner or manager contact them, (3) you need to escalate a complex request like a custom quote, (4) the caller has a complaint, or (5) ai_behavior_mode is callback_only. Do NOT just verbally confirm a callback — always invoke this tool to create the record.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          customer_name: { type: "string", description: "Customer's full name" },
-          customer_phone: { type: "string", description: "Customer's phone number" },
-          reason: { type: "string", description: "Why the callback is needed" },
-        },
-        required: ["customer_name", "customer_phone", "reason"],
+  },
+];
+
+/**
+ * Service-mode tools (booking-based businesses).
+ */
+const SERVICE_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "create_booking",
+    description: "Create an appointment booking after the customer has confirmed the date, time, and service. Use this when you have collected all required details and the customer agrees to book.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name" },
+        customer_phone: { type: "string", description: "Customer's phone number" },
+        customer_email: { type: "string", description: "Customer's email (optional)" },
+        date: { type: "string", description: "Appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
+        time: { type: "string", description: "Appointment time (e.g. '9am', '2:30 PM', '14:00')" },
+        service_name: { type: "string", description: "Name of the service being booked" },
+        notes: { type: "string", description: "Any additional notes from the customer" },
       },
+      required: ["customer_name", "date", "time"],
     },
-    {
-      name: "check_service_area",
-      description: "Check if an address is within the business's service area.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          address: { type: "string", description: "Customer's address to validate" },
-        },
-        required: ["address"],
+  },
+  {
+    name: "check_availability",
+    description: "Check if a specific date and time slot is available for booking.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        date: { type: "string", description: "Date to check (e.g. 'tomorrow', 'March 5')" },
+        time: { type: "string", description: "Time to check (e.g. '9am', '2:30 PM')" },
       },
+      required: ["date", "time"],
     },
-    {
-      name: "cancel_booking",
-      description: "Cancel an existing appointment booking. Use when the customer wants to cancel their upcoming appointment.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          customer_name: { type: "string", description: "Customer's full name to look up the booking" },
-          customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
-          booking_id: { type: "string", description: "Direct booking ID if known" },
-          reason: { type: "string", description: "Reason for cancellation" },
-        },
-        required: ["customer_name"],
+  },
+  {
+    name: "cancel_booking",
+    description: "Cancel an existing appointment booking. Use when the customer wants to cancel their upcoming appointment.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name to look up the booking" },
+        customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
+        booking_id: { type: "string", description: "Direct booking ID if known" },
+        reason: { type: "string", description: "Reason for cancellation" },
       },
+      required: ["customer_name"],
     },
-    {
-      name: "reschedule_booking",
-      description: "Reschedule an existing appointment to a new date and time. Use when the customer wants to move their appointment.",
-      input_schema: {
-        type: "object" as const,
-        properties: {
-          customer_name: { type: "string", description: "Customer's full name to look up the booking" },
-          customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
-          booking_id: { type: "string", description: "Direct booking ID if known" },
-          new_date: { type: "string", description: "New appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
-          new_time: { type: "string", description: "New appointment time (e.g. '9am', '2:30 PM', '14:00')" },
-        },
-        required: ["customer_name", "new_date", "new_time"],
+  },
+  {
+    name: "reschedule_booking",
+    description: "Reschedule an existing appointment to a new date and time. Use when the customer wants to move their appointment.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name to look up the booking" },
+        customer_phone: { type: "string", description: "Customer's phone number to look up the booking" },
+        booking_id: { type: "string", description: "Direct booking ID if known" },
+        new_date: { type: "string", description: "New appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
+        new_time: { type: "string", description: "New appointment time (e.g. '9am', '2:30 PM', '14:00')" },
       },
+      required: ["customer_name", "new_date", "new_time"],
     },
-  ];
+  },
+];
+
+/**
+ * Dispatch-mode tools (towing, roadside, courier, etc.).
+ */
+const DISPATCH_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "create_dispatch_job",
+    description: "Create a dispatch job to send a driver/technician to the customer. Use after collecting: pickup address, service type, customer name, and urgency. For towing/transport, also collect dropoff address.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name" },
+        customer_phone: { type: "string", description: "Customer's phone number" },
+        pickup_address: { type: "string", description: "Where to pick up / where the customer is" },
+        dropoff_address: { type: "string", description: "Where to deliver/tow to (required for towing, optional otherwise)" },
+        service_type: { type: "string", description: "Type of service needed (e.g. 'tow', 'jump start', 'lockout', 'tire change')" },
+        vehicle_info: { type: "string", description: "Vehicle description (year, make, model, color)" },
+        drivable: { type: "boolean", description: "Whether the vehicle is drivable" },
+        urgency: { type: "string", description: "Urgency level: emergency, urgent, standard, same_day, scheduled" },
+        notes: { type: "string", description: "Additional notes for the driver" },
+      },
+      required: ["pickup_address", "service_type"],
+    },
+  },
+  {
+    name: "lookup_dispatch_status",
+    description: "Look up the status of an existing dispatch job. Use when a customer calls to check on their driver/technician.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's name to look up" },
+        customer_phone: { type: "string", description: "Customer's phone to look up" },
+        job_number: { type: "string", description: "Job number if known" },
+      },
+      required: ["customer_phone"],
+    },
+  },
+  {
+    name: "cancel_dispatch_job",
+    description: "Cancel an existing dispatch job. Use when the customer wants to cancel their pending dispatch.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's name" },
+        customer_phone: { type: "string", description: "Customer's phone" },
+        job_number: { type: "string", description: "Job number if known" },
+        reason: { type: "string", description: "Reason for cancellation" },
+      },
+      required: ["customer_phone"],
+    },
+  },
+];
+
+/**
+ * Get tool definitions based on tenant business mode.
+ */
+function getToolDefinitions(businessMode: string): Anthropic.Tool[] {
+  switch (businessMode) {
+    case "dispatch":
+      return [...SHARED_TOOLS, ...DISPATCH_TOOLS];
+    case "service":
+    default:
+      return [...SHARED_TOOLS, ...SERVICE_TOOLS];
+  }
 }
 
 /**
@@ -131,12 +201,18 @@ async function executeTool(
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 
   const endpointMap: Record<string, string> = {
+    // Service mode tools
     create_booking: "elevenlabs-create-booking",
     check_availability: "elevenlabs-check-availability",
-    create_callback: "elevenlabs-create-callback",
-    check_service_area: "elevenlabs-check-service-area",
     cancel_booking: "elevenlabs-cancel-booking",
     reschedule_booking: "elevenlabs-reschedule-booking",
+    // Shared tools
+    create_callback: "elevenlabs-create-callback",
+    check_service_area: "elevenlabs-check-service-area",
+    // Dispatch mode tools
+    create_dispatch_job: "elevenlabs-create-dispatch-job",
+    lookup_dispatch_status: "elevenlabs-lookup-dispatch-status",
+    cancel_dispatch_job: "elevenlabs-cancel-dispatch-job",
   };
 
   const endpoint = endpointMap[toolName];
@@ -220,8 +296,12 @@ serve(async (req) => {
       currentDateTime = now.toISOString();
     }
 
-    // Reinforce tool usage so Claude doesn't just verbally confirm actions
-    const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.\n- Every action must be backed by a tool call that creates a real record.`;
+    // Reinforce tool usage based on business mode
+    const businessMode = context.tenant.business_mode || "service";
+    const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
+    const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): you MUST call create_dispatch_job after collecting location and service type.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
+    const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
+    const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n${modeRules}\n- Every action must be backed by a tool call that creates a real record.`;
 
     // Assemble final system prompt: date/time + canonical business context + tool rules
     const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${toolReinforcement}`;
@@ -235,8 +315,8 @@ serve(async (req) => {
           { role: "user", content: message },
         ];
 
-    // Get tool definitions
-    const tools = getToolDefinitions(tenantId);
+    // Get tool definitions based on business mode
+    const tools = getToolDefinitions(businessMode);
 
     // Call Claude with tools
     const anthropic = new Anthropic({
@@ -259,6 +339,10 @@ serve(async (req) => {
     let bookingRescheduled = false;
     let callbackCreated = false;
     let callbackId: string | null = null;
+    let dispatchCreated = false;
+    let dispatchId: string | null = null;
+    let dispatchJobNumber: string | null = null;
+    let dispatchCancelled = false;
 
     // Handle tool use loop (max 3 iterations to prevent infinite loops)
     let iterations = 0;
@@ -304,6 +388,14 @@ serve(async (req) => {
           callbackCreated = true;
           callbackId = (result.callback_id || result.opportunity_id) as string || null;
         }
+        if (toolUse.name === "create_dispatch_job" && result.success) {
+          dispatchCreated = true;
+          dispatchId = (result.dispatch_id) as string || null;
+          dispatchJobNumber = (result.job_number) as string || null;
+        }
+        if (toolUse.name === "cancel_dispatch_job" && result.success) {
+          dispatchCancelled = true;
+        }
 
         toolResults.push({
           type: "tool_result",
@@ -347,6 +439,10 @@ serve(async (req) => {
       bookingRescheduled,
       callbackCreated,
       callbackId,
+      dispatchCreated,
+      dispatchId,
+      dispatchJobNumber,
+      dispatchCancelled,
       debug: {
         tenant_id: String(vars.tenant_id || tenantId),
         business_mode: String(vars.business_mode || ""),
