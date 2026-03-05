@@ -30,6 +30,9 @@ export default function TextConversationSimulator() {
   const [loading, setLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [greetingLoaded, setGreetingLoaded] = useState(false);
+  // Full API-level conversation history (preserves tool_use/tool_result blocks)
+  // deno-lint-ignore no-explicit-any
+  const [conversationHistory, setConversationHistory] = useState<any[] | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,21 +64,32 @@ export default function TextConversationSimulator() {
     if (!input.trim() || loading || !effectiveTenantId) return;
 
     const userMsg: Message = { role: "user", content: input, timestamp: new Date() };
-    const history = messages.map(m => ({ role: m.role, content: m.content }));
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
 
     try {
+      // Send full API-level history (with tool blocks) when available, fall back to legacy string history
+      const body: Record<string, unknown> = {
+        tenantId: effectiveTenantId,
+        message: input,
+      };
+      if (conversationHistory) {
+        body.conversationMessages = conversationHistory;
+      } else {
+        body.history = messages.map(m => ({ role: m.role, content: m.content }));
+      }
+
       const { data, error } = await supabase.functions.invoke("text-conversation", {
-        body: {
-          tenantId: effectiveTenantId,
-          message: input,
-          history,
-        },
+        body,
       });
 
       if (error) throw error;
+
+      // Store the full API-level conversation history for next turn
+      if (data.conversationMessages) {
+        setConversationHistory(data.conversationMessages);
+      }
 
       const aiMsg: Message = {
         role: "assistant",
@@ -98,7 +112,7 @@ export default function TextConversationSimulator() {
     }
   };
 
-  const reset = () => { setMessages([]); setGreetingLoaded(false); };
+  const reset = () => { setMessages([]); setGreetingLoaded(false); setConversationHistory(null); };
 
   return (
     <Card>

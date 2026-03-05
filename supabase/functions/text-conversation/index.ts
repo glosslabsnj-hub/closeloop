@@ -10,7 +10,8 @@
  * POST body:
  *   tenantId: string
  *   message: string
- *   history?: Array<{role: "user"|"assistant", content: string}>
+ *   history?: Array<{role: "user"|"assistant", content: string}>  (LEGACY — lossy, drops tool blocks)
+ *   conversationMessages?: Array<MessageParam>  (PREFERRED — full API-level history with tool blocks)
  *   callerPhone?: string   (default: +15550000000 for test)
  *   customerId?: string    (optional — for returning customer context)
  */
@@ -175,7 +176,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, message, history = [], callerPhone, customerId } = await req.json();
+    const { tenantId, message, history = [], conversationMessages, callerPhone, customerId } = await req.json();
 
     if (!tenantId || !message) {
       return new Response(JSON.stringify({ error: "tenantId and message required" }), {
@@ -226,10 +227,13 @@ serve(async (req) => {
     const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${toolReinforcement}`;
 
     // Build message history for Claude
-    const messages: Anthropic.MessageParam[] = [
-      ...(history as Array<{ role: "user" | "assistant"; content: string }>),
-      { role: "user", content: message },
-    ];
+    // Prefer conversationMessages (full API-level history with tool blocks) over legacy history (string-only, lossy)
+    const messages: Anthropic.MessageParam[] = conversationMessages
+      ? [...conversationMessages, { role: "user", content: message }]
+      : [
+          ...(history as Array<{ role: "user" | "assistant"; content: string }>),
+          { role: "user", content: message },
+        ];
 
     // Get tool definitions
     const tools = getToolDefinitions(tenantId);
@@ -327,9 +331,16 @@ serve(async (req) => {
     );
     const reply = textBlocks.map(b => b.text).join("\n") || "";
 
+    // Return full conversation history so the frontend can send it back on the next turn
+    // This preserves tool_use and tool_result blocks that the legacy string-only history drops
+    const conversationMessagesOut = messages.concat([
+      { role: "assistant", content: response.content },
+    ]);
+
     return new Response(JSON.stringify({
       reply,
       toolCalls,
+      conversationMessages: conversationMessagesOut,
       bookingCreated,
       bookingId,
       bookingCancelled,
