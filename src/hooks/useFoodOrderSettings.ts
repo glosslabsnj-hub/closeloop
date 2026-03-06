@@ -6,6 +6,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useTenantConfig } from "./useTenantConfig";
 
 export interface FoodOrderSettings {
   accepts_pickup: boolean;
@@ -33,26 +34,30 @@ const DEFAULT_SETTINGS: FoodOrderSettings = {
 
 export function useFoodOrderSettings() {
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
+  const isFoodMode = businessMode === "food";
 
   const query = useQuery({
     queryKey: ["food-order-settings", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return null;
-      
+
       const { data, error } = await supabase
         .from("food_order_settings")
         .select("*")
         .eq("tenant_id", tenant.id)
-        .single();
-      
-      if (error && error.code !== "PGRST116") {
+        .maybeSingle();
+
+      if (error) {
         console.error("[useFoodOrderSettings] Error:", error);
         throw error;
       }
-      
+
       return data as FoodOrderSettings | null;
     },
-    enabled: !!tenant?.id,
+    // Only query food_order_settings for food-mode tenants to prevent HTTP 406
+    // cross-mode leak on every page load for non-food businesses
+    enabled: !!tenant?.id && isFoodMode,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 

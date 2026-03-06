@@ -2491,7 +2491,13 @@ export async function buildBusinessContext(
   const tenant = tenantResult.data;
   const services = servicesResult.data || [];
   const menuItems = menuItemsResult.data || [];
-  const faqs = faqsResult.data || [];
+  const rawFaqs = faqsResult.data || [];
+  // Dynamically override the "hours" FAQ answer with live hours_json so it never
+  // goes stale when the tenant updates their hours in Settings after onboarding.
+  const liveHoursString = buildWeeklyHoursSummary(normalizeHours(tenant?.hours_json as Record<string, unknown> | null));
+  const faqs = liveHoursString
+    ? rawFaqs.map(f => f.question.toLowerCase().includes("hour") ? { ...f, answer: liveHoursString } : f)
+    : rawFaqs;
   const objections = objectionsResult.data || [];
   const knowledgeBase = knowledgeBaseResult.data || [];
   const assistant = assistantResult.data;
