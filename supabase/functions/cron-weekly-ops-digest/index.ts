@@ -36,22 +36,25 @@ serve(async (_req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // First, trigger the digest builder
-    const buildResp = await fetch(`${SUPABASE_URL}/functions/v1/build-weekly-digest`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!buildResp.ok) {
-      const err = await buildResp.text();
-      console.error("[weekly-ops-digest] Failed to build digest:", err);
-      return new Response(JSON.stringify({ error: "Failed to build digest" }), { status: 500 });
+    // Trigger the digest builder (fire-and-forget if it fails, we still send what's available)
+    let buildResult: any = {};
+    try {
+      const buildResp = await fetch(`${SUPABASE_URL}/functions/v1/build-weekly-digest`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+      if (buildResp.ok) {
+        buildResult = await buildResp.json();
+      } else {
+        console.warn("[weekly-ops-digest] Digest builder returned:", buildResp.status);
+      }
+    } catch (e) {
+      console.warn("[weekly-ops-digest] Digest builder failed, using existing data:", e);
     }
-
-    const buildResult = await buildResp.json();
 
     // Now fetch the latest digest for each tenant
     const periodEnd = new Date();
