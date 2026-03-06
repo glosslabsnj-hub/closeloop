@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSquare, Send, Loader2, Brain, RefreshCw, Bug, CalendarCheck, Wrench } from "lucide-react";
 
@@ -25,6 +26,7 @@ interface Message {
 
 export default function TextConversationSimulator() {
   const { effectiveTenantId } = useAuth();
+  const { terms } = useIndustryContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -147,7 +149,7 @@ export default function TextConversationSimulator() {
                   <div className="mt-2 flex items-center gap-1.5">
                     <Badge variant="default" className="text-[10px] gap-1 bg-green-600">
                       <CalendarCheck className="h-2.5 w-2.5" />
-                      Booking Created
+                      {terms.bookingCreated || "Booking Created"}
                     </Badge>
                     {msg.bookingId && (
                       <span className="text-[10px] font-mono text-muted-foreground">

@@ -96,10 +96,10 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
       {
         id: "business-hours",
         title: "Your Hours",
-        purpose: "When your business is open for calls and appointments",
+        purpose: "When your business is open and available for calls",
         usedByAI: [
           "Tells callers if you're open or closed",
-          "Suggests available booking times",
+          "Suggests open times when callers ask about availability",
           "Explains hours when asked",
         ],
         defaultCollapsed: false,
@@ -111,7 +111,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         title: "Calendar & Availability",
         purpose: "Connect external calendars for real-time availability",
         usedByAI: [
-          "Checks your calendar before offering appointment times",
+          "Checks your calendar before suggesting available times",
           "Avoids double-booking automatically",
           "Respects blocked times and buffers",
         ],
