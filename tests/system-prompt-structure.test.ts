@@ -256,6 +256,14 @@ describe("text-conversation — uses buildBusinessContext", () => {
     expect(textConvSource).toContain("conversationId: reqConversationId");
     expect(textConvSource).toContain("reqSessionId || reqConversationId");
   });
+
+  it("has TEXT CHANNEL OVERRIDE for transfer requests (regression: AI said 'let me transfer you' in text mode)", () => {
+    // In text/browser_test mode there is no live call to transfer.
+    // The service agent base prompt says 'let me transfer you now' for voice.
+    // text-conversation must override this to use create_callback instead.
+    expect(textConvSource).toContain("TEXT CHANNEL OVERRIDE");
+    expect(textConvSource).toContain("transfer_to_owner is NOT available in text/chat");
+  });
 });
 
 describe("buildSystemPrompt — anti-fabrication rules (regression: R10/R11 QA bugs)", () => {
