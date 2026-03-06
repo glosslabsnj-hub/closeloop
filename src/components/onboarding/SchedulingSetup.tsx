@@ -212,7 +212,7 @@ export function SchedulingSetup({
         </h2>
         <p className="mt-2 text-muted-foreground">
           {isCallbackOnly
-            ? "Set your business hours so the AI knows when you're open. Since you chose callback-only, you don't need appointment slots."
+            ? `Set your business hours so the AI knows when you're open. Since you chose callback-only, you don't need to configure ${apptLabel} time slots.`
             : "Set your business hours and scheduling preferences. You can fine-tune these later in the Business Brain."
           }
         </p>
