@@ -132,7 +132,7 @@ serve(async (req: Request) => {
     if (bookingId) {
       const { data } = await supabase
         .from("bookings")
-        .select("id, start_at, end_at, status, lead_id, service_id")
+        .select("id, start_at, end_at, status, lead_id, service_id, external_event_id, external_provider, notes")
         .eq("id", bookingId)
         .eq("tenant_id", tenantId)
         .maybeSingle();
@@ -163,7 +163,7 @@ serve(async (req: Request) => {
           // Find upcoming booking for these leads
           const { data } = await supabase
             .from("bookings")
-            .select("id, start_at, end_at, status, lead_id, service_id")
+            .select("id, start_at, end_at, status, lead_id, service_id, external_event_id, external_provider, notes")
             .eq("tenant_id", tenantId)
             .in("lead_id", leadIds)
             .in("status", ["pending", "confirmed"])
@@ -254,6 +254,47 @@ serve(async (req: Request) => {
       .update({ is_active: false })
       .eq("tenant_id", tenantId)
       .eq("booking_id", booking.id);
+
+    // Cancel in Square if this booking was synced there
+    if (booking.external_provider === "square" && booking.external_event_id) {
+      try {
+        const { data: oauthToken } = await supabase
+          .from("integration_oauth_tokens")
+          .select("access_token")
+          .eq("tenant_id", tenantId)
+          .eq("provider", "square_pos")
+          .eq("status", "connected")
+          .maybeSingle();
+
+        if (oauthToken?.access_token) {
+          const squareCancelResponse = await fetch(
+            `https://connect.squareup.com/v2/bookings/${booking.external_event_id}/cancel`,
+            {
+              method: "POST",
+              headers: {
+                "Square-Version": "2024-01-18",
+                "Authorization": `Bearer ${oauthToken.access_token}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                booking_version: 0, // Square requires version; 0 forces latest
+              }),
+            }
+          );
+
+          if (squareCancelResponse.ok) {
+            console.log(`[cancel-booking] Square booking ${booking.external_event_id} cancelled`);
+          } else {
+            const errText = await squareCancelResponse.text();
+            console.error(`[cancel-booking] Square cancel failed: ${squareCancelResponse.status} ${errText}`);
+          }
+        } else {
+          console.warn(`[cancel-booking] No Square OAuth token for tenant ${tenantId}, skipping Square cancel`);
+        }
+      } catch (squareErr) {
+        console.error("[cancel-booking] Square cancel error:", squareErr);
+      }
+    }
 
     // Update session if we have one
     if (sessionId) {

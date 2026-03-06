@@ -1,6 +1,6 @@
 // twilio-inbound - telephony entrypoint (safe-mode)
 // Update this string when you want to verify a fresh deploy is running
-const VERSION = "twilio-inbound@2026-02-12.1";
+const VERSION = "twilio-inbound@2026-03-06.2";
 const DEPLOYED_AT = new Date().toISOString();
 
 // Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
@@ -491,6 +491,127 @@ Deno.serve(async (req) => {
           );
         } catch { /* swallow */ }
       })();
+
+      // Fire-and-forget: send missed-call text-back SMS
+      if (callerPhoneE164 && settings.missed_call_textback_enabled !== false) {
+        void (async () => {
+          try {
+            // Dedup: check if we already texted this caller in last 24h
+            const dedupResp = await fetchWithTimeout(
+              `${SUPABASE_URL}/rest/v1/missed_call_textbacks?tenant_id=eq.${tenantId}&caller_phone=eq.${encodeURIComponent(callerPhoneE164)}&sent_at=gte.${new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()}&limit=1`,
+              {
+                headers: {
+                  apikey: SUPABASE_SERVICE_ROLE_KEY!,
+                  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+              },
+              2000
+            );
+            if (dedupResp.ok) {
+              const existing = await dedupResp.json();
+              if (existing.length > 0) {
+                console.log(`[twilio-inbound] Skipping text-back: already sent to ${callerPhoneE164} within 24h`);
+                return;
+              }
+            }
+
+            // Build the text-back message
+            const customMsg = settings.missed_call_textback_message;
+            const textBackMsg = customMsg
+              || `Sorry we missed your call! This is ${businessName}. You can text us here or call back anytime. We'll get back to you shortly.`;
+
+            // Look up A2P registration to find a verified SMS channel
+            const a2pResp = await fetchWithTimeout(
+              `${SUPABASE_URL}/rest/v1/a2p_registrations?tenant_id=eq.${tenantId}&limit=1`,
+              {
+                headers: {
+                  apikey: SUPABASE_SERVICE_ROLE_KEY!,
+                  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                },
+              },
+              2000
+            );
+
+            let fromNumber: string | null = null;
+            let messagingServiceSid: string | null = null;
+            if (a2pResp.ok) {
+              const [a2p] = await a2pResp.json();
+              if (a2p?.status === "approved" && a2p.messaging_service_sid) {
+                messagingServiceSid = a2p.messaging_service_sid;
+              } else if (a2p?.toll_free_verified && a2p.toll_free_messaging_service_sid) {
+                messagingServiceSid = a2p.toll_free_messaging_service_sid;
+              } else if (a2p?.toll_free_phone_e164) {
+                fromNumber = a2p.toll_free_phone_e164;
+              }
+            }
+
+            // Fall back to the number that was called (toPhoneE164)
+            if (!messagingServiceSid && !fromNumber) {
+              fromNumber = toPhoneE164;
+            }
+
+            const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+            const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+            if (!twilioAccountSid || !twilioAuthToken) {
+              console.warn("[twilio-inbound] No Twilio creds for text-back");
+              return;
+            }
+
+            const smsParams: Record<string, string> = { To: callerPhoneE164, Body: textBackMsg };
+            if (messagingServiceSid) {
+              smsParams.MessagingServiceSid = messagingServiceSid;
+            } else if (fromNumber) {
+              smsParams.From = fromNumber;
+            }
+
+            const smsResp = await fetchWithTimeout(
+              `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: new URLSearchParams(smsParams),
+              },
+              5000
+            );
+
+            const smsResult = smsResp.ok ? await smsResp.json() : null;
+
+            // Log the text-back
+            await fetchWithTimeout(
+              `${SUPABASE_URL}/rest/v1/missed_call_textbacks`,
+              {
+                method: "POST",
+                headers: {
+                  apikey: SUPABASE_SERVICE_ROLE_KEY!,
+                  Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                  "Content-Type": "application/json",
+                  Prefer: "return=minimal",
+                },
+                body: JSON.stringify({
+                  tenant_id: tenantId,
+                  caller_phone: callerPhoneE164,
+                  twilio_sms_sid: smsResult?.sid || null,
+                  off_behavior: offBehavior,
+                  reason,
+                }),
+              },
+              2000
+            );
+
+            if (smsResp.ok) {
+              console.log(`[twilio-inbound] Text-back sent to ${callerPhoneE164} (${smsResult?.sid})`);
+            } else {
+              const errText = await smsResp.text().catch(() => "");
+              console.warn(`[twilio-inbound] Text-back failed: ${smsResp.status} ${errText}`);
+            }
+          } catch (e) {
+            console.warn("[twilio-inbound] Text-back error:", e);
+          }
+        })();
+      }
 
       void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
         tenant_id: tenantId,

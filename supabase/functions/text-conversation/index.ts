@@ -301,7 +301,7 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, message, sessionId, history = [], conversationMessages, callerPhone, customerId } = await req.json();
+    const { tenantId, message, sessionId, history = [], conversationMessages, callerPhone, customerId, channel: reqChannel } = await req.json();
 
     if (!tenantId || !message) {
       return new Response(JSON.stringify({ error: "tenantId and message required" }), {
@@ -317,9 +317,10 @@ serve(async (req) => {
     // Build business context — the canonical source of truth for all AI context
     // systemPrompt already includes: hours, FAQs, greeting, services, policies, tone, mode-specific prompts
     const callerPhoneE164 = callerPhone || "+15550000000";
+    const effectiveChannel = reqChannel || "browser_test";
     const { context, systemPrompt: contextPrompt } = await buildBusinessContext(supabase, {
       tenantId,
-      channel: "browser_test",
+      channel: effectiveChannel as "voice" | "sms" | "browser_test",
       sessionId: crypto.randomUUID(),
       callerPhone: callerPhoneE164,
       customerId: customerId || null,
@@ -352,8 +353,27 @@ serve(async (req) => {
     const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
     const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n${modeRules}\n- Every action must be backed by a tool call that creates a real record.`;
 
-    // Assemble final system prompt: date/time + canonical business context + tool rules
-    const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${toolReinforcement}`;
+    // SMS-specific prompt layer — teaches the AI to be a great texter
+    const smsPromptLayer = effectiveChannel === "sms" ? `
+
+SMS CONVERSATION RULES (you are texting with a real customer):
+- You ARE the business. Speak as ${context.tenant.business_name || "the business"}, first person.
+- Keep messages SHORT. Under 320 characters when possible. No essays.
+- Be warm, conversational, and human. Use the business's personality and tone.
+- Match the customer's energy — casual if they're casual, professional if they're formal.
+- Never say "I'm an AI" or "as an AI assistant." You are the business texting them.
+- When they want to book/cancel/reschedule, collect what you need and USE THE TOOLS. Don't just say you'll do it.
+- If you already know their phone number (you do — they're texting you), don't ask for it.
+- For bookings: confirm date, time, and service, then call create_booking immediately.
+- For cancellations: call cancel_booking with their phone number — you have it.
+- Only escalate to a human callback when you truly cannot help (complex custom quotes, complaints, issues requiring physical inspection).
+- End messages with a clear next step when appropriate (not every message needs one).
+- Never use bullet points or numbered lists in texts. Write like a person texts.
+- If they're a returning customer and you know their name, use it naturally.
+` : "";
+
+    // Assemble final system prompt: date/time + canonical business context + SMS layer + tool rules
+    const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${smsPromptLayer}${toolReinforcement}`;
 
     // --- Resolve starting conversation history ---
     // Priority: sessionId (server-stored) > conversationMessages (client-managed) > history (legacy string-only)
