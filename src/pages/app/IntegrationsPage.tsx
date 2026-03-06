@@ -352,7 +352,14 @@ export default function IntegrationsPage() {
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Integrations"
-        description="Connect your tools and automate what happens when calls, bookings, and orders come in"
+        description={
+          businessMode === "service" ? `Connect your field service tools and automate what happens when calls and ${terms.bookings} come in` :
+          businessMode === "food" ? "Connect your POS and automate what happens when calls and orders come in" :
+          businessMode === "dispatch" ? "Connect your dispatch tools and automate what happens when jobs come in" :
+          businessMode === "medical" ? "Connect your practice software and automate what happens when patient calls come in" :
+          businessMode === "sales" ? "Connect your CRM and automate what happens when leads call in" :
+          "Connect your tools and automate what happens when calls and messages come in"
+        }
         action={
           <Button
             variant="outline"
@@ -448,7 +455,7 @@ export default function IntegrationsPage() {
                                   setConnectDialogOpen(true);
                                 }}
                               >
-                                Connect {preset.requiresIntegration.replace("_", " ")}
+                                Connect {preset.requiresIntegration.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
                               </Button>
                             )}
 
@@ -755,7 +762,13 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>Set Up Connection</DialogTitle>
             <DialogDescription>
-              Enter the URL where you want to receive data when {webhookConfigDialog?.trigger} fires
+              Enter the URL where you want to receive data when{" "}
+              {webhookConfigDialog?.trigger === "booking.created" ? `a new ${terms.booking} is confirmed` :
+               webhookConfigDialog?.trigger === "order.created" ? "a new order comes in" :
+               webhookConfigDialog?.trigger === "call.completed" ? "a call is completed" :
+               webhookConfigDialog?.trigger === "lead.captured" ? "a new lead is captured" :
+               webhookConfigDialog?.trigger === "dispatch_job.created" ? "a new dispatch job is created" :
+               webhookConfigDialog?.trigger}
             </DialogDescription>
           </DialogHeader>
 

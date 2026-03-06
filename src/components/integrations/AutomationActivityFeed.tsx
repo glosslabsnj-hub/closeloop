@@ -132,7 +132,7 @@ function ActivityItem({ run, onRetry }: ActivityItemProps) {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
                 <span className="text-muted-foreground">Trigger:</span>
-                <p className="font-medium">{run.trigger_event}</p>
+                <p className="font-medium">{triggerLabel}</p>
               </div>
               <div>
                 <span className="text-muted-foreground">Entity:</span>
@@ -203,8 +203,11 @@ export function AutomationActivityFeed({ runs, isLoading, onRetry }: AutomationA
         <CardContent className="p-8 text-center">
           <Clock className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
           <h3 className="font-medium mb-1">No Activity Yet</h3>
-          <p className="text-sm text-muted-foreground">
-            Automation activity will appear here when your integrations start running
+          <p className="text-sm text-muted-foreground mb-3">
+            Once you enable automations, each time one runs you'll see it here — successes, failures, and retries.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Go to the <strong>Automations</strong> tab to enable your first one.
           </p>
         </CardContent>
       </Card>

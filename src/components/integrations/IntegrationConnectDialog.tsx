@@ -341,29 +341,45 @@ export function IntegrationConnectDialog({
                 <div className="space-y-3">
                   <div className="space-y-2">
                     <Label htmlFor="apiKey">
-                      {providerId === "fieldedge" ? "FieldEdge API Key" : "API Key"}
+                      {providerId === "fieldedge" ? "FieldEdge API Key" :
+                       providerId === "housecallpro" ? "Housecall Pro API Key" :
+                       providerId === "workiz" ? "Workiz API Key" :
+                       providerId === "towbook" ? "Towbook API Key" :
+                       providerId === "onfleet" ? "Onfleet API Key" :
+                       providerId === "samsara" ? "Samsara API Key" :
+                       "API Key"}
                     </Label>
                     <Input
                       id="apiKey"
                       type="password"
-                      placeholder={
-                        providerId === "fieldedge"
-                          ? "Enter your FieldEdge API key..."
-                          : "Enter your API key..."
-                      }
+                      placeholder="Paste your API key here..."
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                     />
                     <p className="text-xs text-muted-foreground">
                       {providerId === "fieldedge"
                         ? "In FieldEdge: go to Settings → Integrations → API Keys."
-                        : "Check your account settings for a section called API Keys, Developer Access, or Integrations."}
+                        : providerId === "housecallpro"
+                        ? "In Housecall Pro: go to Settings → Integrations → API. Generate a new key and paste it here."
+                        : providerId === "workiz"
+                        ? "In Workiz: go to Settings → API → Generate API Token."
+                        : providerId === "towbook"
+                        ? "In Towbook: go to Settings → API Keys and generate a new key."
+                        : providerId === "onfleet"
+                        ? "In Onfleet: go to Settings → API Keys and create a new key."
+                        : providerId === "samsara"
+                        ? "In Samsara: go to Settings → Developer → API Tokens."
+                        : "Go to your account Settings and look for API Keys, Developer Access, or Integrations."}
                     </p>
                   </div>
                   <a
                     href={
                       providerId === "fieldedge"
                         ? "https://help.fieldedge.com/hc/en-us/articles/360038507714"
+                        : providerId === "housecallpro"
+                        ? "https://help.housecallpro.com/en/articles/8229791-api-documentation"
+                        : providerId === "onfleet"
+                        ? "https://docs.onfleet.com/docs/authentication"
                         : "https://support.getfluxdata.com/integrations/api-keys"
                     }
                     target="_blank"
