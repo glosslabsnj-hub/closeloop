@@ -70,6 +70,19 @@ const SHARED_TOOLS: Anthropic.Tool[] = [
  */
 const SERVICE_TOOLS: Anthropic.Tool[] = [
   {
+    name: "suggest_availability",
+    description: "Get available appointment time slots. Call when the customer asks 'What times do you have?', 'When can I come in?', 'What's available this week?', or when you need to check open slots before booking. Returns up to 5 available time slots.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        date: { type: "string", description: "Date to check availability for. Accept 'tomorrow', 'next week', 'Saturday', or leave blank for next available." },
+        service_name: { type: "string", description: "Service name to determine how long the slot needs to be" },
+        preference: { type: "string", description: "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'" },
+      },
+      required: [],
+    },
+  },
+  {
     name: "create_booking",
     description: "Create an appointment booking after the customer has confirmed the date, time, and service. Use this when you have collected all required details and the customer agrees to book.",
     input_schema: {
@@ -81,6 +94,7 @@ const SERVICE_TOOLS: Anthropic.Tool[] = [
         date: { type: "string", description: "Appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
         time: { type: "string", description: "Appointment time (e.g. '9am', '2:30 PM', '14:00')" },
         service_name: { type: "string", description: "Name of the service being booked" },
+        vehicle_type: { type: "string", description: "Vehicle type/size: 'sedan', 'suv', 'truck', 'van'. Important for services with vehicle-based pricing." },
         notes: { type: "string", description: "Any additional notes from the customer" },
       },
       required: ["customer_name", "date", "time"],
@@ -251,6 +265,7 @@ async function executeTool(
 
   const endpointMap: Record<string, string> = {
     // Service mode tools
+    suggest_availability: "elevenlabs-suggest-availability",
     create_booking: "elevenlabs-create-booking",
     check_availability: "elevenlabs-check-availability",
     cancel_booking: "elevenlabs-cancel-booking",
@@ -357,19 +372,22 @@ serve(async (req) => {
     const smsPromptLayer = effectiveChannel === "sms" ? `
 
 SMS CONVERSATION RULES (you are texting with a real customer):
-- You ARE the business. Speak as ${context.tenant.business_name || "the business"}, first person.
+- You ARE the business. Speak as ${context.tenant.business_name || "the business"}, first person. Use "we" and "I" naturally.
 - Keep messages SHORT. Under 320 characters when possible. No essays.
-- Be warm, conversational, and human. Use the business's personality and tone.
+- Be warm, conversational, and human. Text like a real person would.
 - Match the customer's energy — casual if they're casual, professional if they're formal.
-- Never say "I'm an AI" or "as an AI assistant." You are the business texting them.
+- NEVER say "I'm an AI", "as an AI assistant", "AI automated", or anything that reveals you're automated. You are the business texting them.
+- NEVER use letter-option menus like "Reply A, B, C, D, or E." That looks robotic. Instead, just suggest services naturally: "We can do an exterior wash, interior detail, or a full combo. What sounds good?"
+- NEVER use numbered lists, bullet points, or formatted menus in texts. Write like a real person texts.
 - When they want to book/cancel/reschedule, collect what you need and USE THE TOOLS. Don't just say you'll do it.
 - If you already know their phone number (you do — they're texting you), don't ask for it.
 - For bookings: confirm date, time, and service, then call create_booking immediately.
 - For cancellations: call cancel_booking with their phone number — you have it.
+- For changes (different service, time, etc.): call reschedule_booking or cancel + rebook as needed.
 - Only escalate to a human callback when you truly cannot help (complex custom quotes, complaints, issues requiring physical inspection).
 - End messages with a clear next step when appropriate (not every message needs one).
-- Never use bullet points or numbered lists in texts. Write like a person texts.
 - If they're a returning customer and you know their name, use it naturally.
+- Always respond to follow-up messages. If a customer texts back after a booking to change something, handle it immediately.
 ` : "";
 
     // Assemble final system prompt: date/time + canonical business context + SMS layer + tool rules

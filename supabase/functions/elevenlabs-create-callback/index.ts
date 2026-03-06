@@ -154,34 +154,12 @@ serve(async (req: Request) => {
       }
     }
 
-    // Create opportunity for callback
-    // Using only columns that exist in the opportunities table
-    const { data: opportunity, error: opportunityError } = await supabase
-      .from("opportunities")
-      .insert({
-        tenant_id: tenantId,
-        customer_id: customerId,
-        source: "voice_callback",
-        status: "pending",
-        notes: `📞 CALLBACK REQUESTED: ${reason}\n\nDepartment: ${department}\nPreferred time: ${preferredTime}\nPhone: ${phoneE164}${notes ? `\nNotes: ${notes}` : ""}`.trim(),
-        context_json: {
-          type: "callback",
-          reason: reason,
-          department: department,
-          preferred_time: preferredTime,
-          caller_phone: phoneE164,
-          customer_name: customerName,
-          session_id: sessionId,
-          created_via: "voice_ai",
-        },
-      })
-      .select("id")
-      .single();
-
-    if (opportunityError) {
-      console.error("[create-callback] CRITICAL: Opportunity insert failed:", JSON.stringify(opportunityError));
-
-      // Still capture the intent on the session so it's not completely lost
+    // Create opportunity for callback (only if we have a customer_id — NOT NULL in schema)
+    let opportunity: { id: string } | null = null;
+    if (!customerId) {
+      // No phone/customer resolved (e.g. text simulator without caller phone).
+      // Log to session only — can't create opportunity without customer_id.
+      console.log("[create-callback] No customer_id resolved — logging to session only");
       if (sessionId) {
         await supabase
           .from("ai_call_sessions")
@@ -191,31 +169,74 @@ serve(async (req: Request) => {
               intent: "callback",
               callback_reason: reason,
               customer_name: customerName,
-              customer_phone: phoneE164,
               department: department,
               preferred_time: preferredTime,
               notes: notes,
-              _error: "opportunity_insert_failed",
             },
           })
           .eq("id", sessionId);
       }
+    } else {
+      const { data: opp, error: opportunityError } = await supabase
+        .from("opportunities")
+        .insert({
+          tenant_id: tenantId,
+          customer_id: customerId,
+          source: "voice_callback",
+          status: "new",
+          notes: `📞 CALLBACK REQUESTED: ${reason}\n\nDepartment: ${department}\nPreferred time: ${preferredTime}\nPhone: ${phoneE164}${notes ? `\nNotes: ${notes}` : ""}`.trim(),
+          context_json: {
+            type: "callback",
+            reason: reason,
+            department: department,
+            preferred_time: preferredTime,
+            caller_phone: phoneE164,
+            customer_name: customerName,
+            session_id: sessionId,
+            created_via: "voice_ai",
+          },
+        })
+        .select("id")
+        .single();
 
-      // Return failure so ElevenLabs knows the tool had an issue
-      // (HTTP 200 required by ElevenLabs, but success: false signals the problem)
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "I'll make sure someone calls you back soon.",
-          error: "Failed to save callback request",
-          _version: VERSION,
-        } as CreateCallbackResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (opportunityError) {
+        console.error("[create-callback] CRITICAL: Opportunity insert failed:", JSON.stringify(opportunityError));
+
+        // Still capture the intent on the session so it's not completely lost
+        if (sessionId) {
+          await supabase
+            .from("ai_call_sessions")
+            .update({
+              outcome: "callback",
+              extracted_payload: {
+                intent: "callback",
+                callback_reason: reason,
+                customer_name: customerName,
+                customer_phone: phoneE164,
+                department: department,
+                preferred_time: preferredTime,
+                notes: notes,
+                _error: "opportunity_insert_failed",
+              },
+            })
+            .eq("id", sessionId);
+        }
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "I'll make sure someone calls you back soon.",
+            error: "Failed to save callback request",
+            _version: VERSION,
+          } as CreateCallbackResponse),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      opportunity = opp;
     }
 
-    // Update session with callback outcome
-    if (sessionId) {
+    // Update session with callback outcome (only when we created an opportunity)
+    if (customerId && sessionId) {
       await supabase
         .from("ai_call_sessions")
         .update({
