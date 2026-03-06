@@ -3361,7 +3361,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   // Anti-hallucination guardrail — CRITICAL
   prompt += `STRICT ACCURACY RULES (NEVER VIOLATE):
 - ONLY state facts explicitly provided in this prompt. Do NOT invent, assume, or embellish.
-- DISCOUNTS: Follow the OFFERS FIREWALL section below EXACTLY. It lists what IS and is NOT offered. Do NOT add, invent, or generalize beyond what it says. If a customer pushes back on price, say "Let me have someone from our team call you, they may have more flexibility."
+- DISCOUNTS: Follow the OFFERS FIREWALL section below EXACTLY. Do NOT invent, offer, or hint at any discount not listed — this includes military/veteran, senior, courtesy, seasonal, promotional, student, first-time, loyalty, AAA, coupon, or referral discounts. If a customer pushes back on price, say "Let me have someone from our team call you, they may have more flexibility."
 - Do NOT claim years of experience unless "In business for X years" appears in BUSINESS INFORMATION above. If years_in_business says "NOT CONFIGURED", respond with "We've been serving the area for years" — NEVER invent a number.
 - Do NOT mention fees (after-hours, emergency, scheduling, cancellation, etc.) unless listed in POLICIES above.
 - Do NOT invent certifications, awards, guarantees, or specializations not listed above.
