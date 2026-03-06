@@ -76,13 +76,14 @@ describe("resolveIndustryTemplate — service completeness", () => {
   });
 
   // ─── Electrical ─────────────────────────────────────────────────
-  it("electrical template resolves all 6 services", () => {
+  it("electrical template resolves all 7 services", () => {
     const config = resolveIndustryTemplate("electrical");
-    expect(config.services).toHaveLength(6);
+    expect(config.services).toHaveLength(7);
     const names = config.services.map((s) => s.name);
     expect(names).toContain("Electrical Inspection");
     expect(names).toContain("Outlet Installation");
     expect(names).toContain("Panel Upgrade");
+    expect(names).toContain("EV Charger Installation");
     expect(names).toContain("Emergency Service");
   });
 

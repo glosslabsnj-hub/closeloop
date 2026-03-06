@@ -166,9 +166,27 @@ export const SELF_SETUP_INTEGRATIONS = [
 
 // Featured expert-setup integrations shown on main page
 // These are integrations that require concierge/custom setup
+// Each mode should show 3-4 relevant integrations so the section never looks empty.
 export const FEATURED_EXPERT_INTEGRATIONS = [
-  { id: "servicetitan", name: "ServiceTitan", icon: "🛠️", logo: "https://cdn.brandfetch.io/idjJU3DLHO/w/400/h/400/theme/dark/icon.png", description: "Home service management", modes: ["service", "dispatch"] },
+  // Service mode
+  { id: "servicetitan", name: "ServiceTitan", icon: "🛠️", logo: "https://cdn.brandfetch.io/idjJU3DLHO/w/400/h/400/theme/dark/icon.png", description: "Home service management", modes: ["service"] },
   { id: "calendly", name: "Calendly", icon: "📆", logo: "https://cdn.brandfetch.io/idOJxVnpHC/w/400/h/400/theme/dark/icon.png", description: "Online scheduling", modes: ["service", "medical", "sales", "general"] },
   { id: "salesforce", name: "Salesforce", icon: "☁️", logo: "https://cdn.brandfetch.io/id20mQyGeY/w/400/h/400/theme/dark/icon.png", description: "Enterprise CRM", modes: ["service", "sales", "general"] },
+  // Food mode
   { id: "toast", name: "Toast", icon: "🍞", logo: "https://cdn.brandfetch.io/idJnYpnZvK/w/400/h/400/theme/dark/icon.png", description: "Restaurant POS", modes: ["food"] },
+  { id: "clover", name: "Clover", icon: "🍀", logo: "https://cdn.brandfetch.io/idCHPwTnYc/w/400/h/400/theme/dark/icon.png", description: "POS for restaurants and cafes", modes: ["food"] },
+  { id: "touchbistro", name: "TouchBistro", icon: "📱", logo: "https://cdn.brandfetch.io/id_KsyK_DJ/w/400/h/400/theme/dark/icon.png", description: "iPad restaurant POS", modes: ["food"] },
+  // Medical mode
+  { id: "athenahealth", name: "AthenaHealth", icon: "🏥", logo: "https://cdn.brandfetch.io/idZ5Z6RBhG/w/400/h/400/theme/dark/icon.png", description: "Medical practice management", modes: ["medical"] },
+  { id: "practicefusion", name: "Practice Fusion", icon: "🩺", logo: "https://cdn.brandfetch.io/ideqAU0Yb5/w/400/h/400/theme/dark/icon.png", description: "Cloud EHR and scheduling", modes: ["medical"] },
+  { id: "epic", name: "Epic", icon: "💊", logo: "https://cdn.brandfetch.io/idWqBXvqnl/w/400/h/400/theme/dark/icon.png", description: "Enterprise healthcare EHR", modes: ["medical"] },
+  // Dispatch mode
+  { id: "towbook", name: "Towbook", icon: "🚗", logo: "https://cdn.brandfetch.io/ideSc6Lc1O/w/400/h/400/theme/dark/icon.png", description: "Towing dispatch and management", modes: ["dispatch"] },
+  { id: "onfleet", name: "Onfleet", icon: "🚚", logo: "https://cdn.brandfetch.io/idaAwm0z3o/w/400/h/400/theme/dark/icon.png", description: "Last-mile delivery management", modes: ["dispatch"] },
+  { id: "samsara", name: "Samsara", icon: "📍", logo: "https://cdn.brandfetch.io/idVVWT5VRb/w/400/h/400/theme/dark/icon.png", description: "Fleet GPS and operations", modes: ["dispatch"] },
+  // Sales mode
+  { id: "hubspot", name: "HubSpot", icon: "🟠", logo: "https://cdn.brandfetch.io/idZHcZ_i7F/w/400/h/400/theme/dark/icon.png", description: "CRM and sales automation", modes: ["sales"] },
+  { id: "pipedrive", name: "Pipedrive", icon: "🔵", logo: "https://cdn.brandfetch.io/idoJ_D2sU3/w/400/h/400/theme/dark/icon.png", description: "Sales pipeline management", modes: ["sales"] },
+  // General mode
+  { id: "gohighlevel", name: "GoHighLevel", icon: "🚀", logo: "https://cdn.brandfetch.io/idibKqG8hq/w/400/h/400/theme/dark/icon.png", description: "All-in-one marketing platform", modes: ["general"] },
 ] as const;

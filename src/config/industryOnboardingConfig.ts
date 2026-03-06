@@ -94,6 +94,18 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
       chargesTripFee: true,
       offersFreeEstimates: true,
     },
+    setupChecklist: [
+      { label: "Add your electrical services and rates", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your business hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add common customer questions (permits, panel upgrades, EV chargers)", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Connect your calendar for live booking", icon: "calendar" },
+      { label: "Add FAQs about permits, panel upgrades, and EV chargers", icon: "book" },
+      { label: "Customize your AI's greeting and scripts", icon: "sparkles" },
+    ],
     setupTitle: "your electrical business",
   },
 
