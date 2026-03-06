@@ -39,6 +39,7 @@ export function IntegrationConnectDialog({
   const [webhookUrl, setWebhookUrl] = useState("");
   const [printerApiKey, setPrinterApiKey] = useState("");
   const [testing, setTesting] = useState(false);
+  const [createdIntegrationId, setCreatedIntegrationId] = useState<string | null>(null);
 
   const provider = PROVIDERS.find((p) => p.id === providerId);
 
@@ -151,23 +152,24 @@ export function IntegrationConnectDialog({
       return;
     }
 
-    // Default: create integration record
+    // Default: create integration record with API key in config
     const config: Record<string, unknown> = {};
-    await createIntegration.mutateAsync({
+    if (apiKey) config.api_key = apiKey;
+    const created = await createIntegration.mutateAsync({
       provider: providerId,
       display_name: provider.name,
       auth_type: provider.authType,
       config_json: config,
     });
-    
+    setCreatedIntegrationId(created?.id ?? null);
     setStep("test");
   };
 
   const handleTest = async () => {
     setTesting(true);
     try {
-      if (tenant?.id && providerId) {
-        const result = await testIntegration.mutateAsync(providerId);
+      if (tenant?.id && createdIntegrationId) {
+        const result = await testIntegration.mutateAsync(createdIntegrationId);
         if (result?.success) {
           setStep("success");
           return;
@@ -198,6 +200,7 @@ export function IntegrationConnectDialog({
     setWebhookUrl("");
     setPrinterApiKey("");
     setErrorMessage(null);
+    setCreatedIntegrationId(null);
     onOpenChange(false);
   };
 
