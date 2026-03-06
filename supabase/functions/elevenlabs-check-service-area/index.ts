@@ -392,6 +392,31 @@ serve(async (req: Request) => {
             } as ServiceAreaResponse),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
+        } else {
+          // Neighboring state — could be near the border or far away (e.g. NYC is 65mi from Hamilton NJ).
+          // We cannot verify distance without geocoding, so we MUST NOT assume in_area=true.
+          // Return in_area=false with needs_verification=true so the AI asks for exact city/zip.
+          const neighborVerifyMsg = `Your address appears to be in ${customerState}, a neighboring state. Could you confirm your city and zip code so I can verify you're within our ${radiusMiles}-mile service area?`;
+          console.log(`[check-service-area] Neighboring state (${tenantState}→${customerState}): cannot verify ${radiusMiles}mi radius, returning in_area=false needs_verification=true`);
+          return new Response(
+            JSON.stringify({
+              in_area: false,
+              distance_miles: null,
+              tow_distance_miles: null,
+              dropoff_geocoded: null,
+              eta_minutes: null,
+              eta_range: "",
+              message: `Cannot verify distance — ${customerState} address may be outside our ${radiusMiles}-mile service area`,
+              service_tier: "out_of_area",
+              pricing_note: "Address is in a neighboring state. Verify caller is within our service area before proceeding.",
+              local_radius_miles: radiusMiles,
+              distance_basis_used: "neighboring_state_unverified",
+              price_breakdown: null,
+              needs_verification: true,
+              verification_message: neighborVerifyMsg,
+            } as ServiceAreaResponse),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
         }
       }
 
