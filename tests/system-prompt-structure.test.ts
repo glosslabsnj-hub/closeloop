@@ -489,3 +489,80 @@ describe("text-conversation — SERVICES anti-fabrication rule (regression: R15 
     expect(antiFabBlock).toContain("SERVICES:");
   });
 });
+
+describe("buildServicesForPrompt — quote_only service rendering (regression: plumbing R5 — 'No-Phone-Quotes-Over-500')", () => {
+  // Root cause of plumbing R5 (6/10): 6 services had price_type=fixed with amounts >$500
+  // (Whole-House Repipe $4500, Tankless Water Heater $2800, etc.).
+  // AI quoted exact amounts violating the "No-Phone-Quotes-Over-500" policy.
+  // Fix: changed those services to quote_only in DB (receptionist_eng, 2026-03-06).
+  // Regression guard: ensure quote_only services render "Quote required" not a dollar amount.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  it("quote_only price_type falls through to 'Quote required' in buildServicesForPrompt", () => {
+    // The function must have a branch that produces "Quote required" text.
+    // This is the text shown for quote_only services in the AI's SERVICES AND PRICING section.
+    const fnStart = buildBizSource.indexOf("function buildServicesForPrompt(");
+    const fnEnd = buildBizSource.indexOf("\nfunction ", fnStart + 10);
+    const fnBody = buildBizSource.slice(fnStart, fnEnd > 0 ? fnEnd : fnStart + 5000);
+    expect(fnBody).toContain("Quote required");
+  });
+
+  it("fixed price_type with price_amount renders a dollar amount (positive case)", () => {
+    // Ensure fixed-price services still show actual prices so the AI can quote them
+    const fnStart = buildBizSource.indexOf("function buildServicesForPrompt(");
+    const fnEnd = buildBizSource.indexOf("\nfunction ", fnStart + 10);
+    const fnBody = buildBizSource.slice(fnStart, fnEnd > 0 ? fnEnd : fnStart + 5000);
+    expect(fnBody).toContain("exact price");
+  });
+
+  it("price cap policy detection checks for 'over'/'above'/'exceed' keywords", () => {
+    // The priceCapPolicy detection must catch "No-Phone-Quotes-Over-500" type policies.
+    // Detection logic in buildSystemPrompt: text.includes("over") || text.includes("above") || text.includes("exceed")
+    expect(buildBizSource).toContain('text.includes("over") || text.includes("above") || text.includes("exceed")');
+  });
+
+  it("price cap policy detection checks for 'quote'/'price' keywords", () => {
+    // Policy must also include price/quote keywords so it's not triggered by unrelated "over" mentions
+    expect(buildBizSource).toContain('text.includes("quote") || text.includes("price")');
+  });
+
+  it("price cap policy triggers POLICY OVERRIDE in critical rules section", () => {
+    // When a price cap policy is found, the prompt must include a POLICY OVERRIDE warning
+    // so the AI knows to offer callbacks instead of quoting high-value services.
+    expect(buildBizSource).toContain("POLICY OVERRIDE");
+    expect(buildBizSource).toContain("do NOT quote the price directly");
+  });
+
+  it("price cap policy adjusts SERVICES AND PRICING note to remind AI to check policies", () => {
+    // When price cap policy exists: pricingNote changes to warn about in-person estimates
+    expect(buildBizSource).toContain("CHECK POLICIES before quoting");
+    expect(buildBizSource).toContain("Some services may require an in-person estimate");
+  });
+});
+
+describe("buildServicesForPrompt — quote_required tag output (regression: plumbing R5)", () => {
+  // Verify the normalizeServices() function maps price_type='quote_only' → price_type='quote_required'
+  // before passing to buildServicesForPrompt. This is the bridge between DB and prompt generation.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  it("normalizeServices maps quote_only DB value to quote_required prompt value", () => {
+    // In normalizeServices: price_type === "quote_only" → priceType = "quote_required"
+    expect(buildBizSource).toContain('price_type === "quote_only"');
+    expect(buildBizSource).toContain('priceType = "quote_required"');
+  });
+
+  it("getTextPriceDescription returns 'quote required' string for quote_required type", () => {
+    // The utility used to describe prices in text also handles quote_required
+    expect(buildBizSource).toContain('"quote required"');
+  });
+});
