@@ -47,6 +47,8 @@ interface ServiceCoverageSettings {
   urgent_upcharge_percent: number;
   preferred_zip_priority: string[];
   avoid_traffic_hours: boolean;
+  // After-hours surcharge (saved to assistant_settings)
+  emergency_surcharge: string;
 }
 
 const DEFAULT_SETTINGS: Omit<ServiceCoverageSettings, "tenant_id"> = {
@@ -61,6 +63,7 @@ const DEFAULT_SETTINGS: Omit<ServiceCoverageSettings, "tenant_id"> = {
   urgent_upcharge_percent: 0,
   preferred_zip_priority: [],
   avoid_traffic_hours: false,
+  emergency_surcharge: "",
 };
 
 export function ServiceCoverageEditor() {
@@ -83,24 +86,35 @@ export function ServiceCoverageEditor() {
     if (!tenant?.id) return;
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("service_coverage_settings")
-        .select("*")
-        .eq("tenant_id", tenant.id)
-        .maybeSingle();
+      const [coverageResult, assistantResult] = await Promise.all([
+        supabase
+          .from("service_coverage_settings")
+          .select("*")
+          .eq("tenant_id", tenant.id)
+          .maybeSingle(),
+        supabase
+          .from("assistant_settings")
+          .select("emergency_surcharge")
+          .eq("tenant_id", tenant.id)
+          .maybeSingle(),
+      ]);
 
-      if (error) throw error;
+      if (coverageResult.error) throw coverageResult.error;
 
-      if (data) {
+      const emergencySurcharge = (assistantResult.data as any)?.emergency_surcharge || "";
+
+      if (coverageResult.data) {
         setSettings({
-          ...data,
-          onsite_by_service_type: (data.onsite_by_service_type as Record<string, number>) || {},
-          preferred_zip_priority: (data.preferred_zip_priority as string[]) || [],
+          ...coverageResult.data,
+          onsite_by_service_type: (coverageResult.data.onsite_by_service_type as Record<string, number>) || {},
+          preferred_zip_priority: (coverageResult.data.preferred_zip_priority as string[]) || [],
+          emergency_surcharge: emergencySurcharge,
         } as ServiceCoverageSettings);
       } else {
         setSettings({
           ...DEFAULT_SETTINGS,
           tenant_id: tenant.id,
+          emergency_surcharge: emergencySurcharge,
         });
       }
     } catch (err) {
@@ -119,14 +133,24 @@ export function ServiceCoverageEditor() {
     if (!tenant?.id || !settings) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("service_coverage_settings")
-        .upsert({
-          ...settings,
-          tenant_id: tenant.id,
-        }, { onConflict: "tenant_id" });
+      // Destructure emergency_surcharge out — it lives in assistant_settings, not service_coverage_settings
+      const { emergency_surcharge, ...coverageData } = settings;
 
-      if (error) throw error;
+      const [coverageResult, assistantResult] = await Promise.all([
+        supabase
+          .from("service_coverage_settings")
+          .upsert({
+            ...coverageData,
+            tenant_id: tenant.id,
+          }, { onConflict: "tenant_id" }),
+        supabase
+          .from("assistant_settings")
+          .update({ emergency_surcharge })
+          .eq("tenant_id", tenant.id),
+      ]);
+
+      if (coverageResult.error) throw coverageResult.error;
+      if (assistantResult.error) throw assistantResult.error;
 
       toast({
         title: "Saved",
@@ -169,23 +193,27 @@ export function ServiceCoverageEditor() {
 
   const generateAIPreview = () => {
     const parts: string[] = [];
-    
+
     if (settings.same_day_enabled) {
       parts.push(`I can often get someone out same-day`);
       if (settings.same_day_cutoff_time) {
         parts.push(`if you call before ${formatCutoffTime(settings.same_day_cutoff_time)}`);
       }
     }
-    
+
     if (settings.accepts_same_day_urgent && settings.urgent_upcharge_percent > 0) {
       parts.push(`For emergencies, we do have a ${settings.urgent_upcharge_percent}% urgent service fee`);
     }
-    
+
+    if (settings.emergency_surcharge) {
+      parts.push(`For after-hours calls, there is a ${settings.emergency_surcharge} surcharge`);
+    }
+
     if (settings.travel_buffer_minutes > 0) {
       parts.push(`I'll schedule about ${settings.travel_buffer_minutes} minutes between ${apptLabelPlural} for travel`);
     }
-    
-    return parts.length > 0 
+
+    return parts.length > 0
       ? parts.join(". ") + "."
       : "Let me check our availability for your area.";
   };
@@ -301,8 +329,8 @@ export function ServiceCoverageEditor() {
                         min="0"
                         max="100"
                         value={settings.urgent_upcharge_percent}
-                        onChange={(e) => updateSettings({ 
-                          urgent_upcharge_percent: parseFloat(e.target.value) || 0 
+                        onChange={(e) => updateSettings({
+                          urgent_upcharge_percent: parseFloat(e.target.value) || 0
                         })}
                         className="w-32"
                       />
@@ -311,6 +339,26 @@ export function ServiceCoverageEditor() {
                       </p>
                     </div>
                   )}
+
+                  <Separator />
+
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      After-Hours Surcharge
+                      <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={settings.emergency_surcharge}
+                      onChange={(e) => updateSettings({ emergency_surcharge: e.target.value })}
+                      placeholder="e.g. $75"
+                      className="w-40"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Your AI will disclose this fee when callers contact you outside business hours.
+                      Leave blank if you don't charge extra for after-hours calls.
+                    </p>
+                  </div>
                 </>
               )}
             </CardContent>
