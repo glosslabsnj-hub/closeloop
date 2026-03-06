@@ -454,6 +454,38 @@ serve(async (req) => {
       }
     }
 
+    // ─── SQUARE APPOINTMENTS SYNC ──────────────────────────────────
+    // Push booking to Square if the tenant has a connected square_pos integration
+    if (shouldSyncCalendar) {
+      try {
+        const squareResponse = await fetch(`${supabaseUrl}/functions/v1/sync-square-booking`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseServiceKey,
+          },
+          body: JSON.stringify({
+            booking_id,
+            tenant_id: tenantId,
+          }),
+        });
+
+        const squareResult = await squareResponse.json();
+        if (squareResult.success) {
+          console.log(`Synced to Square for booking ${booking_id}:`, squareResult.square_booking_id);
+          results.square = { success: true, booking_id: squareResult.square_booking_id };
+        } else if (squareResult.skipped) {
+          console.log(`Skipped Square for booking ${booking_id}:`, squareResult.message);
+        } else {
+          console.error(`Failed to sync to Square:`, squareResult.error);
+          results.square = { success: false, error: squareResult.error };
+        }
+      } catch (e) {
+        console.error("Failed to sync Square booking:", e);
+        results.square = { success: false, error: String(e) };
+      }
+    }
+
     // ─── CUSTOMER CONFIRMATION SMS ───────────────────────────────────
     // Send confirmation SMS to the CUSTOMER (not the owner) if enabled
     // This always runs (not gated by delivery settings) — customers expect confirmation

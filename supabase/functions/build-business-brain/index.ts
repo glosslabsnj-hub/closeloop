@@ -476,7 +476,7 @@ serve(async (req) => {
         min_lead_hours: tenant.min_lead_hours,
         max_advance_days: tenant.max_advance_days,
         buffer_minutes: tenant.appointment_buffer_minutes,
-        same_day_allowed: (tenant.min_lead_hours || 24) < 12,
+        same_day_allowed: (tenant.min_lead_hours || 2) < 12,
         after_hours_behavior: assistantSettings?.missed_call_behavior || 'text_only',
         booking_mode: assistantSettings?.ai_booking_mode || 'auto_book',
         closed_dates: Array.isArray(tenant.closed_dates) ? tenant.closed_dates : [],

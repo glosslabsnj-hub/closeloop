@@ -233,6 +233,130 @@ async function handleSquareWebhook(
     }
   }
 
+  // Handle Square Appointments booking updates
+  if (eventType === "booking.updated" || eventType === "booking.created") {
+    const squareBooking = body.data?.object?.booking;
+    const squareBookingId = squareBooking?.id || body.data?.id;
+
+    if (squareBookingId && tenantId) {
+      console.log(`[square-webhook] Booking event: ${eventType}, id: ${squareBookingId}, status: ${squareBooking?.status}`);
+
+      // Check if this booking exists in our system (synced from Flux or from Square)
+      const { data: fluxBooking } = await supabase
+        .from("bookings")
+        .select("id, status, end_at, start_at, lead_id, service_id")
+        .eq("tenant_id", tenantId)
+        .eq("external_event_id", squareBookingId)
+        .maybeSingle();
+
+      // Also check busy_blocks for Square-originated bookings
+      const { data: busyBlock } = await supabase
+        .from("busy_blocks")
+        .select("id, start_at, end_at, metadata_json")
+        .eq("tenant_id", tenantId)
+        .eq("external_event_id", `square_${squareBookingId}`)
+        .maybeSingle();
+
+      const squareStatus = squareBooking?.status;
+
+      if (squareStatus === "COMPLETED" || squareStatus === "completed") {
+        if (fluxBooking && fluxBooking.status !== "completed") {
+          // Mark Flux booking as completed so cron-review-requests picks it up
+          const endAt = squareBooking?.start_at
+            ? new Date(new Date(squareBooking.start_at).getTime() +
+                (squareBooking?.appointment_segments?.[0]?.duration_minutes || 60) * 60000).toISOString()
+            : fluxBooking.end_at || new Date().toISOString();
+
+          await supabase
+            .from("bookings")
+            .update({
+              status: "completed",
+              end_at: endAt,
+            })
+            .eq("id", fluxBooking.id);
+
+          console.log(`[square-webhook] Marked booking ${fluxBooking.id} as completed`);
+        } else if (!fluxBooking && busyBlock) {
+          // Square-originated booking completed. Create a booking record so
+          // review requests can be sent. We need customer info from Square.
+          const customerId = squareBooking?.customer_id;
+          if (customerId) {
+            // Find customer in our system by square_customer_id
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("id, phone_e164, full_name")
+              .eq("tenant_id", tenantId)
+              .contains("contact_preferences", { square_customer_id: customerId })
+              .maybeSingle();
+
+            if (customer) {
+              // Find or create a lead for this customer
+              let leadId: string | null = null;
+              const { data: existingLead } = await supabase
+                .from("leads")
+                .select("id")
+                .eq("tenant_id", tenantId)
+                .eq("phone", customer.phone_e164)
+                .maybeSingle();
+
+              if (existingLead) {
+                leadId = existingLead.id;
+              } else {
+                const { data: newLead } = await supabase
+                  .from("leads")
+                  .insert({
+                    tenant_id: tenantId,
+                    full_name: customer.full_name,
+                    phone: customer.phone_e164,
+                    source: "square",
+                    status: "completed",
+                  })
+                  .select("id")
+                  .single();
+                leadId = newLead?.id || null;
+              }
+
+              if (leadId) {
+                const startAt = squareBooking?.start_at || busyBlock.start_at;
+                const durationMin = squareBooking?.appointment_segments?.[0]?.duration_minutes || 60;
+                const endAt = new Date(new Date(startAt).getTime() + durationMin * 60000).toISOString();
+
+                await supabase.from("bookings").insert({
+                  tenant_id: tenantId,
+                  lead_id: leadId,
+                  start_at: startAt,
+                  end_at: endAt,
+                  status: "completed",
+                  external_event_id: squareBookingId,
+                  external_provider: "square",
+                  review_sent: false,
+                  notes: "Completed via Square Appointments",
+                });
+
+                console.log(`[square-webhook] Created completed booking for Square booking ${squareBookingId}`);
+              }
+            }
+          }
+        }
+      } else if (squareStatus === "CANCELLED_BY_CUSTOMER" || squareStatus === "CANCELLED_BY_SELLER") {
+        // Cancel the booking/block
+        if (fluxBooking) {
+          await supabase
+            .from("bookings")
+            .update({ status: "cancelled" })
+            .eq("id", fluxBooking.id);
+        }
+        if (busyBlock) {
+          await supabase
+            .from("busy_blocks")
+            .update({ is_active: false })
+            .eq("id", busyBlock.id);
+        }
+        console.log(`[square-webhook] Cancelled booking ${squareBookingId}`);
+      }
+    }
+  }
+
   return jsonResp({ status: "ok" });
 }
 

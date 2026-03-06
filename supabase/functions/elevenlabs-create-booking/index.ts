@@ -22,12 +22,14 @@ interface ElevenLabsToolRequest {
   customer_name: string;
   customer_phone?: string;
   customer_email?: string;
+  customer_address?: string;
   // Appointment details
   date: string;
   time: string;
   service_name?: string;
   service_id?: string;
   duration_minutes?: number;
+  vehicle_type?: string; // "sedan", "suv", "truck", etc.
   // Additional info
   notes?: string;
   // Tenant identification
@@ -41,11 +43,13 @@ interface ElevenLabsToolRequest {
     customer_name?: string;
     customer_phone?: string;
     customer_email?: string;
+    customer_address?: string;
     date?: string;
     time?: string;
     service_name?: string;
     service_id?: string;
     duration_minutes?: number;
+    vehicle_type?: string;
     notes?: string;
     tenant_id?: string;
   };
@@ -281,11 +285,13 @@ serve(async (req: Request) => {
     const customerName = body.customer_name || body.params?.customer_name || "";
     const customerPhone = body.customer_phone || body.params?.customer_phone || "";
     const customerEmail = body.customer_email || body.params?.customer_email || "";
+    const customerAddress = body.customer_address || body.params?.customer_address || "";
     const rawDate = body.date || body.params?.date || "";
     const rawTime = body.time || body.params?.time || "";
     const serviceName = body.service_name || body.params?.service_name || "";
     const serviceId = body.service_id || body.params?.service_id || "";
     const durationOverride = body.duration_minutes || body.params?.duration_minutes;
+    const vehicleType = (body.vehicle_type || body.params?.vehicle_type || "").toLowerCase().trim();
     const notes = body.notes || body.params?.notes || "";
     const directTenantId = body.tenant_id || body.tenantId || body.params?.tenant_id || "";
     const conversationId = body.conversation_id || body.call_id || "";
@@ -381,11 +387,13 @@ serve(async (req: Request) => {
     let finalDuration = durationOverride || 60;
     let resolvedServiceId: string | null = null;
     let resolvedServiceName: string | null = null;
+    let resolvedPriceCents: number | null = null;
+    let resolvedSquareVariationId: string | null = null;
 
     if (serviceId) {
       const { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount")
         .eq("id", serviceId)
         .eq("tenant_id", tenantId)
         .single();
@@ -393,11 +401,12 @@ serve(async (req: Request) => {
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
+        resolveVehiclePricing(service, vehicleType);
       }
     } else if (serviceName) {
       const { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount")
         .eq("tenant_id", tenantId)
         .ilike("name", `%${serviceName}%`)
         .limit(1)
@@ -406,6 +415,43 @@ serve(async (req: Request) => {
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
+        resolveVehiclePricing(service, vehicleType);
+      }
+    }
+
+    // Helper: resolve vehicle-specific pricing from pricing_config_json
+    function resolveVehiclePricing(service: any, vType: string) {
+      const config = service.pricing_config_json;
+      if (!config) return;
+
+      if (config.model === "vehicle_tiered" && Array.isArray(config.tiers) && vType) {
+        // Normalize vehicle type for matching
+        const vLower = vType.toLowerCase();
+        const isTruck = vLower.includes("truck") || vLower.includes("xxl") || vLower.includes("van");
+        const isSuv = vLower.includes("suv") || vLower.includes("crossover");
+        // Default to sedan if not specified
+        const tier = config.tiers.find((t: any) => {
+          const tLower = (t.vehicle_type || "").toLowerCase();
+          if (isTruck) return tLower.includes("truck") || tLower.includes("xxl");
+          if (isSuv) return tLower.includes("suv") || tLower.includes("crossover");
+          return tLower.includes("sedan") || tLower.includes("car");
+        }) || config.tiers[0]; // fallback to first tier
+
+        if (tier) {
+          resolvedPriceCents = tier.price;
+          if (tier.square_variation_id) resolvedSquareVariationId = tier.square_variation_id;
+          if (tier.duration_minutes) finalDuration = tier.duration_minutes;
+          console.log(`[create-booking] Vehicle pricing: ${vType} -> $${(tier.price / 100).toFixed(0)}, variation: ${tier.square_variation_id || 'none'}`);
+        }
+      } else if (config.model === "package" && Array.isArray(config.packages)) {
+        // For package model, try to match service_name to a package
+        const svcLower = (serviceName || "").toLowerCase();
+        const pkg = config.packages.find((p: any) => svcLower.includes(p.name.toLowerCase()));
+        if (pkg) {
+          resolvedPriceCents = pkg.price;
+          if (pkg.square_variation_id) resolvedSquareVariationId = pkg.square_variation_id;
+          if (pkg.duration_minutes) finalDuration = pkg.duration_minutes;
+        }
       }
     }
 
@@ -516,6 +562,14 @@ serve(async (req: Request) => {
     const initialStatus = bookingMode === "auto_confirm" ? "confirmed" : "pending";
     const confirmationNumber = generateConfirmationNumber();
 
+    // Build notes with address and vehicle type if provided
+    const noteParts = [
+      notes,
+      customerAddress ? `Address: ${customerAddress}` : "",
+      vehicleType ? `Vehicle: ${vehicleType}` : "",
+    ].filter(Boolean);
+    const bookingNotes = noteParts.join(" | ") || null;
+
     // Create booking
     const { data: booking, error: bookingError } = await supabase
       .from("bookings")
@@ -526,8 +580,9 @@ serve(async (req: Request) => {
         start_at: startAt.toISOString(),
         end_at: endAt.toISOString(),
         status: initialStatus,
-        notes: notes || null,
+        notes: bookingNotes,
         session_id: sessionId,
+        price_cents: resolvedPriceCents,
       })
       .select("id")
       .single();

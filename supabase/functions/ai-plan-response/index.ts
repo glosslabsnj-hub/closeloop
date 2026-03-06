@@ -371,7 +371,7 @@ BUSINESS INFORMATION:
 
   // Add booking rules
   systemPrompt += `BOOKING RULES:\n`;
-  systemPrompt += `- Minimum lead time: ${brain.booking_rules.min_lead_hours || 24} hours\n`;
+  systemPrompt += `- Minimum lead time: ${brain.booking_rules.min_lead_hours || 2} hours\n`;
   systemPrompt += `- Maximum advance booking: ${brain.booking_rules.max_advance_days || 30} days\n`;
   systemPrompt += `- Booking mode: ${brain.booking_rules.booking_mode === 'auto_book' ? 'Can confirm immediately' : 'Pending owner approval'}\n\n`;
 

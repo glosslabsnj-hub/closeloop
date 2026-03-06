@@ -73,7 +73,7 @@ function createCheckAvailabilityTool(modeSpecificDescription?: string): AgentToo
   return {
     name: "check_availability",
     description: modeSpecificDescription ||
-      `Check if a specific appointment time is available. Call this BEFORE confirming any appointment. Use when customer says "Do you have 2pm tomorrow?" or requests a specific time slot.`,
+      `MANDATORY: Check if a specific appointment time is available. You MUST call this BEFORE create_booking. NEVER confirm or book any time without calling this first. If you skip this, the customer may be double-booked. Use when customer requests any specific time slot.`,
     url: `${BASE_URL}/elevenlabs-check-availability`,
     method: "POST",
     parameters: [
@@ -167,7 +167,7 @@ function createBookingTool(modeSpecificDescription?: string): AgentTool {
   return {
     name: "create_booking",
     description: modeSpecificDescription ||
-      `Book the appointment after customer confirms. Only call AFTER checking availability AND getting customer's explicit "yes" to book. Collect customer name if not already known.`,
+      `Book the appointment ONLY after: (1) You called check_availability or suggest_availability to verify the time slot is open, AND (2) the customer explicitly said "yes" to book. NEVER call this without checking availability first. For on-site services (HVAC, plumbing, electrical), include customer_address.`,
     url: `${BASE_URL}/elevenlabs-create-booking`,
     method: "POST",
     parameters: [
@@ -201,6 +201,18 @@ function createBookingTool(modeSpecificDescription?: string): AgentTool {
         required: false,
         description: "Customer phone number",
         dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "customer_address",
+        type: "string",
+        required: false,
+        description: "Customer's address for on-site services (HVAC, plumbing, electrical, etc.). Always collect for home service businesses.",
+      },
+      {
+        name: "vehicle_type",
+        type: "string",
+        required: false,
+        description: "Vehicle type/size: 'sedan', 'suv', 'truck', 'van', 'crossover'. Important for accurate pricing when services have vehicle-based tiers. Ask the customer what they drive.",
       },
       {
         name: "notes",

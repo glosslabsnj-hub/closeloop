@@ -560,18 +560,40 @@ serve(async (req) => {
       console.error("Session not found for conversation:", payload.conversation_id);
 
       if (payload.dynamic_variables?.caller_phone && payload.dynamic_variables?.tenant_id) {
-        const { data: fallbackSession } = await supabase
-          .from("ai_call_sessions")
-          .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid, booking_id")
-          .eq("tenant_id", payload.dynamic_variables.tenant_id)
-          .eq("caller_phone", normalizeToE164(payload.dynamic_variables.caller_phone))
-          .is("elevenlabs_conversation_id", null)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-          
+        const rawCallerPhone = payload.dynamic_variables.caller_phone;
+        const normalizedPhone = normalizeToE164(rawCallerPhone);
+
+        // Try E164-normalized phone first (real phone calls)
+        let fallbackSession = null;
+        if (normalizedPhone) {
+          const { data } = await supabase
+            .from("ai_call_sessions")
+            .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid, booking_id")
+            .eq("tenant_id", payload.dynamic_variables.tenant_id)
+            .eq("caller_phone", normalizedPhone)
+            .is("elevenlabs_conversation_id", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+          fallbackSession = data;
+        }
+
+        // Fall back to raw caller_phone match (browser tests, non-phone identifiers)
+        if (!fallbackSession && rawCallerPhone !== normalizedPhone) {
+          const { data } = await supabase
+            .from("ai_call_sessions")
+            .select("id, tenant_id, context_json, customer_id, caller_phone, twilio_call_sid, booking_id")
+            .eq("tenant_id", payload.dynamic_variables.tenant_id)
+            .eq("caller_phone", rawCallerPhone)
+            .is("elevenlabs_conversation_id", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+          fallbackSession = data;
+        }
+
         if (fallbackSession) {
-          console.log("Found fallback session by phone:", fallbackSession.id);
+          console.log("Found fallback session by phone:", fallbackSession.id, "(raw:", rawCallerPhone, ")");
           await processCallData(supabase, supabaseUrl, supabaseKey, fallbackSession, payload);
           return new Response(
             JSON.stringify({ status: "success", session_id: fallbackSession.id, fallback: true }),

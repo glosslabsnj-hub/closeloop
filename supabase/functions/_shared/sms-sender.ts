@@ -42,7 +42,7 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   // Fetch A2P registration for this tenant
   const { data: a2p } = await supabase
     .from("a2p_registrations")
-    .select("status, messaging_service_sid, toll_free_verified, toll_free_messaging_service_sid, toll_free_phone_e164")
+    .select("status, messaging_service_sid, toll_free_verified, toll_free_messaging_service_sid, toll_free_phone_e164, toll_free_verification_sid")
     .eq("tenant_id", tenantId)
     .maybeSingle();
 
@@ -60,17 +60,29 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   } else if (a2p?.toll_free_verified && a2p.toll_free_phone_e164) {
     fromNumber = a2p.toll_free_phone_e164;
     channel = "toll_free";
-  } else if (a2p?.toll_free_phone_e164 && a2p.toll_free_verification_sid) {
-    // Verification submitted but not yet approved — try sending direct from number
-    // Some carriers allow it during pending verification
-    fromNumber = a2p.toll_free_phone_e164;
-    channel = "toll_free";
-    console.log(`[sms-sender] TF verification pending for tenant ${tenantId}, attempting direct send`);
   }
+  // Skip unverified toll-free numbers — they get carrier-level "(AI automated)" labels
+  // The primary phone number fallback below handles that case
 
   if (!messagingServiceSid && !fromNumber) {
-    console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId}`);
-    return { success: false, skipped: true, reason: "no_verified_channel" };
+    // Fallback: use the tenant's primary phone number directly
+    // This avoids carrier-level "(AI automated)" labels from unverified toll-free numbers
+    const { data: primaryPhone } = await supabase
+      .from("phone_numbers")
+      .select("phone_e164")
+      .eq("tenant_id", tenantId)
+      .eq("status", "provisioned")
+      .eq("purpose", "primary")
+      .maybeSingle();
+
+    if (primaryPhone?.phone_e164) {
+      fromNumber = primaryPhone.phone_e164;
+      channel = "10dlc"; // Local number, not toll-free
+      console.log(`[sms-sender] Using primary phone ${fromNumber} for tenant ${tenantId}`);
+    } else {
+      console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId}`);
+      return { success: false, skipped: true, reason: "no_verified_channel" };
+    }
   }
 
   // Send via Messaging Service or direct From number

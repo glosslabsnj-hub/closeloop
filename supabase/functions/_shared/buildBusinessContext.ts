@@ -16,7 +16,7 @@ import {
   serializeBusinessBrainSnapshot,
   type BusinessBrainSnapshot,
 } from "./getBusinessBrainSnapshot.ts";
-import { getBasePromptForMode, buildPromptForCapabilities } from "./agentBasePrompts.ts";
+import { getBasePromptForMode, buildPromptForCapabilities, getModePrompt } from "./agentBasePrompts.ts";
 import type { BusinessMode } from "./agentResolver.ts";
 import { resolveCapabilities } from "./resolveCapabilities.ts";
 
@@ -29,11 +29,34 @@ export interface DistanceTier {
   per_mile_price?: number;
 }
 
+export interface VehicleTier {
+  vehicle_type: string;
+  price: number; // cents
+  square_variation_id?: string;
+  duration_minutes?: number;
+  correction?: string; // for services with correction levels (e.g. "1-Step", "2-Step")
+}
+
+export interface PackageOption {
+  name: string;
+  price: number; // cents
+  square_variation_id?: string;
+  duration_minutes?: number;
+  description?: string;
+}
+
 export interface PricingConfig {
-  model: "flat" | "distance_tiered" | "variable";
+  model: "flat" | "distance_tiered" | "variable" | "vehicle_tiered" | "package" | "per_unit";
   distance_tiers?: DistanceTier[];
+  vehicle_tiers?: VehicleTier[];
+  packages?: PackageOption[];
   included_miles?: number;
   overage_per_mile?: number;
+  correction_levels?: boolean;
+  per_unit_price?: number;
+  unit_label?: string;
+  min_units?: number;
+  [key: string]: unknown;
 }
 
 export interface NormalizedService {
@@ -1226,6 +1249,29 @@ function normalizeServices(services: Array<{
             per_mile_price: tier.per_mile_price != null ? Number(tier.per_mile_price) : undefined,
           })),
         };
+      } else if (model === "vehicle_tiered" && Array.isArray(configJson.tiers)) {
+        pricingConfig = {
+          model: "vehicle_tiered",
+          vehicle_tiers: (configJson.tiers as Array<Record<string, unknown>>).map(t => ({
+            vehicle_type: String(t.vehicle_type || ""),
+            price: Number(t.price) || 0,
+            square_variation_id: t.square_variation_id ? String(t.square_variation_id) : undefined,
+            duration_minutes: t.duration_minutes ? Number(t.duration_minutes) : undefined,
+            correction: t.correction ? String(t.correction) : undefined,
+          })),
+          correction_levels: configJson.correction_levels === true,
+        };
+      } else if (model === "package" && Array.isArray(configJson.packages)) {
+        pricingConfig = {
+          model: "package",
+          packages: (configJson.packages as Array<Record<string, unknown>>).map(p => ({
+            name: String(p.name || ""),
+            price: Number(p.price) || 0,
+            square_variation_id: p.square_variation_id ? String(p.square_variation_id) : undefined,
+            duration_minutes: p.duration_minutes ? Number(p.duration_minutes) : undefined,
+            description: p.description ? String(p.description) : undefined,
+          })),
+        };
       } else if (model === "variable") {
         pricingConfig = { model: "variable" };
       } else if (model === "flat") {
@@ -1366,6 +1412,24 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
 
     if (quoteBehavior === "always_quote_required") {
       priceText = `${tripFeeText}Custom quote required`;
+    } else if (model === "vehicle_tiered" && s.pricing_config?.vehicle_tiers?.length) {
+      const tiers = s.pricing_config.vehicle_tiers;
+      // Check if there are correction levels (e.g. Paint Correction with 1-Step/2-Step)
+      const hasCorrectionLevels = tiers.some(t => t.correction);
+      if (hasCorrectionLevels) {
+        // Group by correction level
+        const corrections = [...new Set(tiers.map(t => t.correction).filter(Boolean))];
+        const tierLines: string[] = [];
+        for (const corr of corrections) {
+          const corrTiers = tiers.filter(t => t.correction === corr);
+          const prices = corrTiers.map(t => `${t.vehicle_type}: $${(t.price / 100).toFixed(0)}`).join(", ");
+          tierLines.push(`${corr}: ${prices}`);
+        }
+        priceText = `${tripFeeText}By vehicle size:\n    - ${tierLines.join("\n    - ")}`;
+      } else {
+        const tierDescriptions = tiers.map(t => `${t.vehicle_type}: $${(t.price / 100).toFixed(0)}`);
+        priceText = `${tripFeeText}By vehicle size: ${tierDescriptions.join(", ")}`;
+      }
     } else if (model === "distance_tiered" && s.pricing_config?.distance_tiers?.length) {
       const tiers = s.pricing_config.distance_tiers;
       const tierDescriptions = tiers.map(tier => {
@@ -1392,7 +1456,12 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
       }
     } else if (model === "package" && s.pricing_config?.packages?.length) {
       const pkgs = s.pricing_config.packages;
-      const pkgList = pkgs.map(p => `${p.name}: $${Number(p.price).toFixed(2)}${p.description ? ` (${p.description})` : ""}`);
+      const pkgList = pkgs.map(p => {
+        // Price stored in cents in vehicle_tiered/package configs, dollars in legacy
+        const priceVal = Number(p.price);
+        const displayPrice = priceVal > 1000 ? `$${(priceVal / 100).toFixed(0)}` : `$${priceVal.toFixed(2)}`;
+        return `${p.name}: ${displayPrice}${p.description ? ` (${p.description})` : ""}`;
+      });
       priceText = `${tripFeeText}Packages:\n    - ${pkgList.join("\n    - ")}`;
     } else if (model === "flat" && s.price_amount) {
       priceText = `${tripFeeText}$${Number(s.price_amount).toFixed(2)} flat rate`;
@@ -2351,7 +2420,7 @@ export async function buildBusinessContext(
     medicalPoliciesResult,
   ] = await Promise.all([
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
-    supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(20),
+    supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(50),
     supabase.from("menu_items").select("id, name, description, category, price_cents, modifiers, dietary_tags, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
     supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(15),
     supabase.from("objection_responses").select("objection, response").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(10),
@@ -4005,10 +4074,15 @@ IMPORTANT GUIDELINES:
   const capabilityPrompt = buildPromptForCapabilities(caps, ctx.tenant.industry_slug, aiBehaviorMode, aiBookingMode);
   prompt += `\n\n${capabilityPrompt}`;
   
-  // Also append the mode-specific base prompt for backward compatibility
-  // This ensures agents have both capability-aware + mode-specific instructions
-  const basePrompt = getBasePromptForMode(businessMode, aiBehaviorMode);
-  prompt += `\n\n${basePrompt}`;
+  // Append mode-specific base prompt WITHOUT shared-rule wrapper.
+  // SERVICE_AGENT_BASE_PROMPT (and other mode prompts) already contain inline copies
+  // of human phone rules, time/number rules, busyness, and debug override.
+  // Using getModePrompt() instead of getBasePromptForMode() avoids duplicating
+  // HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES, behavior overrides, GUARDRAILS,
+  // TRANSFER, BUSYNESS, and DEBUG that buildPromptForCapabilities already includes.
+  // This saves ~2,000 tokens per call — critical for ElevenLabs context retention.
+  const modePrompt = getModePrompt(businessMode);
+  prompt += `\n\n${modePrompt}`;
 
   return prompt;
 }

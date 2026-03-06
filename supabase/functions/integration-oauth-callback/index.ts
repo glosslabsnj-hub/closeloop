@@ -105,6 +105,30 @@ serve(async (req: Request) => {
       await upsertIntegration(supabase, tenant_id, providerId, providerConfig, tokens);
     }
 
+    // Trigger initial sync for Square integrations (customers + availability)
+    if (providerId === "square_pos") {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const syncHeaders = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${serviceKey}`,
+      };
+      // Fire-and-forget: don't block the OAuth callback on sync completion
+      fetch(`${supabaseUrl}/functions/v1/sync-square-customers`, {
+        method: "POST",
+        headers: syncHeaders,
+        body: JSON.stringify({ tenant_id }),
+      }).catch((e) => console.error("[oauth-callback] Square customer sync trigger error:", e));
+
+      fetch(`${supabaseUrl}/functions/v1/sync-square-availability`, {
+        method: "POST",
+        headers: syncHeaders,
+        body: JSON.stringify({ tenant_id }),
+      }).catch((e) => console.error("[oauth-callback] Square availability sync trigger error:", e));
+
+      console.log(`[oauth-callback] Triggered initial Square sync for tenant ${tenant_id.substring(0, 8)}`);
+    }
+
     // Return success page
     return htmlResponse("success", null, {
       provider: providerId,
