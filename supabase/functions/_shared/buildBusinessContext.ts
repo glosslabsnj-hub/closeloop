@@ -2422,7 +2422,7 @@ export async function buildBusinessContext(
     supabase.from("tenants").select("*, pricing_rules_jsonb, busyness_rules_jsonb").eq("id", tenantId).single(),
     supabase.from("services").select("*").eq("tenant_id", tenantId).eq("is_active", true).limit(50),
     supabase.from("menu_items").select("id, name, description, category, price_cents, modifiers, dietary_tags, is_available").eq("tenant_id", tenantId).eq("is_available", true).limit(50),
-    supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(15),
+    supabase.from("business_faqs").select("question, answer").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(30),
     supabase.from("objection_responses").select("objection, response").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(10),
     supabase.from("ai_knowledge_base").select("type, title, content").eq("tenant_id", tenantId).order("priority_weight", { ascending: false }).limit(20),
     supabase.from("ai_assistants").select("tone, greeting_script, fallback_script").eq("tenant_id", tenantId).maybeSingle(),
@@ -3361,7 +3361,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   // Anti-hallucination guardrail — CRITICAL
   prompt += `STRICT ACCURACY RULES (NEVER VIOLATE):
 - ONLY state facts explicitly provided in this prompt. Do NOT invent, assume, or embellish.
-- Do NOT mention or offer discounts (military, senior, first-time, courtesy, loyalty, seasonal, spring special, promotional, etc.) unless explicitly listed in POLICIES or SERVICES above with a specific dollar amount or percentage. If a customer pushes back on price, do NOT invent any discount — instead say "Let me have someone from our team call you, they may have more flexibility."
+- DISCOUNTS: Follow the OFFERS FIREWALL section below EXACTLY. It lists what IS and is NOT offered. Do NOT add, invent, or generalize beyond what it says. If a customer pushes back on price, say "Let me have someone from our team call you, they may have more flexibility."
 - Do NOT claim years of experience unless "In business for X years" appears in BUSINESS INFORMATION above. If years_in_business says "NOT CONFIGURED", respond with "We've been serving the area for years" — NEVER invent a number.
 - Do NOT mention fees (after-hours, emergency, scheduling, cancellation, etc.) unless listed in POLICIES above.
 - Do NOT invent certifications, awards, guarantees, or specializations not listed above.
@@ -3372,7 +3372,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 - WARRANTIES: Do NOT claim a warranty or guarantee covers ALL repairs or ALL services. Only state warranty terms that are explicitly listed for a specific service above. "All our work is backed by a 1-year warranty" is an invention unless the POLICIES or SERVICES sections explicitly say so.
 - SAVINGS CLAIMS: Do NOT claim or imply customers will save a specific percentage or dollar amount vs. competitors. Do NOT say "you could save 20-30%" or "we're typically cheaper." If asked about pricing vs. competitors, say pricing is competitive but you cannot speak to other companies' rates.
 - FREE SERVICES: Do NOT offer free services (free second opinion, free estimate, free inspection, free diagnostic) unless explicitly listed in SERVICES or POLICIES above.
-- REFERRAL PROGRAMS: Do NOT mention referral bonuses, referral discounts, or refer-a-friend programs unless explicitly listed in POLICIES or SERVICES above.
+- REFERRAL PROGRAMS: Follow the OFFERS FIREWALL section below. If it says NONE configured, do NOT mention any referral program.
 - POST-BOOKING: After confirming a booking, do NOT volunteer promotions, discounts, warranties, or upsells that aren't in your data. Confirm the booking details and close warmly.
 - If a customer asks about something not covered in your context, say you'll have someone follow up with details — do NOT make up an answer.
 
@@ -3495,7 +3495,7 @@ Do NOT claim you cannot take orders if menu IS available above.
   // FAQs
   if (ctx.knowledge.faqs.length > 0) {
     prompt += `FREQUENTLY ASKED QUESTIONS:\\n`;
-    for (const faq of ctx.knowledge.faqs.slice(0, 10)) {
+    for (const faq of ctx.knowledge.faqs.slice(0, 20)) {
       prompt += `Q: ${faq.question}\\nA: ${faq.answer}\\n\\n`;
     }
   }
