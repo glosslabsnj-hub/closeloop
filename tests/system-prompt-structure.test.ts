@@ -391,6 +391,20 @@ describe("buildSystemPrompt — STRICT ACCURACY RULES completeness (regression: 
     expect(strictSection).toContain("years_in_business");
     expect(strictSection).toContain("NOT CONFIGURED");
   });
+
+  it("provides exact fallback script for unconfigured years_in_business (regression: plumbing R5 — AI invented '11 years')", () => {
+    // AI said "11 years" when years_in_business was NULL. The rule must provide
+    // an EXACT phrase to use so the AI doesn't invent a number.
+    // "We've been serving the area for years" is the approved fallback.
+    expect(strictSection).toContain("We've been serving the area for years");
+    expect(strictSection).toContain("NEVER invent a number");
+  });
+
+  it("BUSINESS INFORMATION block shows 'NOT CONFIGURED' when years_in_business is null", () => {
+    // The prompt generation code must explicitly render the NOT CONFIGURED text
+    // when ctx.tenant.years_in_business is falsy. This is what the AI reads.
+    expect(fnBody).toContain("NOT CONFIGURED — never state or guess a number of years");
+  });
 });
 
 describe("buildSystemPrompt — SERVICES anti-fabrication rule (regression: R15 QA — handoff #460)", () => {
