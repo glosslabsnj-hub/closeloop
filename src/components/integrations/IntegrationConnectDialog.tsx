@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIntegrationMutations, PROVIDERS } from "@/hooks/useIntegrations";
-import { CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
+import { CheckCircle2, Loader2, ExternalLink, AlertCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SELF_SETUP_INTEGRATIONS } from "@/data/popularIntegrations";
@@ -210,11 +210,54 @@ export function IntegrationConnectDialog({
   };
 
   const isOAuth = provider?.authType === "oauth";
+  // OAuth is only live if the provider has credentials configured server-side.
+  // Providers without oauthReady=true show a "Coming soon" fallback instead of a broken flow.
+  const isOAuthReady = isOAuth && provider?.oauthReady === true;
+  const isOAuthComingSoon = isOAuth && !provider?.oauthReady;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[450px]">
-        {step === "connect" && (
+        {/* Coming-soon fallback: OAuth providers without configured credentials */}
+        {step === "connect" && isOAuthComingSoon && (
+          <>
+            <DialogHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-muted text-2xl">
+                  {provider.icon}
+                </div>
+                <div>
+                  <DialogTitle>{provider.name}</DialogTitle>
+                  <DialogDescription>{provider.description}</DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="py-6 space-y-4">
+              <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border/50">
+                <Clock className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium">Direct connection coming soon</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    We're finishing the {provider.name} integration. In the meantime, use our{" "}
+                    <strong>Custom Connection</strong> (webhook) to connect via Zapier or Make.
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Need this integration urgently? Use the "Have an expert set this up" option on the integrations page.
+              </p>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>
+                Close
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+
+        {step === "connect" && !isOAuthComingSoon && (
           <>
             <DialogHeader>
               <div className="flex items-center gap-3">
@@ -229,7 +272,7 @@ export function IntegrationConnectDialog({
             </DialogHeader>
 
             <div className="space-y-4 py-4">
-              {isOAuth ? (
+              {isOAuthReady ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground mb-4">
                     Click below to connect your {provider.name} account securely.

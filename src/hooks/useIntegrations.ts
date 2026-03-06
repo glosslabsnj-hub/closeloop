@@ -80,6 +80,9 @@ export interface ProviderInfo {
   icon: string;
   category: "calendar" | "crm" | "pos" | "spreadsheet" | "webhook" | "printer" | "messaging" | "payments";
   authType: "oauth" | "api_key";
+  /** For OAuth providers: true = credentials are configured, OAuth flow works.
+   *  false/undefined = show "Coming soon" fallback with webhook alternative. */
+  oauthReady?: boolean;
   applicableModes: string[];
   description: string;
   configFields?: { key: string; label: string; type: string; required: boolean }[];
@@ -105,6 +108,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "📅",
     category: "calendar",
     authType: "oauth",
+    oauthReady: true,
     applicableModes: ["service", "medical", "general", "sales"],
     description: "Create calendar events for bookings",
     configFields: [
@@ -117,6 +121,7 @@ export const PROVIDERS: ProviderInfo[] = [
     icon: "📊",
     category: "spreadsheet",
     authType: "oauth",
+    oauthReady: true,
     applicableModes: ["service", "food", "dispatch", "medical", "general", "sales"],
     description: "Append data to a spreadsheet",
     configFields: [
