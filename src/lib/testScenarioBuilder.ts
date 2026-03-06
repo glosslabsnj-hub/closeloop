@@ -13,6 +13,81 @@ interface ServiceInfo {
   price_type?: string | null;
 }
 
+// Industry-specific scenario sets — more realistic than generic mode defaults.
+// Keyed by industry slug (from tenant.industry). Falls through to mode defaults if no match.
+const INDUSTRY_DEFAULTS: Record<string, string[]> = {
+  electrical: [
+    "Hi, my circuit breaker keeps tripping — can you help?",
+    "I need an electrician to install some new outlets",
+    "My power went out in part of the house, not sure why",
+    "How much does a panel upgrade cost?",
+    "Do you handle emergency electrical calls?",
+  ],
+  plumbing: [
+    "Hi, I've got a leak under my kitchen sink",
+    "My water heater stopped working this morning",
+    "I need someone to unclog a drain — how much is that?",
+    "There's water backing up in my basement, it's urgent",
+    "Do you do free estimates?",
+  ],
+  "plumber": [
+    "Hi, I've got a leak under my kitchen sink",
+    "My water heater stopped working this morning",
+    "I need someone to unclog a drain — how much is that?",
+    "There's water backing up in my basement, it's urgent",
+    "Do you do free estimates?",
+  ],
+  hvac: [
+    "My AC stopped working and it's really hot in here",
+    "I'd like to schedule a furnace tune-up before winter",
+    "How much does it cost to replace an AC unit?",
+    "My heat isn't coming on — do you do emergency calls?",
+    "Can I get a free estimate for a new system?",
+  ],
+  "hvac-and-air-conditioning": [
+    "My AC stopped working and it's really hot in here",
+    "I'd like to schedule a furnace tune-up before winter",
+    "How much does it cost to replace an AC unit?",
+    "My heat isn't coming on — do you do emergency calls?",
+    "Can I get a free estimate for a new system?",
+  ],
+  "hair-salon": [
+    "Hi, I'd like to book an appointment for a haircut",
+    "Do you do color services? How much is highlights?",
+    "I'm new to the area — are you accepting new clients?",
+    "How far in advance do I need to book?",
+    "Do you take walk-ins or is it appointment only?",
+  ],
+  "salon": [
+    "Hi, I'd like to book an appointment for a haircut",
+    "Do you do color services? How much is highlights?",
+    "Are you accepting new clients?",
+    "How far in advance do I need to book?",
+    "Do you take walk-ins?",
+  ],
+  "house-cleaning": [
+    "Hi, I'm looking to get my house cleaned weekly",
+    "How much do you charge for a deep clean?",
+    "Do you bring your own supplies?",
+    "Are you available on weekends?",
+    "I have a 3-bedroom house — what's the price?",
+  ],
+  "landscaping": [
+    "I need my lawn mowed and some hedges trimmed",
+    "Do you offer weekly lawn service?",
+    "How much for a full yard cleanup?",
+    "Do you do snow removal in the winter?",
+    "Can I get a free estimate?",
+  ],
+  "auto-repair": [
+    "My check engine light came on — can you run a diagnostic?",
+    "I need an oil change and tire rotation",
+    "How much does a brake job cost?",
+    "My car won't start — can you help?",
+    "Do you offer free estimates?",
+  ],
+};
+
 const MODE_DEFAULTS: Record<string, string[]> = {
   service: [
     "Hi, I need to schedule an appointment",
@@ -70,7 +145,7 @@ export function buildTestScenarios(
   services: ServiceInfo[],
   gaps: TopGap[],
   mode: BusinessMode,
-  _industrySlug?: string | null,
+  industrySlug?: string | null,
 ): TestScenario[] {
   const scenarios: TestScenario[] = [];
   const MAX = 6;
@@ -103,8 +178,8 @@ export function buildTestScenarios(
     });
   }
 
-  // 3. Industry/mode fallback
-  const defaults = MODE_DEFAULTS[mode] || MODE_DEFAULTS.general;
+  // 3. Industry-specific fallback (slug), then mode fallback
+  const defaults = (industrySlug && INDUSTRY_DEFAULTS[industrySlug]) || MODE_DEFAULTS[mode] || MODE_DEFAULTS.general;
   for (const text of defaults) {
     if (scenarios.length >= MAX) break;
     // Avoid duplicates with similar content
