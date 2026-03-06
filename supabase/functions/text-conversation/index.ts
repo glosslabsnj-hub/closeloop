@@ -365,7 +365,7 @@ serve(async (req) => {
 
     // Reinforce tool usage based on business mode
     const businessMode = context.tenant.business_mode || "service";
-    const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- BOOKING COMPLETION (CRITICAL): Once check_availability returns available=true (and if you ran check_service_area, it returns in_area=true), immediately call create_booking with the customer's info. Do NOT ask "Would you like to go ahead?" — they already said they want to book. Just complete it.\n- If a customer provides name, date, time, service, and address in a single message: call check_availability, get the result, then immediately call create_booking if available=true. Do NOT re-ask the customer to confirm.\n- If check_service_area returns in_area=false: do NOT book. Apologize and explain the service area limit instead.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
+    const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- BOOKING COMPLETION (CRITICAL): Once check_availability returns available=true AND (if you ran check_service_area) it returns in_area=true — call create_booking IMMEDIATELY with the customer's info. Do NOT ask "Would you like to go ahead?", do NOT ask for more info, do NOT re-confirm. The customer already said they want to book. Book it now.\n- PARALLEL TOOL RESULT RULE: When you receive results from BOTH check_availability AND check_service_area in the same turn: if available=true AND in_area=true → your ONLY next action is to call create_booking. Zero questions. Zero follow-up. Just call create_booking.\n- If a customer provides name, date, time, service, and address in a single message: run check_availability and/or check_service_area, then if both pass → call create_booking. Do NOT ask if they want to proceed.\n- If check_service_area returns needs_verification=true: ask for the customer's exact city and zip code ONLY. Do not ask for anything else.\n- If check_service_area returns in_area=false AND needs_verification=false: do NOT book. Apologize and explain the service area limit instead.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
     const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): you MUST call create_dispatch_job after collecting location and service type.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
     const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
     // In text/browser_test mode there is no live phone call to transfer, so
@@ -518,7 +518,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
 
       response = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 512,
+        max_tokens: 1024,
         system: systemPrompt,
         messages,
         tools,
@@ -538,7 +538,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
       messages.push({ role: "user", content: [{ type: "text" as const, text: "Please respond to the customer based on the tool results above." }] });
       const retryResponse = await anthropic.messages.create({
         model: "claude-sonnet-4-6",
-        max_tokens: 512,
+        max_tokens: 1024,
         system: systemPrompt,
         messages,
         tools,

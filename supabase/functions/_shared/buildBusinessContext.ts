@@ -3606,6 +3606,8 @@ If the slot is NOT available, explain why and offer alternatives:
 BOOKING COMPLETION (CRITICAL):
 Once check_availability returns available=true AND you have the customer's name, date, time, and service — call create_booking IMMEDIATELY. Do NOT ask "Would you like to go ahead?" or wait for another confirmation. The customer requesting the slot IS their confirmation. Book it, then confirm the details to them.
 
+PARALLEL CHECK RULE: If you ran BOTH check_availability AND check_service_area and both return positive (available=true, in_area=true) — your ONE AND ONLY next action is create_booking. No follow-up questions. No "just to confirm". Just call create_booking with the info already provided.
+
 The system automatically checks busy_blocks (synced calendars + existing bookings) to prevent double-booking.
 
 `;
