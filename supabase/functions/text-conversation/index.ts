@@ -196,12 +196,60 @@ const DISPATCH_TOOLS: Anthropic.Tool[] = [
 ];
 
 /**
+ * Food-mode tools (restaurant, pizza, catering, food truck, etc.).
+ */
+const FOOD_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "create_food_order",
+    description: "Create a food order. Call this AS SOON AS you have the customer's name, order type (pickup/delivery), and at least one item. Do NOT ask 'Would you like to place the order?' — if the customer said what they want, place the order now.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name" },
+        customer_phone: { type: "string", description: "Customer's phone number" },
+        order_type: { type: "string", description: "Order type: 'pickup' or 'delivery'" },
+        items: {
+          type: "array",
+          description: "List of items ordered",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string" },
+              quantity: { type: "number" },
+              special_instructions: { type: "string" },
+            },
+            required: ["name", "quantity"],
+          },
+        },
+        delivery_address: { type: "string", description: "Delivery address (required if order_type='delivery')" },
+        special_instructions: { type: "string", description: "Overall special instructions for the order" },
+      },
+      required: ["customer_name", "order_type", "items"],
+    },
+  },
+  {
+    name: "lookup_order_status",
+    description: "Look up the status of an existing food order. Use when a customer calls to check on their order.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_phone: { type: "string", description: "Customer's phone number to look up" },
+        order_number: { type: "string", description: "Order number if known" },
+      },
+      required: ["customer_phone"],
+    },
+  },
+];
+
+/**
  * Get tool definitions based on tenant business mode.
  */
 function getToolDefinitions(businessMode: string): Anthropic.Tool[] {
   switch (businessMode) {
     case "dispatch":
       return [...SHARED_TOOLS, ...DISPATCH_TOOLS];
+    case "food":
+      return [...SHARED_TOOLS, ...FOOD_TOOLS];
     case "service":
     default:
       return [...SHARED_TOOLS, ...SERVICE_TOOLS];
@@ -277,6 +325,9 @@ async function executeTool(
     create_dispatch_job: "elevenlabs-create-dispatch-job",
     lookup_dispatch_status: "elevenlabs-lookup-dispatch-status",
     cancel_dispatch_job: "elevenlabs-cancel-dispatch-job",
+    // Food mode tools
+    create_food_order: "elevenlabs-create-food-order",
+    lookup_order_status: "elevenlabs-lookup-order-status",
   };
 
   const endpoint = endpointMap[toolName];
@@ -367,7 +418,8 @@ serve(async (req) => {
     const businessMode = context.tenant.business_mode || "service";
     const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- BOOKING COMPLETION (CRITICAL): Once check_availability returns available=true AND (if you ran check_service_area) it returns in_area=true — call create_booking IMMEDIATELY with the customer's info. Do NOT ask "Would you like to go ahead?", do NOT ask for more info, do NOT re-confirm. The customer already said they want to book. Book it now.\n- PARALLEL TOOL RESULT RULE: When you receive results from BOTH check_availability AND check_service_area in the same turn: if available=true AND in_area=true → your ONLY next action is to call create_booking. Zero questions. Zero follow-up. Just call create_booking.\n- If a customer provides name, date, time, service, and address in a single message: run check_availability and/or check_service_area, then if both pass → call create_booking. Do NOT ask if they want to proceed.\n- If check_service_area returns needs_verification=true: ask for the customer's exact city and zip code ONLY. Do not ask for anything else.\n- If check_service_area returns in_area=false AND needs_verification=false: do NOT book. Apologize and explain the service area limit instead.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
     const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): run check_service_area with their pickup address, then call create_dispatch_job.\n- DISPATCH COMPLETION (CRITICAL): Once check_service_area returns in_area=true — call create_dispatch_job IMMEDIATELY with all collected info. Do NOT ask "Would you like me to dispatch a driver?", do NOT ask for more info, do NOT re-confirm. The customer called for help — dispatch now.\n- MINIMAL INFO RULE: The minimum required to dispatch is pickup_address + service_type. Vehicle info, customer name, and phone are helpful but NOT required to create the job. Do NOT delay dispatch waiting for optional info — especially in emergencies.\n- If a caller provides their location and what they need in a single message: run check_service_area, then if in_area=true → call create_dispatch_job immediately. Do NOT ask if they want to proceed.\n- SERVICE AREA RESULTS: if in_area=true → dispatch immediately. If needs_verification=true → ask for city and zip ONLY. If in_area=false AND needs_verification=false → apologize, say you're outside the coverage area, and offer to take a callback.\n- EMERGENCY PRIORITY: If the caller indicates an emergency (car in traffic, brake failure, vehicle fire, medical emergency) → set urgency="emergency" and dispatch immediately without collecting optional info first.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
-    const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
+    const foodRules = `- When a caller wants to order food: collect their name, order type (pickup/delivery), and items, then call create_food_order IMMEDIATELY. Do NOT ask "Would you like to place the order?" — if they said what they want, place the order now.\n- ORDER COMPLETION (CRITICAL): Once you have customer_name, order_type, and at least one item — call create_food_order immediately. Do NOT re-confirm, do NOT ask for more info unless delivery_address is missing for a delivery order.\n- DELIVERY ADDRESS: For delivery orders only, ask for the delivery address before placing. For pickup, no address is needed.\n- MINIMAL INFO RULE: customer_name + order_type + items is sufficient to place a pickup order. Do NOT wait for email, loyalty number, or other optional info.\n- When a caller asks about their order: you MUST call lookup_order_status.\n- When a caller wants to change or cancel an order: call create_callback with reason="Order modification request" — explain you'll have someone from the team assist immediately.\n- MENU RULE: ONLY take orders for items listed in your menu above. If a customer asks for something not on the menu, say "I don't see that on our current menu — can I help you with something else?"`;
+    const modeRules = businessMode === "dispatch" ? dispatchRules : businessMode === "food" ? foodRules : serviceRules;
     // In text/browser_test mode there is no live phone call to transfer, so
     // override the voice-mode "transfer_to_owner" instruction from agentBasePrompts.
     // The correct text-mode behavior is: create_callback + honest messaging.

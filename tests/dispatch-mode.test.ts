@@ -208,7 +208,9 @@ describe("dispatch mode: DISPATCH COMPLETION rules in text-conversation", () => 
   });
 
   it("dispatch rules are mode-gated (only in dispatch mode, not service mode)", () => {
-    expect(textConv).toContain('businessMode === "dispatch" ? dispatchRules : serviceRules');
+    // Dispatch rules must be selected when businessMode === "dispatch"
+    // The ternary may include other modes (food, medical, etc.) but dispatch must be gated
+    expect(textConv).toContain('businessMode === "dispatch" ? dispatchRules');
   });
 });
 
