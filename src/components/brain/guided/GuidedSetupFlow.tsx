@@ -25,6 +25,7 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useFoodMode } from "@/hooks/useFoodMode";
 import { useAIReadinessV2 } from "@/hooks/useAIReadinessV2";
+import { useAuth } from "@/contexts/AuthContext";
 import { BrainEditorRenderer } from "@/components/brain/layout/BrainEditorRenderer";
 import {
   getGuidedSetupSteps,
@@ -43,6 +44,7 @@ export function GuidedSetupFlow({ onSwitchToFullBrain }: GuidedSetupFlowProps) {
   const caps = useCapabilities();
   const { isFoodMode } = useFoodMode();
   const isDispatchMode = caps.isDispatchBusiness;
+  const { tenant } = useAuth();
   const { score, p0Flags, p1Flags, canGoLive, loading: readinessLoading, refetch } = useAIReadinessV2();
 
   // Get all steps for this mode
@@ -55,14 +57,20 @@ export function GuidedSetupFlow({ onSwitchToFullBrain }: GuidedSetupFlowProps) {
   const allFlags = useMemo(() => [...p0Flags, ...p1Flags], [p0Flags, p1Flags]);
   const flagSet = useMemo(() => new Set(allFlags), [allFlags]);
 
+  // Local completeness overrides — supplement flags with data checks not yet in the readiness RPC
+  const hasAddress = Boolean(tenant?.address && tenant.address.trim().length > 3);
+
   const stepsWithStatus = useMemo(() => {
     return allSteps.map((step) => {
-      const isComplete = step.resolvesFlagKeys.length === 0
-        ? false // Optional steps with no flags default to "not complete" (skippable)
-        : step.resolvesFlagKeys.every((fk) => !flagSet.has(fk));
-      return { ...step, isComplete };
+      if (step.resolvesFlagKeys.length === 0) {
+        return { ...step, isComplete: false }; // Optional/skippable steps never show Complete
+      }
+      const flagsComplete = step.resolvesFlagKeys.every((fk) => !flagSet.has(fk));
+      // business-info step also requires an address to be considered truly complete
+      const extraComplete = step.id === "business-info" ? hasAddress : true;
+      return { ...step, isComplete: flagsComplete && extraComplete };
     });
-  }, [allSteps, flagSet]);
+  }, [allSteps, flagSet, hasAddress]);
 
   const progress = useMemo(
     () => computeStepProgress(businessMode, allFlags),

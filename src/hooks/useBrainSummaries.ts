@@ -80,7 +80,7 @@ export function useBrainSummaries(): BrainSummaries {
         .from("tenants")
         .select("business_mode, cancellation_policy, deposit_policy, refund_policy, ai_never_promise, ai_policies_json")
         .eq("id", tenant.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!tenant?.id,
@@ -96,7 +96,7 @@ export function useBrainSummaries(): BrainSummaries {
         .from("ai_assistants")
         .select("greeting_script")
         .eq("tenant_id", tenant.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!tenant?.id,
@@ -170,7 +170,7 @@ export function useBrainSummaries(): BrainSummaries {
         .from("dispatch_delivery_settings")
         .select("enabled, notify_email, urgent_sms_phone")
         .eq("tenant_id", tenant.id)
-        .single();
+        .maybeSingle();
       return data;
     },
     enabled: !!tenant?.id && businessMode === "dispatch",

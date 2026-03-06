@@ -23,54 +23,88 @@ interface SuggestedFAQButtonsProps {
   tenantServiceArea?: { radius_miles?: number };
 }
 
-/** Format hours record into a human-friendly string like "Monday through Friday from 9 AM to 5 PM" */
-function formatHoursString(hours: Record<string, HoursEntry>): { days: string; open: string; close: string } | null {
-  const dayOrder = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-  const dayNames: Record<string, string> = {
-    monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
-    thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
-  };
+const DAY_ORDER = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DAY_NAMES: Record<string, string> = {
+  monday: "Monday", tuesday: "Tuesday", wednesday: "Wednesday",
+  thursday: "Thursday", friday: "Friday", saturday: "Saturday", sunday: "Sunday",
+};
 
-  const openDays = dayOrder.filter(d => {
+function formatTime(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return m === 0 ? `${hour12} ${suffix}` : `${hour12}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+function dayRangeLabel(days: string[]): string {
+  if (days.length === 1) return DAY_NAMES[days[0]];
+  if (days.length === 2) return `${DAY_NAMES[days[0]]} and ${DAY_NAMES[days[1]]}`;
+  return `${DAY_NAMES[days[0]]} through ${DAY_NAMES[days[days.length - 1]]}`;
+}
+
+/**
+ * Build a complete, accurate hours description that handles different hours per day group.
+ * e.g. "Monday through Friday from 9 AM to 5 PM, Saturday from 8 AM to 12 PM"
+ */
+function buildFullHoursString(hours: Record<string, HoursEntry>): string | null {
+  const openDays = DAY_ORDER.filter(d => {
+    const e = hours[d];
+    return e && !e.closed;
+  });
+  if (openDays.length === 0) return null;
+
+  // Group consecutive days with identical hours
+  interface Group { days: string[]; open: string; close: string }
+  const groups: Group[] = [];
+  for (const day of openDays) {
+    const entry = hours[day];
+    if (!entry) continue;
+    const open = entry.windows?.[0]?.open ?? (entry as { open?: string }).open ?? "";
+    const close = entry.windows?.[0]?.close ?? (entry as { close?: string }).close ?? "";
+    if (!open || !close) continue;
+    const last = groups[groups.length - 1];
+    if (last && last.open === open && last.close === close) {
+      last.days.push(day);
+    } else {
+      groups.push({ days: [day], open, close });
+    }
+  }
+  if (groups.length === 0) return null;
+
+  const parts = groups.map(g => `${dayRangeLabel(g.days)} from ${formatTime(g.open)} to ${formatTime(g.close)}`);
+  return parts.join(", ");
+}
+
+/** @deprecated use buildFullHoursString for new code */
+function formatHoursString(hours: Record<string, HoursEntry>): { days: string; open: string; close: string } | null {
+  const openDays = DAY_ORDER.filter(d => {
     const entry = hours[d];
     return entry && !entry.closed;
   });
-
   if (openDays.length === 0) return null;
 
-  // Get the first open day's hours as representative
   const firstDay = hours[openDays[0]];
   if (!firstDay) return null;
-  const openTime = firstDay.windows?.[0]?.open ?? firstDay.open ?? "";
-  const closeTime = firstDay.windows?.[0]?.close ?? firstDay.close ?? "";
-
+  const openTime = firstDay.windows?.[0]?.open ?? (firstDay as { open?: string }).open ?? "";
+  const closeTime = firstDay.windows?.[0]?.close ?? (firstDay as { close?: string }).close ?? "";
   if (!openTime || !closeTime) return null;
 
-  const formatTime = (t: string) => {
-    const [h, m] = t.split(":").map(Number);
-    const suffix = h >= 12 ? "PM" : "AM";
-    const hour12 = h % 12 || 12;
-    return m === 0 ? `${hour12} ${suffix}` : `${hour12}:${String(m).padStart(2, "0")} ${suffix}`;
-  };
-
-  // Build day range description
   let daysStr: string;
   if (openDays.length === 7) {
     daysStr = "every day";
-  } else if (openDays.length >= 5 && openDays.slice(0, 5).every((d, i) => d === dayOrder[i])) {
+  } else if (openDays.length >= 5 && openDays.slice(0, 5).every((d, i) => d === DAY_ORDER[i])) {
     const weekendDays = openDays.slice(5);
     daysStr = weekendDays.length > 0
-      ? `Monday through Friday and ${weekendDays.map(d => dayNames[d]).join(" and ")}`
+      ? `Monday through Friday and ${weekendDays.map(d => DAY_NAMES[d]).join(" and ")}`
       : "Monday through Friday";
   } else {
-    daysStr = openDays.map(d => dayNames[d]).join(", ");
+    daysStr = openDays.map(d => DAY_NAMES[d]).join(", ");
   }
-
   return { days: daysStr, open: formatTime(openTime), close: formatTime(closeTime) };
 }
 
 /** Placeholder pattern that can't be auto-filled (needs manual editing) */
-const UNFILLABLE_PLACEHOLDERS = /\[signature dish\]|\[second popular item\]|\$\[amount\]/;
+const UNFILLABLE_PLACEHOLDERS = /\[signature dish\]|\[second popular item\]|\$\[amount\]|\[hours\]/;
 
 /** Replace placeholders in FAQ answers with real tenant data */
 function personalizeFAQ(
@@ -88,8 +122,12 @@ function personalizeFAQ(
     answer = answer.replace(/\. You can find us easily by \[landmark or directions\]/, "");
   }
 
-  // Hours
+  // Hours — [hours] gets full accurate string; [days]/[open time]/[close time] for backward compat
   if (tenantHours) {
+    const fullHours = buildFullHoursString(tenantHours);
+    if (fullHours) {
+      answer = answer.replace("[hours]", fullHours);
+    }
     const parsed = formatHoursString(tenantHours);
     if (parsed) {
       answer = answer.replace("[days]", parsed.days);
@@ -121,7 +159,7 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   service: [
     {
       question: "What are your hours?",
-      answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM. We're closed on Sundays."
+      answer: "We're open [hours]."
     },
     {
       question: "Where are you located?",
@@ -257,7 +295,7 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   general: [
     {
       question: "What are your hours?",
-      answer: "We're open Monday through Friday from 9 AM to 5 PM, and Saturday from 10 AM to 2 PM. We're closed on Sundays."
+      answer: "We're open [hours]."
     },
     {
       question: "Where are you located?",

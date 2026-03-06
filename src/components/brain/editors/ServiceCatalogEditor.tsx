@@ -42,6 +42,7 @@ import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, SLUG_COMPLEXITY_OVERRIDES, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 
 
 type PriceType = "fixed" | "starting_at" | "quote_only";
@@ -457,6 +458,33 @@ export function ServiceCatalogEditor() {
   const [pasteDialogOpen, setPasteDialogOpen] = useState(false);
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [flatbedDialogOpen, setFlatbedDialogOpen] = useState(false);
+  const [seedingFromCatalog, setSeedingFromCatalog] = useState(false);
+
+  // Industry catalog entry for this tenant (used to seed services when catalog is empty)
+  const catalogEntry = slug ? getIndustryBySlug(slug) : null;
+  const catalogServices = catalogEntry?.services ?? [];
+
+  const seedFromCatalog = async () => {
+    if (!tenant?.id || catalogServices.length === 0) return;
+    setSeedingFromCatalog(true);
+    try {
+      for (const svc of catalogServices) {
+        await createService(tenant.id, {
+          name: svc.name,
+          price_type: svc.priceType as "fixed" | "starting_at" | "quote_only",
+          price_amount: svc.price > 0 ? svc.price : undefined,
+          duration_minutes: svc.duration,
+          is_active: true,
+        });
+      }
+      await invalidateBrainQueries(queryClient, tenant.id);
+      toast.success(`${catalogServices.length} ${catalogEntry?.name} services added`);
+    } catch {
+      toast.error("Failed to seed services — please add manually");
+    } finally {
+      setSeedingFromCatalog(false);
+    }
+  };
 
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
@@ -889,10 +917,22 @@ export function ServiceCatalogEditor() {
                   Add every {terms.service} you offer. The AI will only mention what's listed here — it won't quote services you haven't added.
                 </p>
               </div>
-              <Button onClick={startCreatingNew}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Manually
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 w-full justify-center">
+                {catalogServices.length > 0 && (
+                  <Button onClick={seedFromCatalog} disabled={seedingFromCatalog} variant="default">
+                    {seedingFromCatalog ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4 mr-2" />
+                    )}
+                    Load {catalogServices.length} {catalogEntry?.name} services
+                  </Button>
+                )}
+                <Button onClick={startCreatingNew} variant={catalogServices.length > 0 ? "outline" : "default"}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Manually
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

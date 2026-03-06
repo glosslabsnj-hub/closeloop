@@ -342,17 +342,17 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .from("ai_assistants")
           .select("greeting_script")
           .eq("tenant_id", tenant.id)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("calendar_connections")
           .select("id, status")
           .eq("tenant_id", tenant.id)
           .eq("status", "connected"),
         hasBookingMode
-          ? supabase.from("booking_delivery_settings").select("enabled, notify_email, webhook_url").eq("tenant_id", tenant.id).single()
+          ? supabase.from("booking_delivery_settings").select("enabled, notify_email, webhook_url").eq("tenant_id", tenant.id).maybeSingle()
           : noSingle,
         isDispatch
-          ? supabase.from("dispatch_delivery_settings").select("enabled, notify_email").eq("tenant_id", tenant.id).single()
+          ? supabase.from("dispatch_delivery_settings").select("enabled, notify_email").eq("tenant_id", tenant.id).maybeSingle()
           : noSingle,
         supabase
           .from("business_faqs")
