@@ -408,14 +408,28 @@ export default function EstimatesPage() {
             {filteredEstimates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileText className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium">No estimates yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Create your first estimate to start sending professional quotes to customers.
-                </p>
-                <Button onClick={handleCreateNew}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Estimate
-                </Button>
+                {searchQuery || statusFilter ? (
+                  <>
+                    <h3 className="text-lg font-medium">No estimates match</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Try clearing your search or filter to see all estimates.
+                    </p>
+                    <Button variant="outline" onClick={() => { setSearchQuery(""); setStatusFilter(null); }}>
+                      Clear filters
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-medium">No estimates yet</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Create your first estimate to start sending professional quotes to customers.
+                    </p>
+                    <Button onClick={handleCreateNew}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Estimate
+                    </Button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="divide-y">
