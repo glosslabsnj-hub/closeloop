@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScheduleConnectionWizard } from "@/components/schedule/ScheduleConnectionWizard";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 export default function ScheduleConnectionPage() {
   const navigate = useNavigate();
@@ -9,9 +10,9 @@ export default function ScheduleConnectionPage() {
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-2xl mx-auto">
       {/* Back button */}
-      <Button 
-        variant="ghost" 
-        size="sm" 
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => navigate(-1)}
         className="mb-6"
       >
@@ -20,10 +21,12 @@ export default function ScheduleConnectionPage() {
       </Button>
 
       {/* Wizard */}
-      <ScheduleConnectionWizard 
-        onComplete={() => navigate("/app/dashboard")}
-        onSkip={() => navigate("/app/dashboard")}
-      />
+      <ErrorBoundary context="loading the schedule connection wizard">
+        <ScheduleConnectionWizard
+          onComplete={() => navigate("/app/dashboard")}
+          onSkip={() => navigate("/app/dashboard")}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

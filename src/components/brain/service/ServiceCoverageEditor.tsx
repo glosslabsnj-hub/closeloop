@@ -340,27 +340,28 @@ export function ServiceCoverageEditor() {
                     </div>
                   )}
 
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <Label className="flex items-center gap-2">
-                      After-Hours Surcharge
-                      <span className="text-xs font-normal text-muted-foreground">(optional)</span>
-                    </Label>
-                    <Input
-                      type="text"
-                      value={settings.emergency_surcharge}
-                      onChange={(e) => updateSettings({ emergency_surcharge: e.target.value })}
-                      placeholder="e.g. $75"
-                      className="w-40"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Your AI will disclose this fee when callers contact you outside business hours.
-                      Leave blank if you don't charge extra for after-hours calls.
-                    </p>
-                  </div>
                 </>
               )}
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  After-Hours Surcharge
+                  <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  type="text"
+                  value={settings.emergency_surcharge}
+                  onChange={(e) => updateSettings({ emergency_surcharge: e.target.value })}
+                  placeholder="e.g. $75"
+                  className="w-40"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Your AI will disclose this fee when callers contact you outside business hours.
+                  Leave blank if you don't charge extra for after-hours calls.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
