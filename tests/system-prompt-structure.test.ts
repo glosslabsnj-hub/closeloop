@@ -362,6 +362,24 @@ describe("agentBasePrompts — anti-fabrication rules (regression: R10/R11 QA bu
     // Should call out the HVAC/plumbing context explicitly
     expect(basePromptsSource).toContain("HVAC/plumbing");
   });
+
+  it("agentBasePrompts requires address collection for on-site services (plumbing/HVAC/electrical)", () => {
+    // For on-site businesses (plumbing, HVAC, electrical), AI MUST ask for customer address.
+    // Without the address, bookings are unusable — the business can't go to the customer.
+    // Regression guard: if this rule is removed, all plumbing bookings fail silently.
+    expect(basePromptsSource).toContain("COLLECT ADDRESS FOR ON-SITE SERVICES");
+    expect(basePromptsSource).toContain("plumbing");
+    expect(basePromptsSource).toContain("customer_address");
+    // The rule must say MUST (not should) to ensure AI always collects it
+    expect(basePromptsSource).toContain("MUST ask");
+  });
+
+  it("agentBasePrompts requires customer_address for on-site bookings in create_booking params", () => {
+    // Verify the create_booking parameter guidance explicitly mentions customer_address
+    // for on-site services, not just as a generic optional parameter.
+    expect(basePromptsSource).toContain("ALWAYS include customer_address for on-site services");
+    expect(basePromptsSource).toContain("HVAC, plumbing, electrical");
+  });
 });
 
 describe("buildSystemPrompt — emergency surcharge disclosure (regression: R13 QA)", () => {
