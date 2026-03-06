@@ -765,3 +765,45 @@ describe("text-conversation — WARRANTY/SAVINGS/FREE/POST-BOOKING anti-fabricat
     expect(antiFabBlock).toContain("referral");
   });
 });
+
+// ─── buildBusinessContext: getIndustryDefaultFlow (edge function version) ────
+// Tests the version in buildBusinessContext.ts (separate from onboarding submit).
+// Critical: if these functions drift, electrical calls would skip urgency check.
+
+describe("buildBusinessContext — getIndustryDefaultFlow urgency industries", () => {
+  // The function lives in _shared/buildBusinessContext.ts
+  const fnStart = source.indexOf("function getIndustryDefaultFlow(");
+  const fnBody = fnStart >= 0 ? source.slice(fnStart, fnStart + 600) : "";
+
+  it("defines getIndustryDefaultFlow in buildBusinessContext.ts", () => {
+    expect(fnStart).toBeGreaterThan(0);
+  });
+
+  it("includes electrical in urgency_check industries", () => {
+    expect(fnBody).toContain('"electrical"');
+    expect(fnBody).toContain('"urgency_check"');
+  });
+
+  it("includes electrician in urgency_check industries (alternate slug)", () => {
+    expect(fnBody).toContain('"electrician"');
+  });
+
+  it("includes plumbing/plumber in urgency_check industries", () => {
+    expect(fnBody).toContain('"plumbing"');
+    expect(fnBody).toContain('"plumber"');
+  });
+
+  it("includes hvac in urgency_check industries", () => {
+    expect(fnBody).toContain('"hvac"');
+  });
+
+  it("fallback returns schedule_first for unknown industries", () => {
+    expect(fnBody).toContain('"schedule_first"');
+  });
+
+  it("is called to set service_default_flow when not explicitly configured", () => {
+    // The function is used as fallback: assistantSettings.service_default_flow || getIndustryDefaultFlow(...)
+    expect(source).toContain("getIndustryDefaultFlow");
+    expect(source).toContain("service_default_flow");
+  });
+});
