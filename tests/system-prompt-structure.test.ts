@@ -249,4 +249,73 @@ describe("text-conversation — uses buildBusinessContext", () => {
     expect(textConvSource).not.toContain("fetch_elevenlabs_template");
     expect(textConvSource).not.toContain("getElevenLabsTemplate");
   });
+
+  it("accepts conversationId as alias for sessionId (regression: R11 context loss)", () => {
+    // QA sends conversationId; before fa1854a the server only read sessionId → context lost.
+    // Both parameter names must be destructured and merged.
+    expect(textConvSource).toContain("conversationId: reqConversationId");
+    expect(textConvSource).toContain("reqSessionId || reqConversationId");
+  });
+});
+
+describe("buildSystemPrompt — anti-fabrication rules (regression: R10/R11 QA bugs)", () => {
+  it("includes explicit maintenance plan prevention with named plan examples", () => {
+    // Regression guard: AI was inventing 'Comfort Club' maintenance plans.
+    // buildBusinessContext.ts must name specific plan names to avoid.
+    expect(source).toContain("Comfort Club");
+    expect(source).toContain("Priority Club");
+  });
+
+  it("includes response script for missing maintenance plan", () => {
+    // AI must use this exact script when no plan is listed in SERVICES.
+    expect(source).toContain("We don't have a maintenance plan set up right now");
+  });
+
+  it("does NOT contain bare $189 example price (regression: AI quoted example as real price)", () => {
+    // The old prompt had '$189' as a literal example price in a script.
+    // AI would quote it as a real tune-up price. Removed in fa1854a.
+    // The replacement wraps it as a format note, not a literal dollar amount.
+    // Verify the bare "$189" example isn't present outside a [SCRIPT EXAMPLE FORMAT] annotation.
+    const servicePromptIdx = source.indexOf("function buildSystemPrompt(");
+    const promptBody = source.slice(servicePromptIdx);
+    // $189 should not appear as a standalone example like '"runs about $189"'
+    expect(promptBody).not.toMatch(/"runs about \$189"/);
+    expect(promptBody).not.toMatch(/"full tune-up runs about \$189"/);
+  });
+
+  it("includes CRITICAL warning against using example prices as real prices", () => {
+    // This lives in agentBasePrompts.ts (service agent pricing rules)
+    const basePromptsPath = join(process.cwd(), "supabase/functions/_shared/agentBasePrompts.ts");
+    const basePromptsSource = readFileSync(basePromptsPath, "utf-8");
+    expect(basePromptsSource).toContain("NEVER quote a price that is not in services_pricing");
+  });
+});
+
+describe("agentBasePrompts — anti-fabrication rules (regression: R10/R11 QA bugs)", () => {
+  const basePromptsPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/agentBasePrompts.ts"
+  );
+  const basePromptsSource = readFileSync(basePromptsPath, "utf-8");
+
+  it("SERVICE_AGENT_BASE_PROMPT includes maintenance plan prevention with specific plan names", () => {
+    // Regression guard: the service prompt must include the SPECIFIC SCRIPT
+    // preventing AI from inventing plan names like Comfort Club.
+    expect(basePromptsSource).toContain("SPECIFIC SCRIPT");
+    expect(basePromptsSource).toContain('"Comfort Club"');
+    expect(basePromptsSource).toContain('"Priority Club"');
+  });
+
+  it("SERVICE_AGENT_BASE_PROMPT includes exact response script for missing maintenance plan", () => {
+    expect(basePromptsSource).toContain("We don't have a maintenance plan set up right now");
+  });
+
+  it("SERVICE_AGENT_BASE_PROMPT marks example prices as format-only, not literal values", () => {
+    // Regression guard: bare '$189' was removed. Any remaining example must
+    // be wrapped in a [SCRIPT EXAMPLE FORMAT] annotation.
+    const servicePromptStart = basePromptsSource.indexOf("SERVICE_AGENT_BASE_PROMPT");
+    const servicePromptBody = basePromptsSource.slice(servicePromptStart);
+    // The old literal example: '"A full tune-up runs about $189"' must not exist
+    expect(servicePromptBody).not.toMatch(/"A full tune-up runs about \$189"/);
+  });
 });
