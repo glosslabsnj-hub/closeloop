@@ -82,15 +82,19 @@ describe("text-conversation: result tracking", () => {
   });
 });
 
-// Extract the getToolDefinitions function body for schema checks
-const toolDefsStart = source.indexOf("function getToolDefinitions");
-const toolDefsEnd = source.indexOf("\n}", toolDefsStart) + 2;
-const toolDefsBody = source.slice(toolDefsStart, toolDefsEnd);
+// Extract tool definitions section for schema checks.
+// Tools may be defined as const arrays (SHARED_TOOLS, SERVICE_TOOLS, DISPATCH_TOOLS)
+// or inline inside getToolDefinitions. Search the section before executeTool.
+const toolSectionEnd = Math.max(
+  source.indexOf("async function executeTool"),
+  source.indexOf("function executeTool"),
+);
+const toolDefsBody = toolSectionEnd > 0 ? source.slice(0, toolSectionEnd) : source;
 
 function getToolBlock(toolName: string): string {
   const start = toolDefsBody.indexOf(`name: "${toolName}"`);
   if (start === -1) return "";
-  // Get next tool start or end of function as boundary
+  // Get next tool start or end of section as boundary
   const nextToolPattern = /name: "[a-z_]+"/g;
   nextToolPattern.lastIndex = start + toolName.length + 10;
   const nextMatch = nextToolPattern.exec(toolDefsBody);

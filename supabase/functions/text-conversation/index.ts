@@ -93,7 +93,7 @@ const SERVICE_TOOLS: Anthropic.Tool[] = [
         customer_email: { type: "string", description: "Customer's email (optional)" },
         date: { type: "string", description: "Appointment date (e.g. 'tomorrow', 'March 5', '2026-03-05')" },
         time: { type: "string", description: "Appointment time (e.g. '9am', '2:30 PM', '14:00')" },
-        service_name: { type: "string", description: "Name of the service being booked" },
+        service_name: { type: "string", description: "Name of the service being booked. Use the service name the customer mentioned (e.g. 'AC Repair', 'Furnace Repair'). Do NOT substitute a different service name (e.g. do not change 'AC Repair' to 'AC Tune-Up')." },
         vehicle_type: { type: "string", description: "Vehicle type/size: 'sedan', 'suv', 'truck', 'van'. Important for services with vehicle-based pricing." },
         notes: { type: "string", description: "Any additional notes from the customer" },
       },
@@ -366,7 +366,7 @@ serve(async (req) => {
     const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
     const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): you MUST call create_dispatch_job after collecting location and service type.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
     const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
-    const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n${modeRules}\n- Every action must be backed by a tool call that creates a real record.`;
+    const toolReinforcement = `\n\nCRITICAL TOOL USAGE RULES:\n- When a caller asks for a callback or wants someone to call them back: you MUST call the create_callback tool. Do NOT just say "I'll have someone call you" without invoking the tool.\n${modeRules}\n- Every action must be backed by a tool call that creates a real record.\n- CONTEXT CONTINUITY: You have access to the full conversation history above. Use it. Do NOT forget information the customer already provided (name, address, service needed). If they said "AC Repair" earlier, book "AC Repair" — do not substitute a different service name.\n- When calling create_booking, use the EXACT service name the customer requested, not a similar service from the catalog.`;
 
     // SMS-specific prompt layer — teaches the AI to be a great texter
     const smsPromptLayer = effectiveChannel === "sms" ? `
@@ -518,15 +518,40 @@ SMS CONVERSATION RULES (you are texting with a real customer):
     }
 
     // Extract final text reply
-    const textBlocks = response.content.filter(
+    let textBlocks = response.content.filter(
       (block): block is Anthropic.TextBlock => block.type === "text"
     );
-    const reply = textBlocks.map(b => b.text).join("\n") || "";
+    let reply = textBlocks.map(b => b.text).join("\n") || "";
 
-    // Build full conversation history including this turn's assistant response
-    const conversationMessagesOut = messages.concat([
-      { role: "assistant", content: response.content },
-    ]);
+    // If Claude returned no text after tool calls, prompt it to formulate a spoken response
+    if (!reply && toolCalls.length > 0) {
+      console.log(`[text-conversation] Empty reply after ${toolCalls.length} tool calls — prompting for spoken response`);
+      messages.push({ role: "assistant", content: response.content });
+      messages.push({ role: "user", content: [{ type: "text" as const, text: "Please respond to the customer based on the tool results above." }] });
+      const retryResponse = await anthropic.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 512,
+        system: systemPrompt,
+        messages,
+        tools,
+      });
+      textBlocks = retryResponse.content.filter(
+        (block): block is Anthropic.TextBlock => block.type === "text"
+      );
+      reply = textBlocks.map(b => b.text).join("\n") || "";
+      // Update response so we save the retry turn to session history
+      if (reply) {
+        messages.push({ role: "assistant", content: retryResponse.content });
+      }
+    }
+
+    // Build full conversation history including this turn's assistant response.
+    // If we did a retry (empty reply fix), messages already includes the final assistant turn.
+    // Otherwise, append the last response.
+    const lastMsg = messages[messages.length - 1];
+    const conversationMessagesOut = (lastMsg?.role === "assistant")
+      ? messages
+      : messages.concat([{ role: "assistant", content: response.content }]);
 
     // Persist session if sessionId was provided (enables stateful multi-turn for QA curl calls)
     if (sessionId) {

@@ -38,6 +38,7 @@ const NEW_SERVICES = [
   { name: "Duct Cleaning", description: "Professional air duct cleaning to improve air quality and system efficiency", duration_minutes: 180, price_amount: 399, price_type: "quote_only", service_category: "cleaning", display_order: 10 },
   { name: "Thermostat Installation", description: "Installation of smart or standard thermostat with full system calibration", duration_minutes: 60, price_amount: 149, price_type: "fixed", service_category: "installation", display_order: 11 },
   { name: "Emergency Repair", description: "Same-day emergency HVAC repair for AC or heating failures — available 7 days a week", duration_minutes: 120, price_amount: 199, price_type: "quote_only", service_category: "repair", display_order: 12 },
+  { name: "Comfort Club Membership", description: "Annual maintenance membership: two tune-ups per year (AC in spring, furnace in fall), priority scheduling, 15% off all repairs, no overtime charges. $14.99/month billed annually.", duration_minutes: 0, price_amount: 14.99, price_type: "fixed", service_category: "maintenance", display_order: 13 },
 ];
 
 const NEW_FAQS = [

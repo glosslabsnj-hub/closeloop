@@ -395,7 +395,10 @@ serve(async (req: Request) => {
         }
       }
 
-      // Same state or can't determine — assume in area but note we can't verify distance
+      // Same state or can't determine — cannot verify if within radius without geocoding
+      // Set needs_verification=true so the AI asks the caller to confirm their city/zip
+      const verifyMsg = `I need to verify you're within our ${radiusMiles}-mile service area. Could you tell me your city and zip code?`;
+      console.log(`[check-service-area] state_match_fallback: cannot verify ${radiusMiles}mi radius, setting needs_verification=true`);
       return new Response(
         JSON.stringify({
           in_area: true,
@@ -404,14 +407,14 @@ serve(async (req: Request) => {
           dropoff_geocoded: null,
           eta_minutes: distanceSettings?.eta_base_minutes || 45,
           eta_range: `${distanceSettings?.eta_min_minutes || 30}-${distanceSettings?.eta_max_minutes || 60} minutes`,
-          message: `Within our ${radiusMiles}-mile service area`,
+          message: `Cannot verify exact distance — please confirm caller is within ${radiusMiles} miles`,
           service_tier: "long_distance",
-          pricing_note: "Distance calculation unavailable - treat as long distance, collect details for pricing.",
+          pricing_note: "Distance cannot be verified. Ask the caller to confirm their city — only proceed if they confirm they are within our service area.",
           local_radius_miles: 10,
           distance_basis_used: "state_match_fallback",
           price_breakdown: null,
-          needs_verification: false,
-          verification_message: null,
+          needs_verification: true,
+          verification_message: verifyMsg,
         } as ServiceAreaResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
