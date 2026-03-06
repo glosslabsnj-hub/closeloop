@@ -316,7 +316,9 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, message, sessionId, history = [], conversationMessages, callerPhone, customerId, channel: reqChannel } = await req.json();
+    const { tenantId, message, sessionId: reqSessionId, conversationId: reqConversationId, history = [], conversationMessages, callerPhone, customerId, channel: reqChannel } = await req.json();
+    // Accept both 'sessionId' and 'conversationId' as aliases (QA uses conversationId)
+    const sessionId = reqSessionId || reqConversationId;
 
     if (!tenantId || !message) {
       return new Response(JSON.stringify({ error: "tenantId and message required" }), {

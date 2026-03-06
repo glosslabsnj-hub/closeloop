@@ -3365,7 +3365,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 - Do NOT claim years of experience unless "In business for X years" appears in BUSINESS INFORMATION above. If years_in_business says "NOT CONFIGURED", respond with "We've been serving the area for years" — NEVER invent a number.
 - Do NOT mention fees (after-hours, emergency, scheduling, cancellation, etc.) unless listed in POLICIES above.
 - Do NOT invent certifications, awards, guarantees, or specializations not listed above.
-- Do NOT invent maintenance plans, membership programs, or service clubs unless they appear in SERVICES above.
+- Do NOT invent maintenance plans, membership programs, or service clubs (like "Comfort Club", "Priority Club", "Care Plan", etc.) unless they appear in the SERVICES section of this prompt. If a caller asks about a maintenance plan or service club that is NOT listed in your SERVICES, say: "We don't have a maintenance plan set up right now, but I can schedule a service visit for you today — would that work?"
 - If a customer asks about something not covered in your context, say you'll have someone follow up with details — do NOT make up an answer.
 
 `;
