@@ -3517,6 +3517,68 @@ Do NOT claim you cannot take orders if menu IS available above.
     }
   }
 
+  // FABRICATION FIREWALL — R17 fix
+  // Deny-list rules above are necessary but insufficient. LLMs pattern-match from FAQs:
+  // e.g. sees "senior discount" FAQ → invents "military discount" when asked.
+  // Explicit negative enumeration (what IS vs. what is NOT configured) is a proven fix.
+  {
+    const allKnowledgeText = [
+      ...ctx.knowledge.faqs.map((f: { question: string; answer: string }) => `${f.question} ${f.answer}`),
+      ...ctx.knowledge.supplementary.map((s: { title: string; content: string }) => `${s.title} ${s.content}`),
+      ctx.policies.cancellation || "",
+      ctx.policies.deposit || "",
+      ctx.policies.refund || "",
+    ].join(" ").toLowerCase();
+
+    // Map discount keywords to friendly labels
+    const discountTypes: Array<{ key: string; label: string }> = [
+      { key: "senior", label: "senior" },
+      { key: "military", label: "military/veteran" },
+      { key: "veteran", label: "veteran" },
+      { key: "student", label: "student" },
+      { key: "first-time", label: "first-time customer" },
+      { key: "first time", label: "first-time customer" },
+      { key: "loyalty", label: "loyalty" },
+      { key: "aaa", label: "AAA member" },
+      { key: "referral discount", label: "referral" },
+      { key: "coupon", label: "coupon" },
+      { key: "seasonal", label: "seasonal/promotional" },
+    ];
+    const offeredLabels = [...new Set(
+      discountTypes.filter(d => allKnowledgeText.includes(d.key)).map(d => d.label)
+    )];
+    const notOfferedLabels = [...new Set(
+      discountTypes.filter(d => !allKnowledgeText.includes(d.key)).map(d => d.label)
+    )];
+
+    const warrantyMentioned = /warranty|guarantee/.test(allKnowledgeText);
+    const referralMentioned = /referral program|refer.a.friend|referral bonus/.test(allKnowledgeText);
+    const freeMentioned = /free estimate|free inspection|free diagnostic|free second opinion/.test(allKnowledgeText);
+
+    prompt += `OFFERS FIREWALL (NON-NEGOTIABLE — overrides any industry norm or assumption):\\n`;
+    prompt += `DISCOUNTS: ${offeredLabels.length > 0
+      ? `The ONLY discounts available are: ${offeredLabels.join(", ")}`
+      : "NONE — this business has configured zero discounts"
+    }. `;
+    if (notOfferedLabels.length > 0) {
+      prompt += `Specifically NOT offered: ${notOfferedLabels.join(", ")} discounts. `;
+    }
+    prompt += `Do NOT invent, offer, or hint at any discount not listed. If asked about an unlisted discount, say: "I'm not aware of that — let me have someone from our team follow up with you."\\n`;
+    prompt += `WARRANTIES: ${warrantyMentioned
+      ? "Only the warranty terms explicitly described in POLICIES or SERVICES above"
+      : "NONE configured — do NOT claim any warranty, guarantee, or coverage promise"
+    }.\\n`;
+    prompt += `REFERRAL PROGRAMS: ${referralMentioned
+      ? "Only as explicitly described above"
+      : "NONE configured — do NOT mention any referral program, bonus, or refer-a-friend offer"
+    }.\\n`;
+    prompt += `FREE SERVICES: ${freeMentioned
+      ? "Only the free services explicitly listed in POLICIES or SERVICES above"
+      : "NONE configured — do NOT offer free estimates, inspections, or diagnostics"
+    }.\\n`;
+    prompt += `CRITICAL: These are the COMPLETE boundaries of what you may offer. If it is not listed above, it does not exist. Do NOT generalize from what is configured to invent related offers.\\n\\n`;
+  }
+
   // Never promise
   if (ctx.policies.ai_never_promise.length > 0) {
     prompt += `NEVER PROMISE OR GUARANTEE:\\n`;
