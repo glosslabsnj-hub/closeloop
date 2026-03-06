@@ -524,38 +524,61 @@ serve(async (req: Request) => {
       customerId = newCustomer?.id || null;
     }
 
-    // Create lead for booking reference
-    const { data: lead, error: leadError } = await supabase
-      .from("leads")
-      .insert({
-        tenant_id: tenantId,
-        full_name: customerName,
-        phone: phoneE164 || customerPhone,
-        email: customerEmail || null,
-        source: "ai_call",
-        customer_id: customerId,
-      })
-      .select("id")
-      .single();
+    // Find or create lead for booking reference
+    // leads table has UNIQUE(tenant_id, phone) — must upsert, not blind insert
+    const leadPhone = phoneE164 || customerPhone;
+    if (leadPhone) {
+      const { data: existingLead } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("phone", leadPhone)
+        .maybeSingle();
 
-    if (leadError) {
-      console.error("[create-booking] Lead creation error:", leadError);
+      if (existingLead) {
+        leadId = existingLead.id;
+        // Update name/email in case they changed
+        await supabase
+          .from("leads")
+          .update({ full_name: customerName, email: customerEmail || null, customer_id: customerId })
+          .eq("id", leadId);
+        console.log(`[create-booking] Reusing existing lead ${leadId} for phone ${leadPhone}`);
+      }
     }
 
-    leadId = lead?.id || null;
-
     if (!leadId) {
-      console.error("[create-booking] Failed to create lead - no ID returned");
-      return new Response(
-        JSON.stringify({
-          success: false,
-          status: "failed",
-          appointment: null,
-          message: "Unable to complete the booking right now. We'll call you back.",
-          error: `Failed to create lead record: ${leadError?.message || "unknown"}`,
-        } as CreateBookingResponse),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      const { data: lead, error: leadError } = await supabase
+        .from("leads")
+        .insert({
+          tenant_id: tenantId,
+          full_name: customerName,
+          phone: leadPhone,
+          email: customerEmail || null,
+          source: "ai_call",
+          customer_id: customerId,
+        })
+        .select("id")
+        .single();
+
+      if (leadError) {
+        console.error("[create-booking] Lead creation error:", leadError);
+      }
+
+      leadId = lead?.id || null;
+
+      if (!leadId) {
+        console.error("[create-booking] Failed to create lead - no ID returned");
+        return new Response(
+          JSON.stringify({
+            success: false,
+            status: "failed",
+            appointment: null,
+            message: "Unable to complete the booking right now. We'll call you back.",
+            error: `Failed to create lead record: ${leadError?.message || "unknown"}`,
+          } as CreateBookingResponse),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // Determine initial booking status
