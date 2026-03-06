@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.elevenlabs-lookup-dispatch-status]
 verify_jwt = false
 
+[functions.create-tenant]
+verify_jwt = false
+
 [functions.delete-tenant]
 verify_jwt = false
 
