@@ -611,6 +611,10 @@ export default function IntegrationsPage() {
                 const integration = integrations?.find(i => i.provider === tool.id);
                 const isConnected = integration?.status === "connected";
                 const comingSoon = 'comingSoon' in tool ? (tool as any).comingSoon : false;
+                // Apply industry-aware terminology (e.g. "bookings" → "jobs" for electricians)
+                const localizedDescription = tool.description
+                  .replace(/bookings/gi, terms.bookings)
+                  .replace(/booking/gi, terms.booking);
 
                 return (
                   <IntegrationCard
@@ -619,7 +623,7 @@ export default function IntegrationsPage() {
                     name={tool.name}
                     icon={tool.icon}
                     logo={'logo' in tool ? (tool as any).logo : undefined}
-                    description={tool.description}
+                    description={localizedDescription}
                     isConnected={isConnected}
                     isSelfSetup={true}
                     isLoading={testIntegration.isPending}
