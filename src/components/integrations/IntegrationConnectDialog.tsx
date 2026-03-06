@@ -272,6 +272,16 @@ export function IntegrationConnectDialog({
             </DialogHeader>
 
             <div className="space-y-4 py-4">
+              {/* What will sync — shown before connecting so users know what they're authorizing */}
+              {(() => {
+                const selfSetupEntry = (SELF_SETUP_INTEGRATIONS as readonly { id: string; whatWillSync?: string }[]).find(s => s.id === providerId);
+                return selfSetupEntry?.whatWillSync ? (
+                  <div className="p-3 rounded-lg bg-muted/40 border border-border/50">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">What will sync</p>
+                    <p className="text-sm text-foreground">{selfSetupEntry.whatWillSync}</p>
+                  </div>
+                ) : null;
+              })()}
               {isOAuthReady ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-muted-foreground mb-4">

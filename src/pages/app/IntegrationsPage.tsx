@@ -631,7 +631,13 @@ export default function IntegrationsPage() {
               <h2 className="text-lg font-semibold">We'll Set These Up For You</h2>
             </div>
             <p className="text-sm text-muted-foreground -mt-2">
-              Need Square, ServiceTitan, or Toast? Our team will configure these for you — usually within 24 hours.
+              {businessMode === "service" && "Need ServiceTitan, Jobber, or Housecall Pro? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "food" && "Need Square, Toast, or Clover? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "dispatch" && "Need Towbook, Onfleet, or Samsara? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "medical" && "Need AthenaHealth or Practice Fusion? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "sales" && "Need Salesforce, HubSpot, or Pipedrive? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "general" && "Need Salesforce, GoHighLevel, or Calendly? Our team will configure these for you — usually within 24 hours."}
+              {!["service","food","dispatch","medical","sales","general"].includes(businessMode) && "Need Square, ServiceTitan, or Toast? Our team will configure these for you — usually within 24 hours."}
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -676,7 +682,13 @@ export default function IntegrationsPage() {
                     Don't see your tool?
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    We can connect to almost any system — FieldEdge, Towbook, AthenaHealth, GoHighLevel, and more.
+                    {businessMode === "service" && "We can connect to almost any system — ServiceTitan, Jobber, Housecall Pro, FieldEdge, and more."}
+                    {businessMode === "food" && "We can connect to almost any system — Toast, Clover, DoorDash, Uber Eats, and more."}
+                    {businessMode === "dispatch" && "We can connect to almost any system — Towbook, Onfleet, Samsara, and more."}
+                    {businessMode === "medical" && "We can connect to almost any system — AthenaHealth, Epic, Practice Fusion, and more."}
+                    {businessMode === "sales" && "We can connect to almost any system — Salesforce, HubSpot, Pipedrive, and more."}
+                    {businessMode === "general" && "We can connect to almost any system — GoHighLevel, Zapier, Make, and more."}
+                    {!["service","food","dispatch","medical","sales","general"].includes(businessMode) && "We can connect to almost any system — FieldEdge, Towbook, AthenaHealth, GoHighLevel, and more."}
                   </p>
                 </div>
                 <Button 
