@@ -622,3 +622,146 @@ describe("buildServicesForPrompt — quote_required tag output (regression: plum
     expect(buildBizSource).toContain('"quote required"');
   });
 });
+
+describe("buildSystemPrompt — WARRANTY anti-fabrication rule (regression: plumbing R6 — 'all repairs have 1-year warranty')", () => {
+  // QA Round 6: AI claimed "ALL repairs have a 1-year warranty" when only some services have warranty.
+  // Root cause: STRICT ACCURACY RULES had no warranty-specific prohibition.
+  // Fix: added WARRANTY rule to prohibit blanket warranty claims.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  const strictStart = buildBizSource.indexOf("STRICT ACCURACY RULES");
+  const strictSection = buildBizSource.slice(strictStart, strictStart + 6000);
+
+  it("prohibits blanket warranty claims across all services", () => {
+    expect(strictSection).toContain("WARRANTIES:");
+  });
+
+  it("requires warranty to be tied to a specific service in data", () => {
+    expect(strictSection).toContain("explicitly listed for a specific service");
+  });
+
+  it("prohibits the specific 'all our work is guaranteed' fabrication", () => {
+    expect(strictSection).toContain("1-year warranty");
+  });
+});
+
+describe("buildSystemPrompt — SAVINGS CLAIMS anti-fabrication rule (regression: plumbing R6 — '20-30% savings')", () => {
+  // QA Round 6: AI claimed customers could save 20-30% vs competitors. This is fabrication.
+  // Root cause: No rule prohibiting savings % comparisons.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  const strictStart = buildBizSource.indexOf("STRICT ACCURACY RULES");
+  const strictSection = buildBizSource.slice(strictStart, strictStart + 6000);
+
+  it("prohibits savings percentage comparisons", () => {
+    expect(strictSection).toContain("SAVINGS CLAIMS:");
+  });
+
+  it("prohibits specific savings fabrication examples", () => {
+    expect(strictSection).toContain("20-30%");
+  });
+});
+
+describe("buildSystemPrompt — FREE SERVICES anti-fabrication rule (regression: plumbing R6 — 'free second opinion')", () => {
+  // QA Round 6: AI offered a free second opinion not in business data.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  const strictStart = buildBizSource.indexOf("STRICT ACCURACY RULES");
+  const strictSection = buildBizSource.slice(strictStart, strictStart + 6000);
+
+  it("prohibits fabricated free services", () => {
+    expect(strictSection).toContain("FREE SERVICES:");
+  });
+
+  it("specifically prohibits free second opinion", () => {
+    expect(strictSection).toContain("free second opinion");
+  });
+});
+
+describe("buildSystemPrompt — POST-BOOKING anti-fabrication rule (regression: plumbing R6 — booking flow appends promotions)", () => {
+  // QA Round 6: After booking confirmed, AI appended fabricated promotions/discounts.
+  // Fix: POST-BOOKING rule prohibits volunteering offers not in data after confirmation.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  const strictStart = buildBizSource.indexOf("STRICT ACCURACY RULES");
+  const strictSection = buildBizSource.slice(strictStart, strictStart + 6000);
+
+  it("prohibits post-booking promotion volunteering", () => {
+    expect(strictSection).toContain("POST-BOOKING:");
+  });
+});
+
+describe("buildSystemPrompt — REFERRAL PROGRAMS anti-fabrication rule (regression: plumbing R6 — '$25 referral program')", () => {
+  // QA Round 6: AI invented a $25 referral program not in business data.
+
+  const buildBizContextPath = join(
+    process.cwd(),
+    "supabase/functions/_shared/buildBusinessContext.ts"
+  );
+  const buildBizSource = readFileSync(buildBizContextPath, "utf-8");
+
+  const strictStart = buildBizSource.indexOf("STRICT ACCURACY RULES");
+  const strictSection = buildBizSource.slice(strictStart, strictStart + 6000);
+
+  it("prohibits referral program fabrication", () => {
+    expect(strictSection).toContain("REFERRAL PROGRAMS:");
+  });
+});
+
+describe("text-conversation — WARRANTY/SAVINGS/FREE/POST-BOOKING anti-fabrication rules (regression: plumbing R6)", () => {
+  // QA Round 6 (handoff #471): AI fabricated warranty, savings %, free second opinion,
+  // and post-booking promotions. These rules must also exist in text-conversation toolReinforcement.
+
+  const textConvPath = join(
+    process.cwd(),
+    "supabase/functions/text-conversation/index.ts"
+  );
+  const textConvSource = readFileSync(textConvPath, "utf-8");
+
+  const antiFabStart = textConvSource.indexOf("ANTI-FABRICATION RULES");
+  const antiFabBlock = textConvSource.slice(antiFabStart, antiFabStart + 3000);
+
+  it("toolReinforcement includes WARRANTY anti-fabrication rule", () => {
+    expect(antiFabBlock).toContain("WARRANTIES:");
+  });
+
+  it("toolReinforcement prohibits blanket warranty claims", () => {
+    expect(antiFabBlock).toContain("explicitly listed for a specific service");
+  });
+
+  it("toolReinforcement includes SAVINGS CLAIMS prohibition", () => {
+    expect(antiFabBlock).toContain("SAVINGS CLAIMS:");
+  });
+
+  it("toolReinforcement includes FREE SERVICES prohibition", () => {
+    expect(antiFabBlock).toContain("FREE SERVICES:");
+  });
+
+  it("toolReinforcement includes POST-BOOKING silence rule", () => {
+    expect(antiFabBlock).toContain("POST-BOOKING");
+  });
+
+  it("toolReinforcement prohibits referral programs (regression: $25 referral program)", () => {
+    expect(antiFabBlock).toContain("referral");
+  });
+});
