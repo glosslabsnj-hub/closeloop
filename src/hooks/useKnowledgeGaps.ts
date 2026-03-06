@@ -85,10 +85,8 @@ export function useKnowledgeGaps(): UseKnowledgeGapsResult {
         .eq("resolved", false)
         .order("created_at", { ascending: false });
 
-      if (unresolvedError) {
-        console.error("Error fetching unresolved gaps:", unresolvedError);
-        throw unresolvedError;
-      }
+      // knowledge_gaps table may have RLS issues for new tenants — fail silently.
+      if (unresolvedError) return { unresolvedGaps: [], gapTypeAggregates: [], topGaps: [] };
 
       const gaps = (unresolvedGaps || []) as KnowledgeGap[];
 
@@ -148,6 +146,7 @@ export function useKnowledgeGaps(): UseKnowledgeGapsResult {
     },
     enabled: !!tenant?.id,
     staleTime: 30_000, // 30 seconds
+    retry: false, // RLS errors should not trigger repeated network requests
     refetchOnWindowFocus: true,
   });
 

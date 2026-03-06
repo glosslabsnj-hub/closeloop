@@ -52,6 +52,13 @@ const GLOBAL_HOOKS = [
     mustHaveRetryFalse: true,
   },
   {
+    file: "useKnowledgeGaps.ts",
+    hookName: "useKnowledgeGaps",
+    reason: "Used in SetupProgressChecklist (dashboard) and SuggestedTestsBanner (simulator) — runs on common pages",
+    shouldReturnOnError: "[]",
+    mustHaveRetryFalse: true,
+  },
+  {
     file: "useNotifications.ts",
     hookName: "useNotifications",
     reason: "Used in NotificationBell (MobileHeader in AppLayout) — runs on every page",
@@ -132,8 +139,9 @@ describe("Global hooks: silent fail pattern", () => {
         const nextExport = afterHook.indexOf("\nexport ", 10);
         const hookBody = nextExport > 0 ? afterHook.slice(0, nextExport) : afterHook;
 
-        // Check that the queryFn has error handling that returns a default
-        const hasErrorReturn = /if\s*\(\s*error\s*\)\s*return\s/.test(hookBody);
+        // Check that the queryFn has error handling that returns a default.
+        // Matches patterns like: if (error) return, if (someError) return, if (err) return
+        const hasErrorReturn = /if\s*\(\s*\w*[Ee]rror\w*\s*\)\s*[\n\s]*return\s/.test(hookBody);
         expect(
           hasErrorReturn,
           `${hook.hookName} queryFn must return a safe default value on error (e.g., return null or return [])`
