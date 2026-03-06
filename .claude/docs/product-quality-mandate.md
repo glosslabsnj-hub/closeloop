@@ -145,6 +145,49 @@ This application must be **production-ready and marketable**. Every feature must
 - Integration setup should be dead simple (OAuth flow, not manual API keys)
 - The app should feel like it was built specifically for their business
 
+### Integration UX Requirements (P1 — after current service mode gates)
+
+Every business mode must show the RIGHT integrations with CLEAR setup paths. A plumber should see Jobber and ServiceTitan. A restaurant should see Toast and Square. A dentist should see AthenaHealth. Nobody should see a "Connect" button that leads to a dead end.
+
+**What "seamless" means for each mode:**
+
+SERVICE (HVAC, plumbing, electrical, etc.):
+- Field service tools: Jobber, Housecall Pro, ServiceTitan, FieldEdge, Workiz
+- Setup: OAuth where available (Jobber, HCP have OAuth). API key with step-by-step guide for others.
+- Each tool needs: (1) a SelfSetupGuide entry with screenshots or clear text, (2) "Where do I find my API key?" link pointing to the real docs page, (3) what data syncs (jobs, invoices, customers) explained in plain English.
+
+FOOD (restaurants, catering, food trucks):
+- POS: Square, Toast, Clover, TouchBistro
+- Delivery: DoorDash, UberEats, GrubHub (webhook-based or marketplace API)
+- Kitchen: Receipt printer setup (PrintNode or browser-based)
+- Setup: OAuth for Square/Toast. Clear guidance for marketplace integrations.
+
+DISPATCH (towing, delivery, courier):
+- Dispatch: Towbook, Onfleet, Samsara
+- GPS/fleet: Samsara, Verizon Connect
+- Setup: API key with "Where to find it" guide for each.
+
+MEDICAL (dental, therapy, clinic):
+- EHR/PM: AthenaHealth, Practice Fusion, Epic (note: Epic requires healthcare org approval)
+- Setup: Clearly mark which integrations are self-service vs require our team to configure. Medical integrations often need BAA agreements.
+
+SALES (car dealers, real estate):
+- CRM: HubSpot, Salesforce, Pipedrive
+- Setup: OAuth for all three. These are well-documented.
+
+GENERAL (any business):
+- Google Calendar, Google Sheets, Webhook, Zapier/Make
+- Setup: Already mostly built. Ensure guides exist for all.
+
+**Current gaps to fix:**
+1. SelfSetupGuide only has 4 entries (google_calendar, google_sheets, webhook, printer). Need guides for Jobber, HCP, FieldEdge, Square, HubSpot, QuickBooks at minimum.
+2. API key flow shows generic "Enter your API key" with no context. Each provider needs specific instructions: what the key is called in their platform, where to find it, what permissions to enable.
+3. OAuth providers (Jobber, HCP, Square, HubSpot, QuickBooks, Stripe) need the integration-oauth-start edge function to handle their specific OAuth flows, or clearly show "Coming soon — use webhook for now" with the webhook alternative.
+4. No "what will sync" explanation. After connecting, the user should see: "New bookings will sync as jobs in Jobber. Customer info will be shared both ways."
+5. Integrations page should auto-filter by business mode. A plumber should NOT see Toast or kitchen printer.
+
+**Rule: Never show a "Connect" button that leads nowhere.** If an integration isn't fully built yet, show it as "Coming soon" with a webhook alternative, not a broken connect flow.
+
 ---
 
 ## DEV SESSION CHECKLIST

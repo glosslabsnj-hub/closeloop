@@ -45,3 +45,14 @@ HANDOFF: #387 to QA for no_console_errors gate verification
 1. bare hour parseTime("7") = 19:00 (PM) — could surprise users wanting 7 AM. Documented in tests.
 2. 202 console.error statements in catch blocks remain — all acceptable error-only paths.
 3. No pending bugs found — all SERVICE gates awaiting QA verification only.
+[2026-03-04T22:28:37Z] receptionist_fix: Fixed 2 QA handoffs (#401 greeting, #398 hallucinations+FAQ hours). Commit 1f55764. Deployed frontend + 3 edge functions. 1346/1346 tests pass.
+
+=== receptionist_eng 2026-03-06 ===
+FIXED 4 QA blockers (3 consecutive rounds at 7/10):
+1. create_callback: status='pending' violated DB CHECK (valid: new/contacted/qualified/quoted/booked/completed/lost). Fixed to 'new'. Also handles null customerId gracefully.
+2. suggest_availability: was not in text-conversation tool list. AI called it → Unknown. Added to SERVICE_TOOLS + endpointMap.
+3. AI fabrication: strengthened PRIME DIRECTIVE 7 with PRESSURE RULE: when caller pushes back on price, must use create_callback, not invent discounts/promotions.
+4. QA seeding: seedBooking() now properly creates customer→lead→booking. S04/S08 verifications fixed.
+Deployed: elevenlabs-create-callback, text-conversation, elevenlabs-suggest-availability
+Commit: a1c788a
+[2026-03-06T15:38:44Z] receptionist_eng: Plumbing data fix (6 services >500 → quote_only). QA handoffs: #468 plumbing R6, #469 stale gate verifications. No code changes.

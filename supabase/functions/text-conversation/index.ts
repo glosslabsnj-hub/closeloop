@@ -84,7 +84,7 @@ const SERVICE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: "create_booking",
-    description: "Create an appointment booking after the customer has confirmed the date, time, and service. Use this when you have collected all required details and the customer agrees to book.",
+    description: "Create an appointment booking. Call this AS SOON AS you have the customer's name, date, time, and service. When a customer provides their booking info (name, date, time, service) in one message — that IS their agreement to book. After check_availability confirms available=true, call create_booking immediately. Do NOT ask 'Would you like to go ahead?' — they already said they want to book.",
     input_schema: {
       type: "object" as const,
       properties: {
@@ -365,7 +365,7 @@ serve(async (req) => {
 
     // Reinforce tool usage based on business mode
     const businessMode = context.tenant.business_mode || "service";
-    const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
+    const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- BOOKING COMPLETION (CRITICAL): After check_availability returns available=true AND/OR check_service_area returns in_area=true, immediately call create_booking using the info the customer already provided. Do NOT ask "Would you like to go ahead?" or "Shall I book that for you?" — they already expressed intent to book. Just book it.\n- If a customer provides name, date, time, service, address, and phone in a single message — call check_availability, then immediately call create_booking. Skip re-confirmation.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
     const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): you MUST call create_dispatch_job after collecting location and service type.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
     const modeRules = businessMode === "dispatch" ? dispatchRules : serviceRules;
     // In text/browser_test mode there is no live phone call to transfer, so
@@ -433,7 +433,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
 
     let response = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 512,
+      max_tokens: 1024,
       system: systemPrompt,
       messages,
       tools,
@@ -452,9 +452,9 @@ SMS CONVERSATION RULES (you are texting with a real customer):
     let dispatchJobNumber: string | null = null;
     let dispatchCancelled = false;
 
-    // Handle tool use loop (max 3 iterations to prevent infinite loops)
+    // Handle tool use loop (max 5 iterations to allow: check_availability → check_service_area → create_booking → response)
     let iterations = 0;
-    while (response.stop_reason === "tool_use" && iterations < 3) {
+    while (response.stop_reason === "tool_use" && iterations < 5) {
       iterations++;
 
       // Extract tool use blocks
