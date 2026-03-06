@@ -157,11 +157,11 @@ export default function SettingsPage() {
     },
     integrations: {
       title: "Integrations",
-      description: "Automatically send bookings, orders, and leads to your existing tools.",
+      description: `Automatically send ${terms.bookings}, orders, and leads to your existing tools.`,
     },
     automation: {
       title: "Automation Rules",
-      description: "Auto-confirm bookings, send follow-ups, and route leads automatically.",
+      description: `Auto-confirm ${terms.bookings}, send follow-ups, and route leads automatically.`,
     },
     developer: {
       title: "Troubleshooting",
