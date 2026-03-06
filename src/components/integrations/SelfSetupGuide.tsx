@@ -64,6 +64,80 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
       { label: "Get PrintNode", url: "https://www.printnode.com" },
     ],
   },
+  jobber: {
+    title: "Coming soon — how to connect Jobber",
+    steps: [
+      { step: 1, text: "In Jobber, go to Settings → Connected Apps → Developer Center" },
+      { step: 2, text: "Create a new app and copy your Client ID and Client Secret" },
+      { step: 3, text: 'Click "Connect" here and authorize the connection' },
+      { step: 4, text: "New bookings will sync to Jobber as work orders automatically" },
+    ],
+    tip: "While Jobber connect is in beta, use our webhook integration to forward bookings to Zapier and into Jobber.",
+    links: [
+      { label: "Jobber developer docs", url: "https://developer.getjobber.com/docs" },
+    ],
+  },
+  housecallpro: {
+    title: "Coming soon — how to connect Housecall Pro",
+    steps: [
+      { step: 1, text: "In Housecall Pro, go to Settings → Integrations → API" },
+      { step: 2, text: "Generate a new API key and copy it" },
+      { step: 3, text: 'Click "Connect" here and paste your API key' },
+      { step: 4, text: "Bookings and customer data will sync automatically" },
+    ],
+    tip: "While HCP direct connect is in beta, use our webhook integration to forward bookings to Zapier and into HCP.",
+    links: [
+      { label: "Housecall Pro API docs", url: "https://help.housecallpro.com/en/articles/8229791-api-documentation" },
+    ],
+  },
+  quickbooks: {
+    title: "Coming soon — how to connect QuickBooks",
+    steps: [
+      { step: 1, text: 'Click "Connect" here and sign in to your QuickBooks account' },
+      { step: 2, text: "Authorize Flux Receptionist to access your QuickBooks company" },
+      { step: 3, text: "New invoices will be created automatically from bookings" },
+    ],
+    tip: "While QuickBooks connect is in beta, invoices can be exported manually as CSV from your Reports page.",
+    links: [
+      { label: "QuickBooks OAuth guide", url: "https://developer.intuit.com/app/developer/qbo/docs/develop/authentication-and-authorization/oauth-2.0" },
+    ],
+  },
+  hubspot: {
+    title: "Coming soon — how to connect HubSpot",
+    steps: [
+      { step: 1, text: 'Click "Connect" here and sign in to your HubSpot account' },
+      { step: 2, text: "Authorize Flux Receptionist to access your HubSpot CRM" },
+      { step: 3, text: "New leads and contacts will sync to your CRM automatically" },
+    ],
+    tip: "While HubSpot connect is in beta, use the Google Sheets integration to log leads, then import to HubSpot.",
+    links: [
+      { label: "HubSpot OAuth guide", url: "https://developers.hubspot.com/docs/api/oauth-quickstart-guide" },
+    ],
+  },
+  square_pos: {
+    title: "Coming soon — how to connect Square",
+    steps: [
+      { step: 1, text: 'Click "Connect" here and sign in to your Square account' },
+      { step: 2, text: "Choose which Square location to connect" },
+      { step: 3, text: "Orders and payments will sync to Square automatically" },
+    ],
+    tip: "While Square connect is in beta, use our webhook integration to forward order data to your Square account.",
+    links: [
+      { label: "Square developer docs", url: "https://developer.squareup.com/docs/oauth-api/overview" },
+    ],
+  },
+  stripe_connect: {
+    title: "Coming soon — how to connect Stripe",
+    steps: [
+      { step: 1, text: 'Click "Connect" here and sign in to your Stripe account' },
+      { step: 2, text: "Authorize Flux Receptionist to collect payments on your behalf" },
+      { step: 3, text: "Customers can pay by credit card when booking" },
+    ],
+    tip: "While Stripe Connect is in beta, deposit collection can be handled manually after booking confirmation.",
+    links: [
+      { label: "Stripe Connect docs", url: "https://stripe.com/docs/connect" },
+    ],
+  },
 };
 
 export function SelfSetupGuide({ providerId }: SelfSetupGuideProps) {

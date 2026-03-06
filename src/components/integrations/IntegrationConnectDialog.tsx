@@ -15,6 +15,7 @@ import { useIntegrationMutations, PROVIDERS } from "@/hooks/useIntegrations";
 import { CheckCircle2, Loader2, ExternalLink, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { SELF_SETUP_INTEGRATIONS } from "@/data/popularIntegrations";
 
 interface IntegrationConnectDialogProps {
   open: boolean;
@@ -283,17 +284,32 @@ export function IntegrationConnectDialog({
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="apiKey">API Key</Label>
+                    <Label htmlFor="apiKey">
+                      {providerId === "fieldedge" ? "FieldEdge API Key" : "API Key"}
+                    </Label>
                     <Input
                       id="apiKey"
                       type="password"
-                      placeholder="Enter your API key..."
+                      placeholder={
+                        providerId === "fieldedge"
+                          ? "Enter your FieldEdge API key..."
+                          : "Enter your API key..."
+                      }
                       value={apiKey}
                       onChange={(e) => setApiKey(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      {providerId === "fieldedge"
+                        ? "In FieldEdge: go to Settings → Integrations → API Keys."
+                        : "Check your account settings for a section called API Keys, Developer Access, or Integrations."}
+                    </p>
                   </div>
                   <a
-                    href="https://getfluxdata.com/docs/integrations"
+                    href={
+                      providerId === "fieldedge"
+                        ? "https://help.fieldedge.com/hc/en-us/articles/360038507714"
+                        : "https://support.getfluxdata.com/integrations/api-keys"
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline inline-flex items-center gap-1"
@@ -408,8 +424,11 @@ export function IntegrationConnectDialog({
                 <CheckCircle2 className="h-6 w-6 text-green-500" />
               </div>
               <DialogTitle className="mb-2">{provider.name} Connected!</DialogTitle>
-              <DialogDescription>
-                Your data will now sync automatically. Head to Settings &gt; Automation to customize what gets sent.
+              <DialogDescription className="text-sm">
+                {(() => {
+                  const selfSetupEntry = (SELF_SETUP_INTEGRATIONS as readonly { id: string; whatWillSync?: string }[]).find(s => s.id === providerId);
+                  return selfSetupEntry?.whatWillSync || "Your data will now sync automatically.";
+                })()}
               </DialogDescription>
             </div>
             <DialogFooter>

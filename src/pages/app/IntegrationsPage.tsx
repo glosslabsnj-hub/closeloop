@@ -599,6 +599,7 @@ export default function IntegrationsPage() {
               {SELF_SETUP_INTEGRATIONS.filter((tool) => !('modes' in tool && tool.modes) || (tool.modes as readonly string[]).includes(businessMode)).map((tool) => {
                 const integration = integrations?.find(i => i.provider === tool.id);
                 const isConnected = integration?.status === "connected";
+                const comingSoon = 'comingSoon' in tool ? (tool as any).comingSoon : false;
 
                 return (
                   <IntegrationCard
@@ -611,6 +612,7 @@ export default function IntegrationsPage() {
                     isConnected={isConnected}
                     isSelfSetup={true}
                     isLoading={testIntegration.isPending}
+                    comingSoon={comingSoon}
                     onConnect={() => {
                       setSelectedProvider(tool.id);
                       setConnectDialogOpen(true);
