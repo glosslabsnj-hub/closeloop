@@ -20,40 +20,47 @@ interface PolicyPreviewStepProps {
   businessMode: BusinessMode;
   policies: EditablePolicies;
   onChange: (policies: EditablePolicies) => void;
+  /** Industry-specific label (e.g. "job" for electricians, "visit" for medical) */
+  appointmentLabel?: string;
 }
 
-const policyContext: Record<string, Record<string, string>> = {
-  cancellation: {
-    service: "When a customer asks about canceling an appointment",
-    dispatch: "When a customer cancels a tow or job request",
-    food: "When a guest asks about canceling an order",
-    medical: "When a patient asks about canceling a visit",
-    general: "When a client asks about canceling",
-    sales: "When a prospect asks about canceling an appointment",
-  },
-  deposit: {
-    service: "When asked about upfront payment or deposits",
-    dispatch: "When asked about pre-payment for services",
-    food: "When asked about payment for catering or large orders",
-    medical: "When asked about co-pays or payment at time of visit",
-    general: "When asked about deposits or prepayment",
-    sales: "When asked about earnest money or deposits",
-  },
-  refund: {
-    service: "When a customer requests a refund",
-    dispatch: "When a customer disputes charges or wants a refund",
-    food: "When a guest is unhappy and wants a refund",
-    medical: "When a patient asks about billing adjustments",
-    general: "When a client asks about refunds",
-    sales: "When a buyer asks about returns or refunds",
-  },
-};
+function buildPolicyContext(appointmentLabel: string): Record<string, Record<string, string>> {
+  const article = /^[aeiou]/i.test(appointmentLabel) ? "an" : "a";
+  return {
+    cancellation: {
+      service: `When a customer asks about canceling ${article} ${appointmentLabel}`,
+      dispatch: "When a customer cancels a tow or job request",
+      food: "When a guest asks about canceling an order",
+      medical: "When a patient asks about canceling a visit",
+      general: "When a client asks about canceling",
+      sales: `When a prospect asks about canceling ${article} ${appointmentLabel}`,
+    },
+    deposit: {
+      service: "When asked about upfront payment or deposits",
+      dispatch: "When asked about pre-payment for services",
+      food: "When asked about payment for catering or large orders",
+      medical: "When asked about co-pays or payment at time of visit",
+      general: "When asked about deposits or prepayment",
+      sales: "When asked about earnest money or deposits",
+    },
+    refund: {
+      service: "When a customer requests a refund",
+      dispatch: "When a customer disputes charges or wants a refund",
+      food: "When a guest is unhappy and wants a refund",
+      medical: "When a patient asks about billing adjustments",
+      general: "When a client asks about refunds",
+      sales: "When a buyer asks about returns or refunds",
+    },
+  };
+}
 
 export function PolicyPreviewStep({
   businessMode,
   policies,
   onChange,
+  appointmentLabel = "appointment",
 }: PolicyPreviewStepProps) {
+  const policyContext = buildPolicyContext(appointmentLabel);
   const update = (field: keyof EditablePolicies, value: string) => {
     onChange({ ...policies, [field]: value });
   };
