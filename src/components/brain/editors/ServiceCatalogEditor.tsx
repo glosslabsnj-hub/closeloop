@@ -739,8 +739,8 @@ export function ServiceCatalogEditor() {
         <div>
           <h3 className="text-lg font-semibold">{terms.services.charAt(0).toUpperCase() + terms.services.slice(1)} Catalog</h3>
           <p className="text-sm text-muted-foreground">
-            {services?.length 
-              ? `${services.length} ${serviceExamples.serviceName}${services.length !== 1 ? 's' : ''} • Click to expand and edit`
+            {services?.length
+              ? `${services.length} ${serviceExamples.serviceName}${services.length !== 1 ? 's' : ''} listed • The AI only quotes what's here — add everything you offer`
               : `Add your ${terms.services} so the AI can quote prices and book ${terms.bookings}`
             }
           </p>
@@ -886,7 +886,7 @@ export function ServiceCatalogEditor() {
               <div>
                 <h3 className="font-semibold text-lg mb-1">No {terms.services} yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Use the upload button above to import your {terms.services} list, or add them manually.
+                  Add every {terms.service} you offer. The AI will only mention what's listed here — it won't quote services you haven't added.
                 </p>
               </div>
               <Button onClick={startCreatingNew}>

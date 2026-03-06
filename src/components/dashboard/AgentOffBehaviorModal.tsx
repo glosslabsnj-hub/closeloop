@@ -133,9 +133,9 @@ export function AgentOffBehaviorModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Configure Agent OFF Behavior</DialogTitle>
+          <DialogTitle>When You Turn Off Your AI</DialogTitle>
           <DialogDescription>
-            Choose what happens when you turn your AI agent OFF
+            Pick how to handle incoming calls when your AI receptionist is off
           </DialogDescription>
         </DialogHeader>
 

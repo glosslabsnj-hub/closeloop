@@ -225,8 +225,8 @@ export function AIBusinessPolicies() {
     {
       key: "escalation" as const,
       icon: ShieldCheck,
-      title: "When should AI hand off to a human?",
-      description: "Triggers for transferring to a real person",
+      title: "When should AI involve a human?",
+      description: "On voice calls, the AI can transfer live. On web/text chats, it schedules a callback instead.",
       color: "text-red-600",
       hasThresholds: false,
     },
