@@ -44,6 +44,12 @@ const CRITICAL_PAGES = [
   "ServicesPage.tsx",
   "AgreementsPage.tsx",
   "HelpCenterPage.tsx",
+  // Added: pages wrapped by UX sessions (commit 28dcee3 and prior)
+  "ScheduleConnectionPage.tsx",
+  "EstimatesPage.tsx",
+  "LeadRecoveryPage.tsx",
+  "WorkflowsPage.tsx",
+  "ReadinessFixCenterPage.tsx",
 ];
 
 describe("Error boundary coverage: critical pages", () => {
