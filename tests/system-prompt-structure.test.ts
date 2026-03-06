@@ -257,6 +257,30 @@ describe("text-conversation — uses buildBusinessContext", () => {
     expect(textConvSource).toContain("reqSessionId || reqConversationId");
   });
 
+  it("server-side session storage: sessionId takes priority over conversationMessages (regression: plumbing R5 context loss)", () => {
+    // Priority: sessionId (server DB) > conversationMessages (client JSON) > history (legacy)
+    // commit 6997b1d: sessionId is now resolved and checked FIRST.
+    // If someone removes the sessionId check or changes the order, multi-turn QA tests fail.
+    const sessionBlock = textConvSource.match(/if \(sessionId\)[\s\S]*?loadSession/);
+    expect(sessionBlock, "sessionId must be the FIRST condition checked for starting messages").not.toBeNull();
+  });
+
+  it("server-side session storage: saveSession called after AI response", () => {
+    // After generating a response, the updated messages must be saved to text_conversation_sessions.
+    // Without this save, the next message in the session will start from scratch.
+    expect(textConvSource).toContain("saveSession");
+    expect(textConvSource).toContain("text_conversation_sessions");
+  });
+
+  it("server-side session storage: loadSession returns null on DB error (safe fallback)", () => {
+    // loadSession must return null on error, not throw. Throwing would crash the entire request.
+    // If null returned, startingMessages defaults to [] (fresh conversation) — degraded but safe.
+    const loadFn = textConvSource.match(/async function loadSession[\s\S]*?\n\}/);
+    expect(loadFn, "loadSession function must exist").not.toBeNull();
+    expect(loadFn![0]).toContain("return null");
+    expect(loadFn![0]).not.toContain("throw");
+  });
+
   it("has TEXT CHANNEL OVERRIDE for transfer requests (regression: AI said 'let me transfer you' in text mode)", () => {
     // In text/browser_test mode there is no live call to transfer.
     // The service agent base prompt says 'let me transfer you now' for voice.
