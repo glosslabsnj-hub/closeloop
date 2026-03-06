@@ -368,3 +368,124 @@ describe("buildSystemPrompt — STRICT ACCURACY RULES completeness (regression: 
     expect(strictSection).toContain("NOT CONFIGURED");
   });
 });
+
+describe("buildSystemPrompt — SERVICES anti-fabrication rule (regression: R15 QA — handoff #460)", () => {
+  // AI was fabricating "$29 air filter replacement" when customer asked about AC tune-up.
+  // Root cause: anti-fabrication rules covered pricing/deposits/promos but NOT services.
+  // Fix: added explicit SERVICES rule in buildBusinessContext.ts (commit 756c0b6).
+
+  const strictStart = fnBody.indexOf("STRICT ACCURACY RULES");
+  const strictSection = fnBody.slice(strictStart, strictStart + 5000);
+
+  it("prohibits suggesting services not in catalog", () => {
+    expect(strictSection).toContain("Do NOT suggest, offer, or quote any service not explicitly listed in the SERVICES AND PRICING section");
+  });
+
+  it("names HVAC examples of commonly-invented unlisted services", () => {
+    // Naming specific examples prevents the AI from rationalizing that
+    // "air filter replacement" is too obvious to avoid.
+    expect(strictSection).toContain("air filter replacement");
+  });
+
+  it("names auto repair example of commonly-invented unlisted service", () => {
+    expect(strictSection).toContain("brake flush");
+  });
+
+  it("provides response script when unlisted service is requested", () => {
+    // AI must use this exact script rather than inventing a price/service.
+    expect(strictSection).toContain("I'd need to have someone from our team call you to discuss that service");
+  });
+
+  it("SERVICES rule gates on SERVICES AND PRICING section (not freeform)", () => {
+    // The rule must reference the exact section name so AI knows which data to check.
+    expect(strictSection).toContain("SERVICES AND PRICING section");
+  });
+});
+
+describe("buildSystemPrompt — DISCOUNTS anti-fabrication rule (regression: plumbing R5 QA — '10% courtesy discount')", () => {
+  // AI was fabricating a "10% courtesy discount" under pricing pressure.
+  // Root cause: STRICT ACCURACY RULES listed "military, senior, first-time" but NOT "courtesy".
+  // AI rationalized it could offer a courtesy discount since it wasn't explicitly prohibited.
+  // Fix: expanded prohibition list to include "courtesy" and added pressure escalation script.
+
+  const strictStart = fnBody.indexOf("STRICT ACCURACY RULES");
+  const strictSection = fnBody.slice(strictStart, strictStart + 5000);
+
+  it("prohibits courtesy discounts specifically", () => {
+    expect(strictSection).toContain("courtesy");
+  });
+
+  it("prohibits all discount categories including seasonal and promotional", () => {
+    expect(strictSection).toContain("seasonal");
+    expect(strictSection).toContain("promotional");
+  });
+
+  it("includes pricing pressure escalation script", () => {
+    // AI must NOT invent a discount under price pressure — must escalate to callback.
+    expect(strictSection).toContain("pushes back on price");
+  });
+});
+
+describe("text-conversation — DISCOUNTS anti-fabrication rule (regression: plumbing R5 QA)", () => {
+  const textConvPath = join(
+    process.cwd(),
+    "supabase/functions/text-conversation/index.ts"
+  );
+  const textConvSource = readFileSync(textConvPath, "utf-8");
+
+  it("toolReinforcement DISCOUNTS rule covers 'courtesy' discounts", () => {
+    // Regression guard: "10% courtesy discount" was fabricated by plumbing AI.
+    // The word "courtesy" was absent from the prohibition list.
+    expect(textConvSource).toContain("courtesy");
+  });
+
+  it("toolReinforcement DISCOUNTS rule covers all common fabricated discount types", () => {
+    const antiFabStart = textConvSource.indexOf("ANTI-FABRICATION RULES");
+    const antiFabBlock = textConvSource.slice(antiFabStart, antiFabStart + 2000);
+    expect(antiFabBlock).toContain("military");
+    expect(antiFabBlock).toContain("seasonal");
+    expect(antiFabBlock).toContain("promotional");
+    expect(antiFabBlock).toContain("courtesy");
+  });
+
+  it("toolReinforcement includes pricing pressure escalation to create_callback", () => {
+    // When customer pushes back on price, AI must NOT invent discount.
+    // Must use create_callback instead.
+    expect(textConvSource).toContain("pushes back on pricing");
+    expect(textConvSource).toContain("create_callback");
+  });
+});
+
+describe("text-conversation — SERVICES anti-fabrication rule (regression: R15 QA)", () => {
+  // The text channel also needs the SERVICES rule since it uses a separate
+  // toolReinforcement prompt (not buildBusinessContext STRICT ACCURACY RULES).
+
+  const textConvPath = join(
+    process.cwd(),
+    "supabase/functions/text-conversation/index.ts"
+  );
+  const textConvSource = readFileSync(textConvPath, "utf-8");
+
+  it("toolReinforcement includes SERVICES anti-fabrication rule", () => {
+    expect(textConvSource).toContain("SERVICES: ONLY mention, suggest, or quote services that appear in your services catalog");
+  });
+
+  it("names HVAC unlisted service examples to avoid (air filter, capacitor, freon)", () => {
+    // Specific examples prevent the AI from rationalizing exceptions.
+    expect(textConvSource).toContain("air filter replacement");
+    expect(textConvSource).toContain("capacitor replacement");
+    expect(textConvSource).toContain("freon recharge");
+  });
+
+  it("provides correct response script for unlisted services in text channel", () => {
+    expect(textConvSource).toContain("I'd need to have someone from our team call you to discuss that service");
+  });
+
+  it("SERVICES rule appears in ANTI-FABRICATION RULES block", () => {
+    // The SERVICES rule must be grouped with the other anti-fabrication rules,
+    // not in a separate section that could be deprioritized.
+    const antiFabStart = textConvSource.indexOf("ANTI-FABRICATION RULES");
+    const antiFabBlock = textConvSource.slice(antiFabStart, antiFabStart + 2000);
+    expect(antiFabBlock).toContain("SERVICES:");
+  });
+});
