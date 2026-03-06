@@ -51,10 +51,16 @@ export function useCustomerActivity(customerId: string | null, customerPhone: st
     queryFn: async () => {
       if (!tenant?.id || (!customerId && !customerPhone)) return [];
 
-      // Match by customer_id (primary, reliable FK) OR phone (fallback)
+      // Match by customer_id (primary, reliable FK) OR phone (fallback).
+      // Phone may be stored in multiple formats (e.g. "+15550100", "555-0100", "5550100").
+      // Try raw value AND digits-only variant so bookings link regardless of formatting.
       const orFilters: string[] = [];
       if (customerId) orFilters.push(`customer_id.eq.${customerId}`);
-      if (customerPhone) orFilters.push(`phone.eq.${customerPhone}`);
+      if (customerPhone) {
+        orFilters.push(`phone.eq.${customerPhone}`);
+        const digits = customerPhone.replace(/\D/g, "");
+        if (digits && digits !== customerPhone) orFilters.push(`phone.eq.${digits}`);
+      }
 
       const { data, error } = await supabase
         .from("leads")

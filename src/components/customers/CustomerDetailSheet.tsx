@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -126,6 +126,12 @@ export function CustomerDetailSheet({
   const [notes, setNotes] = useState(customer?.notes || "");
   const [notesDirty, setNotesDirty] = useState(false);
   const [portalDialogOpen, setPortalDialogOpen] = useState(false);
+
+  // Sync notes state when a different customer is opened
+  useEffect(() => {
+    setNotes(customer?.notes || "");
+    setNotesDirty(false);
+  }, [customer?.id]);
 
   const handleNotesChange = (value: string) => {
     setNotes(value);
