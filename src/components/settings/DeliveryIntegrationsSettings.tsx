@@ -153,6 +153,7 @@ export function DeliveryIntegrationsSettings() {
                 placeholder="https://hooks.zapier.com/..."
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
+                autoComplete="off"
               />
               <p className="text-xs text-muted-foreground">
                 Get this URL from your CRM, scheduling software, or Zapier/Make automation
@@ -178,6 +179,7 @@ export function DeliveryIntegrationsSettings() {
                   placeholder="your-secret-key"
                   value={webhookSecret}
                   onChange={(e) => setWebhookSecret(e.target.value)}
+                  autoComplete="new-password"
                 />
                 <Button
                   variant="outline"
@@ -226,6 +228,7 @@ export function DeliveryIntegrationsSettings() {
                     placeholder="your-api-key"
                     value={authHeaderValue}
                     onChange={(e) => setAuthHeaderValue(e.target.value)}
+                    autoComplete="new-password"
                   />
                 </div>
               </div>
@@ -250,6 +253,7 @@ export function DeliveryIntegrationsSettings() {
                     placeholder="password"
                     value={basicPass}
                     onChange={(e) => setBasicPass(e.target.value)}
+                    autoComplete="new-password"
                   />
                 </div>
               </div>

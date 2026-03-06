@@ -300,7 +300,7 @@ export function SmsSettingsSection() {
       {/* Booking/Appointment Confirmation */}
       <SettingsCard
         title={`${bookingLabel} Confirmation`}
-        description={`Sent immediately when a ${terminology.appointmentLabel} is confirmed.`}
+        description={`Sent immediately when ${/^[aeiou]/i.test(terminology.appointmentLabel) ? "an" : "a"} ${terminology.appointmentLabel} is confirmed.`}
         onSave={() => saveMutation.mutate(settings)}
         isSaving={saveMutation.isPending}
         isDirty={isDirty}

@@ -33,6 +33,11 @@ function pluralizeNoun(word: string): string {
   return `${word}s`;
 }
 
+/** Return "an" if word starts with a vowel, "a" otherwise */
+function article(word: string): string {
+  return /^[aeiou]/i.test(word) ? "an" : "a";
+}
+
 /**
  * Resolve notification event labels using mode-aware terminology.
  * A plumber sees "New jobs" instead of "New bookings".
@@ -43,13 +48,13 @@ function resolveEventLabel(event: NotificationEvent, apptLabel: string): { label
 
   switch (event.eventType) {
     case "new_booking":
-      return { label: `New ${plural}`, description: `When a ${apptLabel} is created` };
+      return { label: `New ${plural}`, description: `When ${article(apptLabel)} ${apptLabel} is created` };
     case "booking_cancelled":
-      return { label: `${cap(apptLabel)} cancellations`, description: `When a ${apptLabel} is cancelled` };
+      return { label: `${cap(apptLabel)} cancellations`, description: `When ${article(apptLabel)} ${apptLabel} is cancelled` };
     case "daily_summary":
       return { label: event.label, description: `A daily digest of calls and ${plural}` };
     case "handoff_failure":
-      return { label: event.label, description: `When a ${apptLabel} handoff fails` };
+      return { label: event.label, description: `When ${article(apptLabel)} ${apptLabel} handoff fails` };
     default:
       return { label: event.label, description: event.description };
   }
