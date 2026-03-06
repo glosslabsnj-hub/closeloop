@@ -513,7 +513,7 @@ serve(async (req) => {
 
           const apptLabel = getAppointmentLabel(tenantData?.business_mode || "service", tenantData?.industry);
           const template = confirmationConfig?.message ||
-            `Hi {{customer_name}}! Your ${apptLabel} with {{business_name}} is confirmed for {{appointment_date}} at {{appointment_time}}. Reply STOP to opt out.`;
+            `Hey {{customer_name}}! You're all set with {{business_name}} on {{appointment_date}} at {{appointment_time}}. See you then! Reply STOP to opt out.`;
 
           const message = template
             .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")

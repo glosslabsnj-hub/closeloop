@@ -9,6 +9,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { parseTime } from "../_shared/parseTime.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -108,43 +109,7 @@ function dayOfWeekFromDateStr(dateStr: string): number {
   return new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)).getUTCDay();
 }
 
-// Parse natural language time to HH:MM
-function parseTime(input: string): string {
-  const lower = input.toLowerCase().trim();
-  
-  // Handle HH:MM format
-  if (/^\d{1,2}:\d{2}$/.test(input)) {
-    const [h, m] = input.split(":");
-    return `${h.padStart(2, "0")}:${m}`;
-  }
-  
-  // Handle "2pm", "10am", "3:30pm"
-  const ampmMatch = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-  if (ampmMatch) {
-    let hour = parseInt(ampmMatch[1], 10);
-    const minutes = ampmMatch[2] || "00";
-    const period = ampmMatch[3];
-    
-    if (period === "pm" && hour < 12) hour += 12;
-    if (period === "am" && hour === 12) hour = 0;
-    
-    return `${String(hour).padStart(2, "0")}:${minutes}`;
-  }
-  
-  // Handle just hour number (assume next reasonable time)
-  if (/^\d{1,2}$/.test(input)) {
-    const hour = parseInt(input, 10);
-    if (hour >= 1 && hour <= 12) {
-      // Assume PM for business hours if ambiguous
-      const adjustedHour = hour < 8 ? hour + 12 : hour;
-      return `${String(adjustedHour).padStart(2, "0")}:00`;
-    }
-    return `${String(hour).padStart(2, "0")}:00`;
-  }
-  
-  // Default to 9 AM if unparseable
-  return "09:00";
-}
+// parseTime imported from _shared/parseTime.ts
 
 const MONTH_NAMES: Record<string, number> = {
   january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2,

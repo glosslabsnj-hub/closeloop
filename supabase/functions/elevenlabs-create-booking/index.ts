@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
+import { parseTime } from "../_shared/parseTime.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -108,35 +109,7 @@ function getTimezoneOffset(tz: string): string {
 // Use shared phone normalization
 const normalizePhone = normalizePhoneE164;
 
-// Parse time to HH:MM
-function parseTime(input: string): string {
-  const lower = input.toLowerCase().trim();
-  
-  if (/^\d{1,2}:\d{2}$/.test(input)) {
-    const [h, m] = input.split(":");
-    return `${h.padStart(2, "0")}:${m}`;
-  }
-  
-  const ampmMatch = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
-  if (ampmMatch) {
-    let hour = parseInt(ampmMatch[1], 10);
-    const minutes = ampmMatch[2] || "00";
-    const period = ampmMatch[3];
-    
-    if (period === "pm" && hour < 12) hour += 12;
-    if (period === "am" && hour === 12) hour = 0;
-    
-    return `${String(hour).padStart(2, "0")}:${minutes}`;
-  }
-  
-  if (/^\d{1,2}$/.test(input)) {
-    const hour = parseInt(input, 10);
-    const adjustedHour = hour < 8 ? hour + 12 : hour;
-    return `${String(adjustedHour).padStart(2, "0")}:00`;
-  }
-  
-  return "09:00";
-}
+// parseTime imported from _shared/parseTime.ts
 
 const MONTH_NAMES: Record<string, number> = {
   january: 0, jan: 0, february: 1, feb: 1, march: 2, mar: 2,
@@ -381,7 +354,7 @@ serve(async (req: Request) => {
     const targetDate = parseDate(rawDate, timezone);
     const targetTime = parseTime(rawTime);
 
-    console.log(`[create-booking] Tenant: ${tenantId.substring(0, 8)}..., Date: ${targetDate}, Time: ${targetTime}, Mode: ${bookingMode}`);
+    console.log(`[create-booking] Tenant: ${tenantId.substring(0, 8)}..., rawTime: "${rawTime}" → parsed: "${targetTime}", rawDate: "${rawDate}" → parsed: "${targetDate}", Mode: ${bookingMode}`);
 
     // Resolve service
     let finalDuration = durationOverride || 60;

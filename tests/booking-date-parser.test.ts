@@ -108,28 +108,36 @@ function parseDate(input: string, timezone: string): string {
   return formatDateLocal(now, timezone);
 }
 
+// Shared parseTime — matches supabase/functions/_shared/parseTime.ts
 function parseTime(input: string): string {
   const lower = input.toLowerCase().trim();
 
-  if (/^\d{1,2}:\d{2}$/.test(input)) {
-    const [h, m] = input.split(":");
-    return `${h.padStart(2, "0")}:${m}`;
-  }
-
-  const ampmMatch = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  // 1. Explicit AM/PM
+  const ampmMatch = lower.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)$/);
   if (ampmMatch) {
     let hour = parseInt(ampmMatch[1], 10);
     const minutes = ampmMatch[2] || "00";
-    const period = ampmMatch[3];
+    const period = ampmMatch[3].replace(/\./g, "");
     if (period === "pm" && hour < 12) hour += 12;
     if (period === "am" && hour === 12) hour = 0;
     return `${String(hour).padStart(2, "0")}:${minutes}`;
   }
 
+  // 2. HH:MM without AM/PM — business hours heuristic (1-7 → PM)
+  if (/^\d{1,2}:\d{2}$/.test(input)) {
+    const [h, m] = input.split(":");
+    const hour = parseInt(h, 10);
+    if (hour >= 13) return `${h.padStart(2, "0")}:${m}`;
+    const adjusted = hour >= 1 && hour <= 7 ? hour + 12 : hour;
+    return `${String(adjusted).padStart(2, "0")}:${m}`;
+  }
+
+  // 3. Bare hour number — same heuristic
   if (/^\d{1,2}$/.test(input)) {
     const hour = parseInt(input, 10);
-    const adjustedHour = hour < 8 ? hour + 12 : hour;
-    return `${String(adjustedHour).padStart(2, "0")}:00`;
+    if (hour >= 13 && hour <= 23) return `${String(hour).padStart(2, "0")}:00`;
+    const adjusted = hour >= 1 && hour <= 7 ? hour + 12 : hour;
+    return `${String(adjusted).padStart(2, "0")}:00`;
   }
 
   return "09:00";
@@ -217,10 +225,21 @@ describe("parseDate", () => {
 });
 
 describe("parseTime", () => {
-  it("handles HH:MM 24-hour format", () => {
+  it("handles HH:MM 24-hour format (unambiguous)", () => {
     expect(parseTime("14:00")).toBe("14:00");
-    expect(parseTime("09:30")).toBe("09:30");
+    expect(parseTime("16:45")).toBe("16:45");
+    expect(parseTime("23:00")).toBe("23:00");
+  });
+
+  it("handles HH:MM ambiguous → business hours heuristic", () => {
+    // Hours 1-7 without AM/PM → PM (no business books at 4:45 AM)
+    expect(parseTime("4:45")).toBe("16:45");
+    expect(parseTime("1:30")).toBe("13:30");
+    expect(parseTime("7:00")).toBe("19:00");
+    // Hours 8-12 without AM/PM → stays as-is (morning business hours)
     expect(parseTime("9:30")).toBe("09:30");
+    expect(parseTime("10:00")).toBe("10:00");
+    expect(parseTime("11:15")).toBe("11:15");
   });
 
   it("handles 12-hour AM/PM format", () => {
@@ -230,6 +249,7 @@ describe("parseTime", () => {
     expect(parseTime("12:00pm")).toBe("12:00");
     expect(parseTime("12:00am")).toBe("00:00");
     expect(parseTime("1:30pm")).toBe("13:30");
+    expect(parseTime("4:45 pm")).toBe("16:45");
   });
 
   it("handles bare hour numbers", () => {
