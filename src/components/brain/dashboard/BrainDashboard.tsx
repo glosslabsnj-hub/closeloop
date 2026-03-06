@@ -329,6 +329,7 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
                 summaryText={getCategorySummary(cat.section, summaries)}
                 groupLabels={categoryGroupLabels[cat.section]}
                 onEdit={() => onNavigate(cat.section)}
+                isLoading={summaries.isLoading}
               />
             ))}
         </div>

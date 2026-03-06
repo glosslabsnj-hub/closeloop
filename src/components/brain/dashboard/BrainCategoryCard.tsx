@@ -18,6 +18,7 @@ interface BrainCategoryCardProps {
   summaryText: string;
   groupLabels?: string[];
   onEdit: () => void;
+  isLoading?: boolean;
 }
 
 export function BrainCategoryCard({
@@ -27,6 +28,7 @@ export function BrainCategoryCard({
   summaryText,
   groupLabels,
   onEdit,
+  isLoading,
 }: BrainCategoryCardProps) {
   const Icon = category.icon;
   const displayTitle = resolvedTitle || category.title;
@@ -69,9 +71,13 @@ export function BrainCategoryCard({
       {/* Title + summary */}
       <div className="space-y-1 min-w-0 w-full">
         <p className="text-sm font-semibold truncate">{displayTitle}</p>
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-          {summaryText || category.description}
-        </p>
+        {isLoading ? (
+          <div className="h-3 w-3/4 rounded bg-muted animate-pulse mt-1" />
+        ) : (
+          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+            {summaryText || category.description}
+          </p>
+        )}
       </div>
 
       {/* Progress bar + percentage */}

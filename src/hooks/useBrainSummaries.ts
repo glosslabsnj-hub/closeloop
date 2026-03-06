@@ -12,6 +12,7 @@ import { useBrainCompletion, type CompletionStats } from "./useBrainCompletion";
 import { useTenantConfig } from "./useTenantConfig";
 
 interface BrainSummaries {
+  isLoading: boolean;
   // Profile
   businessInfo: string;
   templates: string;
@@ -71,7 +72,7 @@ export function useBrainSummaries(): BrainSummaries {
   const fullCompletionStats = useBrainCompletion();
 
   // Fetch tenant data for multiple sections
-  const { data: tenantData } = useQuery({
+  const { data: tenantData, isLoading: tenantLoading } = useQuery({
     queryKey: ["brain-summaries-tenant", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return null;
@@ -103,7 +104,7 @@ export function useBrainSummaries(): BrainSummaries {
   });
 
   // Fetch counts for various entities
-  const { data: counts } = useQuery({
+  const { data: counts, isLoading: countsLoading } = useQuery({
     queryKey: ["brain-summaries-counts", tenant?.id],
     queryFn: async () => {
       if (!tenant?.id) return null;
@@ -209,6 +210,8 @@ export function useBrainSummaries(): BrainSummaries {
   })();
 
   return {
+    isLoading: (tenantLoading && !tenantData) || (countsLoading && !counts),
+
     // Profile
     businessInfo: tenant?.name ? `${tenant.name} — Your business identity` : "Not set up yet",
     templates: "Pre-built setups for common business types",
