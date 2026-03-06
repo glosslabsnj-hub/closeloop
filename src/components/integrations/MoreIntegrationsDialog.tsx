@@ -10,11 +10,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  POPULAR_INTEGRATIONS, 
+import {
+  POPULAR_INTEGRATIONS,
   INTEGRATION_CATEGORIES,
-  type IntegrationCategory 
+  type IntegrationCategory
 } from "@/data/popularIntegrations";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
+
+// Which integration categories are relevant per business mode
+const MODE_RELEVANT_CATEGORIES: Record<string, IntegrationCategory[]> = {
+  service:  ["field_service", "scheduling", "crm"],
+  dispatch: ["dispatch", "field_service", "scheduling"],
+  food:     ["pos", "scheduling", "crm"],
+  medical:  ["medical", "scheduling", "crm"],
+  sales:    ["crm", "scheduling"],
+  general:  ["crm", "scheduling", "pos", "field_service"],
+};
 
 interface MoreIntegrationsDialogProps {
   open: boolean;
@@ -28,16 +39,25 @@ export function MoreIntegrationsDialog({
   onRequestSetup,
 }: MoreIntegrationsDialogProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { businessMode } = useTenantConfig();
 
-  // Filter integrations by search
-  const filteredIntegrations = POPULAR_INTEGRATIONS.filter(
-    (integration) =>
+  const relevantCategories = MODE_RELEVANT_CATEGORIES[businessMode] || Object.keys(MODE_RELEVANT_CATEGORIES).flatMap(k => MODE_RELEVANT_CATEGORIES[k]) as IntegrationCategory[];
+
+  // Filter integrations: by search and by mode-relevant categories (unless searching)
+  const filteredIntegrations = POPULAR_INTEGRATIONS.filter((integration) => {
+    const matchesSearch =
       integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      integration.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      integration.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesMode = searchQuery || relevantCategories.includes(integration.category);
+    return matchesSearch && matchesMode;
+  });
 
-  // Group by category
-  const groupedIntegrations = INTEGRATION_CATEGORIES.map((category) => ({
+  // Group by category — relevant categories first, then others if searching
+  const orderedCategories = searchQuery
+    ? INTEGRATION_CATEGORIES
+    : INTEGRATION_CATEGORIES.filter(c => relevantCategories.includes(c.id));
+
+  const groupedIntegrations = orderedCategories.map((category) => ({
     ...category,
     integrations: filteredIntegrations.filter((i) => i.category === category.id),
   })).filter((group) => group.integrations.length > 0);
@@ -51,9 +71,11 @@ export function MoreIntegrationsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>All Integrations</DialogTitle>
+          <DialogTitle>More Integrations</DialogTitle>
           <DialogDescription>
-            Browse available integrations. Our team will set these up for you.
+            {searchQuery
+              ? "Showing all integrations matching your search."
+              : "Integrations relevant to your business — our team will set these up for you."}
           </DialogDescription>
         </DialogHeader>
 
