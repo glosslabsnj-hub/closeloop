@@ -1,6 +1,19 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-06 3:51 PM ET (receptionist_fix R23 — console errors + regression tests)
+## Last Session: 2026-03-06 4:44 PM ET (receptionist_fix R24 — parseTime bug fix + regression tests)
+
+### What Was Done
+- **PARSETIME BUG FIXED** (commit 32cfde0): "4:45" without AM/PM was parsed as 04:45 AM instead of 16:45 PM. Created `_shared/parseTime.ts` as shared module (hours 1-7 without AM/PM → PM heuristic). Both `elevenlabs-check-availability` and `elevenlabs-create-booking` now import shared version instead of maintaining duplicate local copies. Added dot-notation AM/PM support (a.m./p.m.). Deployed all 4 affected edge functions.
+- **booking-handoff SMS template**: Friendlier default ("Hey! You're all set" not "Your appointment is confirmed for").
+- **text-conversation SMS tone**: Anti-robot phrase rules added (NEVER "Reply yes or no", corporate patterns).
+- **+77 regression tests** across 4 test files:
+  - `shared-parse-time.test.ts` (36 tests): parseTime source structure + logic (HH:MM ambiguity bug, bare hours, fallback)
+  - `sms-tone-regression.test.ts` (23 tests): anti-robot phrases, SMS default template, human tone
+  - `integration-connect-dialog.test.ts` (+11 tests): oauthReady flag prevents broken OAuth flows
+  - `system-prompt-structure.test.ts` (+7 tests): getIndustryDefaultFlow urgency-check for electrical
+- **Build**: Clean (0 errors). Tests: 1792/1792 passing. Frontend + 4 edge functions deployed (200 verified).
+
+## Previous Session: 2026-03-06 3:51 PM ET (receptionist_fix R23 — console errors + regression tests)
 
 ### What Was Done
 - **CONSOLE ERROR FIX** (commit 9c4b4a0): `useKnowledgeGaps` was calling `console.error() + throw` on RLS errors. For new test tenants (electrical QA), this table might have RLS issues, causing 4 console.error calls per dashboard/simulator page load (1 error + 3 React Query retries). Fixed to `return { unresolvedGaps: [], gapTypeAggregates: [], topGaps: [] }` + `retry: false`.
