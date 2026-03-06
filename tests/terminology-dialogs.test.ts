@@ -137,6 +137,49 @@ describe("Food order status enum", () => {
   });
 });
 
+// ─── CreateBookingDialog date/time input types (regression: booking_date_picker_works) ──
+describe("CreateBookingDialog: date and time inputs (regression: functional/booking_date_picker_works)", () => {
+  // Root cause of gate failure: dialog previously had no date/time inputs at all.
+  // Fix (commit 3887730): added type="date" and type="time" Input fields.
+  // These tests prevent regression — if someone replaces the inputs with non-editable text,
+  // the date picker gate will fail again.
+  const source = readFileSync(
+    resolve("src/components/calendar/CreateBookingDialog.tsx"),
+    "utf-8"
+  );
+
+  it('has a type="date" input for date selection', () => {
+    expect(source).toContain('type="date"');
+  });
+
+  it('has a type="time" input for time selection', () => {
+    expect(source).toContain('type="time"');
+  });
+
+  it("date input has onChange handler (is editable, not display-only)", () => {
+    const lines = source.split("\n");
+    const dateLine = lines.findIndex(l => l.includes('type="date"'));
+    expect(dateLine).toBeGreaterThan(-1);
+    const dateBlock = lines.slice(dateLine - 2, dateLine + 5).join("\n");
+    expect(dateBlock).toContain("onChange");
+  });
+
+  it("time input has onChange handler (is editable, not display-only)", () => {
+    const lines = source.split("\n");
+    const timeLine = lines.findIndex(l => l.includes('type="time"'));
+    expect(timeLine).toBeGreaterThan(-1);
+    const timeBlock = lines.slice(timeLine - 2, timeLine + 5).join("\n");
+    expect(timeBlock).toContain("onChange");
+  });
+
+  it("derives startTime and endTime from user-selected date and time", () => {
+    expect(source).toContain("startTime");
+    expect(source).toContain("endTime");
+    expect(source).toContain("start_at: startTime.toISOString()");
+    expect(source).toContain("end_at: endTime.toISOString()");
+  });
+});
+
 // ─── Error boundary coverage on high-risk pages ─────────────────────────────
 describe("Error boundary coverage on data-heavy pages", () => {
   const criticalPages = [
