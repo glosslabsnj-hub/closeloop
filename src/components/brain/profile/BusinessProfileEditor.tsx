@@ -13,7 +13,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PreviewSentence } from "../layout/BusinessBrainSectionCard";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getProfileExamples } from "@/lib/industryExamples";
+import { getSlugProfileExamples } from "@/lib/industryExamples";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -63,9 +64,10 @@ function combineAddress(components: { line1: string; city: string; state: string
 export function BusinessProfileEditor() {
   const { tenant, refreshTenant } = useAuth();
   const { businessMode } = useTenantConfig();
+  const { slug } = useIndustryContext();
   const queryClient = useQueryClient();
-  
-  const examples = getProfileExamples(businessMode);
+
+  const examples = getSlugProfileExamples(businessMode, slug);
 
   const [formData, setFormData] = useState({
     name: "",

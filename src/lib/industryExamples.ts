@@ -272,6 +272,81 @@ export function getProfileExamples(mode: BusinessMode): ProfileExamples {
 }
 
 /**
+ * Slug-specific overrides for business profile examples.
+ * Provides industry-native placeholder examples so an electrician doesn't
+ * see "Acme Plumbing" and a salon doesn't see "FastTow 24/7".
+ */
+const SLUG_PROFILE_OVERRIDES: Record<string, Partial<ProfileExamples>> = {
+  "electrical": {
+    businessNamePlaceholder: "Bright Spark Electric, Reliable Wiring Co., Power Pro Electrical",
+    taglinePlaceholder: "Licensed electricians, fast and reliable",
+    taglineHint: "Example: \"Same-day electrical service\" or \"Licensed, bonded, and insured\"",
+  },
+  "plumbing": {
+    businessNamePlaceholder: "Flow Right Plumbing, Clear Drains Pro, Reliable Plumbers",
+    taglinePlaceholder: "Fast plumbing service, 24/7 emergency calls",
+    taglineHint: "Example: \"Same-day repairs available\" or \"Licensed & insured plumbers\"",
+  },
+  "hvac": {
+    businessNamePlaceholder: "Cool Comfort HVAC, AirPro Services, Reliable Heating & Cooling",
+    taglinePlaceholder: "Fast HVAC service, same-day repairs available",
+    taglineHint: "Example: \"NATE-certified technicians\" or \"All major brands serviced\"",
+  },
+  "roofing": {
+    businessNamePlaceholder: "Top Notch Roofing, StormGuard Roof, Premier Roofing Co.",
+    taglinePlaceholder: "Quality roofing, honest estimates",
+    taglineHint: "Example: \"Free inspections\" or \"30-year workmanship warranty\"",
+  },
+  "landscaping": {
+    businessNamePlaceholder: "GreenScape Pros, Curb Appeal Landscaping, All Seasons Lawn",
+    taglinePlaceholder: "Professional lawn care and landscaping",
+    taglineHint: "Example: \"Weekly or bi-weekly service\" or \"Licensed & insured\"",
+  },
+  "cleaning": {
+    businessNamePlaceholder: "Spotless Clean, Fresh Start Cleaning, Pristine Home Services",
+    taglinePlaceholder: "Reliable, thorough home and office cleaning",
+    taglineHint: "Example: \"Eco-friendly products\" or \"Background-checked cleaners\"",
+  },
+  "hair-salon": {
+    businessNamePlaceholder: "Luxe Salon, The Hair Studio, Bliss Beauty Bar",
+    taglinePlaceholder: "Where great hair happens",
+    taglineHint: "Example: \"Expert colorists on staff\" or \"Walk-ins welcome\"",
+  },
+  "barbershop": {
+    businessNamePlaceholder: "Classic Cuts Barber, The Fade Shop, Main Street Barbers",
+    taglinePlaceholder: "Great cuts, old school service",
+    taglineHint: "Example: \"Walk-ins welcome\" or \"Licensed master barbers\"",
+  },
+  "auto-repair": {
+    businessNamePlaceholder: "Reliable Auto Repair, Main Street Garage, TrustMech Auto",
+    taglinePlaceholder: "Honest auto repair you can count on",
+    taglineHint: "Example: \"ASE-certified technicians\" or \"All makes and models\"",
+  },
+  "dental": {
+    businessNamePlaceholder: "Bright Smiles Dental, Family Dental Care, Modern Dental",
+    taglinePlaceholder: "Comfortable, gentle dental care",
+    taglineHint: "Example: \"Accepting new patients\" or \"Same-day emergency appointments\"",
+  },
+  "towing": {
+    businessNamePlaceholder: "Quick Tow, City Towing & Recovery, FastResponse Roadside",
+    taglinePlaceholder: "Fast response, fair prices, 24/7",
+    taglineHint: "Example: \"Average 30-min response\" or \"Licensed & fully insured\"",
+  },
+};
+
+/**
+ * Get slug-aware business profile examples.
+ * Merges slug overrides on top of mode defaults.
+ */
+export function getSlugProfileExamples(mode: BusinessMode, slug?: string | null): ProfileExamples {
+  const base = getProfileExamples(mode);
+  if (!slug) return base;
+  const overrides = SLUG_PROFILE_OVERRIDES[slug];
+  if (!overrides) return base;
+  return { ...base, ...overrides };
+}
+
+/**
  * Complexity hints by business mode — helps owners understand the toggle
  */
 export const COMPLEXITY_HINTS: Record<BusinessMode, { simple: string; complex: string }> = {
