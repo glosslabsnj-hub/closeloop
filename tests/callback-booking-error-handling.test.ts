@@ -153,3 +153,33 @@ describe("Callback flow: mode-agnostic safety", () => {
     expect(source).toContain("normalizePhoneE164");
   });
 });
+
+describe("elevenlabs-create-callback: DB constraint safety (regression: plumbing R5 — 100%% failure rate)", () => {
+  // Root cause of plumbing R5 bug #5: create_callback wrote status='pending' to opportunities table.
+  // DB CHECK constraint requires status IN ('new','contacted','qualified','lost','won').
+  // 'pending' violated the constraint → 100%% failure rate for all callback requests.
+  // Fix: commit a1c788a changed initial status to 'new'.
+
+  const source = readFile("supabase/functions/elevenlabs-create-callback/index.ts");
+
+  it("uses status 'new' for initial opportunity (not 'pending')", () => {
+    // The opportunities table CHECK constraint only allows: new, contacted, qualified, lost, won.
+    // Using 'pending' causes a DB constraint violation and 100%% failure rate.
+    expect(source).toContain('status: "new"');
+  });
+
+  it("does NOT use status 'pending' (violates DB CHECK constraint)", () => {
+    // Guard against regression: 'pending' is NOT a valid opportunities status.
+    // If this test fails, someone reverted the a1c788a fix and create_callback will fail 100%%.
+    // Allowed 'pending' references: none in insert operations.
+    const lines = source.split("\n");
+    const insertStartLine = lines.findIndex(l => l.includes(".insert(") && l.includes("status"));
+    const insertBlock = insertStartLine >= 0 ? lines.slice(insertStartLine, insertStartLine + 20).join("\n") : "";
+    // In the insert block, status must not be 'pending'
+    if (insertBlock) {
+      expect(insertBlock).not.toContain('status: "pending"');
+    }
+    // The string 'status: "pending"' must not appear in the callback source at all
+    expect(source).not.toContain('status: "pending"');
+  });
+});
