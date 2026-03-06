@@ -1,6 +1,7 @@
 import { Plus, Lightbulb, AlertCircle } from "lucide-react";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import type { BusinessMode } from "@/hooks/useTenantConfig";
+import { useIndustryContext } from "@/hooks/useIndustryContext";
 
 interface SuggestedFAQ {
   question: string;
@@ -362,14 +363,39 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   ],
 };
 
+/**
+ * Questions from commonFAQs in industryCatalog that have better personalized
+ * versions in MODE_FAQS (using [hours]/[your address] placeholders). We skip
+ * the catalog versions of these so the personalized mode FAQ shows instead.
+ */
+const COMMON_CATALOG_QUESTIONS = new Set([
+  "What are your hours?",
+  "Where are you located?",
+  "Do you require a deposit?",
+  "What forms of payment do you accept?",
+  "What's your cancellation policy?",
+]);
+
 export function SuggestedFAQButtons({
   onAdd, existingQuestions = [], tenantPolicies,
   tenantName, tenantAddress, tenantHours, tenantServiceArea,
 }: SuggestedFAQButtonsProps) {
   const { businessMode } = useTenantConfig();
+  const { catalog } = useIndustryContext();
 
-  // Get FAQs for current business mode
-  const suggestedFaqs = MODE_FAQS[businessMode] || MODE_FAQS.general;
+  // Industry-specific FAQs from catalog (e.g. "Do I need a permit?" for electrical).
+  // Filter out generic questions that have better personalized versions in MODE_FAQS.
+  const industrySpecificFAQs: SuggestedFAQ[] = catalog?.faqs
+    ?.filter(faq => !COMMON_CATALOG_QUESTIONS.has(faq.question))
+    ?? [];
+
+  // Combine: industry-specific first (highest priority), then mode generic FAQs.
+  // Deduplicate: skip mode FAQ if a catalog FAQ already covers the same topic.
+  const industryQuestionKeys = new Set(industrySpecificFAQs.map(f => f.question.toLowerCase().slice(0, 25)));
+  const modeFAQs = (MODE_FAQS[businessMode] || MODE_FAQS.general)
+    .filter(faq => !industryQuestionKeys.has(faq.question.toLowerCase().slice(0, 25)));
+
+  const suggestedFaqs: SuggestedFAQ[] = [...industrySpecificFAQs, ...modeFAQs];
 
   // Filter out already-added FAQs and policy-covered FAQs
   const policyOverlapPatterns = [
@@ -399,7 +425,7 @@ export function SuggestedFAQButtons({
         <span className="truncate">Quick add:</span>
       </div>
       <div className="flex gap-2 overflow-x-auto pb-1 -mb-1 scrollbar-thin">
-        {availableFAQs.slice(0, 4).map((faq) => (
+        {availableFAQs.slice(0, 6).map((faq) => (
           <button
             key={faq.question}
             type="button"

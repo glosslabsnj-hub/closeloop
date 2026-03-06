@@ -40,7 +40,7 @@ import { invalidateBrainQueries } from "@/lib/brain/invalidateBrainQueries";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, SLUG_COMPLEXITY_OVERRIDES, PRICE_FACTOR_HINTS } from "@/lib/industryExamples";
+import { getServiceExamples, getSlugServiceExamples, COMPLEXITY_HINTS, SLUG_COMPLEXITY_OVERRIDES, PRICE_FACTOR_HINTS, SLUG_PRICE_FACTOR_OVERRIDES } from "@/lib/industryExamples";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { getIndustryBySlug } from "@/data/industryCatalog";
 
@@ -140,7 +140,10 @@ function ServiceForm({
   businessMode: string;
   complexityHints: { simple: string; complex: string };
 }) {
-  const { terms } = useIndustryContext();
+  const { terms, slug } = useIndustryContext();
+  const priceFactorHint = (slug && SLUG_PRICE_FACTOR_OVERRIDES[slug])
+    || PRICE_FACTOR_HINTS[businessMode]
+    || PRICE_FACTOR_HINTS.general;
   return (
     <div className="p-4 space-y-4 border-t bg-muted/20">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -216,7 +219,7 @@ function ServiceForm({
           <Textarea
             value={formData.price_factors}
             onChange={(e) => onChange("price_factors", e.target.value)}
-            placeholder={PRICE_FACTOR_HINTS[businessMode] || PRICE_FACTOR_HINTS.general}
+            placeholder={priceFactorHint}
             rows={2}
           />
         </div>

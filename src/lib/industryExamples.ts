@@ -203,7 +203,29 @@ const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
   },
   "hvac": {
     serviceNamePlaceholder: "AC Repair, Furnace Repair, AC Tune-Up, System Installation",
+    descriptionPlaceholder: "What's included, parts/labor, any warranty...",
     priceExamples: "Example: AC Tune-Up - $99, AC Repair - Starting at $149, AC Install - Quote",
+  },
+  "electrical": {
+    serviceNamePlaceholder: "Outlet Installation, Panel Upgrade, EV Charger Install, Wiring",
+    descriptionPlaceholder: "What's included, permit handling, any warranty on parts/labor...",
+    durationHint: "Typical time on site",
+    priceExamples: "Example: Outlet Install - $150, EV Charger - Starting at $800, Panel Upgrade - Quote",
+  },
+  "roofing": {
+    serviceNamePlaceholder: "Roof Inspection, Leak Repair, Shingle Replacement, Full Replacement",
+    descriptionPlaceholder: "What's covered, materials used, any warranty...",
+    priceExamples: "Example: Leak Repair - Starting at $350, Shingle Repair - Starting at $500",
+  },
+  "landscaping": {
+    serviceNamePlaceholder: "Lawn Mowing, Mulching, Hedge Trimming, Landscape Design",
+    descriptionPlaceholder: "What's included, frequency options, any materials...",
+    priceExamples: "Example: Weekly Mowing - $65, Mulching - Starting at $150",
+  },
+  "painting": {
+    serviceNamePlaceholder: "Interior Room, Exterior Painting, Cabinet Painting, Deck Staining",
+    descriptionPlaceholder: "Coats included, prep work, materials provided...",
+    priceExamples: "Example: Small Room - Starting at $300, Exterior - Quote",
   },
   "dental": {
     serviceName: "procedure",
@@ -280,10 +302,29 @@ export const SLUG_COMPLEXITY_OVERRIDES: Record<string, { simple: string; complex
  * Price factor placeholder hints by business mode
  */
 export const PRICE_FACTOR_HINTS: Record<BusinessMode, string> = {
-  service: "e.g., Vehicle type, material grade, job scope",
+  service: "e.g., Property size, material grade, job scope",
   dispatch: "e.g., Vehicle weight, distance, time of day, road conditions",
   food: "e.g., Portion size, add-ons, dietary substitutions",
   medical: "e.g., Treatment area, number of units, insurance",
   general: "e.g., Project scope, materials, timeline",
   sales: "e.g., Configuration, financing terms, add-on packages",
+};
+
+/**
+ * Slug-specific price factor hint overrides.
+ * Use these instead of PRICE_FACTOR_HINTS when a slug is available.
+ */
+export const SLUG_PRICE_FACTOR_OVERRIDES: Record<string, string> = {
+  "electrical": "e.g., Commercial vs residential, panel size, number of circuits, permit needed",
+  "plumbing": "e.g., Property type, accessibility, pipe material, urgency",
+  "hvac": "e.g., System type, square footage, number of zones, age of unit",
+  "roofing": "e.g., Roof pitch, square footage, material (shingle/metal/tile), layers to remove",
+  "landscaping": "e.g., Property size, terrain, materials, frequency",
+  "painting": "e.g., Square footage, surface condition, number of coats, indoor/outdoor",
+  "cleaning": "e.g., Square footage, property type (home/commercial), frequency, deep clean",
+  "auto-repair": "e.g., Vehicle make/model/year, part availability, labor complexity",
+  "auto-detailing": "e.g., Vehicle size (car/SUV/truck), interior condition, package tier",
+  "towing": "e.g., Vehicle weight, tow distance, time of day, road conditions",
+  "hair-salon": "e.g., Hair length, color complexity, product used",
+  "dental": "e.g., Number of teeth, complexity, insurance coverage",
 };
