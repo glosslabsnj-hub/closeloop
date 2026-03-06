@@ -112,3 +112,76 @@ describe("IntegrationConnectDialog: OAuth backwards compatibility", () => {
     expect(source).toContain("integration-oauth-error");
   });
 });
+
+// ─── oauthReady flag: prevents broken OAuth flows (gate: no_broken_connect_buttons) ─
+
+describe("PROVIDERS: oauthReady flag prevents broken flows", () => {
+  const useIntegrations = readFileSync(
+    resolve("src/hooks/useIntegrations.ts"),
+    "utf-8"
+  );
+
+  it("PROVIDERS array is exported from useIntegrations", () => {
+    expect(useIntegrations).toContain("export const PROVIDERS");
+  });
+
+  it("google_calendar has oauthReady: true (OAuth flow configured)", () => {
+    // google_calendar OAuth client is configured in Supabase secrets
+    const gcal = useIntegrations.match(/id:\s*"google_calendar"[^}]+}/s)?.[0] || "";
+    expect(gcal).toContain("oauthReady: true");
+  });
+
+  it("google_sheets has oauthReady: true (same OAuth client as calendar)", () => {
+    const gsheets = useIntegrations.match(/id:\s*"google_sheets"[^}]+}/s)?.[0] || "";
+    expect(gsheets).toContain("oauthReady: true");
+  });
+
+  it("quickbooks does NOT have oauthReady: true (not yet configured)", () => {
+    // Would need QuickBooks OAuth credentials in Supabase secrets
+    const qb = useIntegrations.match(/id:\s*"quickbooks"[^}]+}/s)?.[0] || "";
+    expect(qb).not.toContain("oauthReady: true");
+  });
+
+  it("hubspot does NOT have oauthReady: true (not yet configured)", () => {
+    const hs = useIntegrations.match(/id:\s*"hubspot"[^}]+}/s)?.[0] || "";
+    expect(hs).not.toContain("oauthReady: true");
+  });
+
+  it("jobber does NOT have oauthReady: true (not yet configured)", () => {
+    const jobber = useIntegrations.match(/id:\s*"jobber"[^}]+}/s)?.[0] || "";
+    expect(jobber).not.toContain("oauthReady: true");
+  });
+
+  it("square_pos does NOT have oauthReady: true (not yet configured)", () => {
+    const sq = useIntegrations.match(/id:\s*"square_pos"[^}]+}/s)?.[0] || "";
+    expect(sq).not.toContain("oauthReady: true");
+  });
+});
+
+describe("IntegrationConnectDialog: oauthReady guard prevents broken flows", () => {
+  it("defines isOAuthReady: only true when provider.oauthReady === true", () => {
+    expect(source).toContain("isOAuthReady");
+    expect(source).toContain("provider?.oauthReady === true");
+  });
+
+  it("defines isOAuthComingSoon: true when OAuth but no oauthReady flag", () => {
+    expect(source).toContain("isOAuthComingSoon");
+    expect(source).toContain("isOAuth && !provider?.oauthReady");
+  });
+
+  it("shows coming-soon UI when isOAuthComingSoon (no broken flow)", () => {
+    // Key line: the step="connect" block is conditional on !isOAuthComingSoon
+    expect(source).toContain("isOAuthComingSoon");
+    // The non-coming-soon path must be gated
+    expect(source).toContain("!isOAuthComingSoon");
+  });
+
+  it("OAuth button only renders for isOAuthReady providers", () => {
+    // The real OAuth button is inside the !isOAuthComingSoon block
+    // AND further conditioned on isOAuthReady
+    expect(source).toContain("isOAuthReady");
+    // Should reference both flags (isOAuthReady AND isOAuthComingSoon)
+    const oauthReadyCount = (source.match(/isOAuthReady/g) || []).length;
+    expect(oauthReadyCount).toBeGreaterThanOrEqual(2);
+  });
+});
