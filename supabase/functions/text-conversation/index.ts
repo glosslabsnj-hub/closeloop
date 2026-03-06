@@ -432,7 +432,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
     });
 
     let response = await anthropic.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-4-6",
       max_tokens: 512,
       system: systemPrompt,
       messages,
@@ -517,7 +517,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
       messages.push({ role: "user", content: toolResults });
 
       response = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 512,
         system: systemPrompt,
         messages,
@@ -537,7 +537,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
       messages.push({ role: "assistant", content: response.content });
       messages.push({ role: "user", content: [{ type: "text" as const, text: "Please respond to the customer based on the tool results above." }] });
       const retryResponse = await anthropic.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 512,
         system: systemPrompt,
         messages,
@@ -588,7 +588,7 @@ SMS CONVERSATION RULES (you are texting with a real customer):
         industry_type: String(vars.industry_type || ""),
         has_booking: String(vars.has_booking || ""),
         has_dispatch: String(vars.has_dispatch || ""),
-        llm: "claude-haiku-4-5-20251001",
+        llm: "claude-sonnet-4-6",
         prompt_source: "buildBusinessContext",
         tool_calls_count: toolCalls.length,
         session_mode: sessionId ? "server_session" : (conversationMessages ? "client_managed" : "legacy"),

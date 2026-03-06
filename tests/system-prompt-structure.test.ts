@@ -326,4 +326,45 @@ describe("agentBasePrompts — anti-fabrication rules (regression: R10/R11 QA bu
     // The old literal example: '"A full tune-up runs about $189"' must not exist
     expect(servicePromptBody).not.toMatch(/"A full tune-up runs about \$189"/);
   });
+
+  it("agentBasePrompts includes diagnostic fee credit prohibition (regression: R13 QA)", () => {
+    // Regression guard: AI invented 'diagnostic fee credited toward repair'
+    // which is common HVAC practice NOT in tenant config.
+    expect(basePromptsSource).toContain("diagnostic fee credited toward repair");
+    expect(basePromptsSource).toContain("Do NOT say");
+  });
+
+  it("agentBasePrompts prohibits HVAC common practice assumptions", () => {
+    // Should call out the HVAC/plumbing context explicitly
+    expect(basePromptsSource).toContain("HVAC/plumbing");
+  });
+});
+
+describe("buildSystemPrompt — emergency surcharge disclosure (regression: R13 QA)", () => {
+  it("injects emergency_surcharge into POLICIES section when set", () => {
+    // Regression guard: after-hours surcharge was not disclosed to callers.
+    // Fix: ctx.ai_settings.emergency_surcharge must appear in POLICIES block.
+    expect(fnBody).toContain("emergencySurcharge");
+    expect(fnBody).toContain("After-hours/emergency surcharge");
+    expect(fnBody).toContain("DISCLOSE THIS");
+  });
+
+  it("emergency_surcharge gate condition includes it in hasAnyPolicy check", () => {
+    expect(fnBody).toContain("emergencySurcharge || customPolicies");
+  });
+});
+
+describe("buildSystemPrompt — STRICT ACCURACY RULES completeness (regression: R13 QA)", () => {
+  const strictStart = fnBody.indexOf("STRICT ACCURACY RULES");
+  const strictSection = fnBody.slice(strictStart, strictStart + 3000);
+
+  it("prohibits inventing diagnostic fee credit policy", () => {
+    // Common HVAC practice: AI assumes this without config data
+    expect(strictSection).toContain("diagnostic fee credited toward repair");
+  });
+
+  it("prohibits claiming years in business when not configured", () => {
+    expect(strictSection).toContain("years_in_business");
+    expect(strictSection).toContain("NOT CONFIGURED");
+  });
 });

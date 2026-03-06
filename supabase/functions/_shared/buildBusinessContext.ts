@@ -3366,6 +3366,8 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 - Do NOT mention fees (after-hours, emergency, scheduling, cancellation, etc.) unless listed in POLICIES above.
 - Do NOT invent certifications, awards, guarantees, or specializations not listed above.
 - Do NOT invent maintenance plans, membership programs, or service clubs (like "Comfort Club", "Priority Club", "Care Plan", etc.) unless they appear in the SERVICES section of this prompt. If a caller asks about a maintenance plan or service club that is NOT listed in your SERVICES, say: "We don't have a maintenance plan set up right now, but I can schedule a service visit for you today — would that work?"
+- Do NOT say "diagnostic fee credited toward repair" or "service call fee applied to repair" unless this appears explicitly in your POLICIES. This is a common industry practice you MUST NOT assume.
+- Do NOT say the business has been operating for X years or "serving the area since YEAR" unless years_in_business is set above. If NOT CONFIGURED, never state or imply a specific tenure.
 - If a customer asks about something not covered in your context, say you'll have someone follow up with details — do NOT make up an answer.
 
 `;
@@ -3468,7 +3470,8 @@ Do NOT claim you cannot take orders if menu IS available above.
   }
 
   // Policies (tenant-level + all policy-type knowledge base entries)
-  const hasAnyPolicy = ctx.policies.cancellation || ctx.policies.deposit || ctx.policies.refund || customPolicies.length > 0;
+  const emergencySurcharge = ctx.ai_settings.emergency_surcharge;
+  const hasAnyPolicy = ctx.policies.cancellation || ctx.policies.deposit || ctx.policies.refund || emergencySurcharge || customPolicies.length > 0;
   if (hasAnyPolicy) {
     prompt += `POLICIES (MUST FOLLOW — these are hard rules set by the business owner):\\n`;
     if (ctx.policies.cancellation) prompt += `- Cancellation: ${ctx.policies.cancellation}\\n`;
@@ -3476,6 +3479,7 @@ Do NOT claim you cannot take orders if menu IS available above.
     if (ctx.policies.refund) prompt += `- Refund: ${ctx.policies.refund}\\n`;
     if (ctx.policies.payment_methods.length > 0) prompt += `- Payment methods: ${ctx.policies.payment_methods.join(", ")}\\n`;
     if (ctx.policies.payment_timing) prompt += `- Payment timing: ${ctx.policies.payment_timing}\\n`;
+    if (emergencySurcharge) prompt += `- After-hours/emergency surcharge: ${emergencySurcharge} added to same-day, emergency, or after-hours calls. DISCLOSE THIS to callers who request same-day or emergency service BEFORE confirming.\\n`;
     for (const p of customPolicies) {
       prompt += `- ${p.title}: ${p.content}\\n`;
     }
