@@ -119,13 +119,13 @@ const MODIFIER_TYPES = {
   equipment: {
     label: "Special Equipment",
     icon: Settings2,
-    description: "Fees for specialized equipment or tools",
+    description: "Fees for specialized equipment or tools needed for the job",
     modes: ["dispatch", "service"],
-    industries: ["towing", "hvac", "plumbing", "electrical"],
+    industries: ["towing", "hvac", "plumbing", "electrical", "roofing", "general_contractor"],
     suggestions: [
-      { name: "Flatbed Required", adjustment: 50 },
       { name: "Specialty Tools", adjustment: 25 },
       { name: "Heavy Equipment", adjustment: 100 },
+      { name: "Hazmat Handling", adjustment: 75 },
     ],
   },
   complexity: {
@@ -164,6 +164,11 @@ const INDUSTRY_SUGGESTION_OVERRIDES: Record<string, Partial<Record<string, { nam
       { name: "Weekend", adjustment: 50 },
       { name: "Holiday", adjustment: 100 },
     ],
+    equipment: [
+      { name: "Hydro-Jetter / Water Jetter", adjustment: 100 },
+      { name: "Sewer Camera Inspection", adjustment: 75 },
+      { name: "Leak Detection Equipment", adjustment: 50 },
+    ],
   },
   hvac: {
     urgency: [
@@ -176,6 +181,11 @@ const INDUSTRY_SUGGESTION_OVERRIDES: Record<string, Partial<Record<string, { nam
       { name: "Weekend", adjustment: 50 },
       { name: "Holiday", adjustment: 100 },
     ],
+    equipment: [
+      { name: "Crane / Lift Required", adjustment: 200 },
+      { name: "Refrigerant Recovery Equipment", adjustment: 75 },
+      { name: "Specialty Refrigeration Tools", adjustment: 50 },
+    ],
   },
   electrical: {
     urgency: [
@@ -187,6 +197,36 @@ const INDUSTRY_SUGGESTION_OVERRIDES: Record<string, Partial<Record<string, { nam
       { name: "After Hours (6pm-8am)", adjustment: 75 },
       { name: "Weekend", adjustment: 50 },
       { name: "Holiday", adjustment: 100 },
+    ],
+    equipment: [
+      { name: "Bucket Truck Required", adjustment: 150 },
+      { name: "Arc Flash / PPE Equipment", adjustment: 75 },
+      { name: "Generator Required", adjustment: 100 },
+    ],
+  },
+  towing: {
+    equipment: [
+      { name: "Flatbed Required", adjustment: 50 },
+      { name: "Heavy-Duty Tow Truck", adjustment: 100 },
+      { name: "Winch / Off-Road Recovery", adjustment: 150 },
+    ],
+  },
+  roofing: {
+    urgency: [
+      { name: "Emergency Tarping (same day)", adjustment: 150 },
+      { name: "Storm Response (24-48 hrs)", adjustment: 100 },
+    ],
+    equipment: [
+      { name: "Scaffolding Required", adjustment: 125 },
+      { name: "Boom Lift Required", adjustment: 175 },
+      { name: "Dumpster / Debris Removal", adjustment: 75 },
+    ],
+  },
+  general_contractor: {
+    equipment: [
+      { name: "Heavy Equipment (excavator, skid steer)", adjustment: 250 },
+      { name: "Scaffolding Required", adjustment: 125 },
+      { name: "Specialty Tools / Equipment", adjustment: 75 },
     ],
   },
 };

@@ -336,6 +336,25 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     teamMemberLabel: "crew member",
     exampleServices: ["Mowing", "Fertilization", "Aeration", "Leaf Cleanup"],
   },
+  "general_contractor": {
+    appointmentLabel: "estimate",
+    teamMemberLabel: "project manager",
+    servicesLabel: "Services & Estimates",
+    catalogCardTitle: "Your Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Kitchen Remodel",
+    servicesCategoryTitle: "Services & Estimates",
+    exampleServices: ["Kitchen Remodel", "Bathroom Remodel", "Room Addition", "Deck Building", "Free Estimate"],
+    exampleFAQs: ["Are you licensed and insured?", "How long does a kitchen remodel take?", "Do you handle permits?"],
+  },
+  "roofing": {
+    appointmentLabel: "inspection",
+    teamMemberLabel: "crew",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Roof Inspection",
+    exampleServices: ["Free Roof Inspection", "Leak Repair", "Shingle Replacement", "Full Roof Replacement"],
+    exampleFAQs: ["Do you handle insurance claims?", "Is your roof inspection free?", "How long does a roof replacement take?"],
+  },
 };
 
 // ---------------------------------------------------------------------------
