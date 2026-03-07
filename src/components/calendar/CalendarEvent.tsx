@@ -47,7 +47,7 @@ export function CalendarEvent({ event, style, onClick }: CalendarEventProps) {
         event.isExternal && "bg-stripes"
       )}
       style={style}
-      onClick={() => isClickable && onClick?.(event)}
+      onClick={(e) => { if (isClickable) { e.stopPropagation(); onClick?.(event); } }}
     >
       <div className="font-medium truncate">{event.title}</div>
       {event.customerName && event.type === "booking" && (

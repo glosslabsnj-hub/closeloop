@@ -353,7 +353,7 @@ export default function BookingsPage() {
         />
 
         <BookingDetailsSheet
-          booking={selectedBooking}
+          booking={selectedBooking ? (bookings.find((b) => b.id === selectedBooking.id) ?? selectedBooking) : null}
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
           onEdit={(b) => { setDetailsOpen(false); handleEditBooking(b); }}

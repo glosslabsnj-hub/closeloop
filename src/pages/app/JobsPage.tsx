@@ -156,7 +156,7 @@ function JobsPageContent() {
       <NewJobDialog open={createOpen} onOpenChange={setCreateOpen} />
       <CSVImportDialog open={importOpen} onOpenChange={setImportOpen} />
       <JobDetailSheet
-        job={selectedJob}
+        job={selectedJob ? (jobs.find((j) => j.id === selectedJob.id) ?? selectedJob) : null}
         open={detailOpen}
         onOpenChange={setDetailOpen}
       />
