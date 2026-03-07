@@ -108,6 +108,27 @@ serve(async (req: Request) => {
       }
     }
 
+    // Last resort: find most recent active job via conversation session
+    if (!job && conversationId) {
+      const { data: session } = await supabase
+        .from("ai_call_sessions")
+        .select("customer_id")
+        .eq("elevenlabs_conversation_id", conversationId)
+        .maybeSingle();
+      if (session?.customer_id) {
+        const { data } = await supabase
+          .from("dispatch_jobs")
+          .select("id, job_number, status")
+          .eq("tenant_id", resolvedTenantId)
+          .eq("customer_id", session.customer_id)
+          .not("status", "eq", "cancelled")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        job = data;
+      }
+    }
+
     if (!job) {
       return new Response(
         JSON.stringify({
