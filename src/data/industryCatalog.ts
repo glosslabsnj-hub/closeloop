@@ -2550,9 +2550,9 @@ export function searchIndustries(query: string): IndustryCatalogEntry[] {
 export function getPopularIndustries(count: number = 15): IndustryCatalogEntry[] {
   // Prioritized popular industries
   const popularSlugs = [
-    'plumbing', 'hvac', 'electrical', 'general_contractor', 'auto_detailing', 'salon',
+    'plumbing', 'hvac', 'electrical', 'general_contractor', 'handyman', 'auto_detailing', 'salon',
     'dental', 'restaurant', 'cleaning', 'towing', 'massage',
-    'landscaping', 'personal_training', 'photography', 'roofing', 'pest_control'
+    'landscaping', 'personal_training', 'roofing', 'pest_control'
   ];
   
   return popularSlugs

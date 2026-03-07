@@ -476,14 +476,26 @@ export default function DispatchPage() {
           ) : filteredJobs.length === 0 ? (
             <EmptyState
               icon={Truck}
-              title="No active jobs"
+              title={
+                priorityFilter !== "all" || searchQuery ? "No matching jobs" :
+                statusFilter === "completed" ? "No completed jobs" :
+                statusFilter === "pending" ? "No pending jobs" :
+                statusFilter === "en_route" ? "No drivers en route" :
+                "No active jobs"
+              }
               description={
-                statusFilter !== "all" || priorityFilter !== "all" || searchQuery
+                priorityFilter !== "all" || searchQuery
                   ? "Try adjusting your filters to see more results."
+                  : statusFilter === "completed"
+                  ? "Completed jobs will appear here once drivers finish their assignments."
+                  : statusFilter === "pending"
+                  ? "Jobs waiting for driver assignment will appear here."
+                  : statusFilter === "en_route"
+                  ? "Jobs currently being handled by drivers will appear here."
                   : "When dispatch requests come in, you'll see them here for assignment."
               }
               action={
-                statusFilter === "all" && priorityFilter === "all" && !searchQuery
+                statusFilter !== "completed" && statusFilter !== "en_route" && priorityFilter === "all" && !searchQuery
                   ? { label: "Create Job", onClick: () => setNewJobOpen(true) }
                   : undefined
               }

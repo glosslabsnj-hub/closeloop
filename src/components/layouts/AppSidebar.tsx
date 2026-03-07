@@ -278,6 +278,11 @@ export function AppSidebar({
           {/* Workspace items */}
           {workspaceItems.length > 0 && (
             <div className="flex flex-col gap-0.5 mt-3">
+              {open && (
+                <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-1 pb-1">
+                  {caps.isDispatchBusiness ? "Operations" : caps.isFoodBusiness ? "Orders" : "Workspace"}
+                </p>
+              )}
               {workspaceItems.map(renderLink)}
             </div>
           )}

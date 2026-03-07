@@ -74,7 +74,7 @@ const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
   // Tutoring
   tutoring: { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
   // Towing / dispatch — no scheduling
-  towing: { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: false },
+  towing: { defaultDurationMinutes: 60, bufferMinutes: 0, sameDayBooking: true, is24x7: true },
 };
 
 export function getDefaultSchedulingPrefs(
