@@ -166,6 +166,79 @@ describe("ServiceCallFlowSettings: apptLabel derived from industry terminology",
 });
 
 // ---------------------------------------------------------------------------
+// BookingBehaviorSettings: article fix (bug #563 extension)
+// ---------------------------------------------------------------------------
+
+describe("BookingBehaviorSettings: bookingArticle variable exists and is used", () => {
+  const bbSource = readFileSync(
+    join(process.cwd(), "src/components/ai/BookingBehaviorSettings.tsx"),
+    "utf-8"
+  );
+
+  it("defines bookingArticle variable using vowel-check regex", () => {
+    expect(bbSource).toMatch(/bookingArticle\s*=\s*\/\^\[aeiou\]\/i\.test\(terms\.booking\)\s*\?\s*"an"\s*:\s*"a"/);
+  });
+
+  it("uses bookingArticle in the label (not hardcoded 'a')", () => {
+    expect(bbSource).toContain("{bookingArticle} {terms.booking}");
+  });
+
+  it("does NOT contain hardcoded 'a {terms.booking}' pattern", () => {
+    // Ensure no raw "a {terms.booking}" remains — only bookingArticle should precede it
+    expect(bbSource).not.toMatch(/"a"\s*\}\s*\{terms\.booking\}/);
+    expect(bbSource).not.toContain("schedules a {terms.booking}");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CalendarConnectionStep: article fix (bug #563 extension)
+// ---------------------------------------------------------------------------
+
+describe("CalendarConnectionStep: bookingArticle variable exists and is used", () => {
+  const csSource = readFileSync(
+    join(process.cwd(), "src/components/dashboard/CalendarConnectionStep.tsx"),
+    "utf-8"
+  );
+
+  it("defines bookingArticle variable using vowel-check regex", () => {
+    expect(csSource).toMatch(/bookingArticle\s*=\s*\/\^\[aeiou\]\/i\.test\(terms\.booking\)\s*\?\s*"an"\s*:\s*"a"/);
+  });
+
+  it("uses bookingArticle in the label (not hardcoded 'a')", () => {
+    expect(csSource).toContain("{bookingArticle} {terms.booking}");
+  });
+
+  it("does NOT contain hardcoded 'a {terms.booking}' pattern", () => {
+    expect(csSource).not.toContain("schedules a {terms.booking}");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cross-mode article correctness: service="booking" (a), medical="appointment" (an), food="order" (an)
+// ---------------------------------------------------------------------------
+
+describe("bookingArticle correctness per mode terms.booking value", () => {
+  function getArticle(term: string): "an" | "a" {
+    return /^[aeiou]/i.test(term) ? "an" : "a";
+  }
+
+  const modeCases: Array<{ mode: string; booking: string; expected: "an" | "a" }> = [
+    { mode: "service",  booking: "booking",     expected: "a"  },
+    { mode: "dispatch", booking: "job",          expected: "a"  },
+    { mode: "food",     booking: "order",        expected: "an" },
+    { mode: "medical",  booking: "appointment",  expected: "an" },
+    { mode: "sales",    booking: "appointment",  expected: "an" },
+    { mode: "general",  booking: "booking",      expected: "a"  },
+  ];
+
+  for (const { mode, booking, expected } of modeCases) {
+    it(`${mode} mode: terms.booking="${booking}" → "${expected} ${booking}"`, () => {
+      expect(getArticle(booking)).toBe(expected);
+    });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Industry-specific scenarios: correct phrase for each business type
 // ---------------------------------------------------------------------------
 
