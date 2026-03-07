@@ -482,6 +482,11 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Fall Cleanup', duration: 180, price: 250, priceType: 'starting_at' },
       { name: 'Landscape Design', duration: 120, price: 0, priceType: 'quote_only' },
     ],
+    contextFields: [
+      { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Apartment', 'Condo', 'Commercial'], required: true },
+      { key: 'service_needed', label: 'Service Needed', type: 'text', required: true },
+      { key: 'urgency', label: 'Urgency', type: 'select', options: ['Not urgent', 'Soon', 'Urgent', 'Emergency'], required: false },
+    ],
   },
   {
     ...homeServicesBase as IndustryCatalogEntry,
