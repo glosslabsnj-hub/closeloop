@@ -1,7 +1,7 @@
 /**
  * Test Tenant Matrix
  *
- * 21 pre-defined tenant configurations spanning all 5 business modes.
+ * 22 pre-defined tenant configurations spanning all 5 business modes.
  * Used by the TestTenantManager to seed test tenants with realistic data.
  * Each config references an industry slug from industryCatalog.ts.
  *
@@ -75,7 +75,7 @@ export interface TestTenantConfig {
 }
 
 // ---------------------------------------------------------------------------
-// SERVICE MODE (8 tenants)
+// SERVICE MODE (9 tenants)
 // ---------------------------------------------------------------------------
 
 const serviceTenants: TestTenantConfig[] = [
@@ -646,6 +646,85 @@ const serviceTenants: TestTenantConfig[] = [
         { objection: "That timeline is too long", response: "I understand you'd like to move faster. Let me get you scheduled for an estimate so we can discuss timeline options and see what we can do.", priority_weight: 3 },
         { objection: "That's too expensive", response: "I hear you. We use quality materials and stand behind our work with a warranty. We also offer financing options that make larger projects more manageable. Want me to go over those?", priority_weight: 2 },
         { objection: "I need to think about it", response: "Of course, take your time. I'll send you a written estimate with all the details. Just know our schedule fills up, especially in spring and summer, so locking in early gets you the best timeline.", priority_weight: 1 },
+      ],
+    },
+  },
+  {
+    slug: "test-roofing-storm",
+    name: "Tony's Roofing & Gutters",
+    address: "1820 River Rd, Trenton, NJ 08618",
+    timezone: "America/New_York",
+    business_mode: "service",
+    industry: "roofing",
+    enabled_modules: ["ai_voice", "instant_text_back", "booking", "estimates", "lead_follow_up"],
+    capabilities_json: {
+      ai_voice: true,
+      instant_text_back: true,
+      booking: true,
+      estimates: true,
+      lead_follow_up: true,
+      offersMobileService: true,
+      offersSameDayEmergency: true,
+      requiresDeposits: false,
+      offersWalkIns: false,
+      handlesInsuranceClaims: true,
+    },
+    hipaa_mode: false,
+    scenario: "Roofing contractor, storm damage inspections, insurance claims, 25mi service area",
+    scenarioTags: ["roofing", "storm-damage", "insurance", "emergency", "estimates", "gutters"],
+    communicationPrefs: {
+      aiBookingMode: "auto_book",
+      missedCallBehavior: "both",
+      unknownQuestionBehavior: "offer_callback",
+    },
+    tagline: "Central NJ's trusted roofer since 2008 — storm damage, repairs, and full replacements",
+    cancellation_policy: "Please cancel at least 24 hours before your scheduled inspection. Storm damage inspections are always free.",
+    service_area_json: {
+      type: "radius",
+      center_address: "1820 River Rd, Trenton, NJ 08618",
+      radius_miles: 25,
+      cities: ["Trenton", "Princeton", "Hamilton", "Ewing", "Lawrenceville", "Pennington", "Hopewell", "Bordentown"],
+    },
+    hours_json: {
+      monday: { open: "07:00", close: "17:00" },
+      tuesday: { open: "07:00", close: "17:00" },
+      wednesday: { open: "07:00", close: "17:00" },
+      thursday: { open: "07:00", close: "17:00" },
+      friday: { open: "07:00", close: "17:00" },
+      saturday: { open: "08:00", close: "14:00" },
+      sunday: { open: "closed", close: "closed" },
+    },
+    seedData: {
+      callCount: 8,
+      faqCount: 8,
+      serviceCount: 8,
+      bookingCount: 3,
+      customServices: [
+        { name: "Roof Replacement", description: "Full tear-off and replacement of roof system including underlayment, shingles, flashing, and ridge vents", duration_minutes: 480, price_amount: 8500, price_type: "quote_only", service_category: "replacement", display_order: 1 },
+        { name: "Roof Repair", description: "Fix leaks, damaged shingles, flashing issues, and minor storm damage", duration_minutes: 180, price_amount: 350, price_type: "quote_only", service_category: "repair", display_order: 2 },
+        { name: "Storm Damage Inspection", description: "Free comprehensive roof inspection after storms — check for hail, wind, and debris damage with full photo report", duration_minutes: 60, price_amount: 0, price_type: "fixed", service_category: "inspection", display_order: 3 },
+        { name: "Gutter Installation", description: "Seamless aluminum gutter installation with downspouts and leaf guards", duration_minutes: 360, price_amount: 1200, price_type: "quote_only", service_category: "gutters", display_order: 4 },
+        { name: "Gutter Cleaning", description: "Full gutter and downspout cleaning with debris removal", duration_minutes: 90, price_amount: 175, price_type: "fixed", service_category: "gutters", display_order: 5 },
+        { name: "Skylight Installation", description: "New skylight installation or replacement including flashing and sealing", duration_minutes: 300, price_amount: 800, price_type: "quote_only", service_category: "installation", display_order: 6 },
+        { name: "Flat Roof Repair", description: "Repair or coat flat roof areas — TPO, EPDM, and modified bitumen", duration_minutes: 240, price_amount: 500, price_type: "quote_only", service_category: "repair", display_order: 7 },
+        { name: "Emergency Tarp Service", description: "Emergency tarping to prevent further water damage after storms or leaks", duration_minutes: 120, price_amount: 250, price_type: "fixed", service_category: "emergency", display_order: 8 },
+      ],
+      customFaqs: [
+        { question: "Do you handle insurance claims?", answer: "Yes, we work with all major insurance companies. We document the damage, provide a detailed estimate, and can meet with your adjuster on-site to make the process smooth.", priority_weight: 10 },
+        { question: "Is the storm damage inspection really free?", answer: "Absolutely. We do free inspections after any major storm. We'll check your roof, gutters, and siding, take photos, and give you an honest assessment. No obligation.", priority_weight: 9 },
+        { question: "How long does a roof replacement take?", answer: "Most residential roofs take 1 to 3 days depending on size and complexity. We'll give you a specific timeline after the estimate.", priority_weight: 8 },
+        { question: "What kind of shingles do you use?", answer: "We install GAF and CertainTeed architectural shingles as standard. We also offer premium options like designer shingles and metal roofing. All come with manufacturer warranties.", priority_weight: 7 },
+        { question: "Are you licensed and insured?", answer: "Yes. We are fully licensed, bonded, and insured in New Jersey. We carry both general liability and workers' comp for your protection.", priority_weight: 6 },
+        { question: "Do you offer financing?", answer: "Yes, we offer financing through GreenSky for larger projects. Options include 0% interest for 12 months. We can go over the details during your estimate.", priority_weight: 5 },
+        { question: "Can you fix a small leak without replacing the whole roof?", answer: "In many cases, yes. We always try to repair first when it makes sense. We'll be honest about whether a repair will hold or if replacement is the better long-term option.", priority_weight: 4 },
+        { question: "What areas do you cover?", answer: "We serve a 25-mile radius from Trenton, including Princeton, Hamilton, Ewing, Lawrenceville, Pennington, Hopewell, and Bordentown.", priority_weight: 3 },
+      ],
+      customObjections: [
+        { objection: "I want to wait and see if my insurance covers it", response: "That makes sense. We can actually help with that. We'll do a free inspection and provide the documentation your insurance company needs. Most homeowner policies cover storm damage. Want me to schedule the inspection?", priority_weight: 5 },
+        { objection: "I already have another quote", response: "Good idea to compare. We'd love to give you ours too. A lot of our customers pick us because we handle the insurance paperwork and stand behind our work with a 10-year warranty. Can I set up a free estimate?", priority_weight: 4 },
+        { objection: "That sounds expensive", response: "I understand. For storm damage, insurance often covers most or all of the cost. Even for out-of-pocket jobs, we offer financing with 0% interest for 12 months. Want me to schedule a free estimate so you know exactly what you're looking at?", priority_weight: 3 },
+        { objection: "I need to talk to my spouse first", response: "Of course, no rush. The inspection is free and there's no obligation. Having the estimate in hand actually makes that conversation easier. Want me to schedule it?", priority_weight: 2 },
+        { objection: "Can you just patch it for now?", response: "We can definitely look at a patch or temporary fix. Sometimes that's all you need. We'll be honest about whether a repair will last or if you're better off replacing. The inspection is free either way.", priority_weight: 1 },
       ],
     },
   },
