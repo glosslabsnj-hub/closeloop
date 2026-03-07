@@ -198,7 +198,9 @@ export function ConfirmationSummary({
             <span className="text-sm font-medium">
               {isSoloOperator
                 ? "Solo operator"
-                : `${teamMembers.filter((m) => m.name.trim()).length} team member${teamMembers.filter((m) => m.name.trim()).length !== 1 ? "s" : ""}`}
+                : teamMembers.filter((m) => m.name.trim()).length > 0
+                  ? `${teamMembers.filter((m) => m.name.trim()).length} team member${teamMembers.filter((m) => m.name.trim()).length !== 1 ? "s" : ""}`
+                  : "Has a team · add members in Business Brain"}
             </span>
           </div>
         </CardContent>
