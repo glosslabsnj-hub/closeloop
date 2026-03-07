@@ -644,6 +644,7 @@ export default function AdminTestOnboardingPage() {
                     businessMode={businessMode}
                     value={communicationPrefs}
                     onChange={setCommunicationPrefs}
+                    industryCategory={getIndustryBySlug(industrySlug)?.category}
                   />
                 </CardContent>
               </Card>
@@ -667,7 +668,13 @@ export default function AdminTestOnboardingPage() {
                     scenarioAnswers={scenarioAnswers}
                     communicationPrefs={communicationPrefs}
                     schedulingPrefs={schedulingPrefs}
-                    onEditStep={() => {/* admin test page — no-op */}}
+                    isSoloOperator={businessDetails.teamSize === "solo"}
+                    onEditStep={(stepIndex) => {
+                      // Map ConfirmationSummary logical slots → admin test page step numbers
+                      const stepMap: Record<number, number> = { 1: 1, 2: 4, 3: 5, 5: 3, 6: 6 };
+                      const target = stepMap[stepIndex];
+                      if (target) setStep(target);
+                    }}
                   />
                 </CardContent>
               </Card>

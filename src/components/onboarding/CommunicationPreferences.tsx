@@ -104,6 +104,7 @@ interface CommunicationPreferencesProps {
   value: CommunicationPrefs;
   onChange: (prefs: CommunicationPrefs) => void;
   scenarioAnswers?: Record<string, boolean | string>;
+  industryCategory?: string;
 }
 
 /** Available intake field options per mode */
@@ -128,10 +129,16 @@ const intakeFieldOptions: Record<string, { key: string; label: string; modes: st
   ],
 };
 
-function getIntakeFieldsForMode(mode: BusinessMode) {
+function getIntakeFieldsForMode(mode: BusinessMode, industryCategory?: string) {
   const fields = [...intakeFieldOptions.all];
   const modeFields = intakeFieldOptions[mode];
-  if (modeFields) fields.push(...modeFields);
+  if (modeFields) {
+    for (const field of modeFields) {
+      // vehicle_info is only relevant for auto repair/detailing — skip for all other service types
+      if (field.key === "vehicle_info" && industryCategory !== "auto_services") continue;
+      fields.push(field);
+    }
+  }
   return fields.filter((f) => f.modes.includes(mode));
 }
 
@@ -140,10 +147,11 @@ export function CommunicationPreferences({
   value,
   onChange,
   scenarioAnswers,
+  industryCategory,
 }: CommunicationPreferencesProps) {
   const showBookingMode = businessMode !== "dispatch";
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const availableIntakeFields = getIntakeFieldsForMode(businessMode);
+  const availableIntakeFields = getIntakeFieldsForMode(businessMode, industryCategory);
   const terms = getIndustryTerminology(businessMode);
   const apptLabel = terms.appointmentLabel || "appointment";
   const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
@@ -184,7 +192,7 @@ export function CommunicationPreferences({
           How should your AI communicate?
         </h2>
         <p className="mt-2 text-muted-foreground">
-          Choose how your AI handles {apptLabelPlural}, missed calls, and escalations.
+          Configure how your AI handles calls, follows up on missed calls, and escalates to your team.
         </p>
       </div>
 
