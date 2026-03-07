@@ -43,7 +43,14 @@ const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
   electrical: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
   "pest-control": { defaultDurationMinutes: 60, bufferMinutes: 20, sameDayBooking: true },
   "house-cleaning": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  cleaning: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
   landscaping: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  lawn_care: { defaultDurationMinutes: 60, bufferMinutes: 30, sameDayBooking: false },
+  // General contractor / remodeling — site visit 60 min, advance scheduling required
+  general_contractor: { defaultDurationMinutes: 60, bufferMinutes: 60, sameDayBooking: false },
+  roofing: { defaultDurationMinutes: 60, bufferMinutes: 60, sameDayBooking: false },
+  painting: { defaultDurationMinutes: 120, bufferMinutes: 60, sameDayBooking: false },
+  flooring: { defaultDurationMinutes: 60, bufferMinutes: 60, sameDayBooking: false },
   // Tattoo / body art — long sessions
   "tattoo-studio": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
   // Photography — 1-2 hour sessions
