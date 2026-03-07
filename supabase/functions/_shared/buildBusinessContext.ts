@@ -632,6 +632,7 @@ function getImpoundLotHoursContext(
 
   // Format time from 24h to speech-friendly
   const formatTimeForSpeech = (time24: string): string => {
+    if (!time24 || !/^\d{1,2}:\d{2}$/.test(time24)) return "";
     const [hours, minutes] = time24.split(":").map(Number);
     const hours12 = hours % 12 || 12;
     const period = hours >= 12 ? "PM" : "AM";
@@ -1086,9 +1087,13 @@ function getTodayHours(hoursJson: Record<string, unknown> | null, timezone?: str
   }
   
   // Resolve open/close from windows format if flat properties are missing
-  const resolvedOpen = todayHours.open || (Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].open : undefined);
-  const resolvedClose = todayHours.close || (Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].close : undefined);
-  
+  // Reject non-time strings like "closed" — must be HH:MM format
+  const isValidTime = (t: string | undefined | null): boolean => !!t && /^\d{1,2}:\d{2}$/.test(t);
+  const winOpen = Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].open : undefined;
+  const winClose = Array.isArray(todayHours.windows) && todayHours.windows.length > 0 ? todayHours.windows[0].close : undefined;
+  const resolvedOpen = isValidTime(todayHours.open) ? todayHours.open : (isValidTime(winOpen) ? winOpen : undefined);
+  const resolvedClose = isValidTime(todayHours.close) ? todayHours.close : (isValidTime(winClose) ? winClose : undefined);
+
   if (resolvedOpen && resolvedClose) {
     return `${resolvedOpen} - ${resolvedClose}`;
   }
@@ -1106,12 +1111,15 @@ function normalizeHours(hoursJson: Record<string, unknown> | null): Record<strin
     const dayData = hoursJson[day] as { open?: string; close?: string; closed?: boolean; isOpen?: boolean; windows?: Array<{ open?: string; close?: string }> } | undefined;
     if (dayData) {
       const isOpen = dayData.isOpen !== false && dayData.closed !== true;
+      // Helper: reject non-time strings like "closed" — must match HH:MM format
+      const isValidTime = (t: string | undefined | null): boolean => !!t && /^\d{1,2}:\d{2}$/.test(t);
       // Resolve open/close from windows format if flat properties are missing
-      let open = dayData.open || "";
-      let close = dayData.close || "";
+      let open = isValidTime(dayData.open) ? (dayData.open || "") : "";
+      let close = isValidTime(dayData.close) ? (dayData.close || "") : "";
       if (!open && !close && Array.isArray(dayData.windows) && dayData.windows.length > 0) {
-        open = dayData.windows[0].open || "";
-        close = dayData.windows[0].close || "";
+        const w = dayData.windows[0];
+        open = isValidTime(w.open) ? (w.open || "") : "";
+        close = isValidTime(w.close) ? (w.close || "") : "";
       }
       result[day] = {
         open,
@@ -1136,7 +1144,7 @@ export function buildWeeklyHoursSummary(hours: Record<string, { open: string; cl
   const dayNames = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   
   const formatTime = (time24: string): string => {
-    if (!time24) return "";
+    if (!time24 || !/^\d{1,2}:\d{2}$/.test(time24)) return "";
     const [hours, minutes] = time24.split(":").map(Number);
     const hours12 = hours % 12 || 12;
     const period = hours >= 12 ? "PM" : "AM";
