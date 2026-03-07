@@ -89,6 +89,9 @@ Deno.serve(async (req) => {
 
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Declare user at function scope so it's available for tenant_users insert
+    let authenticatedUserId: string | null = null;
+
     if (!isAdminSecretAuth) {
       // Verify the user is a super_admin via JWT
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -116,6 +119,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      authenticatedUserId = user.id;
     }
 
     const body: SeedRequest = await req.json();
@@ -281,11 +286,13 @@ Deno.serve(async (req) => {
       const tenantId = newTenant.id;
 
       // Create membership for the admin user (so they can Switch to this tenant)
-      await serviceClient.from("tenant_users").insert({
-        tenant_id: tenantId,
-        user_id: user.id,
-        role: "owner",
-      });
+      if (authenticatedUserId) {
+        await serviceClient.from("tenant_users").insert({
+          tenant_id: tenantId,
+          user_id: authenticatedUserId,
+          role: "owner",
+        });
+      }
 
       // Create standalone owner login if credentials provided
       if (config.owner_email && config.owner_password) {
