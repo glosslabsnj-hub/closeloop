@@ -99,7 +99,7 @@ serve(async (req: Request) => {
             .select("id, job_number, status")
             .eq("tenant_id", resolvedTenantId)
             .eq("customer_id", customer.id)
-            .in("status", ["pending", "assigned", "en_route"])
+            .not("status", "eq", "cancelled")
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useUsage } from "@/hooks/useUsage";
@@ -22,6 +23,7 @@ import {
 } from "@/config/pricing";
 
 export function PlanUpgradeCard() {
+  const navigate = useNavigate();
   const { tenant, effectiveTenant, isSuperAdmin } = useAuth();
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
   const { subscription, planSku, hasVoice, _hasSms, refetch } = useSubscription(displayTenant?.id || null);
@@ -94,7 +96,7 @@ export function PlanUpgradeCard() {
               You're currently on a free trial. Choose a plan to unlock all features and start receiving calls.
             </p>
             <Button
-              onClick={() => window.open("https://getfluxdata.com/pricing", "_blank")}
+              onClick={() => navigate("/app/go-live")}
               className="gap-2"
             >
               <ArrowUpRight className="h-4 w-4" />

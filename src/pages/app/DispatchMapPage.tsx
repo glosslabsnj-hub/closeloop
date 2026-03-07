@@ -86,7 +86,7 @@ export default function DispatchMapPage() {
     <PageContainer maxWidth="xl">
       <PageHeader
         title="Dispatch Map"
-        description="Real-time technician locations and tracking"
+        description="Real-time driver locations and tracking"
         action={
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ export default function DispatchMapPage() {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">Technician</p>
+                        <p className="font-medium">Driver</p>
                         {getAccuracyBadge(location.accuracy_meters)}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
