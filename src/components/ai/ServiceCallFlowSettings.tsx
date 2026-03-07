@@ -21,6 +21,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
   const { terminology } = useIndustryContext();
   const apptLabel = terminology.appointmentLabel || "appointment";
   const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
+  const article = /^[aeiou]/i.test(apptLabel) ? "an" : "a";
 
   const [serviceFlow, setServiceFlow] = useState<ServiceDefaultFlow>("schedule_first");
   const [saving, setSaving] = useState(false);
@@ -185,7 +186,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
                 AI asks if it's urgent first, then schedules or expedites accordingly.
               </p>
               <p className="text-xs text-muted-foreground mt-2 italic">
-                {`"Is this urgent, or can you schedule a ${apptLabel}?"`}
+                {`"Is this urgent, or can you schedule ${article} ${apptLabel}?"`}
               </p>
             </div>
           </label>
@@ -229,7 +230,7 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           {serviceFlow === "urgency_check" && (
             <p className="text-sm text-muted-foreground">
               Customer: "I need my drain cleaned"<br />
-              AI: "Is this urgent, or would you like to schedule a {apptLabel}?"<br />
+              AI: "Is this urgent, or would you like to schedule {article} {apptLabel}?"<br />
               <span className="text-xs">(If urgent, AI checks same-day availability or offers expedited service)</span>
             </p>
           )}
