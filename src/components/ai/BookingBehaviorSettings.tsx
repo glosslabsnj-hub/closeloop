@@ -24,6 +24,7 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
   const bookingsLabel = terms.bookings;
   const pendingLabel = terms.pendingBookings;
   const customerLabel = terms.customer + "s";
+  const bookingArticle = /^[aeiou]/i.test(terms.booking) ? "an" : "a";
   
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>('auto_book');
   const [notifyEmail, setNotifyEmail] = useState(true);
@@ -111,7 +112,7 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
       <CardContent className="space-y-6">
         {/* Booking Mode Selection */}
         <div className="space-y-4">
-          <Label className="text-base font-medium">When AI schedules a {terms.booking}:</Label>
+          <Label className="text-base font-medium">When AI schedules {bookingArticle} {terms.booking}:</Label>
           
           <RadioGroup 
             value={bookingMode} 

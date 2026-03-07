@@ -62,7 +62,8 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
   const { tenant, assistantSettings, refreshTenant } = useAuth();
   const { toast } = useToast();
   const { terms } = useIndustryContext();
-  
+  const bookingArticle = /^[aeiou]/i.test(terms.booking) ? "an" : "a";
+
   const [selectedOption, setSelectedOption] = useState<CalendarOption>('closeloop');
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>(() => {
     const rawMode = assistantSettings?.ai_booking_mode;
@@ -297,7 +298,7 @@ export function CalendarConnectionStep({ onComplete, isComplete, onSkip }: Calen
         {/* Booking Mode Selection - only show for built-in calendar */}
         {selectedOption === 'closeloop' && (
           <div className="space-y-3 pt-4 border-t">
-            <Label className="font-medium">When AI schedules a {terms.booking}:</Label>
+            <Label className="font-medium">When AI schedules {bookingArticle} {terms.booking}:</Label>
             <RadioGroup 
               value={bookingMode} 
               onValueChange={(value) => setBookingMode(value as 'auto_book' | 'pending_approval')}
