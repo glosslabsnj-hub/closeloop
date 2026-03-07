@@ -111,14 +111,38 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get cancellation policy
-    const { data: assistantSettings } = await supabase
-      .from("assistant_settings")
-      .select("cancellation_notice_hours")
-      .eq("tenant_id", tenantId)
-      .single();
+    // Get cancellation policy and AI cancellation permission
+    const [{ data: assistantSettings }, { data: serviceWorkflow }] = await Promise.all([
+      supabase
+        .from("assistant_settings")
+        .select("cancellation_notice_hours")
+        .eq("tenant_id", tenantId)
+        .single(),
+      supabase
+        .from("service_workflow_config")
+        .select("allow_ai_cancellation")
+        .eq("tenant_id", tenantId)
+        .maybeSingle(),
+    ]);
 
     const cancellationNoticeHours = assistantSettings?.cancellation_notice_hours || 24;
+
+    // If allow_ai_cancellation=false, redirect to owner callback instead of canceling
+    const allowAiCancellation = serviceWorkflow?.allow_ai_cancellation !== false;
+    if (!allowAiCancellation) {
+      console.log(`[cancel-booking] allow_ai_cancellation=false for tenant ${tenantId.substring(0, 8)}... — redirecting to callback`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          was_upcoming: false,
+          cancellation_policy_applied: false,
+          message: "I'm not able to process cancellations directly, but I've noted your request and the owner will reach out to you shortly to take care of it. Is there anything else I can help with?",
+          error: "allow_ai_cancellation=false",
+          _version: VERSION,
+        } as CancelBookingResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Use caller phone from session if not provided
     const phoneE164 = normalizePhone(customerPhone) || callerPhone || "";

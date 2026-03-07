@@ -3616,6 +3616,11 @@ PARALLEL CHECK RULE: If you ran BOTH check_availability AND check_service_area a
 
 The system automatically checks busy_blocks (synced calendars + existing bookings) to prevent double-booking.
 
+DEPOSIT POLICY: ${ctx.ai_settings.deposit_required
+  ? `A deposit IS required. ${ctx.ai_settings.deposit_amount ? `Amount: ${ctx.ai_settings.deposit_amount}.` : ""} Inform the customer after booking is confirmed.`
+  : "Deposits are NOT required. Do NOT mention deposits, ask for deposits, or imply any payment is due at booking. Even if you see a deposit percentage elsewhere in your data, it does NOT apply — the owner has disabled deposits."
+}
+
 `;
   }
 
