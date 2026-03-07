@@ -52,8 +52,10 @@ describe("CreateTestTenantDialog: industry dropdown", () => {
     expect(source).toContain('useState("")');
   });
 
-  it("renders a Select component for industry", () => {
-    expect(source).toContain("onValueChange={setIndustrySlug}");
+  it("renders a Select component for industry with _none sentinel (fixes Select.Item crash)", () => {
+    // Radix UI rejects empty string values — _none sentinel is required
+    expect(source).toContain('value="_none"');
+    expect(source).toContain('setIndustrySlug(v === "_none" ? "" : v)');
   });
 
   it("shows preview of how many services/FAQs will be seeded", () => {
