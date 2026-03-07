@@ -23,6 +23,7 @@ import {
 import { Loader2, FlaskConical, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import type { BusinessMode } from "@/types/database";
+import { getIndustriesByMode, getIndustryBySlug } from "@/data/industryCatalog";
 
 interface CreateTestTenantDialogProps {
   open: boolean;
@@ -59,9 +60,13 @@ export function CreateTestTenantDialog({
   const [isCreating, setIsCreating] = useState(false);
   const [businessName, setBusinessName] = useState("");
   const [timezone, setTimezone] = useState("America/New_York");
-  
+  const [industrySlug, setIndustrySlug] = useState("");
+
   // Use the defaultMode prop directly - mode is determined by admin mode selector
   const businessMode = defaultMode;
+
+  // Industries available for the current mode (for slug-specific QA testing)
+  const availableIndustries = getIndustriesByMode(businessMode).slice(0, 20);
 
   const handleQuickCreate = async () => {
     if (!user || !businessName.trim()) {
@@ -115,12 +120,48 @@ export function CreateTestTenantDialog({
         console.warn("Failed to create assistant_settings:", settingsError);
       }
 
-      toast.success(`Created test tenant: ${businessName}`);
+      // Set industry slug + seed catalog services/FAQs when an industry is selected
+      if (industrySlug) {
+        const catalogEntry = getIndustryBySlug(industrySlug);
+        if (catalogEntry) {
+          // Write industry slug to tenants table
+          await supabase.from("tenants").update({ industry: industrySlug }).eq("id", tenantId);
+
+          // Seed services from catalog
+          if (catalogEntry.services?.length > 0) {
+            const servicesToInsert = catalogEntry.services.map((svc) => ({
+              tenant_id: tenantId,
+              name: svc.name,
+              price_type: svc.priceType as "fixed" | "starting_at" | "quote_only",
+              price_amount: svc.price > 0 ? svc.price : null,
+              duration_minutes: svc.duration,
+              is_active: true,
+            }));
+            const { error: svcErr } = await supabase.from("services").insert(servicesToInsert);
+            if (svcErr) console.warn("Failed to seed services:", svcErr);
+          }
+
+          // Seed FAQs from catalog
+          if (catalogEntry.faqs?.length > 0) {
+            const faqsToInsert = catalogEntry.faqs.map((faq, i) => ({
+              tenant_id: tenantId,
+              question: faq.question,
+              answer: faq.answer,
+              priority_weight: i,
+            }));
+            const { error: faqErr } = await supabase.from("business_faqs").insert(faqsToInsert);
+            if (faqErr) console.warn("Failed to seed FAQs:", faqErr);
+          }
+        }
+      }
+
+      toast.success(`Created test tenant: ${businessName}${industrySlug ? ` (${industrySlug})` : ""}`);
       onTenantCreated(tenantId);
 
       // Reset form
       setBusinessName("");
       setTimezone("America/New_York");
+      setIndustrySlug("");
     } catch (error: any) {
       console.error("Failed to create test tenant:", error);
       toast.error(error.message || "Failed to create tenant");
@@ -207,6 +248,31 @@ export function CreateTestTenantDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {availableIndustries.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="industry-slug">Industry (optional)</Label>
+              <Select value={industrySlug} onValueChange={setIndustrySlug}>
+                <SelectTrigger id="industry-slug">
+                  <SelectValue placeholder="None — generic test tenant" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None — generic test tenant</SelectItem>
+                  {availableIndustries.map((ind) => (
+                    <SelectItem key={ind.slug} value={ind.slug}>
+                      {ind.icon} {ind.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {industrySlug && (
+                <p className="text-xs text-muted-foreground">
+                  Will seed {getIndustryBySlug(industrySlug)?.services?.length ?? 0} services and{" "}
+                  {getIndustryBySlug(industrySlug)?.faqs?.length ?? 0} FAQs from the {industrySlug} catalog.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
