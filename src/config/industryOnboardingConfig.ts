@@ -313,6 +313,49 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your locksmith business",
   },
 
+  roofing: {
+    preAnswers: {
+      offersMobileService: true,
+      chargesTripFee: false,
+      offersFreeEstimates: true,
+    },
+    setupChecklist: [
+      { label: "Add your roofing services and pricing", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add common questions (insurance claims, warranties, timeline)", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set your service area and coverage zone", icon: "map" },
+      { label: "Add FAQs about insurance claims and warranties", icon: "book" },
+      { label: "Customize your AI's greeting and scripts", icon: "sparkles" },
+    ],
+    setupTitle: "your roofing company",
+  },
+
+  general_contractor: {
+    preAnswers: {
+      offersMobileService: true,
+      chargesTripFee: false,
+      offersFreeEstimates: true,
+      requiresDeposits: true,
+    },
+    setupChecklist: [
+      { label: "Add your services and estimate types", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add common questions (permits, timeline, subcontractors, financing)", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set your service area so the AI knows where you work", icon: "map" },
+      { label: "Add FAQs about permits, timeline, and warranty", icon: "book" },
+      { label: "Customize your AI's greeting and scripts", icon: "sparkles" },
+    ],
+    setupTitle: "your contracting business",
+  },
+
   // ── Dispatch industries ──
 
   courier: {

@@ -604,6 +604,66 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
       quickActionDescription: "Book a detailing appointment",
     },
   },
+  "general_contractor": {
+    pricing: {
+      priceModifiersLabel: "Project Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Project Type",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Estimates This Week",
+      quickActionLabel: "Schedule Estimate",
+      quickActionDescription: "Schedule a free on-site estimate",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — kitchen remodel, bathroom remodel, additions, handyman.",
+      },
+    },
+  },
+  "roofing": {
+    pricing: {
+      priceModifiersLabel: "Project Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Roofing Issue",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Inspections This Week",
+      quickActionLabel: "Schedule Inspection",
+      quickActionDescription: "Schedule a free roof inspection",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — roof inspection, leak repair, shingle replacement, full replacement.",
+      },
+    },
+  },
+  "electrical": {
+    pricing: {
+      priceModifiersLabel: "Trip Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Electrical Issue",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule an electrical service call",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — panel upgrades, outlet installs, lighting, troubleshooting.",
+      },
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------

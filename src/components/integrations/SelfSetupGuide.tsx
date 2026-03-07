@@ -126,6 +126,19 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
       { label: "Square developer docs", url: "https://developer.squareup.com/docs/oauth-api/overview" },
     ],
   },
+  fieldedge: {
+    title: "How to connect FieldEdge",
+    steps: [
+      { step: 1, text: "In FieldEdge, go to Settings → Integrations → API Access" },
+      { step: 2, text: "Click \"Generate API Key\" and copy the key shown" },
+      { step: 3, text: "Paste the key below and click Connect" },
+      { step: 4, text: "New bookings and service calls will sync to FieldEdge automatically" },
+    ],
+    tip: "Bookings sync as service calls in FieldEdge. Customer records and technician assignments update in real time.",
+    links: [
+      { label: "FieldEdge help center", url: "https://support.fieldedge.com" },
+    ],
+  },
   stripe_connect: {
     title: "Coming soon — how to connect Stripe",
     steps: [
