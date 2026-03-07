@@ -25,14 +25,22 @@ export interface SchedulingPrefs {
 const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
   // Detailing / auto care — long jobs, need buffer for cleanup
   "auto-detailing": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true },
+  auto_detailing: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true },
   "car-wash": { defaultDurationMinutes: 30, bufferMinutes: 10, sameDayBooking: true },
+  car_wash: { defaultDurationMinutes: 30, bufferMinutes: 10, sameDayBooking: true },
   // Auto repair — multi-hour jobs, drop-off model
   auto_repair: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: true },
   // Salons & beauty — 30-60 min appointments, tight buffer
   "hair-salon": { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
+  hair_salon: { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
+  salon: { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
   "nail-salon": { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
+  nail_salon: { defaultDurationMinutes: 45, bufferMinutes: 10, sameDayBooking: true },
   "barber-shop": { defaultDurationMinutes: 30, bufferMinutes: 5, sameDayBooking: true },
+  barbershop: { defaultDurationMinutes: 30, bufferMinutes: 5, sameDayBooking: true },
   "med-spa": { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: false },
+  medspa: { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: false },
+  med_spa: { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: false },
   // Healthcare — strict scheduling
   dental: { defaultDurationMinutes: 30, bufferMinutes: 15, sameDayBooking: false },
   chiropractic: { defaultDurationMinutes: 30, bufferMinutes: 10, sameDayBooking: true },
@@ -42,6 +50,7 @@ const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
   hvac: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
   electrical: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: true },
   "pest-control": { defaultDurationMinutes: 60, bufferMinutes: 20, sameDayBooking: true },
+  pest_control: { defaultDurationMinutes: 60, bufferMinutes: 20, sameDayBooking: true },
   "house-cleaning": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
   cleaning: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
   landscaping: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
@@ -53,12 +62,15 @@ const industrySchedulingDefaults: Record<string, Partial<SchedulingPrefs>> = {
   flooring: { defaultDurationMinutes: 60, bufferMinutes: 60, sameDayBooking: false },
   // Tattoo / body art — long sessions
   "tattoo-studio": { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
+  tattoo_studio: { defaultDurationMinutes: 120, bufferMinutes: 30, sameDayBooking: false },
   // Photography — 1-2 hour sessions
   photography: { defaultDurationMinutes: 90, bufferMinutes: 30, sameDayBooking: false },
   // Massage / wellness
   "massage-therapy": { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true },
+  massage_therapy: { defaultDurationMinutes: 60, bufferMinutes: 15, sameDayBooking: true },
   // Fitness / personal training
   "personal-training": { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
+  personal_training: { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
   // Tutoring
   tutoring: { defaultDurationMinutes: 60, bufferMinutes: 10, sameDayBooking: true },
   // Towing / dispatch — no scheduling
