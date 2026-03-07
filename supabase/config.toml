@@ -182,3 +182,7 @@ verify_jwt = false
 
 [functions.notify-job-update]
 verify_jwt = false
+
+# Admin functions — do their own auth internally (JWT or admin secret)
+[functions.seed-test-tenants]
+verify_jwt = false

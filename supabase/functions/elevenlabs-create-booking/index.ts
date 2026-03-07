@@ -520,27 +520,31 @@ serve(async (req: Request) => {
     }
 
     if (!leadId) {
+      // Use upsert to handle race conditions and repeated QA test runs
       const { data: lead, error: leadError } = await supabase
         .from("leads")
-        .insert({
-          tenant_id: tenantId,
-          full_name: customerName,
-          phone: leadPhone,
-          email: customerEmail || null,
-          source: "ai_call",
-          customer_id: customerId,
-        })
+        .upsert(
+          {
+            tenant_id: tenantId,
+            full_name: customerName,
+            phone: leadPhone,
+            email: customerEmail || null,
+            source: "ai_call",
+            customer_id: customerId,
+          },
+          { onConflict: "tenant_id,phone", ignoreDuplicates: false }
+        )
         .select("id")
         .single();
 
       if (leadError) {
-        console.error("[create-booking] Lead creation error:", leadError);
+        console.error("[create-booking] Lead upsert error:", leadError);
       }
 
       leadId = lead?.id || null;
 
       if (!leadId) {
-        console.error("[create-booking] Failed to create lead - no ID returned");
+        console.error("[create-booking] Failed to upsert lead - no ID returned");
         return new Response(
           JSON.stringify({
             success: false,

@@ -25,6 +25,7 @@ const INDUSTRY_RADIUS: Record<string, number> = {
   plumbing: 20, hvac: 25, electrical: 20, roofing: 25, painting: 15, flooring: 20,
   "pest-control": 25, pest_control: 25, cleaning: 15,
   "lawn-care": 10, lawn_care: 10,
+  landscaping: 15, "landscaping-services": 15,
   "general-contractor": 30, general_contractor: 30,
   "garage-door": 25, garage_door: 25,
   "appliance-repair": 20, appliance_repair: 20,

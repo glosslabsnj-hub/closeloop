@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
       await serviceClient.from("dispatch_jobs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("food_orders").delete().eq("tenant_id", tenantId);
       await serviceClient.from("medical_intakes").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("leads").delete().eq("tenant_id", tenantId);
       await serviceClient.from("services").delete().eq("tenant_id", tenantId);
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
@@ -176,12 +177,13 @@ Deno.serve(async (req) => {
     if (action === "reseed" && existingTenant) {
       const tenantId = existingTenant.id;
 
-      // Clear seed-able data
+      // Clear seed-able data (including leads to prevent duplicate key on re-run)
       await serviceClient.from("ai_call_sessions").delete().eq("tenant_id", tenantId);
       await serviceClient.from("bookings").delete().eq("tenant_id", tenantId);
       await serviceClient.from("dispatch_jobs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("food_orders").delete().eq("tenant_id", tenantId);
       await serviceClient.from("medical_intakes").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("leads").delete().eq("tenant_id", tenantId);
       await serviceClient.from("services").delete().eq("tenant_id", tenantId);
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
