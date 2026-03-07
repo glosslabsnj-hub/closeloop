@@ -77,6 +77,7 @@ const OrderTicketPage = lazy(() => import("@/pages/app/OrderTicketPage"));
 const HelpCenterPage = lazy(() => import("@/pages/app/HelpCenterPage"));
 const ScheduleConnectionPage = lazy(() => import("@/pages/app/ScheduleConnectionPage"));
 const BusinessPartnerPage = lazy(() => import("@/pages/app/BusinessPartnerPage"));
+const MessagingCenterPage = lazy(() => import("@/pages/app/MessagingCenterPage"));
 const ReportsROIPage = lazy(() => import("@/pages/app/ReportsROIPage"));
 const WorkflowEditPage = lazy(() => import("@/pages/app/WorkflowEditPage"));
 const WorkflowRunsPage = lazy(() => import("@/pages/app/WorkflowRunsPage"));
@@ -198,6 +199,7 @@ const App = () => (
               <Route path="/app/kitchen" element={<KitchenDisplayPage />} />
               <Route path="/app/loyalty" element={<LoyaltyPage />} />
               <Route path="/app/settings" element={<SettingsPage />} />
+              <Route path="/app/messaging" element={<MessagingCenterPage />} />
               {/* Module-specific routes */}
               <Route path="/app/orders" element={<OrdersPage />} />
               <Route path="/app/reservations" element={<ReservationsPage />} />

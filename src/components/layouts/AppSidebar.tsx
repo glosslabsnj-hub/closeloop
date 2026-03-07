@@ -168,6 +168,7 @@ export function AppSidebar({
     { href: "/app/inbox?tab=calls", label: "Calls", icon: <AudioWaveform className={iconClass} /> },
     { href: "/app/inbox?tab=leads", label: "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
+    { href: "/app/messaging", label: "Messaging", icon: <MessageSquare className={iconClass} /> },
     ...(caps.hasLeadFollowUp ? [{ href: "/app/leads/recovery", label: "Lead Recovery", icon: <UserSearch className={iconClass} /> }] : []),
   ];
 

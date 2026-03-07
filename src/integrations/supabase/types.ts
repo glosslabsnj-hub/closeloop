@@ -1859,6 +1859,8 @@ export type Database = {
           impound_greeting_script: string | null
           instant_text_enabled: boolean
           missed_call_behavior: Database["public"]["Enums"]["missed_call_behavior"]
+          missed_call_textback_enabled: boolean | null
+          missed_call_textback_message: string | null
           notification_sounds_enabled: boolean
           off_behavior: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings: number
@@ -1919,6 +1921,8 @@ export type Database = {
           impound_greeting_script?: string | null
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          missed_call_textback_enabled?: boolean | null
+          missed_call_textback_message?: string | null
           notification_sounds_enabled?: boolean
           off_behavior?: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings?: number
@@ -1979,6 +1983,8 @@ export type Database = {
           impound_greeting_script?: string | null
           instant_text_enabled?: boolean
           missed_call_behavior?: Database["public"]["Enums"]["missed_call_behavior"]
+          missed_call_textback_enabled?: boolean | null
+          missed_call_textback_message?: string | null
           notification_sounds_enabled?: boolean
           off_behavior?: Database["public"]["Enums"]["off_behavior"] | null
           overflow_rings?: number
@@ -2492,6 +2498,7 @@ export type Database = {
           duration_minutes: number | null
           end_at: string
           external_event_id: string | null
+          external_provider: string | null
           id: string
           lead_id: string
           notes: string | null
@@ -2518,6 +2525,7 @@ export type Database = {
           duration_minutes?: number | null
           end_at: string
           external_event_id?: string | null
+          external_provider?: string | null
           id?: string
           lead_id: string
           notes?: string | null
@@ -2544,6 +2552,7 @@ export type Database = {
           duration_minutes?: number | null
           end_at?: string
           external_event_id?: string | null
+          external_provider?: string | null
           id?: string
           lead_id?: string
           notes?: string | null
@@ -8868,6 +8877,280 @@ export type Database = {
           },
         ]
       }
+      messaging_automations: {
+        Row: {
+          created_at: string | null
+          custom_body: string | null
+          delay_minutes: number | null
+          enabled: boolean | null
+          id: string
+          settings_json: Json | null
+          template_id: string | null
+          tenant_id: string
+          trigger_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custom_body?: string | null
+          delay_minutes?: number | null
+          enabled?: boolean | null
+          id?: string
+          settings_json?: Json | null
+          template_id?: string | null
+          tenant_id: string
+          trigger_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custom_body?: string | null
+          delay_minutes?: number | null
+          enabled?: boolean | null
+          id?: string
+          settings_json?: Json | null
+          template_id?: string | null
+          tenant_id?: string
+          trigger_type?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_automations_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string | null
+          customer_id: string
+          delivered_at: string | null
+          error_code: string | null
+          id: string
+          phone_e164: string
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          twilio_sid: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string | null
+          customer_id: string
+          delivered_at?: string | null
+          error_code?: string | null
+          id?: string
+          phone_e164: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          twilio_sid?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string | null
+          customer_id?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          id?: string
+          phone_e164?: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          twilio_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_campaign_recipients_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_campaigns: {
+        Row: {
+          audience_filter: Json | null
+          body: string
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          delivered_count: number | null
+          failed_count: number | null
+          id: string
+          name: string
+          opted_out_count: number | null
+          recipient_count: number | null
+          replied_count: number | null
+          scheduled_at: string | null
+          sent_count: number | null
+          started_at: string | null
+          status: string
+          template_id: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          audience_filter?: Json | null
+          body: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          name: string
+          opted_out_count?: number | null
+          recipient_count?: number | null
+          replied_count?: number | null
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          audience_filter?: Json | null
+          body?: string
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          delivered_count?: number | null
+          failed_count?: number | null
+          id?: string
+          name?: string
+          opted_out_count?: number | null
+          recipient_count?: number | null
+          replied_count?: number | null
+          scheduled_at?: string | null
+          sent_count?: number | null
+          started_at?: string | null
+          status?: string
+          template_id?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_campaigns_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_templates: {
+        Row: {
+          body: string
+          category: string
+          created_at: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          tenant_id: string
+          updated_at: string | null
+          variables: string[] | null
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          tenant_id: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          tenant_id?: string
+          updated_at?: string | null
+          variables?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      missed_call_textbacks: {
+        Row: {
+          caller_phone: string
+          id: string
+          off_behavior: string | null
+          reason: string | null
+          sent_at: string
+          tenant_id: string
+          twilio_sms_sid: string | null
+        }
+        Insert: {
+          caller_phone: string
+          id?: string
+          off_behavior?: string | null
+          reason?: string | null
+          sent_at?: string
+          tenant_id: string
+          twilio_sms_sid?: string | null
+        }
+        Update: {
+          caller_phone?: string
+          id?: string
+          off_behavior?: string | null
+          reason?: string | null
+          sent_at?: string
+          tenant_id?: string
+          twilio_sms_sid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "missed_call_textbacks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_preferences: {
         Row: {
           channel_email: boolean
@@ -11072,6 +11355,7 @@ export type Database = {
           booking_type: string
           complexity: string
           created_at: string
+          deposit_amount: number | null
           deposit_required: boolean | null
           description: string | null
           display_order: number | null
@@ -11100,6 +11384,7 @@ export type Database = {
           booking_type?: string
           complexity?: string
           created_at?: string
+          deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
           display_order?: number | null
@@ -11128,6 +11413,7 @@ export type Database = {
           booking_type?: string
           complexity?: string
           created_at?: string
+          deposit_amount?: number | null
           deposit_required?: boolean | null
           description?: string | null
           display_order?: number | null
@@ -12225,6 +12511,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      text_conversation_sessions: {
+        Row: {
+          created_at: string | null
+          id: string
+          messages: Json
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id: string
+          messages?: Json
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          messages?: Json
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       time_entries: {
         Row: {
@@ -13573,6 +13883,7 @@ export type Database = {
         | "canceled"
         | "no_show"
         | "pending"
+        | "cancelled"
       business_mode:
         | "service"
         | "dispatch"
@@ -13731,6 +14042,7 @@ export type Database = {
         | "manual"
         | "referral"
         | "ai_call"
+        | "qa_seed"
       lead_status: "new" | "contacted" | "qualified" | "booked" | "lost" | "won"
       memory_type:
         | "customer_preference"
@@ -14010,6 +14322,7 @@ export const Constants = {
         "canceled",
         "no_show",
         "pending",
+        "cancelled",
       ],
       business_mode: [
         "service",
@@ -14177,6 +14490,7 @@ export const Constants = {
         "manual",
         "referral",
         "ai_call",
+        "qa_seed",
       ],
       lead_status: ["new", "contacted", "qualified", "booked", "lost", "won"],
       memory_type: [
