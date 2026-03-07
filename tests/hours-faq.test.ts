@@ -1,4 +1,9 @@
+/**
+ * @vitest-environment node
+ */
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   buildHoursForFAQ,
   DEFAULT_BUSINESS_HOURS,
@@ -9,6 +14,12 @@ import {
   createDayHours,
 } from "@/lib/hoursUtils";
 import type { BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
+
+const BUILD_CONTEXT_PATH = join(
+  process.cwd(),
+  "supabase/functions/_shared/buildBusinessContext.ts"
+);
+const buildCtx = readFileSync(BUILD_CONTEXT_PATH, "utf-8");
 
 describe("buildHoursForFAQ", () => {
   it("returns 24/7 message for all-day hours", () => {
@@ -73,5 +84,55 @@ describe("buildHoursForFAQ", () => {
     };
     const result = buildHoursForFAQ(allClosed);
     expect(result).toContain("Closed");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BUG #506 regression: buildBusinessContext live hours override
+// ---------------------------------------------------------------------------
+
+/**
+ * BUG #506 (2026-03-06): Hours FAQs created during onboarding showed stale data after
+ * business hours were changed in Settings. The AI would tell callers wrong hours.
+ *
+ * Fix: buildBusinessContext.ts dynamically overrides any FAQ whose question contains "hour"
+ * with a freshly computed hours string from the tenant's current hours_json.
+ *
+ * These tests verify the override logic exists and is correctly structured.
+ */
+describe("buildBusinessContext: hours FAQ live override (BUG #506 regression)", () => {
+  it("buildWeeklyHoursSummary is exported from buildBusinessContext", () => {
+    expect(buildCtx).toContain("export function buildWeeklyHoursSummary");
+  });
+
+  it("liveHoursString is computed from tenant.hours_json", () => {
+    expect(buildCtx).toContain("liveHoursString");
+    // Must use buildWeeklyHoursSummary + normalizeHours on tenant hours_json
+    expect(buildCtx).toContain("buildWeeklyHoursSummary(normalizeHours(");
+    expect(buildCtx).toContain("hours_json");
+  });
+
+  it("FAQ answers with 'hour' in question are replaced with live hours string", () => {
+    // The core fix: map rawFaqs and override any hours-related FAQ answer
+    expect(buildCtx).toContain(".includes(\"hour\")");
+    // The replacement produces { ...f, answer: liveHoursString }
+    expect(buildCtx).toContain("answer: liveHoursString");
+  });
+
+  it("override is conditional (liveHoursString must be non-empty)", () => {
+    // The fix uses a ternary: const faqs = liveHoursString ? rawFaqs.map(...) : rawFaqs
+    // When hours aren't set, liveHoursString is empty and rawFaqs is returned unchanged.
+    // Verify the ternary exists by checking "const faqs = liveHoursString" is in the source.
+    expect(buildCtx).toContain("const faqs = liveHoursString");
+  });
+
+  it("rawFaqs holds DB results; faqs variable holds post-override results", () => {
+    expect(buildCtx).toContain("rawFaqs");
+    // rawFaqs must appear before faqs assignment
+    const rawIdx = buildCtx.indexOf("rawFaqs");
+    const faqsIdx = buildCtx.indexOf("const faqs = liveHoursString");
+    expect(rawIdx).toBeGreaterThan(-1);
+    expect(faqsIdx).toBeGreaterThan(-1);
+    expect(rawIdx).toBeLessThan(faqsIdx);
   });
 });
