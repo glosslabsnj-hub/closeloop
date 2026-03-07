@@ -362,6 +362,48 @@ export const industryCatalog: IndustryCatalogEntry[] = [
   },
   {
     ...homeServicesBase as IndustryCatalogEntry,
+    slug: 'general_contractor',
+    name: 'General Contractor',
+    icon: '🔨',
+    tags: ['general contractor', 'gc', 'remodel', 'renovation', 'addition', 'deck', 'basement', 'kitchen remodel', 'bathroom remodel', 'handyman', 'construction'],
+    services: [
+      { name: 'Kitchen Remodel', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Bathroom Remodel', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Room Addition', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Deck Building', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Basement Finishing', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Whole-Home Renovation', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Drywall & Framing', duration: 0, price: 0, priceType: 'quote_only' },
+      { name: 'Trim & Finish Carpentry', duration: 480, price: 800, priceType: 'starting_at' },
+      { name: 'Handyman Service', duration: 120, price: 150, priceType: 'starting_at' },
+      { name: 'Free Estimate / Site Visit', duration: 60, price: 0, priceType: 'fixed' },
+    ],
+    contextFields: [
+      { key: 'project_type', label: 'Project Type', type: 'select', options: ['Remodel', 'Addition', 'New Build', 'Repair', 'Handyman', 'Other'], required: true },
+      { key: 'property_type', label: 'Property Type', type: 'select', options: ['House', 'Condo', 'Townhouse', 'Commercial'], required: true },
+      { key: 'square_footage', label: 'Approx. Square Footage', type: 'number', required: false },
+      { key: 'timeline', label: 'Desired Timeline', type: 'select', options: ['ASAP', '1-3 months', '3-6 months', 'Flexible'], required: false },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed, bonded, and insured. We carry general liability and workers' compensation coverage. We're happy to provide our license number and proof of insurance." },
+      { question: "Do you handle permits?", answer: "Yes, we handle all necessary building permits for your project. Permit costs are included in your project estimate." },
+      { question: "How long does a kitchen remodel take?", answer: "A typical kitchen remodel takes 6-12 weeks depending on the scope. We'll give you a detailed timeline during the estimate." },
+      { question: "Do you use subcontractors?", answer: "We use trusted, vetted subcontractors for specialized work like electrical, plumbing, and HVAC. Our team manages all subs and ensures quality." },
+      { question: "Can I get a ballpark estimate over the phone?", answer: "We prefer to see the space before quoting to give you an accurate number. We offer free on-site estimates and can usually schedule within a few days." },
+      { question: "What does a bathroom remodel cost?", answer: "Bathroom remodels typically range from $8,000 to $25,000 depending on size and finishes. We'll provide a detailed breakdown after the site visit." },
+      { question: "Do you offer financing?", answer: "Yes, we offer financing options for larger projects. Our team can walk you through the details during the estimate." },
+      { question: "What's your warranty?", answer: "We provide a 1-year workmanship warranty on all projects. Manufacturer warranties on materials are passed through to you." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "Just give me a ballpark price", response: "I understand you want a rough idea. For a project like that, ranges vary a lot based on materials and scope. Our free on-site estimate will give you an accurate number with no obligation." },
+      { objection: "I already have other quotes", response: "That's smart to compare. We'd love to give you our quote too. Many clients choose us for our quality and communication even if we're not the cheapest." },
+      { objection: "That timeline is too long", response: "I understand you'd like to move faster. Let me get you scheduled for an estimate so we can discuss timeline options and see what we can do." },
+    ],
+  },
+  {
+    ...homeServicesBase as IndustryCatalogEntry,
     slug: 'roofing',
     name: 'Roofing',
     icon: '🏠',
@@ -2503,7 +2545,7 @@ export function searchIndustries(query: string): IndustryCatalogEntry[] {
 export function getPopularIndustries(count: number = 15): IndustryCatalogEntry[] {
   // Prioritized popular industries
   const popularSlugs = [
-    'plumbing', 'hvac', 'electrical', 'auto_detailing', 'salon', 
+    'plumbing', 'hvac', 'electrical', 'general_contractor', 'auto_detailing', 'salon',
     'dental', 'restaurant', 'cleaning', 'towing', 'massage',
     'landscaping', 'personal_training', 'photography', 'roofing', 'pest_control'
   ];
