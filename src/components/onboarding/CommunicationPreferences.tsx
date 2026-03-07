@@ -155,6 +155,7 @@ export function CommunicationPreferences({
   const terms = getIndustryTerminology(businessMode);
   const apptLabel = terms.appointmentLabel || "appointment";
   const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
+  const article = /^[aeiou]/i.test(apptLabel) ? "an" : "a";
 
   const toggleIntakeField = (key: string) => {
     const current = value.requiredIntakeFields || [];
@@ -199,7 +200,7 @@ export function CommunicationPreferences({
       {/* AI Booking Mode — hidden for dispatch */}
       {showBookingMode && (
         <PreferenceSection
-          title={`When AI schedules a ${apptLabel}:`}
+          title={`When AI schedules ${article} ${apptLabel}:`}
           value={value.aiBookingMode}
           onValueChange={(v) => onChange({ ...value, aiBookingMode: v as CommunicationPrefs["aiBookingMode"] })}
           options={[

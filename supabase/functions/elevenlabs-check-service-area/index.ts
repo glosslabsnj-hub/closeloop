@@ -420,23 +420,116 @@ serve(async (req: Request) => {
         }
       }
 
-      // Same state or can't determine — cannot verify if within radius without geocoding
-      // Set needs_verification=true so the AI asks the caller to confirm their city/zip
+      // Same state or unknown — try Mapbox geocoding for actual distance check.
+      // This prevents the bug where same-state cities 200+ miles away (e.g. Houston vs Dallas TX)
+      // were incorrectly returned as in_area=true.
+      const mapboxToken = Deno.env.get("MAPBOX_ACCESS_TOKEN");
+
+      if (mapboxToken && tenantAddress) {
+        try {
+          const geocode = async (addr: string): Promise<{ lat: number; lng: number } | null> => {
+            const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(addr)}.json?access_token=${mapboxToken}&limit=1&country=us`;
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            const json = await res.json();
+            const feature = json.features?.[0];
+            if (!feature) return null;
+            return { lng: feature.center[0], lat: feature.center[1] };
+          };
+
+          const haversine = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+            const R = 3958.8; // Earth radius in miles
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a =
+              Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          };
+
+          const [tenantCoords, customerCoords] = await Promise.all([
+            geocode(tenantAddress),
+            geocode(address),
+          ]);
+
+          if (tenantCoords && customerCoords) {
+            const distanceMiles = Math.round(
+              haversine(tenantCoords.lat, tenantCoords.lng, customerCoords.lat, customerCoords.lng)
+            );
+            const inArea = distanceMiles <= radiusMiles;
+            console.log(
+              `[check-service-area] mapbox_geocoding: ${distanceMiles}mi from base, radius=${radiusMiles}mi → in_area=${inArea}`
+            );
+
+            if (!inArea) {
+              const outMsg =
+                (serviceArea?.out_of_area_message as string) ||
+                `Sorry, we don't service that area. We only cover within ${radiusMiles} miles of ${tenantCity || "our location"}. Your address is approximately ${distanceMiles} miles away.`;
+              return new Response(
+                JSON.stringify({
+                  in_area: false,
+                  distance_miles: distanceMiles,
+                  tow_distance_miles: null,
+                  dropoff_geocoded: null,
+                  eta_minutes: null,
+                  eta_range: "",
+                  message: outMsg,
+                  service_tier: "out_of_area",
+                  pricing_note: outMsg,
+                  local_radius_miles: radiusMiles,
+                  distance_basis_used: "mapbox_geocoding",
+                  price_breakdown: null,
+                  needs_verification: false,
+                  verification_message: null,
+                } as ServiceAreaResponse),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            } else {
+              return new Response(
+                JSON.stringify({
+                  in_area: true,
+                  distance_miles: distanceMiles,
+                  tow_distance_miles: null,
+                  dropoff_geocoded: null,
+                  eta_minutes: distanceSettings?.eta_base_minutes || 45,
+                  eta_range: `${distanceSettings?.eta_min_minutes || 30}-${distanceSettings?.eta_max_minutes || 60} minutes`,
+                  message: `Address verified — approximately ${distanceMiles} miles from our location, within our ${radiusMiles}-mile service area.`,
+                  service_tier: distanceMiles <= radiusMiles * 0.5 ? "local" : "long_distance",
+                  pricing_note: `Address is ${distanceMiles} miles from our base. Standard service rates apply.`,
+                  local_radius_miles: radiusMiles,
+                  distance_basis_used: "mapbox_geocoding",
+                  price_breakdown: null,
+                  needs_verification: false,
+                  verification_message: null,
+                } as ServiceAreaResponse),
+                { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+          }
+        } catch (geoErr) {
+          console.error("[check-service-area] Mapbox geocoding failed:", geoErr);
+          // Fall through to safe fallback below
+        }
+      }
+
+      // Geocoding unavailable — conservatively return in_area=false with needs_verification=true
+      // so the AI asks the caller to confirm their city/zip before proceeding.
+      // NEVER return in_area=true without verified distance data.
       const verifyMsg = `I need to verify you're within our ${radiusMiles}-mile service area. Could you tell me your city and zip code?`;
-      console.log(`[check-service-area] state_match_fallback: cannot verify ${radiusMiles}mi radius, setting needs_verification=true`);
+      console.log(`[check-service-area] geocoding_unavailable: cannot verify distance, returning in_area=false needs_verification=true`);
       return new Response(
         JSON.stringify({
-          in_area: true,
+          in_area: false,
           distance_miles: null,
           tow_distance_miles: null,
           dropoff_geocoded: null,
-          eta_minutes: distanceSettings?.eta_base_minutes || 45,
-          eta_range: `${distanceSettings?.eta_min_minutes || 30}-${distanceSettings?.eta_max_minutes || 60} minutes`,
-          message: `Cannot verify exact distance — please confirm caller is within ${radiusMiles} miles`,
-          service_tier: "long_distance",
-          pricing_note: "Distance cannot be verified. Ask the caller to confirm their city — only proceed if they confirm they are within our service area.",
-          local_radius_miles: 10,
-          distance_basis_used: "state_match_fallback",
+          eta_minutes: null,
+          eta_range: "",
+          message: `Cannot verify exact distance — please confirm you're within ${radiusMiles} miles`,
+          service_tier: "out_of_area",
+          pricing_note: "Distance cannot be verified. Ask the caller to confirm their city and zip — only proceed if they confirm they are within our service area.",
+          local_radius_miles: radiusMiles,
+          distance_basis_used: "geocoding_unavailable",
           price_breakdown: null,
           needs_verification: true,
           verification_message: verifyMsg,
