@@ -80,7 +80,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasPriceModifiers ? "Rate adjustments configured" : "Size, urgency, and after-hours rate adjustments",
     };
     s["service-packages"] = {
-      status: capabilities.hasServicePackages ? "complete" : "incomplete",
+      status: capabilities.hasServicePackages ? "complete" : "optional",
       statusText: capabilities.hasServicePackages ? "Packages configured" : "Discounted bundles and membership plans",
     };
     s["dispatch-pricing"] = {

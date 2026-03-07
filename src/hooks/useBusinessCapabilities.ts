@@ -371,10 +371,9 @@ export function useBusinessCapabilities(): BusinessCapabilities {
           .select("id", { count: "exact", head: true })
           .eq("tenant_id", tenant.id),
         supabase
-          .from("services")
+          .from("service_packages")
           .select("id", { count: "exact", head: true })
-          .eq("tenant_id", tenant.id)
-          .eq("is_active", true),
+          .eq("tenant_id", tenant.id),
         isFood
           ? supabase.from("menu_items").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id)
           : noCount,
