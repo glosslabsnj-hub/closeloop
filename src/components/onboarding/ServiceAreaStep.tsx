@@ -22,18 +22,29 @@ export interface ServiceAreaConfig {
 // Industry-specific default radius (miles) — based on typical service ranges
 const INDUSTRY_RADIUS: Record<string, number> = {
   // Home services: typically drive 15-30 miles
-  plumbing: 20, hvac: 25, electrical: 20, roofing: 25, painting: 15,
-  "pest-control": 25, cleaning: 15, "lawn-care": 10, "general-contractor": 30,
-  "garage-door": 25, "appliance-repair": 20, "pool-service": 15, handyman: 15,
+  plumbing: 20, hvac: 25, electrical: 20, roofing: 25, painting: 15, flooring: 20,
+  "pest-control": 25, pest_control: 25, cleaning: 15,
+  "lawn-care": 10, lawn_care: 10,
+  "general-contractor": 30, general_contractor: 30,
+  "garage-door": 25, garage_door: 25,
+  "appliance-repair": 20, appliance_repair: 20,
+  "pool-service": 15, pool_service: 15,
+  handyman: 15,
   // Auto services
-  towing: 30, locksmith: 25, "mobile-mechanic": 20,
+  towing: 30, locksmith: 25,
+  "mobile-mechanic": 20, mobile_mechanic: 20,
+  auto_detailing: 15, "auto-detailing": 15,
   // Beauty/wellness (usually walk-in, but if mobile)
-  "hair-salon": 5, barbershop: 5, "nail-salon": 5, massage: 10,
-  "personal-trainer": 10, "pet-grooming": 10,
+  "hair-salon": 5, hair_salon: 5, salon: 5,
+  barbershop: 5,
+  "nail-salon": 5, nail_salon: 5,
+  massage: 10, massage_therapy: 10, "massage-therapy": 10,
+  "personal-trainer": 10, personal_training: 10,
+  "pet-grooming": 10, pet_grooming: 10,
   // Medical
   dental: 10, chiropractic: 10, veterinary: 15,
   // Food
-  pizza: 8, "food-truck": 10, catering: 30, bakery: 8,
+  pizza: 8, "food-truck": 10, food_truck: 10, catering: 30, bakery: 8,
 };
 
 export function getDefaultServiceArea(mode: BusinessMode, industrySlug?: string): ServiceAreaConfig {
