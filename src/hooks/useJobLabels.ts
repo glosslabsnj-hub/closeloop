@@ -109,6 +109,67 @@ const LABEL_PRESETS: Record<string, Omit<JobLabels, "metadataFields"> & { metada
     ],
     emptyStateMessage: "No alterations in progress.",
   },
+  general_contractor: {
+    pageTitle: "Active Projects",
+    singularJob: "Project",
+    pluralJobs: "Projects",
+    serviceStep: "Phase",
+    serviceSteps: "Phases",
+    metadataFields: [
+      { key: "project_type", label: "Project Type", placeholder: "Kitchen Remodel" },
+      { key: "property_type", label: "Property Type", placeholder: "House" },
+      { key: "address", label: "Address", placeholder: "123 Main St" },
+    ],
+    emptyStateMessage: "No active projects right now.",
+  },
+  roofing: {
+    pageTitle: "Active Projects",
+    singularJob: "Project",
+    pluralJobs: "Projects",
+    serviceStep: "Task",
+    serviceSteps: "Tasks",
+    metadataFields: [
+      { key: "roof_type", label: "Roof Type", placeholder: "Asphalt shingles" },
+      { key: "address", label: "Address", placeholder: "123 Main St" },
+    ],
+    emptyStateMessage: "No active roofing projects.",
+  },
+  cleaning: {
+    pageTitle: "Active Jobs",
+    singularJob: "Cleaning Job",
+    pluralJobs: "Cleaning Jobs",
+    serviceStep: "Area",
+    serviceSteps: "Areas",
+    metadataFields: [
+      { key: "property_type", label: "Property Type", placeholder: "House" },
+      { key: "address", label: "Address", placeholder: "123 Main St" },
+    ],
+    emptyStateMessage: "No active cleaning jobs.",
+  },
+  painting: {
+    pageTitle: "Active Jobs",
+    singularJob: "Paint Job",
+    pluralJobs: "Paint Jobs",
+    serviceStep: "Area",
+    serviceSteps: "Areas",
+    metadataFields: [
+      { key: "area", label: "Area", placeholder: "Living room" },
+      { key: "address", label: "Address", placeholder: "123 Main St" },
+    ],
+    emptyStateMessage: "No active paint jobs.",
+  },
+  flooring: {
+    pageTitle: "Active Projects",
+    singularJob: "Project",
+    pluralJobs: "Projects",
+    serviceStep: "Phase",
+    serviceSteps: "Phases",
+    metadataFields: [
+      { key: "floor_type", label: "Floor Type", placeholder: "Hardwood" },
+      { key: "sq_footage", label: "Sq. Footage", placeholder: "500" },
+    ],
+    emptyStateMessage: "No active flooring projects.",
+  },
 };
 
 const DEFAULT_LABELS: JobLabels = {
@@ -148,6 +209,21 @@ export function useJobLabels(): JobLabels {
     }
     if (slug.includes("hvac") || slug.includes("electrical")) {
       return LABEL_PRESETS["hvac"];
+    }
+    if (slug.includes("general_contractor") || slug.includes("contractor") || slug.includes("remodel")) {
+      return LABEL_PRESETS["general_contractor"];
+    }
+    if (slug.includes("roofing") || slug.includes("roof")) {
+      return LABEL_PRESETS["roofing"];
+    }
+    if (slug.includes("clean")) {
+      return LABEL_PRESETS["cleaning"];
+    }
+    if (slug.includes("paint")) {
+      return LABEL_PRESETS["painting"];
+    }
+    if (slug.includes("floor")) {
+      return LABEL_PRESETS["flooring"];
     }
 
     return DEFAULT_LABELS;
