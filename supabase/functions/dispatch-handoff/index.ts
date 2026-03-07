@@ -237,7 +237,7 @@ serve(async (req) => {
       created_at: dispatch.created_at,
     };
 
-    const isUrgent = dispatch.priority === "high" || dispatch.priority === "urgent";
+    const isUrgent = dispatch.priority === "high" || dispatch.priority === "urgent" || dispatch.priority === "emergency";
 
     // ── CRITICAL ACTIONS (always run, regardless of delivery settings) ──
 

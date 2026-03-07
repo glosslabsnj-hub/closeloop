@@ -742,6 +742,8 @@ const dispatchTenants: TestTenantConfig[] = [
     timezone: "America/Chicago",
     business_mode: "dispatch",
     industry: "towing",
+    owner_email: "qa-towing@getfluxdata.com",
+    owner_password: "test1234",
     enabled_modules: ["ai_voice", "instant_text_back", "dispatch_queue", "pricing_rules", "eta_tracking"],
     capabilities_json: {
       ai_voice: true,
