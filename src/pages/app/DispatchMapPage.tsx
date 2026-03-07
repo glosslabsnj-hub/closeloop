@@ -115,7 +115,7 @@ export default function DispatchMapPage() {
           </ErrorBoundary>
           {locations.length > 0 && (
             <p className="text-xs text-muted-foreground mt-2">
-              {locations.length} technician{locations.length !== 1 ? "s" : ""} online · Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
+              {locations.length} driver{locations.length !== 1 ? "s" : ""} online · Last updated {formatDistanceToNow(lastRefresh, { addSuffix: true })}
             </p>
           )}
         </div>
@@ -137,12 +137,12 @@ export default function DispatchMapPage() {
         </Card>
       )}
 
-      {/* Technician List */}
+      {/* Driver List */}
       <Card>
         <CardHeader>
-          <CardTitle>Technician Locations</CardTitle>
+          <CardTitle>Driver Locations</CardTitle>
           <CardDescription>
-            Live location data from field technicians
+            Live location data from your drivers
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -150,7 +150,7 @@ export default function DispatchMapPage() {
             <div className="text-center py-8 text-muted-foreground">
               <Signal className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>No location data available</p>
-              <p className="text-sm">Enable location sharing to see technician positions</p>
+              <p className="text-sm">Enable location sharing to see driver positions</p>
             </div>
           ) : (
             <div className="space-y-4">

@@ -208,15 +208,18 @@ serve(async (req: Request) => {
       );
     }
 
-    // Module gating: never create entities for disabled modules
+    // Module gating: check dispatch_queue is enabled OR tenant is in dispatch mode
     const { data: tenantRow } = await supabase
       .from("tenants")
-      .select("enabled_modules")
+      .select("enabled_modules, business_mode")
       .eq("id", resolvedTenantId)
       .maybeSingle();
 
     const enabledModules: string[] = tenantRow?.enabled_modules || [];
-    if (!enabledModules.includes("dispatch_queue")) {
+    const businessMode: string = tenantRow?.business_mode || "";
+    const hasDispatchAccess = enabledModules.includes("dispatch_queue") || businessMode === "dispatch";
+
+    if (!hasDispatchAccess) {
       console.warn(`[elevenlabs-create-dispatch-job] dispatch_queue not enabled for tenant ${resolvedTenantId.substring(0, 8)}...`);
       return new Response(
         JSON.stringify({
@@ -226,6 +229,16 @@ serve(async (req: Request) => {
         } as CreateDispatchJobResponse),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Auto-add dispatch_queue to enabled_modules if missing for dispatch-mode tenants
+    if (businessMode === "dispatch" && !enabledModules.includes("dispatch_queue")) {
+      console.log(`[elevenlabs-create-dispatch-job] Auto-enabling dispatch_queue for dispatch-mode tenant ${resolvedTenantId.substring(0, 8)}...`);
+      const updatedModules = [...enabledModules, "dispatch_queue"];
+      await supabase
+        .from("tenants")
+        .update({ enabled_modules: updatedModules })
+        .eq("id", resolvedTenantId);
     }
 
     // Normalize phone (prefer caller_id from the active session if the tool didn't send customer_phone)

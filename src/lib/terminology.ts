@@ -219,7 +219,14 @@ export function applyAppointmentLabel(
   }
 
   const s = appointmentLabel; // e.g. "job", "visit", "consultation"
-  const p = s + "s"; // "jobs", "visits", "consultations"
+  // Irregular English plurals for appointment label words
+  const IRREGULAR_PLURALS: Record<string, string> = {
+    dispatch: "dispatches",
+    search: "searches",
+    match: "matches",
+    request: "requests",
+  };
+  const p = IRREGULAR_PLURALS[s] ?? (s.endsWith("s") ? s : s + "s"); // "jobs", "dispatches", etc.
   const cap = s.charAt(0).toUpperCase() + s.slice(1);
   const capP = p.charAt(0).toUpperCase() + p.slice(1);
 

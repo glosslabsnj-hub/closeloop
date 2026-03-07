@@ -1,5 +1,8 @@
 project_id = "yltzlvzgwkidbeqaoevp"
 
+[functions.mapbox-token]
+verify_jwt = false
+
 [functions.twilio-inbound]
 verify_jwt = false
 
