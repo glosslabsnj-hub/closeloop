@@ -52,6 +52,28 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
 
   const industryRecommended = getIndustryDefault(tenant?.industry);
 
+  // Return a realistic example customer request based on their industry
+  const getExampleCustomerRequest = (industry: string | undefined): string => {
+    if (!industry) return "I need my drain cleaned";
+    const lower = industry.toLowerCase();
+    if (lower.includes("electrical") || lower.includes("electrician")) return "I need my panel upgraded";
+    if (lower.includes("hvac") || lower.includes("heating") || lower.includes("cooling") || lower.includes("air condition")) return "My AC isn't cooling properly";
+    if (lower.includes("plumb")) return "I need my drain cleaned";
+    if (lower.includes("locksmith")) return "I'm locked out of my house";
+    if (lower.includes("roofing") || lower.includes("roof")) return "I have a roof leak";
+    if (lower.includes("appliance")) return "My dishwasher stopped working";
+    if (lower.includes("pest")) return "I think I have a pest problem";
+    if (lower.includes("landscap") || lower.includes("lawn")) return "I need my lawn maintained";
+    if (lower.includes("clean")) return "I need my house deep cleaned";
+    if (lower.includes("painting") || lower.includes("painter")) return "I need my living room painted";
+    if (lower.includes("garage")) return "My garage door won't open";
+    if (lower.includes("water_damage") || lower.includes("restoration")) return "I have water damage in my basement";
+    if (lower.includes("salon") || lower.includes("hair") || lower.includes("barber")) return "I'd like to book a haircut";
+    if (lower.includes("dental") || lower.includes("dentist")) return "I need to schedule a cleaning";
+    return "I'd like to schedule a service call";
+  };
+  const exampleCustomerRequest = getExampleCustomerRequest(tenant?.industry);
+
   useEffect(() => {
     if (assistantSettings) {
       const savedFlow = (assistantSettings as any).service_default_flow;
@@ -223,13 +245,13 @@ export default function ServiceCallFlowSettings({ compact, onSave }: ServiceCall
           <p className="text-sm font-medium">How it works:</p>
           {serviceFlow === "schedule_first" && (
             <p className="text-sm text-muted-foreground">
-              Customer: "I need my drain cleaned"<br />
+              Customer: "{exampleCustomerRequest}"<br />
               AI: "Great! When would work best for you?"
             </p>
           )}
           {serviceFlow === "urgency_check" && (
             <p className="text-sm text-muted-foreground">
-              Customer: "I need my drain cleaned"<br />
+              Customer: "{exampleCustomerRequest}"<br />
               AI: "Is this urgent, or would you like to schedule {article} {apptLabel}?"<br />
               <span className="text-xs">(If urgent, AI checks same-day availability or offers expedited service)</span>
             </p>
