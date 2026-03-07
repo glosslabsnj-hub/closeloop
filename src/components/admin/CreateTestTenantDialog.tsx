@@ -252,12 +252,12 @@ export function CreateTestTenantDialog({
           {availableIndustries.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="industry-slug">Industry (optional)</Label>
-              <Select value={industrySlug} onValueChange={setIndustrySlug}>
+              <Select value={industrySlug || "_none"} onValueChange={(v) => setIndustrySlug(v === "_none" ? "" : v)}>
                 <SelectTrigger id="industry-slug">
                   <SelectValue placeholder="None — generic test tenant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None — generic test tenant</SelectItem>
+                  <SelectItem value="_none">None — generic test tenant</SelectItem>
                   {availableIndustries.map((ind) => (
                     <SelectItem key={ind.slug} value={ind.slug}>
                       {ind.icon} {ind.name}

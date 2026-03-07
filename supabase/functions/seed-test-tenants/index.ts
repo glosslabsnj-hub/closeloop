@@ -81,35 +81,41 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const adminSecret = Deno.env.get("ADMIN_CLEANUP_SECRET");
 
-    // Verify the user is a super_admin
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Allow admin secret as alternative to user JWT (for server-side seeding)
+    const adminSecretHeader = req.headers.get("x-admin-secret");
+    const isAdminSecretAuth = adminSecret && adminSecretHeader === adminSecret;
 
-    const { data: { user }, error: authError } = await userClient.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Check super_admin role
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: roleRow } = await serviceClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .eq("role", "super_admin")
-      .maybeSingle();
-
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    if (!isAdminSecretAuth) {
+      // Verify the user is a super_admin via JWT
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
+
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      if (authError || !user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: roleRow } = await serviceClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "super_admin")
+        .maybeSingle();
+
+      if (!roleRow) {
+        return new Response(JSON.stringify({ error: "Forbidden: super_admin required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
     const body: SeedRequest = await req.json();

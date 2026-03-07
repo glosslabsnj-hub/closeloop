@@ -138,7 +138,7 @@ const serviceQuestions: ScenarioQuestion[] = [
     description: "Customers can call for urgent, same-day service",
     defaultValue: false,
     group: "core",
-    preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith"] },
+    preAnsweredFor: { slugs: ["plumbing", "hvac", "electrical", "towing", "locksmith", "roofing", "general_contractor", "pest_control"] },
     // Suppress for industries where "emergency" is not a meaningful service concept
     suppressedFor: {
       categories: [
