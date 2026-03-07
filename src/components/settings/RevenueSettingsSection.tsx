@@ -18,21 +18,30 @@ import type { IndustryCategory } from "@/data/industryCatalog";
 // ---------------------------------------------------------------------------
 
 const SLUG_VALUES: Record<string, number> = {
-  plumbing: 30000,        // $300 — avg service call $150-500+
-  hvac: 25000,            // $250 — avg service call $150-400
-  electrical: 25000,      // $250 — similar to HVAC
-  "auto-repair": 20000,   // $200 — oil change to engine work
-  "auto-detailing": 15000,// $150 — wash to full detail
-  dental: 25000,          // $250 — cleaning to procedures
-  chiropractic: 12500,    // $125 — adjustments
-  "hair-salon": 7500,     // $75  — cuts to color
-  barbershop: 4000,       // $40  — cuts + trims
-  towing: 15000,          // $150 — avg tow
-  "lawn-care": 10000,     // $100 — mowing to full service
-  pizza: 3500,            // $35  — avg order
-  "coffee_shop": 800,     // $8   — avg order
-  bakery: 3000,           // $30  — avg order
-  "catering_service": 50000, // $500 — avg event
+  plumbing: 30000,             // $300 — avg service call $150-500+
+  hvac: 25000,                 // $250 — avg service call $150-400
+  electrical: 25000,           // $250 — similar to HVAC
+  "auto-repair": 20000,   auto_repair: 20000,   // $200 — oil change to engine work
+  "auto-detailing": 15000, auto_detailing: 15000, // $150 — wash to full detail
+  dental: 25000,               // $250 — cleaning to procedures
+  chiropractic: 12500,         // $125 — adjustments
+  "hair-salon": 7500, hair_salon: 7500, salon: 7500,  // $75 — cuts to color
+  barbershop: 4000,            // $40  — cuts + trims
+  "nail-salon": 5000, nail_salon: 5000,             // $50  — manicures/pedicures
+  towing: 15000,               // $150 — avg tow
+  "lawn-care": 10000, lawn_care: 10000,             // $100 — mowing to full service
+  landscaping: 30000,          // $300 — larger landscaping jobs
+  "general-contractor": 500000, general_contractor: 500000, // $5,000 — avg project value
+  roofing: 100000,             // $1,000 — roof repair to replacement
+  flooring: 200000,            // $2,000 — per-room flooring project
+  painting: 100000,            // $1,000 — interior/exterior paint
+  cleaning: 15000,             // $150 — residential clean
+  pizza: 3500,                 // $35  — avg order
+  "coffee_shop": 800,          // $8   — avg order
+  bakery: 3000,                // $30  — avg order
+  "catering_service": 50000, catering_service: 50000, // $500 — avg event
+  massage_therapy: 10000, "massage-therapy": 10000,   // $100 — avg session
+  personal_training: 8000, "personal-training": 8000, // $80  — avg session
 };
 
 const CATEGORY_VALUES: Partial<Record<IndustryCategory, number>> = {
