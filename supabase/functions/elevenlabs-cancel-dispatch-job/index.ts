@@ -129,6 +129,23 @@ serve(async (req: Request) => {
       }
     }
 
+    // Final fallback: most recent active job for this tenant (text-conversation / QA testing context)
+    // When no phone/conversationId is available, the caller almost certainly means their most recent job.
+    if (!job) {
+      const { data } = await supabase
+        .from("dispatch_jobs")
+        .select("id, job_number, status")
+        .eq("tenant_id", resolvedTenantId)
+        .not("status", "in", "(cancelled,completed)")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        job = data;
+        console.log(`[cancel-dispatch-job] Using most-recent-active-job fallback: ${data.job_number}`);
+      }
+    }
+
     if (!job) {
       return new Response(
         JSON.stringify({
