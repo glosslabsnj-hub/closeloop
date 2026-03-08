@@ -519,6 +519,26 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["Small Repair", "Half Day", "Full Day", "TV Mounting", "Furniture Assembly"],
     exampleFAQs: ["Do you do minor plumbing?", "Do you charge by the hour or by the job?", "Can you handle multiple repairs in one visit?"],
   },
+  "garage_door": {
+    servicesLabel: "Garage Door Services",
+    catalogCardTitle: "Your Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Spring Replacement",
+    servicesCategoryTitle: "Garage Door Services",
+    teamMemberLabel: "technician",
+    exampleServices: ["Door Repair", "Spring Replacement", "Opener Installation", "Tune-Up & Inspection", "Emergency Service"],
+    exampleFAQs: ["Do you offer same-day service?", "What brands do you work with?", "Is there a service call fee?"],
+  },
+  "appliance_repair": {
+    servicesLabel: "Appliance Repair Services",
+    catalogCardTitle: "Your Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Washer Repair",
+    servicesCategoryTitle: "Appliance Repair Services",
+    teamMemberLabel: "technician",
+    exampleServices: ["Washer Repair", "Dryer Repair", "Refrigerator Repair", "Dishwasher Repair", "Oven/Range Repair", "Diagnostic Service"],
+    exampleFAQs: ["What brands do you service?", "Do you charge a diagnostic fee?", "How quickly can you get parts?"],
+  },
 };
 
 // ---------------------------------------------------------------------------

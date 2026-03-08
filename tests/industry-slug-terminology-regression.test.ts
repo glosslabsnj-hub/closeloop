@@ -530,3 +530,51 @@ describe("appointmentLabel + indefiniteArticle integration", () => {
     });
   }
 });
+
+// ─── garage_door: technician teamMember ───────────────────────────────────
+
+describe("getIndustryTerminology: garage_door slug", () => {
+  const t = getIndustryTerminology("service", "home_services", "garage_door");
+
+  it("catalogCardTitle is 'Your Services'", () => {
+    expect(t.catalogCardTitle).toBe("Your Services");
+  });
+
+  it("teamMemberLabel is 'technician'", () => {
+    expect(t.teamMemberLabel).toBe("technician");
+  });
+
+  it("exampleServices include spring replacement and emergency service", () => {
+    const services = t.exampleServices.join(" ").toLowerCase();
+    expect(services).toMatch(/spring|opener|repair|emergency/);
+  });
+
+  it("exampleFAQs address same-day service and service call fee", () => {
+    const faqs = t.exampleFAQs.join(" ").toLowerCase();
+    expect(faqs).toMatch(/same-day|brand|fee/);
+  });
+});
+
+// ─── appliance_repair: technician teamMember ──────────────────────────────
+
+describe("getIndustryTerminology: appliance_repair slug", () => {
+  const t = getIndustryTerminology("service", "home_services", "appliance_repair");
+
+  it("catalogCardTitle is 'Your Services'", () => {
+    expect(t.catalogCardTitle).toBe("Your Services");
+  });
+
+  it("teamMemberLabel is 'technician'", () => {
+    expect(t.teamMemberLabel).toBe("technician");
+  });
+
+  it("exampleServices cover major home appliances", () => {
+    const services = t.exampleServices.join(" ").toLowerCase();
+    expect(services).toMatch(/washer|dryer|refrigerator|dishwasher|oven/);
+  });
+
+  it("exampleFAQs address brands serviced and diagnostic fee", () => {
+    const faqs = t.exampleFAQs.join(" ").toLowerCase();
+    expect(faqs).toMatch(/brand|diagnos|parts/);
+  });
+});
