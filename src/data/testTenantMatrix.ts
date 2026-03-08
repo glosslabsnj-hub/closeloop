@@ -1415,7 +1415,7 @@ const salesTenants: TestTenantConfig[] = [
         { question: "Can I trade in my current vehicle?", answer: "Absolutely. We accept trade-ins on all makes and models. Bring it in for a free appraisal and we'll apply the value toward your new purchase.", priority_weight: 8 },
         { question: "How do I schedule a test drive?", answer: "I can schedule a test drive for you right now! Just tell me which vehicle you're interested in and your preferred day and time.", priority_weight: 7 },
         { question: "What's the difference between new and certified pre-owned?", answer: "New vehicles have no prior ownership. Certified pre-owned (CPO) vehicles are manufacturer-inspected, often with extended warranty coverage, and are priced below new. Both are great options depending on your budget.", priority_weight: 6 },
-        { question: "Do you have weekend hours?", answer: "Yes, our showroom is open Monday through Saturday. Saturday is one of our busiest days — I recommend calling ahead or booking an appointment so a sales consultant is ready for you.", priority_weight: 5 },
+        { question: "Do you have weekend hours?", answer: "Our showroom is open Monday through Friday, 9:00 AM to 5:00 PM. We're closed on weekends. Want to schedule a visit during the week? I can check availability right now.", priority_weight: 5 },
       ],
       customSalesLeads: [
         { status: "new", priority: "high", vehicle_interest: "2025 Toyota RAV4 XLE", interest_type: "vehicle_purchase", budget_range: "$30,000-35,000", has_trade_in: true, trade_in_details: "2019 Honda CR-V ~45k miles", financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "Called about RAV4. Wants AWD. Has trade-in.", lead_number: "SL-001" },

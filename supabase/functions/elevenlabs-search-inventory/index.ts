@@ -25,9 +25,9 @@ Deno.serve(async (req: Request) => {
     const yearMin = params.year_min ? parseInt(params.year_min) : null;
     const yearMax = params.year_max ? parseInt(params.year_max) : null;
     const priceMin = params.price_min ? Math.round(parseFloat(params.price_min) * 100) : null;
-    const priceMax = params.price_max ? Math.round(parseFloat(params.price_max) * 100) : null;
+    const priceMax = params.price_max ? Math.round(parseFloat(params.price_max) * 100) : (params.max_price ? Math.round(parseFloat(params.max_price) * 100) : null);
     const condition = params.condition || "";
-    const bodyStyle = params.body_style || "";
+    const bodyStyle = params.body_style || params.category || "";
     const color = params.color || "";
     const maxResults = Math.min(parseInt(params.max_results || "5"), 10);
 

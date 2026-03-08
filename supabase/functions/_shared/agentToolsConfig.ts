@@ -1380,6 +1380,7 @@ export const SALES_AGENT_CONFIG: AgentToolsConfig = {
     createCallbackTool(
       `Create a callback for financing questions, trade-in valuations, manager requests, or when customer won't schedule but wants info. Use department field to route: 'sales', 'finance', 'service', 'manager'.`
     ),
+    createCancelBookingTool(),
     createRescheduleBookingTool(),
     createLookupBookingTool(),
     createTransferToOwnerTool(),
