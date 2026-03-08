@@ -173,6 +173,10 @@ export function DashboardByMode() {
       {caps.derivedPrimaryMode === "general" && (
         <GeneralTodayView stats={stats} />
       )}
+
+      {caps.derivedPrimaryMode === "sales" && (
+        <SalesTodayView stats={stats} />
+      )}
     </div>
   );
 }
@@ -319,6 +323,42 @@ function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode
           value={stats?.completedItems || 0}
           icon={Calendar}
           href="/app/bookings"
+        />
+      </div>
+    </div>
+  );
+}
+
+function SalesTodayView({ stats }: { stats?: TodayStats }) {
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Showroom Activity</h3>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          title="Calls Today"
+          value={stats?.callsToday || 0}
+          icon={Phone}
+          href="/app/calls"
+        />
+        <StatCard
+          title="New Prospects"
+          value={stats?.pendingItems || 0}
+          icon={Users}
+          variant={stats?.pendingItems ? "warning" : "default"}
+          href="/app/sales-pipeline"
+        />
+        <StatCard
+          title="Appointments Today"
+          value={stats?.completedItems || 0}
+          icon={Calendar}
+          variant="success"
+          href="/app/bookings"
+        />
+        <QuickActionCard
+          title="View Sales Pipeline"
+          description="Manage prospects and leads"
+          icon={DollarSign}
+          href="/app/sales-pipeline"
         />
       </div>
     </div>
