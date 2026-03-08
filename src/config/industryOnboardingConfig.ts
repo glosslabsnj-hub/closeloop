@@ -330,7 +330,20 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     preAnswers: {
       offersMobileService: true,
       offersSameDayEmergency: true,
+      chargesTripFee: true,
     },
+    setupChecklist: [
+      { label: "Add your locksmith services and pricing", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your service area and response radius", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours (including 24/7 availability)", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about response time, trip fees, and key types", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI handle a lockout", icon: "phone" },
+      { label: "Confirm your 24/7 emergency availability settings", icon: "clock" },
+      { label: "Add your service area and typical response time", icon: "map" },
+      { label: "Add FAQs about car keys, smart locks, and pricing", icon: "book" },
+    ],
     setupTitle: "your locksmith business",
   },
 
