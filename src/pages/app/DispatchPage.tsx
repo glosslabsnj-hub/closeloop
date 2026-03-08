@@ -577,6 +577,7 @@ export default function DispatchPage() {
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="normal">Normal</SelectItem>
                       <SelectItem value="high">High</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
                       <SelectItem value="emergency">Emergency</SelectItem>
                     </SelectContent>
                   </Select>

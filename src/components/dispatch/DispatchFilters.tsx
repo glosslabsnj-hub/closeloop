@@ -74,6 +74,7 @@ export function DispatchFilters({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="emergency">Emergency</SelectItem>
               <SelectItem value="urgent">Urgent</SelectItem>
               <SelectItem value="high">High</SelectItem>
               <SelectItem value="normal">Normal</SelectItem>
