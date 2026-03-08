@@ -350,3 +350,65 @@ describe("SALES_TOOLS: complete tool set for sales mode", () => {
     expect(searchInvDesc).toContain("query");
   });
 });
+
+// ---------------------------------------------------------------------------
+// 9. Onboarding: callback_delivery_settings created for sales mode
+// (bug fix: test-drive-handoff silently skipped owner notifications for new tenants)
+// ---------------------------------------------------------------------------
+
+const onboardingSubmitSource = readFileSync(
+  join(root, "src/hooks/useOnboardingSubmit.ts"),
+  "utf-8"
+);
+
+describe("useOnboardingSubmit: callback_delivery_settings for sales mode — functional/booking_sms_confirmation", () => {
+  it("creates callback_delivery_settings for sales mode (test-drive notification delivery)", () => {
+    expect(onboardingSubmitSource).toContain("callback_delivery_settings");
+  });
+
+  it("creates callback_delivery_settings when businessMode is 'sales'", () => {
+    expect(onboardingSubmitSource).toContain("businessMode === \"sales\"");
+    // The condition gate for callback settings
+    const callbackSettingsIdx = onboardingSubmitSource.indexOf("callback delivery settings");
+    const salesConditionIdx = onboardingSubmitSource.lastIndexOf(
+      "businessMode === \"sales\"",
+      callbackSettingsIdx + 500
+    );
+    expect(salesConditionIdx).toBeGreaterThan(-1);
+  });
+
+  it("creates callback_delivery_settings when tenant has sales_leads module", () => {
+    // The condition: businessMode === "sales" || enabledModules.includes("sales_leads")
+    const callbackGuardIdx = onboardingSubmitSource.indexOf(
+      'businessMode === "sales" || enabledModules.includes("sales_leads")'
+    );
+    expect(callbackGuardIdx).toBeGreaterThan(-1);
+  });
+
+  it("callback_delivery_settings sets enabled=true by default", () => {
+    const callbackRunStepIdx = onboardingSubmitSource.indexOf("callback delivery settings");
+    const callbackBlock = onboardingSubmitSource.slice(callbackRunStepIdx, callbackRunStepIdx + 600);
+    expect(callbackBlock).toContain("enabled: true");
+  });
+
+  it("callback_delivery_settings uses upsert (idempotent — safe to re-run onboarding)", () => {
+    const callbackRunStepIdx = onboardingSubmitSource.indexOf("callback delivery settings");
+    const callbackBlock = onboardingSubmitSource.slice(callbackRunStepIdx, callbackRunStepIdx + 600);
+    expect(callbackBlock).toContain("upsert");
+    expect(callbackBlock).toContain("onConflict");
+  });
+
+  it("non-regression: booking_delivery_settings still created for all modes", () => {
+    expect(onboardingSubmitSource).toContain("booking_delivery_settings");
+    // The step is called "delivery settings" in runStep
+    expect(onboardingSubmitSource).toContain('"delivery settings"');
+  });
+
+  it("non-regression: dispatch_delivery_settings still created for dispatch mode", () => {
+    expect(onboardingSubmitSource).toContain("dispatch_delivery_settings");
+  });
+
+  it("non-regression: order_delivery_settings still created for food mode", () => {
+    expect(onboardingSubmitSource).toContain("order_delivery_settings");
+  });
+});
