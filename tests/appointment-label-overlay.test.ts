@@ -99,19 +99,20 @@ describe("applyAppointmentLabel", () => {
 
   it("preserves non-booking fields from base", () => {
     const result = applyAppointmentLabel(serviceBase, "job");
-    // These should NOT change
+    // Non-booking fields should NOT change
     expect(result.service).toBe(serviceBase.service);
     expect(result.services).toBe(serviceBase.services);
     expect(result.customer).toBe(serviceBase.customer);
     expect(result.customers).toBe(serviceBase.customers);
     expect(result.addService).toBe(serviceBase.addService);
-    expect(result.bookingsPageTitle).toBe(serviceBase.bookingsPageTitle);
     expect(result.servicesPageTitle).toBe(serviceBase.servicesPageTitle);
     expect(result.servicesPageSubtitle).toBe(serviceBase.servicesPageSubtitle);
     expect(result.addServicesStep).toBe(serviceBase.addServicesStep);
     expect(result.addServicesDescription).toBe(serviceBase.addServicesDescription);
     expect(result.inboxPageTitle).toBe(serviceBase.inboxPageTitle);
     expect(result.inboxPageSubtitle).toBe(serviceBase.inboxPageSubtitle);
+    // bookingsPageTitle now derives from appointmentLabel (e.g. "Jobs" when label is "job")
+    expect(result.bookingsPageTitle).toBe("Jobs");
   });
 
   it("returns a new object (not mutating base)", () => {

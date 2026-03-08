@@ -241,6 +241,7 @@ export function applyAppointmentLabel(
     pendingBooking: `pending ${s}`,
     pendingBookings: `pending ${p}`,
     bookingsMetricLabel: capP,
+    bookingsPageTitle: capP,
     bookingsPageSubtitle: `Your calendar and upcoming ${p}`,
   };
 }
