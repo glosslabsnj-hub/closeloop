@@ -63,6 +63,7 @@ export function DashboardByMode() {
       let completedOrders = 0;
       let pendingIntakes = 0;
       let urgentIntakes = 0;
+      let pendingSalesLeads = 0;
 
       // Capability-specific queries
       if (caps.hasBooking) {
@@ -73,8 +74,21 @@ export function DashboardByMode() {
           .gte("start_at", todayStart)
           .lte("start_at", todayEnd);
 
-        pendingBookings = bookings?.filter(b => b.status === "pending_deposit").length || 0;
+        // For service mode: count deposit-pending bookings. For sales mode: count pending test drives.
+        pendingBookings = caps.isSalesBusiness
+          ? bookings?.filter(b => b.status === "pending").length || 0
+          : bookings?.filter(b => b.status === "pending_deposit").length || 0;
         completedBookings = bookings?.filter(b => b.status === "confirmed").length || 0;
+      }
+
+      // Sales leads — new/contacted prospects in the pipeline
+      if (caps.hasSalesLeads) {
+        const { count: leadsCount } = await supabase
+          .from("sales_leads")
+          .select("*", { count: "exact", head: true })
+          .eq("tenant_id", tenant.id)
+          .in("status", ["new", "contacted"]);
+        pendingSalesLeads = leadsCount || 0;
       }
 
       if (caps.hasDispatchQueue) {
@@ -113,9 +127,12 @@ export function DashboardByMode() {
       }
 
       // Combine all capabilities into the final totals
+      // For sales mode: pendingItems = active pipeline leads (new/contacted)
+      // For other modes: pendingItems = pending bookings/jobs/orders/intakes
+      const pendingItemsBase = pendingBookings + pendingDispatches + pendingOrders + pendingIntakes;
       return {
         callsToday: callsToday || 0,
-        pendingItems: pendingBookings + pendingDispatches + pendingOrders + pendingIntakes,
+        pendingItems: caps.isSalesBusiness ? pendingSalesLeads : pendingItemsBase,
         urgentItems: urgentDispatches + urgentIntakes,
         completedItems: completedBookings + completedDispatches + completedOrders,
       };
