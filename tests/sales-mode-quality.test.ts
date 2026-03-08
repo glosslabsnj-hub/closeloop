@@ -175,6 +175,19 @@ describe("salesRules: urgency/emergency routing — functional/emergency_routing
     expect(checkServiceAreaSource).toContain("in_area: true");
     expect(checkServiceAreaSource).toContain('businessMode === "sales"');
   });
+
+  it("salesRules has EMERGENCY ROUTING section for vehicle breakdown/urgent needs", () => {
+    expect(salesRulesBlock).toContain("EMERGENCY ROUTING");
+  });
+
+  it("salesRules emergency routing uses create_callback with URGENT reason for breakdowns", () => {
+    expect(salesRulesBlock).toContain("URGENT");
+  });
+
+  it("salesRules emergency routing fast-tracks check_availability for urgent vehicle needs", () => {
+    // Urgent customers (stranded, rental expired) get same-day booking attempt
+    expect(salesRulesBlock).toContain("check_availability");
+  });
 });
 
 // ---------------------------------------------------------------------------
