@@ -38,7 +38,7 @@ export function DispatchFilters({
     <div className="flex flex-col gap-4">
       {/* Status tabs */}
       <Tabs value={statusFilter} onValueChange={onStatusFilterChange}>
-        <TabsList className="bg-muted/50">
+        <TabsList className="bg-muted/50 overflow-x-auto flex-nowrap w-full justify-start">
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="en_route">En Route</TabsTrigger>
@@ -57,19 +57,19 @@ export function DispatchFilters({
       </Tabs>
 
       {/* Search and additional filters */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search jobs, customers, addresses..."
-              className="w-72 pl-9"
+              className="w-full sm:w-72 pl-9"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
             />
           </div>
           <Select value={priorityFilter} onValueChange={onPriorityFilterChange}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-32 shrink-0">
               <SelectValue placeholder="Priority" />
             </SelectTrigger>
             <SelectContent>
@@ -83,7 +83,7 @@ export function DispatchFilters({
           </Select>
         </div>
 
-        <div className="flex items-center gap-1 border rounded-md p-1">
+        <div className="flex items-center gap-1 border rounded-md p-1 self-end sm:self-auto">
           <Button
             variant={viewMode === "table" ? "secondary" : "ghost"}
             size="icon"
