@@ -258,6 +258,50 @@ describe("Full terminology chain by industry", () => {
     const result = applyAppointmentLabel(base, industryTerms.appointmentLabel);
     expect(result).toBe(base); // no change
   });
+
+  // ── New: estimate / inspection slug overrides (UX session 2026-03-08) ────
+
+  it("general contractor (home_services/general_contractor) → 'estimate'", () => {
+    const industryTerms = getIndustryTerminology("service", "home_services", "general_contractor");
+    expect(industryTerms.appointmentLabel).toBe("estimate");
+
+    const base = getTerminology("service");
+    const result = applyAppointmentLabel(base, industryTerms.appointmentLabel);
+    expect(result.booking).toBe("estimate");
+    expect(result.bookings).toBe("estimates");
+    expect(result.bookingCreated).toBe("Estimate scheduled");
+    expect(result.bookingConfirmed).toBe("Estimate confirmed");
+    expect(result.newBooking).toBe("New Estimate");
+    expect(result.viewBookings).toBe("View Estimates");
+    expect(result.bookingsPageTitle).toBe("Estimates");
+  });
+
+  it("roofing (home_services/roofing) → 'inspection'", () => {
+    const industryTerms = getIndustryTerminology("service", "home_services", "roofing");
+    expect(industryTerms.appointmentLabel).toBe("inspection");
+
+    const base = getTerminology("service");
+    const result = applyAppointmentLabel(base, industryTerms.appointmentLabel);
+    expect(result.booking).toBe("inspection");
+    expect(result.bookings).toBe("inspections");
+    expect(result.bookingCreated).toBe("Inspection scheduled");
+    expect(result.bookingConfirmed).toBe("Inspection confirmed");
+    expect(result.bookingsPageTitle).toBe("Inspections");
+  });
+
+  it("bookingsPageTitle chain: HVAC → 'Jobs', GC → 'Estimates', roofing → 'Inspections'", () => {
+    // This is the gate verified by the UX handoff: BookingsPage title must be correct per industry
+    const base = getTerminology("service");
+
+    const hvacLabel = getIndustryTerminology("service", "home_services", "hvac").appointmentLabel;
+    expect(applyAppointmentLabel(base, hvacLabel).bookingsPageTitle).toBe("Jobs");
+
+    const gcLabel = getIndustryTerminology("service", "home_services", "general_contractor").appointmentLabel;
+    expect(applyAppointmentLabel(base, gcLabel).bookingsPageTitle).toBe("Estimates");
+
+    const roofingLabel = getIndustryTerminology("service", "home_services", "roofing").appointmentLabel;
+    expect(applyAppointmentLabel(base, roofingLabel).bookingsPageTitle).toBe("Inspections");
+  });
 });
 
 // ─── Booking verb helpers (complete coverage) ──────────────────────────────
