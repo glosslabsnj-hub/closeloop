@@ -65,22 +65,25 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   // The primary phone number fallback below handles that case
 
   if (!messagingServiceSid && !fromNumber) {
-    // Fallback: use the tenant's primary phone number directly
-    // This avoids carrier-level "(AI automated)" labels from unverified toll-free numbers
-    const { data: primaryPhone } = await supabase
-      .from("phone_numbers")
-      .select("phone_e164")
-      .eq("tenant_id", tenantId)
-      .eq("status", "provisioned")
-      .eq("purpose", "primary")
-      .maybeSingle();
+    // Only use primary phone if tenant has approved 10DLC (otherwise carrier-blocks with error 30034)
+    if (a2p?.status === "approved") {
+      const { data: primaryPhone } = await supabase
+        .from("phone_numbers")
+        .select("phone_e164")
+        .eq("tenant_id", tenantId)
+        .eq("status", "provisioned")
+        .eq("purpose", "primary")
+        .maybeSingle();
 
-    if (primaryPhone?.phone_e164) {
-      fromNumber = primaryPhone.phone_e164;
-      channel = "10dlc"; // Local number, not toll-free
-      console.log(`[sms-sender] Using primary phone ${fromNumber} for tenant ${tenantId}`);
-    } else {
-      console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId}`);
+      if (primaryPhone?.phone_e164) {
+        fromNumber = primaryPhone.phone_e164;
+        channel = "10dlc";
+        console.log(`[sms-sender] Using 10DLC-approved primary phone ${fromNumber} for tenant ${tenantId}`);
+      }
+    }
+
+    if (!fromNumber) {
+      console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId} (need A2P approval or toll-free verification)`);
       return { success: false, skipped: true, reason: "no_verified_channel" };
     }
   }

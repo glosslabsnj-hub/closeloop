@@ -116,16 +116,14 @@ Deno.serve(async (req) => {
 
     if (OPT_OUT_KEYWORDS.includes(bodyLower)) {
       console.log(`[sms-webhook] Opt-out from ${normalizedFrom} for tenant ${tenantId}`);
-      // Mark customer as do_not_contact
       await supabase
         .from("customers")
         .update({ do_not_contact: true })
         .eq("tenant_id", tenantId)
         .eq("phone_e164", normalizedFrom);
 
-      return twilioResponse(
-        `You've been unsubscribed from ${businessName} messages. Reply START to resubscribe.`
-      );
+      await sendTenantSms({ tenantId, to: normalizedFrom, body: `You've been unsubscribed from ${businessName} messages. Reply START to resubscribe.` });
+      return twilioResponse("");
     }
 
     if (OPT_IN_KEYWORDS.includes(bodyLower)) {
@@ -136,17 +134,13 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId)
         .eq("phone_e164", normalizedFrom);
 
-      return twilioResponse(
-        `Welcome back! You're resubscribed to ${businessName}. Reply STOP to unsubscribe anytime.`
-      );
+      await sendTenantSms({ tenantId, to: normalizedFrom, body: `Welcome back! You're resubscribed to ${businessName}. Reply STOP to unsubscribe anytime.` });
+      return twilioResponse("");
     }
 
     if (HELP_KEYWORDS.includes(bodyLower)) {
-      return twilioResponse(
-        `${businessName}: Reply to this number to chat with us. ` +
-        `You can book, cancel, or reschedule appointments by text. ` +
-        `Reply STOP to unsubscribe.`
-      );
+      await sendTenantSms({ tenantId, to: normalizedFrom, body: `${businessName}: Reply to this number to chat with us. You can book, cancel, or reschedule appointments by text. Reply STOP to unsubscribe.` });
+      return twilioResponse("");
     }
 
     // ─── Step 3: Find or create customer + lead ──────────────────────────
@@ -317,6 +311,13 @@ Deno.serve(async (req) => {
           const elapsed = Date.now() - startTime;
           console.log(`[sms-webhook] AI reply (${aiReply.length} chars, ${elapsed}ms)`);
 
+          // Send reply via verified messaging service (TwiML reply uses the blocked local number)
+          const smsResult = await sendTenantSms({
+            tenantId,
+            to: normalizedFrom,
+            body: aiReply,
+          });
+
           // Log outbound message
           if (conversationId) {
             await supabase.from("messages").insert({
@@ -324,12 +325,13 @@ Deno.serve(async (req) => {
               conversation_id: conversationId,
               direction: "outbound",
               body: aiReply,
-              status: "sent",
-              meta_json: { channel: "sms" },
+              status: smsResult.success ? "sent" : "failed",
+              meta_json: { channel: "sms", twilio_sid: smsResult.twilioSid },
             });
           }
 
-          return twilioResponse(aiReply);
+          // Return empty TwiML — reply already sent via messaging service
+          return twilioResponse("");
         }
       } else {
         const errText = await textConvResponse.text().catch(() => "");
