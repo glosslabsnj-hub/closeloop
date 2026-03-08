@@ -152,7 +152,7 @@ export function CommunicationPreferences({
   const showBookingMode = businessMode !== "dispatch";
   const [showAdvanced, setShowAdvanced] = useState(false);
   const availableIntakeFields = getIntakeFieldsForMode(businessMode, industryCategory);
-  const terms = getIndustryTerminology(businessMode);
+  const terms = getIndustryTerminology(businessMode, industryCategory as import("@/data/industryCatalog").IndustryCategory | undefined);
   const apptLabel = terms.appointmentLabel || "appointment";
   const apptLabelPlural = apptLabel === "job" ? "jobs" : apptLabel === "visit" ? "visits" : apptLabel === "session" ? "sessions" : `${apptLabel}s`;
   const article = /^[aeiou]/i.test(apptLabel) ? "an" : "a";
