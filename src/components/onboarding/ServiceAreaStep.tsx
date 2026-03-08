@@ -45,7 +45,7 @@ const INDUSTRY_RADIUS: Record<string, number> = {
   // Medical
   dental: 10, chiropractic: 10, veterinary: 15,
   // Food
-  pizza: 8, "food-truck": 10, food_truck: 10, catering: 30, bakery: 8,
+  pizza: 8, pizzeria: 8, "food-truck": 10, food_truck: 10, catering: 30, bakery: 8,
 };
 
 export function getDefaultServiceArea(mode: BusinessMode, industrySlug?: string): ServiceAreaConfig {

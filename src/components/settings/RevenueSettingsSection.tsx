@@ -32,11 +32,12 @@ const SLUG_VALUES: Record<string, number> = {
   "lawn-care": 10000, lawn_care: 10000,             // $100 — mowing to full service
   landscaping: 30000,          // $300 — larger landscaping jobs
   "general-contractor": 500000, general_contractor: 500000, // $5,000 — avg project value
+  handyman: 15000,             // $150 — avg handyman job (hourly + small repairs)
   roofing: 100000,             // $1,000 — roof repair to replacement
   flooring: 200000,            // $2,000 — per-room flooring project
   painting: 100000,            // $1,000 — interior/exterior paint
   cleaning: 15000,             // $150 — residential clean
-  pizza: 3500,                 // $35  — avg order
+  pizza: 3500, pizzeria: 3500, // $35  — avg order
   "coffee_shop": 800,          // $8   — avg order
   bakery: 3000,                // $30  — avg order
   "catering_service": 50000, catering_service: 50000, // $500 — avg event
