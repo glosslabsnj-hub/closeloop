@@ -41,13 +41,11 @@ const toneLabels: Record<AITone, string> = {
 };
 
 function getBookingCheckLabel(mode: AIBookingMode, appointmentLabel: string): string {
-  const label = appointmentLabel;
-  const labelPlural = label.endsWith("s") ? label : label + "s";
   switch (mode) {
-    case "auto_book": return `AI ${labelPlural} automatically`;
-    case "pending_approval": return `AI books, you approve before confirming`;
-    case "suggest_callback": return `AI suggests a time, you call back to confirm`;
-    case "callback_only": return `AI collects info, you call back to book`;
+    case "auto_book": return `AI: ${getAutoBookSummary(appointmentLabel)}`;
+    case "pending_approval": return "AI books, you approve before confirming";
+    case "suggest_callback": return "AI suggests a time, you call back to confirm";
+    case "callback_only": return "AI collects info, you call back to book";
   }
 }
 
