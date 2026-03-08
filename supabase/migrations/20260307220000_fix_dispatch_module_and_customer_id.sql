@@ -43,5 +43,12 @@ WHERE id IN (
 DROP INDEX IF EXISTS public.idx_leads_tenant_phone;
 
 -- Add proper UNIQUE CONSTRAINT (allows multiple NULLs per PostgreSQL standard)
-ALTER TABLE public.leads
-  ADD CONSTRAINT leads_tenant_phone_unique UNIQUE (tenant_id, phone);
+-- Idempotent: skip if constraint already exists
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'leads_tenant_phone_unique'
+  ) THEN
+    ALTER TABLE public.leads ADD CONSTRAINT leads_tenant_phone_unique UNIQUE (tenant_id, phone);
+  END IF;
+END $$;
