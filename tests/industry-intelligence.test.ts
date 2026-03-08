@@ -409,6 +409,18 @@ describe("booking action helpers", () => {
     expect(getBookingActionPhrase("dispatch")).toBe("request service");
   });
 
+  test("getBookingActionPhrase for 'test drive' (car dealership)", () => {
+    expect(getBookingActionPhrase("test drive")).toBe("schedule a test drive");
+  });
+
+  test("getAutoBookSummary for 'test drive' (car dealership)", () => {
+    expect(getAutoBookSummary("test drive")).toBe("schedule test drives automatically");
+  });
+
+  test("getReadinessVerb for 'test drive' (car dealership)", () => {
+    expect(getReadinessVerb("test drive")).toBe("schedule test drives");
+  });
+
   test("getAutoBookSummary for 'job'", () => {
     expect(getAutoBookSummary("job")).toBe("schedule jobs automatically");
   });
@@ -621,5 +633,33 @@ describe("cross-mode question integrity", () => {
       const uniqueIds = new Set(ids);
       expect(uniqueIds.size).toBe(ids.length);
     }
+  });
+
+  test("car dealership sees only 2 visible onboarding questions (showroom-appointments + sales-team)", () => {
+    const ctx = { slug: "car-dealership-full", category: "sales_dealerships" };
+    const qs = getQuestionsForMode("sales", ctx).filter(q => q.onboardingVisible);
+    const ids = qs.map(q => q.id);
+    // showroom-appointments and sales-team are the only non-suppressed visible questions
+    expect(ids).toContain("showroom-appointments");
+    expect(ids).toContain("sales-team");
+    expect(qs).toHaveLength(2);
+    // these should be suppressed for sales_dealerships
+    expect(ids).not.toContain("test-drives");
+    expect(ids).not.toContain("lead-tracking");
+    expect(ids).not.toContain("follow-up-sequences");
+    expect(ids).not.toContain("financing");
+    expect(ids).not.toContain("trade-ins");
+    expect(ids).not.toContain("inventory-reference");
+  });
+
+  test("non-dealer sales (real estate) still sees lead-tracking and follow-up questions", () => {
+    const ctx = { slug: "real_estate", category: "property_real_estate" };
+    const qs = getQuestionsForMode("sales", ctx).filter(q => q.onboardingVisible);
+    const ids = qs.map(q => q.id);
+    expect(ids).toContain("lead-tracking");
+    expect(ids).toContain("follow-up-sequences");
+    // car-dealer-specific questions not shown for real estate
+    expect(ids).not.toContain("test-drives");
+    expect(ids).not.toContain("trade-ins");
   });
 });

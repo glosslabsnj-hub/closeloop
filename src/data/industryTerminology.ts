@@ -743,6 +743,8 @@ const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string;
   event: { actionPhrase: "book an event", autoSummary: "book events automatically", readinessVerb: "book events", activeVerb: "booking events" },
   // Pest control: scheduling a treatment
   treatment: { actionPhrase: "schedule a treatment", autoSummary: "schedule treatments automatically", readinessVerb: "schedule treatments", activeVerb: "scheduling treatments" },
+  // Car / vehicle dealerships: test drives
+  "test drive": { actionPhrase: "schedule a test drive", autoSummary: "schedule test drives automatically", readinessVerb: "schedule test drives", activeVerb: "scheduling test drives" },
 };
 
 /** Returns phrasing like "schedule a job" or "book an appointment" based on appointmentLabel */

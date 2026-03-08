@@ -125,9 +125,9 @@ const dispatchModules = ['ai_voice', 'instant_text_back', 'dispatch_queue'];
 const foodModules = ['ai_voice', 'instant_text_back', 'food_orders', 'menu_knowledge', 'reservations', 'catering'];
 const medicalModules = ['ai_voice', 'instant_text_back', 'booking', 'medical_intake'];
 const generalModules = ['ai_voice', 'instant_text_back'];
-const salesModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking'];
-const salesLeadsOnlyModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'booking'];
-const salesWithInventoryModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking', 'sales_inventory'];
+const salesModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking', 'lead_recovery'];
+const salesLeadsOnlyModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'booking', 'lead_recovery'];
+const salesWithInventoryModules = ['ai_voice', 'instant_text_back', 'sales_leads', 'test_drives', 'booking', 'sales_inventory', 'lead_recovery'];
 
 // ============= BASE TEMPLATES =============
 

@@ -40,12 +40,16 @@ const toneLabels: Record<AITone, string> = {
   casual: "Casual",
 };
 
-const bookingLabels: Record<AIBookingMode, string> = {
-  auto_book: "Auto-booking enabled — AI books instantly",
-  pending_approval: "AI books, you approve before confirming",
-  suggest_callback: "AI suggests a time, you call back to confirm",
-  callback_only: "AI collects info, you call back to book",
-};
+function getBookingCheckLabel(mode: AIBookingMode, appointmentLabel: string): string {
+  const label = appointmentLabel;
+  const labelPlural = label.endsWith("s") ? label : label + "s";
+  switch (mode) {
+    case "auto_book": return `AI ${labelPlural} automatically`;
+    case "pending_approval": return `AI books, you approve before confirming`;
+    case "suggest_callback": return `AI suggests a time, you call back to confirm`;
+    case "callback_only": return `AI collects info, you call back to book`;
+  }
+}
 
 const afterHoursLabels: Record<AfterHoursBehavior, string> = {
   ai_24_7: "24/7 AI answering",
@@ -257,7 +261,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
     { label: `${enabledServices.length} services configured`, done: enabledServices.length > 0 },
     { label: is24x7 ? "24/7 answering" : "Business hours set", done: true },
     { label: `${toneLabels[aiTone]} AI tone`, done: true },
-    { label: bookingLabels[bookingMode], done: true },
+    { label: getBookingCheckLabel(bookingMode, terms.appointmentLabel), done: true },
     { label: afterHoursLabels[afterHours], done: true },
   ];
 

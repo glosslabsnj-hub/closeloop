@@ -1002,7 +1002,9 @@ const salesQuestions: ScenarioQuestion[] = [
     impliesModules: ["test_drives"],
     group: "core",
     onboardingVisible: true,
+    // Only shown to dealers; auto-enabled since all dealers offer test drives
     industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
+    suppressedFor: { categories: ["sales_dealerships"] },
   },
   {
     id: "lead-tracking",
@@ -1015,6 +1017,8 @@ const salesQuestions: ScenarioQuestion[] = [
     group: "core",
     onboardingVisible: true,
     requiredForAI: true,
+    // Dealers always want lead tracking — auto-enable silently
+    suppressedFor: { categories: ["sales_dealerships"] },
   },
   {
     id: "follow-up-sequences",
@@ -1026,6 +1030,8 @@ const salesQuestions: ScenarioQuestion[] = [
     impliesModules: ["lead_recovery"],
     group: "core",
     onboardingVisible: true,
+    // Dealers always want follow-ups — auto-enable silently
+    suppressedFor: { categories: ["sales_dealerships"] },
   },
   {
     id: "financing",
@@ -1037,6 +1043,8 @@ const salesQuestions: ScenarioQuestion[] = [
     group: "core",
     requiredForAI: true,
     onboardingVisible: true,
+    // Virtually all dealers offer financing — auto-enable silently
+    suppressedFor: { categories: ["sales_dealerships"] },
   },
   {
     id: "trade-ins",
@@ -1048,7 +1056,9 @@ const salesQuestions: ScenarioQuestion[] = [
     group: "core",
     requiredForAI: true,
     onboardingVisible: true,
+    // Only shown to dealers; auto-enabled since most dealers accept trade-ins
     industryFilter: { slugs: ["car-dealership-new", "car-dealership-used", "car-dealership-full", "rv-dealer", "boat-dealer", "motorcycle-dealer", "equipment-sales"] },
+    suppressedFor: { categories: ["sales_dealerships"] },
   },
   {
     id: "inventory-reference",
@@ -1061,7 +1071,8 @@ const salesQuestions: ScenarioQuestion[] = [
     group: "core",
     onboardingVisible: true,
     // Real estate has MLS listings (managed externally), not internal inventory
-    suppressedFor: { slugs: ["real_estate"] },
+    // Dealers always have inventory — auto-enable silently
+    suppressedFor: { slugs: ["real_estate"], categories: ["sales_dealerships"] },
   },
   {
     id: "crm-integration",
