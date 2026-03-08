@@ -807,3 +807,38 @@ describe("buildBusinessContext — getIndustryDefaultFlow urgency industries", (
     expect(source).toContain("service_default_flow");
   });
 });
+
+describe("buildSystemPrompt — estimate-first service rules (GC/roofing regression)", () => {
+  it("includes ESTIMATE-FIRST SERVICES section in prompt builder", () => {
+    // Regression guard: when a service is tagged [ESTIMATE FIRST], the AI must
+    // know NOT to book a regular appointment but instead schedule an estimate visit.
+    expect(fnBody).toContain("ESTIMATE-FIRST SERVICES");
+    expect(fnBody).toContain("estimate_first");
+  });
+
+  it("filters services by booking_type === estimate_first", () => {
+    expect(fnBody).toContain('booking_type === "estimate_first"');
+  });
+
+  it("adds estimate-first rule only when such services exist", () => {
+    // The rule is conditional on estimateFirstServices.length > 0
+    expect(fnBody).toContain("estimateFirstServices.length > 0");
+  });
+
+  it("instructs AI to schedule ESTIMATE VISIT not a regular appointment", () => {
+    expect(fnBody).toContain("Free Estimate");
+    expect(fnBody).toContain("estimate visit");
+  });
+
+  it("forbids quoting final prices for estimate-first services", () => {
+    expect(fnBody).toContain("prices are determined after the estimate visit");
+  });
+
+  it("estimate-first rule is near SERVICES section (not buried elsewhere)", () => {
+    const servicesStart = fnBody.indexOf("SERVICES AND PRICING");
+    const estimateStart = fnBody.indexOf("ESTIMATE-FIRST SERVICES");
+    // Estimate-first rule should appear within 6000 chars of services section
+    expect(estimateStart).toBeGreaterThan(servicesStart);
+    expect(estimateStart - servicesStart).toBeLessThan(6000);
+  });
+});

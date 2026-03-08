@@ -3422,6 +3422,27 @@ function buildSystemPrompt(ctx: BusinessContext): string {
       ? `IMPORTANT: You have access to service pricing below, but CHECK POLICIES before quoting. Some services may require an in-person estimate per business policy.`
       : `IMPORTANT: You have full access to service pricing. Quote prices when they exist!`;
     prompt += `SERVICES AND PRICING:\n${pricingNote}\n\n${ctx.offerings.services_for_prompt}\n\n`;
+
+    // Add ESTIMATE_FIRST behavior rules if any services require it
+    const estimateFirstServices = ctx.offerings.services.filter(s => s.booking_type === "estimate_first");
+    if (estimateFirstServices.length > 0) {
+      const estimateFirstNames = estimateFirstServices.map(s => s.name).join(", ");
+      prompt += `ESTIMATE-FIRST SERVICES (CRITICAL RULE):
+The following services marked [ESTIMATE FIRST] require an in-person estimate BEFORE any work is scheduled:
+${estimateFirstNames}
+
+WHEN A CUSTOMER ASKS ABOUT AN ESTIMATE-FIRST SERVICE:
+1. Do NOT attempt to book a regular appointment or quote a final price.
+2. Explain: "For [service name], we start with a free on-site estimate so we can give you an accurate price."
+3. Schedule an ESTIMATE VISIT using check_availability and create_booking, with service_requested="Free Estimate - [service name]".
+4. Collect for the estimate: their address/location, brief description of what they need, and preferred date/time.
+5. Prices shown (e.g., "Starting at $X") are ballpark ranges only — the actual price is determined after the estimate visit.
+
+NEVER say "I can book that for [date]" for an estimate-first service without going through the estimate scheduling flow.
+NEVER quote a fixed final price for these services — always say prices are determined after the estimate visit.
+
+`;
+    }
   }
 
   // Menu for food mode - with detailed ordering instructions
