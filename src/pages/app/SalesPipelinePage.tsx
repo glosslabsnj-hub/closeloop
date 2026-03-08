@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag, PhoneCall } from "lucide-react";
+import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag, PhoneCall, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSalesLeads } from "@/hooks/useSalesLeads";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -126,6 +126,13 @@ export default function SalesPipelinePage() {
           />
         ) : (
           /* Kanban board */
+          <>
+          {/* Mobile scroll hint */}
+          <p className="md:hidden text-xs text-muted-foreground flex items-center gap-1">
+            <span>Swipe</span>
+            <ArrowRight className="h-3 w-3" />
+            <span>to see all stages</span>
+          </p>
           <div className="overflow-x-auto pb-4">
             <div className="flex gap-4 min-w-max">
               {PIPELINE_COLUMNS.map((col) => (
@@ -207,6 +214,7 @@ export default function SalesPipelinePage() {
               ))}
             </div>
           </div>
+          </>
         )}
       </div>
 

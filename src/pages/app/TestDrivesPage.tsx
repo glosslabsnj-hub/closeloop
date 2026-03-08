@@ -151,7 +151,7 @@ export default function TestDrivesPage() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <User className="h-3.5 w-3.5" />
                             {drive.customer?.full_name || "Unknown"}

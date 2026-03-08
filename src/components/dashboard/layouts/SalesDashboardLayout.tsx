@@ -24,9 +24,10 @@ const CAR_DEALERSHIP_SLUGS = new Set([
 export function SalesDashboardLayout() {
   const { industrySlug } = useTenantConfig();
   const isCarDealership = industrySlug ? CAR_DEALERSHIP_SLUGS.has(industrySlug) : false;
-  const { stats: driveStats, testDrives } = useTestDrives();
-  const { stats: inventoryStats } = useSalesInventory();
-  const { stats: leadStats } = useSalesLeads();
+  const { stats: driveStats, testDrives, isLoading: drivesLoading } = useTestDrives();
+  const { stats: inventoryStats, isLoading: inventoryLoading } = useSalesInventory();
+  const { stats: leadStats, isLoading: leadsLoading } = useSalesLeads();
+  const isLoading = drivesLoading || inventoryLoading || leadsLoading;
 
   // Today's test drives
   const todayDrives = testDrives.filter((d) => {
@@ -51,7 +52,7 @@ export function SalesDashboardLayout() {
                 <Car className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{driveStats.today}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : driveStats.today}</p>
                 <p className="text-xs text-muted-foreground">Test Drives Today</p>
               </div>
             </CardContent>
@@ -62,7 +63,7 @@ export function SalesDashboardLayout() {
                 <CalendarCheck className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{driveStats.thisWeek}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : driveStats.thisWeek}</p>
                 <p className="text-xs text-muted-foreground">This Week</p>
               </div>
             </CardContent>
@@ -73,7 +74,7 @@ export function SalesDashboardLayout() {
                 <Flame className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{leadStats.hot}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : leadStats.hot}</p>
                 <p className="text-xs text-muted-foreground">Hot Leads</p>
               </div>
             </CardContent>
@@ -84,7 +85,7 @@ export function SalesDashboardLayout() {
                 <Warehouse className="h-5 w-5 text-secondary-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{inventoryStats.available}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : inventoryStats.available}</p>
                 <p className="text-xs text-muted-foreground">Vehicles Available</p>
               </div>
             </CardContent>
@@ -98,7 +99,7 @@ export function SalesDashboardLayout() {
                 <PhoneCall className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{leadStats.new}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : leadStats.new}</p>
                 <p className="text-xs text-muted-foreground">New Leads</p>
               </div>
             </CardContent>
@@ -109,7 +110,7 @@ export function SalesDashboardLayout() {
                 <Flame className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{leadStats.hot}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : leadStats.hot}</p>
                 <p className="text-xs text-muted-foreground">Hot Leads</p>
               </div>
             </CardContent>
@@ -120,7 +121,7 @@ export function SalesDashboardLayout() {
                 <TrendingUp className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{leadStats.qualified}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : leadStats.qualified}</p>
                 <p className="text-xs text-muted-foreground">Qualified</p>
               </div>
             </CardContent>
@@ -131,7 +132,7 @@ export function SalesDashboardLayout() {
                 <Users className="h-5 w-5 text-secondary-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{leadStats.total}</p>
+                <p className="text-2xl font-bold">{isLoading ? <span className="text-muted-foreground">—</span> : leadStats.total}</p>
                 <p className="text-xs text-muted-foreground">Total Leads</p>
               </div>
             </CardContent>

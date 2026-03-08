@@ -177,7 +177,7 @@ function WidgetEmpty({
           </p>
 
           {/* Step-by-step flow */}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap justify-center items-center gap-2 text-xs text-muted-foreground max-w-xs">
             {steps.map((step, i) => (
               <span key={i} className="flex items-center gap-2">
                 {i > 0 && <span className="text-muted-foreground/30">&rarr;</span>}
@@ -315,8 +315,8 @@ export function ROIPerformanceWidget() {
           </div>
 
           {/* Compact metric strip */}
-          <div className="flex divide-x divide-border/30 px-5 md:px-6 py-4">
-            <div className="flex-1 pr-5">
+          <div className="grid grid-cols-2 gap-4 px-5 md:px-6 py-4 md:flex md:divide-x md:divide-border/30 md:gap-0">
+            <div className="md:flex-1 md:pr-5">
               <MetricCell
                 label="AI Revenue"
                 value={formatRevenue(data.aiRevenueCents)}
@@ -326,7 +326,7 @@ export function ROIPerformanceWidget() {
                 tooltip="Revenue from bookings created by your AI agent"
               />
             </div>
-            <div className="flex-1 px-5">
+            <div className="md:flex-1 md:px-5">
               <MetricCell
                 label={`${data.entityName} ${data.actionVerbPast}`}
                 value={data.entitiesCreated}
@@ -336,7 +336,7 @@ export function ROIPerformanceWidget() {
                 accent="text-blue-500"
               />
             </div>
-            <div className="flex-1 px-5">
+            <div className="md:flex-1 md:px-5">
               <MetricCell
                 label={data.callsLabel}
                 value={data.totalCalls}
@@ -345,7 +345,7 @@ export function ROIPerformanceWidget() {
                 accent="text-violet-500"
               />
             </div>
-            <div className="flex-1 pl-5">
+            <div className="md:flex-1 md:pl-5">
               <MetricCell
                 label="Conversion"
                 value={`${Math.round(data.conversionRate)}%`}
