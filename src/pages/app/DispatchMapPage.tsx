@@ -88,7 +88,7 @@ export default function DispatchMapPage() {
         title="Dispatch Map"
         description="Real-time driver locations and tracking"
         action={
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch
                 id="tracking"
@@ -99,7 +99,7 @@ export default function DispatchMapPage() {
                 Share my location
               </Label>
             </div>
-            <Button variant="outline" onClick={handleRefresh}>
+            <Button variant="outline" size="sm" onClick={handleRefresh}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
@@ -127,9 +127,9 @@ export default function DispatchMapPage() {
                 <Map className="h-8 w-8 text-muted-foreground" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold">Map Unavailable</h3>
+                <h3 className="text-lg font-semibold">Map Not Configured</h3>
                 <p className="text-sm text-muted-foreground max-w-md mt-1">
-                  The map could not be loaded. Please contact support.
+                  To see live driver locations on a map, a Mapbox access token needs to be set up by your administrator.
                 </p>
               </div>
             </div>
