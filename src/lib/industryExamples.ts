@@ -53,11 +53,11 @@ export const SERVICE_EXAMPLES: Record<BusinessMode, ServiceExamples> = {
     priceExamples: "Example: Basic - $99, Premium - $199",
   },
   sales: {
-    serviceName: "product",
-    serviceNamePlaceholder: "New Sedan, Used SUV, Solar Panel Package, 3-Bed Home, etc.",
-    descriptionPlaceholder: "Key features, specs, and selling points...",
-    durationHint: "Average appointment or demo length",
-    priceExamples: "Example: Starting at $25,000, From $199/mo with financing",
+    serviceName: "service",
+    serviceNamePlaceholder: "Test Drive, Financing Consultation, Trade-In Appraisal, etc.",
+    descriptionPlaceholder: "What this appointment covers and what the customer should expect...",
+    durationHint: "Average appointment length",
+    priceExamples: "Example: Free, Starting at $X, Quote-only",
   },
 };
 

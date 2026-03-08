@@ -266,6 +266,12 @@ Deno.serve(async (req) => {
       // Re-seed
       await seedTenantData(serviceClient, tenantId, config);
 
+      // Fix greeting script to match current business name
+      await serviceClient
+        .from("ai_assistants")
+        .update({ greeting_script: `Thanks for calling ${config.name}! How can I help you today?` })
+        .eq("tenant_id", tenantId);
+
       return new Response(JSON.stringify({ tenant_id: tenantId, status: "reseeded" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

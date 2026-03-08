@@ -1404,7 +1404,7 @@ const salesTenants: TestTenantConfig[] = [
       serviceCount: 5,
       customServices: [
         { name: "Test Drive", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 0 },
-        { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "fixed", display_order: 1 },
+        { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "quote_only", display_order: 1 },
         { name: "Trade-In Appraisal", description: "Bring your vehicle in for a free trade-in value assessment", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 2 },
         { name: "Vehicle Delivery Setup", description: "Walk through your new vehicle features and complete delivery paperwork", duration_minutes: 60, price_amount: 0, price_type: "fixed", display_order: 3 },
         { name: "Service Department Appointment", description: "Schedule maintenance or repairs with our certified technicians", duration_minutes: 60, price_amount: 0, price_type: "quote_only", display_order: 4 },
@@ -1416,6 +1416,12 @@ const salesTenants: TestTenantConfig[] = [
         { question: "How do I schedule a test drive?", answer: "I can schedule a test drive for you right now! Just tell me which vehicle you're interested in and your preferred day and time.", priority_weight: 7 },
         { question: "What's the difference between new and certified pre-owned?", answer: "New vehicles have no prior ownership. Certified pre-owned (CPO) vehicles are manufacturer-inspected, often with extended warranty coverage, and are priced below new. Both are great options depending on your budget.", priority_weight: 6 },
         { question: "Do you have weekend hours?", answer: "Our showroom is open Monday through Friday, 9:00 AM to 5:00 PM. We're closed on weekends. Want to schedule a visit during the week? I can check availability right now.", priority_weight: 5 },
+      ],
+      customObjections: [
+        { objection: "That's too expensive", response: "I completely understand — this is a big purchase. Let me walk you through the total cost of ownership including our warranty coverage, fuel savings, and financing rates. Many customers are surprised how affordable the monthly payment is. What's your ideal monthly budget?", priority_weight: 10 },
+        { objection: "I need to think about it", response: "Of course, take all the time you need! I just want to make sure you have everything you need to make a confident decision. Is there a specific concern I can help clarify — like pricing, financing, or a feature comparison?", priority_weight: 9 },
+        { objection: "Can I get it cheaper? / Can you match another dealer's price?", response: "We appreciate you shopping around — that's smart. Share the competing offer and I'll do my best to match or beat it. We also back every purchase with our price-match guarantee and a 7-day return policy, so you're fully protected.", priority_weight: 8 },
+        { objection: "I need to talk to my spouse / partner first", response: "Absolutely — this is a big decision and it's great that you two make it together. Would you like to schedule a time to come in together? I can have the vehicle prepped for a test drive and put together a full breakdown to make the conversation easy.", priority_weight: 7 },
       ],
       customSalesLeads: [
         { status: "new", priority: "high", vehicle_interest: "2025 Toyota RAV4 XLE", interest_type: "vehicle_purchase", budget_range: "$30,000-35,000", has_trade_in: true, trade_in_details: "2019 Honda CR-V ~45k miles", financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "Called about RAV4. Wants AWD. Has trade-in.", lead_number: "SL-001" },
