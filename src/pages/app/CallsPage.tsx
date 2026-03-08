@@ -353,7 +353,7 @@ export default function CallsPage() {
         <div className="relative max-w-md w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, phone, or service..."
+            placeholder={`Search by name, phone, or ${terms.service}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -398,7 +398,7 @@ export default function CallsPage() {
                       <TableHead className="w-[160px]">{terms.customer.charAt(0).toUpperCase() + terms.customer.slice(1)}</TableHead>
                       <TableHead className="w-[100px]">Time</TableHead>
                       <TableHead className="w-[130px]">Phone</TableHead>
-                      <TableHead className="w-[180px]">Service</TableHead>
+                      <TableHead className="w-[180px]">{terms.service.charAt(0).toUpperCase() + terms.service.slice(1)}</TableHead>
                       <TableHead className="min-w-[200px]">AI Summary</TableHead>
                       <TableHead className="w-[120px] text-center">Follow-up</TableHead>
                       <TableHead className="w-[60px]"></TableHead>

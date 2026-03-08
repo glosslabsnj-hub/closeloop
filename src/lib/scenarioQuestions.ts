@@ -1056,7 +1056,7 @@ const salesQuestions: ScenarioQuestion[] = [
     label: "Inventory Reference",
     question: "Do you have inventory the AI should reference?",
     description: "The AI can mention available vehicles, products, or listings during calls",
-    defaultValue: false,
+    defaultValue: true,
     impliesModules: ["sales_inventory"],
     group: "core",
     onboardingVisible: true,
