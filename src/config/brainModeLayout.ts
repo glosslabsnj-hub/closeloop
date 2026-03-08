@@ -412,7 +412,7 @@ const SALES_LAYOUT: ModeLayout = {
       icon: Calendar,
       order: 3,
       groups: [
-        { key: "where-you-work", label: "Service Area", itemIds: ["coverage"] },
+        { key: "where-you-work", label: "Showroom & Coverage", itemIds: ["coverage"] },
         { key: "sales-settings", label: "Sales Settings", itemIds: ["sales-policies"] },
         { key: "delivery", label: "Notifications", itemIds: ["booking-delivery", "callback-delivery"] },
       ],

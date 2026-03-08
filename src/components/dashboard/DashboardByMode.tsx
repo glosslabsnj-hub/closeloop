@@ -349,10 +349,11 @@ function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode
 
 function SalesTodayView({ stats }: { stats?: TodayStats }) {
   const { terms } = useIndustryContext();
+  const bookingsLabel = terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1);
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Today's {terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1)} Activity</h3>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <h3 className="text-lg font-semibold">Today's Sales Activity</h3>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Calls Today"
           value={stats?.callsToday || 0}
@@ -367,12 +368,13 @@ function SalesTodayView({ stats }: { stats?: TodayStats }) {
           href="/app/sales-pipeline"
         />
         <StatCard
-          title={`${terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1)} Today`}
+          title={`${bookingsLabel} Today`}
           value={stats?.completedItems || 0}
           icon={Calendar}
           variant="success"
           href="/app/bookings"
         />
+        <AutomationStatusCard />
         <QuickActionCard
           title="View Sales Pipeline"
           description="Manage prospects and leads"
