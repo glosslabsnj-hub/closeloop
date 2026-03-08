@@ -334,6 +334,29 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your roofing company",
   },
 
+  handyman: {
+    preAnswers: {
+      offersMobileService: true,
+      chargesTripFee: false,
+      offersFreeEstimates: true,
+      requiresDeposits: false,
+      offersSameDay: true,
+    },
+    setupChecklist: [
+      { label: "Add your services and pricing", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your hours (can you do same-day?)", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about what you can and can't do", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Set your service area radius", icon: "map" },
+      { label: "Add FAQs about minor plumbing, electrical, and pricing", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your handyman business",
+  },
+
   general_contractor: {
     preAnswers: {
       offersMobileService: true,

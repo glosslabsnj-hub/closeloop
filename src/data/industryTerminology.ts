@@ -355,6 +355,13 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["Free Roof Inspection", "Leak Repair", "Shingle Replacement", "Full Roof Replacement"],
     exampleFAQs: ["Do you handle insurance claims?", "Is your roof inspection free?", "How long does a roof replacement take?"],
   },
+  "handyman": {
+    teamMemberLabel: "handyman",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Faucet Repair",
+    exampleServices: ["Small Repair", "Half Day", "Full Day", "TV Mounting", "Furniture Assembly"],
+    exampleFAQs: ["Do you do minor plumbing?", "Do you charge by the hour or by the job?", "Can you handle multiple repairs in one visit?"],
+  },
 };
 
 // ---------------------------------------------------------------------------
