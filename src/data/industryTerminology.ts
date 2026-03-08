@@ -231,7 +231,26 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["Exterior Wash", "Interior Detail", "Full Detail Package", "Ceramic Coating"],
     exampleFAQs: ["How long does a full detail take?", "Do you come to me?", "What's included in the ceramic coating?"],
   },
+  // alias: industryCatalog uses underscore slug
+  "auto_detailing": {
+    servicesLabel: "Detailing Packages",
+    catalogCardTitle: "Your Detailing Packages",
+    addItemButton: "Add Package",
+    itemNamePlaceholder: "e.g. Full Detail Package",
+    servicesCategoryTitle: "Detailing Packages",
+    exampleServices: ["Exterior Wash", "Interior Detail", "Full Detail Package", "Ceramic Coating"],
+    exampleFAQs: ["How long does a full detail take?", "Do you come to me?", "What's included in the ceramic coating?"],
+  },
   "hair-salon": {
+    servicesLabel: "Salon Services",
+    catalogCardTitle: "Your Salon Services",
+    addItemButton: "Add Salon Service",
+    itemNamePlaceholder: "e.g. Women's Haircut",
+    servicesCategoryTitle: "Salon Services",
+    exampleServices: ["Women's Haircut", "Men's Haircut", "Color & Highlights", "Keratin Treatment"],
+  },
+  // alias: industryCatalog uses "salon" slug
+  "salon": {
     servicesLabel: "Salon Services",
     catalogCardTitle: "Your Salon Services",
     addItemButton: "Add Salon Service",
@@ -257,6 +276,15 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["Local Tow (0-10 mi)", "Medium Tow (10-25 mi)", "Long-Distance Tow", "Flatbed Transport"],
   },
   "pizza": {
+    servicesLabel: "Menu",
+    catalogCardTitle: "Your Menu",
+    addItemButton: "Add Menu Item",
+    itemNamePlaceholder: "e.g. Build Your Own Pizza",
+    servicesCategoryTitle: "Menu",
+    exampleServices: ["Build Your Own Pizza", "Specialty Pizza", "Wings", "Salads"],
+  },
+  // alias: industryCatalog uses "pizzeria" slug
+  "pizzeria": {
     servicesLabel: "Menu",
     catalogCardTitle: "Your Menu",
     addItemButton: "Add Menu Item",
@@ -333,6 +361,11 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["AC Tune-Up", "Furnace Repair", "Duct Cleaning", "System Install"],
   },
   "lawn-care": {
+    teamMemberLabel: "crew member",
+    exampleServices: ["Mowing", "Fertilization", "Aeration", "Leaf Cleanup"],
+  },
+  // alias: industryCatalog uses "landscaping" slug
+  "landscaping": {
     teamMemberLabel: "crew member",
     exampleServices: ["Mowing", "Fertilization", "Aeration", "Leaf Cleanup"],
   },

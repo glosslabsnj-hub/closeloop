@@ -165,6 +165,7 @@ const INDUSTRY_PRICING_MODELS: Record<string, PricingModelType> = {
 
   // Food — fixed menu
   "pizza": "fixed_menu",
+  "pizzeria": "fixed_menu",
   "chinese_restaurant": "fixed_menu",
   "indian_restaurant": "fixed_menu",
   "mexican_restaurant": "fixed_menu",

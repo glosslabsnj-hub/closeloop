@@ -491,6 +491,22 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
       },
     },
   },
+  // alias: industryCatalog uses "salon" slug
+  "salon": {
+    pricing: {
+      priceModifiersLabel: "Add-On Fees",
+    },
+    dashboard: {
+      primaryMetricLabel: "Appointments This Week",
+      quickActionLabel: "New Appointment",
+      quickActionDescription: "Book a new client",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add salon services — cuts, color, treatments, blowouts.",
+      },
+    },
+  },
   "plumbing": {
     pricing: {
       priceModifiersLabel: "Trip Fees & Surcharges",
@@ -572,6 +588,25 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
       },
     },
   },
+  // alias: industryCatalog uses "pizzeria" slug
+  "pizzeria": {
+    pricing: {
+      priceModifiersLabel: "Delivery & Extra Fees",
+    },
+    inbox: {
+      previewFields: ["order.type", "order.items"],
+    },
+    dashboard: {
+      primaryMetricLabel: "Orders Today",
+      quickActionLabel: "New Order",
+      quickActionDescription: "Enter a phone order",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Set up your menu — pizzas, sides, drinks, specials.",
+      },
+    },
+  },
   "dental": {
     pricing: {
       priceModifiersLabel: "Additional Fees",
@@ -595,6 +630,17 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
     },
   },
   "auto-detailing": {
+    pricing: {
+      priceModifiersLabel: "Vehicle Size Surcharges",
+    },
+    dashboard: {
+      primaryMetricLabel: "Appointments This Week",
+      quickActionLabel: "New Detail",
+      quickActionDescription: "Book a detailing appointment",
+    },
+  },
+  // alias: industryCatalog uses "auto_detailing" slug
+  "auto_detailing": {
     pricing: {
       priceModifiersLabel: "Vehicle Size Surcharges",
     },

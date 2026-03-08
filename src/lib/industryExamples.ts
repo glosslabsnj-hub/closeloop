@@ -243,6 +243,23 @@ const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
     serviceNamePlaceholder: "Build Your Own Pizza, Specialty Pizza, Wings, Salads",
     priceExamples: "Example: Large Pizza - $18.99, Wings (12pc) - $14.99",
   },
+  // aliases: industryCatalog uses underscore/full slugs
+  "auto_detailing": {
+    serviceName: "package",
+    serviceNamePlaceholder: "Exterior Wash, Interior Detail, Full Detail, Ceramic Coating",
+    priceExamples: "Example: Full Detail - $150, Ceramic Coating - Starting at $500",
+  },
+  "salon": {
+    serviceName: "service",
+    serviceNamePlaceholder: "Women's Cut, Balayage, Keratin Treatment, Blowout",
+    descriptionPlaceholder: "What's included — products used, estimated time, aftercare...",
+    priceExamples: "Example: Women's Cut - $65, Balayage - Starting at $180",
+  },
+  "pizzeria": {
+    serviceName: "menu item",
+    serviceNamePlaceholder: "Build Your Own Pizza, Specialty Pizza, Wings, Salads",
+    priceExamples: "Example: Large Pizza - $18.99, Wings (12pc) - $14.99",
+  },
 };
 
 /**
@@ -312,6 +329,12 @@ const SLUG_PROFILE_OVERRIDES: Record<string, Partial<ProfileExamples>> = {
     taglinePlaceholder: "Where great hair happens",
     taglineHint: "Example: \"Expert colorists on staff\" or \"Walk-ins welcome\"",
   },
+  // alias: industryCatalog uses "salon" slug
+  "salon": {
+    businessNamePlaceholder: "Luxe Salon, The Hair Studio, Bliss Beauty Bar",
+    taglinePlaceholder: "Where great hair happens",
+    taglineHint: "Example: \"Expert colorists on staff\" or \"Walk-ins welcome\"",
+  },
   "barbershop": {
     businessNamePlaceholder: "Classic Cuts Barber, The Fade Shop, Main Street Barbers",
     taglinePlaceholder: "Great cuts, old school service",
@@ -366,7 +389,9 @@ export const SLUG_COMPLEXITY_OVERRIDES: Record<string, { simple: string; complex
   "plumbing": { simple: "Drain cleaning, faucet repair, toilet fix", complex: "Pipe replacement, water heater, sewer line" },
   "auto-repair": { simple: "Oil change, tire rotation, brake pads", complex: "Engine diagnostic, electrical, transmission" },
   "auto-detailing": { simple: "Basic wash, interior vacuum, wax", complex: "Full detail, ceramic coating, paint correction" },
+  "auto_detailing": { simple: "Basic wash, interior vacuum, wax", complex: "Full detail, ceramic coating, paint correction" },
   "hair-salon": { simple: "Cut, blowout, basic color", complex: "Balayage, extensions, keratin treatment" },
+  "salon": { simple: "Cut, blowout, basic color", complex: "Balayage, extensions, keratin treatment" },
   "dental": { simple: "Cleaning, filling, routine exam", complex: "Crown, root canal, cosmetic procedure" },
   "electrical": { simple: "Outlet install, light fixture, switch", complex: "Panel upgrade, rewiring, inspection" },
   "cleaning": { simple: "Standard cleaning, touch-up", complex: "Deep clean, move-out, post-construction" },
@@ -399,7 +424,9 @@ export const SLUG_PRICE_FACTOR_OVERRIDES: Record<string, string> = {
   "cleaning": "e.g., Square footage, property type (home/commercial), frequency, deep clean",
   "auto-repair": "e.g., Vehicle make/model/year, part availability, labor complexity",
   "auto-detailing": "e.g., Vehicle size (car/SUV/truck), interior condition, package tier",
+  "auto_detailing": "e.g., Vehicle size (car/SUV/truck), interior condition, package tier",
   "towing": "e.g., Vehicle weight, tow distance, time of day, road conditions",
   "hair-salon": "e.g., Hair length, color complexity, product used",
+  "salon": "e.g., Hair length, color complexity, product used",
   "dental": "e.g., Number of teeth, complexity, insurance coverage",
 };

@@ -148,6 +148,27 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     ],
     setupTitle: "your salon",
   },
+  // alias: industryCatalog uses "salon" slug
+  salon: {
+    preAnswers: {
+      offersWalkIns: true,
+      hasMultipleStaff: true,
+      collectsStylistPreference: true,
+    },
+    setupChecklist: [
+      { label: "Add your salon services and pricing", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Connect your calendar", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+      { label: "Add stylist/team member info", fixPath: "/app/business-brain?section=services", icon: "team" },
+      { label: "Add common client questions", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI", icon: "phone" },
+      { label: "Connect your calendar for live booking", icon: "calendar" },
+      { label: "Add FAQs about your salon services", icon: "book" },
+      { label: "Customize your AI's greeting and scripts", icon: "sparkles" },
+    ],
+    setupTitle: "your salon",
+  },
 
   auto_repair: {
     preAnswers: {
