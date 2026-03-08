@@ -87,7 +87,7 @@ export function AINeverPromiseEditor() {
           Things the AI Should Never Promise
         </CardTitle>
         <CardDescription>
-          Define guardrails to prevent your AI from making commitments you can't keep.
+          Set limits to prevent your AI from making commitments you can't keep.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

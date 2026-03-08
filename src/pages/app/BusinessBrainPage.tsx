@@ -15,6 +15,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { UtensilsCrossed, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Hooks
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -373,8 +374,19 @@ export default function BusinessBrainPage() {
 
   if (!tenant) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="flex flex-col gap-4 p-6 max-w-screen-xl mx-auto">
+        <Skeleton className="h-10 w-48" />
+        <div className="flex gap-6">
+          <div className="w-56 space-y-2">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-9 w-full rounded-md" />)}
+          </div>
+          <div className="flex-1 space-y-4">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
       </div>
     );
   }

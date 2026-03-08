@@ -566,7 +566,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
   },
   {
     id: "never-promise",
-    title: "Guardrails",
+    title: "AI Limits",
     icon: Shield,
     group: "business-rules",
     groupLabel: "Business Rules",

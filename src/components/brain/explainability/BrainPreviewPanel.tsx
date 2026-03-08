@@ -151,7 +151,7 @@ export function BrainPreviewPanel({ open, onOpenChange, activeSection }: BrainPr
             status: summaries.policies !== "No policies set yet" ? "complete" : "missing",
           },
           {
-            label: "Guardrails",
+            label: "AI Limits",
             value: summaries.guardrails !== "No limits set yet" ? summaries.guardrails : null,
             status: summaries.guardrails !== "No limits set yet" ? "complete" : "missing",
           },
