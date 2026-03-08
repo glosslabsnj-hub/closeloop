@@ -126,6 +126,17 @@ const SLUG_CALLER_MESSAGES: Record<string, string> = {
   // Pet services
   pet_grooming: "I need to get my golden retriever groomed. Do you have any openings this week?",
   veterinary: "My cat hasn't been eating. Can I get her in to see the vet today?",
+  // Sales industries
+  "car-dealership-new": "I'm looking for a new SUV, something with good gas mileage. What do you have on the lot?",
+  "car-dealership-used": "I saw a used Camry on your website. Is it still available? Can I come take a look?",
+  "car-dealership-full": "I'm interested in trading in my current car and getting something newer. Can you help with that?",
+  "rv-dealer": "We're planning a family road trip and thinking about buying an RV. What's a good starter model?",
+  "boat-dealer": "I'm in the market for a fishing boat, nothing too big. Can I schedule a time to come see what you have?",
+  "motorcycle-dealer": "I'm looking to get my first motorcycle. Can I come in and talk through my options?",
+  "equipment-sales": "We need a skid steer for a landscaping project. Do you have any available for purchase or rent?",
+  real_estate: "Hi, I saw a listing on Zillow that you have. I'd love to schedule a showing this weekend if possible.",
+  "solar-installer": "I've been thinking about going solar. Can I get a free assessment to see how much I could save?",
+  "insurance-agency": "I'm shopping around for home and auto insurance. Can I get a quote from your agency?",
 };
 
 function getCallerMessage(mode: BusinessMode, slug?: string): string {
