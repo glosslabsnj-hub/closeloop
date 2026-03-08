@@ -20,8 +20,11 @@ const STATUS_DOTS: { key: string; label: string; color: string }[] = [
 
 export function DispatchCommandStats({ jobs, onStatusClick }: DispatchCommandStatsProps) {
   const activeStatuses = ["pending", "assigned", "en_route", "on_site"];
+  const emergencyCount = jobs.filter(
+    (j) => j.priority === "emergency" && activeStatuses.includes(j.status)
+  ).length;
   const urgentCount = jobs.filter(
-    (j) => j.priority === "urgent" && activeStatuses.includes(j.status)
+    (j) => (j.priority === "urgent" || j.priority === "emergency") && activeStatuses.includes(j.status)
   ).length;
 
   const completedToday = jobs.filter(
@@ -39,18 +42,27 @@ export function DispatchCommandStats({ jobs, onStatusClick }: DispatchCommandSta
 
   return (
     <div className="space-y-3">
-      {/* Urgent banner */}
-      {urgentCount > 0 && (
+      {/* Emergency banner (highest priority) */}
+      {emergencyCount > 0 && (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-destructive border border-destructive animate-pulse">
+          <AlertTriangle className="h-4 w-4 text-destructive-foreground shrink-0" />
+          <p className="text-sm font-bold text-destructive-foreground">
+            {emergencyCount} EMERGENCY job{emergencyCount > 1 ? "s" : ""} — dispatch immediately
+          </p>
+        </div>
+      )}
+      {/* Urgent banner (urgent but not emergency) */}
+      {urgentCount > emergencyCount && (
         <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-destructive/10 border border-destructive/30">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
           <p className="text-sm font-medium text-destructive">
-            {urgentCount} urgent job{urgentCount > 1 ? "s" : ""} need immediate dispatch
+            {urgentCount - emergencyCount} urgent job{urgentCount - emergencyCount > 1 ? "s" : ""} need immediate dispatch
           </p>
         </div>
       )}
 
       {/* Compact stats bar */}
-      <div className="flex items-center gap-5 text-sm">
+      <div className="flex items-center flex-wrap gap-x-5 gap-y-2 text-sm">
         {STATUS_DOTS.map((stat) => (
           <button
             key={stat.key}
