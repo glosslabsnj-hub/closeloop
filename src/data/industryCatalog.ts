@@ -119,6 +119,8 @@ const medicalPolicies = {
 // ============= MODULE PRESETS BY MODE =============
 
 const serviceModules = ['ai_voice', 'instant_text_back', 'booking'];
+// Service + estimates: for businesses that create formal quotes (GC, roofing, painting large jobs)
+const serviceWithEstimatesModules = ['ai_voice', 'instant_text_back', 'booking', 'estimates'];
 const dispatchModules = ['ai_voice', 'instant_text_back', 'dispatch_queue'];
 const foodModules = ['ai_voice', 'instant_text_back', 'food_orders', 'menu_knowledge', 'reservations', 'catering'];
 const medicalModules = ['ai_voice', 'instant_text_back', 'booking', 'medical_intake'];
@@ -366,6 +368,7 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     name: 'General Contractor',
     icon: '🔨',
     tags: ['general contractor', 'gc', 'remodel', 'renovation', 'addition', 'deck', 'basement', 'kitchen remodel', 'bathroom remodel', 'handyman', 'construction'],
+    enabledModules: serviceWithEstimatesModules, // GC needs estimates module for creating formal project quotes
     services: [
       { name: 'Kitchen Remodel', duration: 0, price: 0, priceType: 'quote_only', bookingType: 'estimate_first' },
       { name: 'Bathroom Remodel', duration: 0, price: 0, priceType: 'quote_only', bookingType: 'estimate_first' },
@@ -408,13 +411,14 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     name: 'Roofing',
     icon: '🏠',
     tags: ['roofing', 'roof', 'shingles', 'leak', 'gutter', 'siding'],
+    enabledModules: serviceWithEstimatesModules, // Roofing creates formal estimates for large jobs
     services: [
       { name: 'Roof Inspection', duration: 60, price: 0, priceType: 'fixed' },
       { name: 'Leak Repair', duration: 120, price: 350, priceType: 'starting_at' },
       { name: 'Shingle Replacement', duration: 180, price: 500, priceType: 'starting_at' },
       { name: 'Gutter Cleaning', duration: 90, price: 150, priceType: 'starting_at' },
-      { name: 'Gutter Installation', duration: 240, price: 0, priceType: 'quote_only' },
-      { name: 'Full Roof Replacement', duration: 480, price: 0, priceType: 'quote_only' },
+      { name: 'Gutter Installation', duration: 240, price: 0, priceType: 'quote_only', bookingType: 'estimate_first' },
+      { name: 'Full Roof Replacement', duration: 480, price: 0, priceType: 'quote_only', bookingType: 'estimate_first' },
     ],
   },
   {
