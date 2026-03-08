@@ -253,7 +253,10 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     addItemButton: "Add Salon Service",
     itemNamePlaceholder: "e.g. Women's Haircut",
     servicesCategoryTitle: "Salon Services",
+    teamMemberLabel: "stylist",
+    customerLabel: "client",
     exampleServices: ["Women's Haircut", "Men's Haircut", "Color & Highlights", "Keratin Treatment"],
+    exampleFAQs: ["Do I need an appointment?", "Can I request a specific stylist?", "What's the best way to book?"],
   },
   // alias: industryCatalog uses "salon" slug
   "salon": {
@@ -262,7 +265,10 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     addItemButton: "Add Salon Service",
     itemNamePlaceholder: "e.g. Women's Haircut",
     servicesCategoryTitle: "Salon Services",
+    teamMemberLabel: "stylist",
+    customerLabel: "client",
     exampleServices: ["Women's Haircut", "Men's Haircut", "Color & Highlights", "Keratin Treatment"],
+    exampleFAQs: ["Do I need an appointment?", "Can I request a specific stylist?", "What's the best way to book?"],
   },
   "barbershop": {
     servicesLabel: "Barber Services",
@@ -422,6 +428,14 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleFAQs: ["Do you provide free estimates?", "Do you supply the paint?", "How long does exterior painting take?"],
   },
   "pest_control": {
+    servicesLabel: "Pest Control Services",
+    catalogCardTitle: "Your Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. General Pest Treatment",
+    servicesCategoryTitle: "Pest Control Services",
+    teamMemberLabel: "pest tech",
+    appointmentLabel: "treatment",
+    customerLabel: "customer",
     exampleServices: ["General Pest Treatment", "Termite Inspection", "Rodent Control", "Bed Bug Treatment", "Quarterly Plan"],
     exampleFAQs: ["Is your treatment safe for pets?", "How long does treatment take?", "Do you offer a warranty?"],
   },

@@ -326,6 +326,49 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your bar",
   },
 
+  pest_control: {
+    preAnswers: {
+      offersMobileService: true,
+      offersSameDayEmergency: true,
+      offersRecurringService: true,
+      chargesTripFee: false,
+    },
+    setupChecklist: [
+      { label: "Add your treatments and service plans", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about safety, pets, and treatment effectiveness", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI schedule a treatment", icon: "phone" },
+      { label: "Set your service area and response zone", icon: "map" },
+      { label: "Add FAQs about pet safety, guarantees, and pricing", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your pest control business",
+  },
+
+  cleaning: {
+    preAnswers: {
+      offersMobileService: true,
+      offersRecurringService: true,
+      requiresDeposits: false,
+    },
+    setupChecklist: [
+      { label: "Add your cleaning services and pricing", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your hours of availability", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about supplies, pets, and recurring discounts", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call to hear your AI book a cleaning", icon: "phone" },
+      { label: "Set your service area and coverage zone", icon: "map" },
+      { label: "Add FAQs about what's included, pets, and pricing", icon: "book" },
+      { label: "Customize your AI's greeting and scripts", icon: "sparkles" },
+    ],
+    setupTitle: "your cleaning business",
+  },
+
   locksmith: {
     preAnswers: {
       offersMobileService: true,
