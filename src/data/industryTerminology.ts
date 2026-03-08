@@ -617,6 +617,21 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleFAQs: ["What areas do you specialize in?", "What's the home buying process?", "Do I need to be pre-approved before viewing homes?", "What's your commission?"],
   },
 
+  // alias: industryCatalog uses "real-estate-agency" slug for sales mode real estate
+  "real-estate-agency": {
+    appointmentLabel: "showing",
+    customerLabel: "buyer",
+    teamMemberLabel: "agent",
+    servicesLabel: "What We Help With",
+    catalogCardTitle: "Our Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Buyer Representation",
+    servicesCategoryTitle: "Real Estate Services",
+    locationLabel: "office",
+    exampleServices: ["Buyer Representation", "Seller Representation", "First-Time Buyers", "Investment Properties", "Luxury Homes"],
+    exampleFAQs: ["What areas do you specialize in?", "What's the home buying process?", "Do I need to be pre-approved before viewing homes?", "What's your commission?"],
+  },
+
   "solar-installer": {
     appointmentLabel: "consultation",
     customerLabel: "homeowner",

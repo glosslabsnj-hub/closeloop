@@ -559,6 +559,26 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your real estate business",
   },
 
+  // alias: industryCatalog uses "real-estate-agency" slug for sales mode real estate
+  "real-estate-agency": {
+    preAnswers: {
+      offersShowings: true,
+    },
+    setupChecklist: [
+      { label: "Add your listing types and price ranges", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your availability for showings", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about your process, buyer consultation, and market areas", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for showing appointments", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'I'm looking for a 3-bedroom home near good schools'", icon: "phone" },
+      { label: "Add your coverage areas and listing types", icon: "services" },
+      { label: "Add FAQs about your buyer consultation and the home buying process", icon: "book" },
+      { label: "Customize your AI's greeting to match your brand", icon: "sparkles" },
+    ],
+    setupTitle: "your real estate agency",
+  },
+
   "solar-installer": {
     preAnswers: {
       offersFreeEstimates: true,
