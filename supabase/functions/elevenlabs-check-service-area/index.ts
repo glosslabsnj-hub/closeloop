@@ -203,6 +203,32 @@ serve(async (req: Request) => {
     const distanceSettings = distanceSettingsResult.data;
     const towingServices = towingServicesResult.data || [];
 
+    // SALES MODE: Showroom-based businesses have no geographic service restriction.
+    // Car dealerships, real estate agencies, insurance offices — customers come to them.
+    if (businessMode === "sales") {
+      return new Response(
+        JSON.stringify({
+          in_area: true,
+          distance_miles: null,
+          tow_distance_miles: null,
+          dropoff_geocoded: null,
+          dropoff_in_area: null,
+          dropoff_coverage_note: null,
+          eta_minutes: null,
+          eta_range: "",
+          message: "You're all set — our showroom welcomes everyone. Would you like to schedule a visit?",
+          service_tier: "local",
+          pricing_note: "",
+          local_radius_miles: null,
+          distance_basis_used: "sales_mode_bypass",
+          price_breakdown: null,
+          out_of_area_message: null,
+          needs_verification: false,
+        } as ServiceAreaResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // FOOD MODE: Use delivery zone check instead of dispatch distance logic
     if (businessMode === "food") {
       const deliveryRadiusMiles = (serviceArea?.radius_miles as number) || (serviceArea?.miles as number) || 10; // Default 10mi for food, not 100
