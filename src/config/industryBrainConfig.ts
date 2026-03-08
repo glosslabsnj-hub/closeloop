@@ -604,6 +604,26 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
       quickActionDescription: "Book a detailing appointment",
     },
   },
+  "handyman": {
+    pricing: {
+      priceModifiersLabel: "Trip Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Job Type",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Job",
+      quickActionDescription: "Schedule a new handyman job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — TV mounting, furniture assembly, drywall repair, caulking, etc.",
+      },
+    },
+  },
   "general_contractor": {
     pricing: {
       priceModifiersLabel: "Project Fees & Surcharges",
