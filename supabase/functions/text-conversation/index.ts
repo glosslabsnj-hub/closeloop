@@ -196,6 +196,67 @@ const DISPATCH_TOOLS: Anthropic.Tool[] = [
 ];
 
 /**
+ * Sales-mode tools (dealerships, real estate, solar, insurance, high-ticket retail).
+ */
+const SALES_TOOLS: Anthropic.Tool[] = [
+  {
+    name: "search_inventory",
+    description: "Search available inventory (vehicles, properties, products) based on customer preferences. Call when a customer asks about what's available, specific models, price ranges, or features. Returns matching inventory items from the business catalog.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        query: { type: "string", description: "What the customer is looking for (e.g. 'blue SUV under 30000', '3 bedroom house near downtown', 'solar panels for 2000 sq ft home')" },
+        max_price: { type: "number", description: "Maximum price/budget in dollars" },
+        category: { type: "string", description: "Category filter (e.g. 'new', 'used', 'certified', 'suv', 'sedan', 'truck')" },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "suggest_availability",
+    description: "Get available appointment/visit time slots. Call when a customer asks about scheduling a test drive, showing, consultation, or demo visit.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        date: { type: "string", description: "Date to check availability for. Accept 'tomorrow', 'this weekend', 'Saturday', or leave blank for next available." },
+        service_name: { type: "string", description: "Type of visit (e.g. 'test drive', 'showing', 'consultation', 'demo')" },
+        preference: { type: "string", description: "Time preference: 'morning', 'afternoon', 'evening', or 'earliest'" },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "create_booking",
+    description: "Schedule a test drive, showing, consultation, or demo visit. Call this AS SOON AS you have the customer's name, date, time, and what they want to see/drive. The customer saying they want to come in IS their agreement — book it immediately.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        customer_name: { type: "string", description: "Customer's full name" },
+        customer_phone: { type: "string", description: "Customer's phone number" },
+        customer_email: { type: "string", description: "Customer's email (optional)" },
+        date: { type: "string", description: "Visit date (e.g. 'tomorrow', 'Saturday', '2026-03-10')" },
+        time: { type: "string", description: "Visit time (e.g. '10am', '2:30 PM', '14:00')" },
+        service_name: { type: "string", description: "Type of visit: 'test drive', 'showing', 'consultation', 'demo appointment', etc." },
+        notes: { type: "string", description: "What they want to see, specific model interested in, or other notes" },
+      },
+      required: ["customer_name", "date", "time"],
+    },
+  },
+  {
+    name: "check_availability",
+    description: "Check if a specific date and time is available for a visit/appointment.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        date: { type: "string", description: "Date to check (e.g. 'tomorrow', 'Saturday')" },
+        time: { type: "string", description: "Time to check (e.g. '10am', '2:30 PM')" },
+      },
+      required: ["date", "time"],
+    },
+  },
+];
+
+/**
  * Food-mode tools (restaurant, pizza, catering, food truck, etc.).
  */
 const FOOD_TOOLS: Anthropic.Tool[] = [
@@ -250,6 +311,14 @@ function getToolDefinitions(businessMode: string): Anthropic.Tool[] {
       return [...SHARED_TOOLS, ...DISPATCH_TOOLS];
     case "food":
       return [...SHARED_TOOLS, ...FOOD_TOOLS];
+    case "sales":
+      return [...SHARED_TOOLS, ...SALES_TOOLS];
+    case "medical":
+      // Medical uses service-mode scheduling tools (appointments/intakes)
+      return [...SHARED_TOOLS, ...SERVICE_TOOLS];
+    case "general":
+      // General mode: callbacks + service area check (no scheduling)
+      return [...SHARED_TOOLS];
     case "service":
     default:
       return [...SHARED_TOOLS, ...SERVICE_TOOLS];
@@ -328,6 +397,8 @@ async function executeTool(
     // Food mode tools
     create_food_order: "elevenlabs-create-food-order",
     lookup_order_status: "elevenlabs-lookup-order-status",
+    // Sales mode tools
+    search_inventory: "elevenlabs-search-inventory",
   };
 
   const endpoint = endpointMap[toolName];
@@ -418,8 +489,9 @@ serve(async (req) => {
     const businessMode = context.tenant.business_mode || "service";
     const serviceRules = `- When a caller wants to book: you MUST call create_booking. Do NOT just confirm verbally.\n- BOOKING COMPLETION (CRITICAL): Once check_availability returns available=true AND (if you ran check_service_area) it returns in_area=true — call create_booking IMMEDIATELY with the customer's info. Do NOT ask "Would you like to go ahead?", do NOT ask for more info, do NOT re-confirm. The customer already said they want to book. Book it now.\n- PARALLEL TOOL RESULT RULE: When you receive results from BOTH check_availability AND check_service_area in the same turn: if available=true AND in_area=true → your ONLY next action is to call create_booking. Zero questions. Zero follow-up. Just call create_booking.\n- If a customer provides name, date, time, service, and address in a single message: run check_availability and/or check_service_area, then if both pass → call create_booking. Do NOT ask if they want to proceed.\n- If check_service_area returns needs_verification=true: ask for the customer's exact city and zip code ONLY. Do not ask for anything else.\n- If check_service_area returns in_area=false AND needs_verification=false: do NOT book. Apologize and explain the service area limit instead.\n- When a caller wants to cancel: you MUST call cancel_booking.\n- When a caller wants to reschedule: you MUST call reschedule_booking.`;
     const dispatchRules = `- When a caller needs help dispatched (tow truck, driver, technician): run check_service_area with their pickup address, then call create_dispatch_job.\n- DISPATCH COMPLETION (CRITICAL): Once check_service_area returns in_area=true — call create_dispatch_job IMMEDIATELY with all collected info. Do NOT ask "Would you like me to dispatch a driver?", do NOT ask for more info, do NOT re-confirm. The customer called for help — dispatch now.\n- MINIMAL INFO RULE: The minimum required to dispatch is pickup_address + service_type. Vehicle info, customer name, and phone are helpful but NOT required to create the job. Do NOT delay dispatch waiting for optional info — especially in emergencies.\n- If a caller provides their location and what they need in a single message: run check_service_area, then if in_area=true → call create_dispatch_job immediately. Do NOT ask if they want to proceed.\n- SERVICE AREA RESULTS: if in_area=true → dispatch immediately. If needs_verification=true → ask for city and zip ONLY. If in_area=false AND needs_verification=false → apologize, say you're outside the coverage area, and offer to take a callback.\n- EMERGENCY PRIORITY: If the caller indicates an emergency (car in traffic, brake failure, vehicle fire, medical emergency) → set urgency="emergency" and dispatch immediately without collecting optional info first.\n- When a caller asks about their dispatch status: you MUST call lookup_dispatch_status.\n- When a caller wants to cancel a dispatch: you MUST call cancel_dispatch_job.`;
+    const salesRules = `- SALES APPROACH: Your goal is to qualify the lead, match them with the right product/service, and schedule an in-person visit (test drive, showing, consultation, or demo). Always be moving toward that next step.\n- When a customer asks about inventory or what's available: call search_inventory immediately with their preferences.\n- INVENTORY RULE: Only mention products/vehicles/properties that appear in search_inventory results or your catalog above. Do NOT invent inventory.\n- When a customer wants to schedule a visit (test drive, showing, consultation): call check_availability, then create_booking immediately. Do NOT ask "Would you like to come in?" — if they said they want to visit, book it.\n- BOOKING COMPLETION (CRITICAL): Once check_availability returns available=true — call create_booking IMMEDIATELY. Zero re-confirmation needed.\n- Lead capture minimum: name + phone number. If a customer is interested but not ready to book, use create_callback to log the lead with their interest details and timeline.\n- FINANCING/TRADE-IN: Do NOT quote specific financing rates or trade-in values — always say "our finance team will go over all the numbers with you" and book the appointment.\n- OBJECTION HANDLING: If a customer pushes back on price or isn't ready: focus on the visit ("Even just coming in to look, no pressure at all — when works best for you?"). Use create_callback if they still won't commit.\n- When a caller asks for a callback or manager: always call create_callback with full context (what they're interested in, timeline, budget).`;
     const foodRules = `- When a caller wants to order food: collect their name, order type (pickup/delivery), and items, then call create_food_order IMMEDIATELY. Do NOT ask "Would you like to place the order?" — if they said what they want, place the order now.\n- ORDER COMPLETION (CRITICAL): Once you have customer_name, order_type, and at least one item — call create_food_order immediately. Do NOT re-confirm, do NOT ask for more info unless delivery_address is missing for a delivery order.\n- DELIVERY ADDRESS: For delivery orders only, ask for the delivery address before placing. For pickup, no address is needed.\n- MINIMAL INFO RULE: customer_name + order_type + items is sufficient to place a pickup order. Do NOT wait for email, loyalty number, or other optional info.\n- When a caller asks about their order: you MUST call lookup_order_status.\n- When a caller wants to change or cancel an order: call create_callback with reason="Order modification request" — explain you'll have someone from the team assist immediately.\n- MENU RULE: ONLY take orders for items listed in your menu above. If a customer asks for something not on the menu, say "I don't see that on our current menu — can I help you with something else?"`;
-    const modeRules = businessMode === "dispatch" ? dispatchRules : businessMode === "food" ? foodRules : serviceRules;
+    const modeRules = businessMode === "dispatch" ? dispatchRules : businessMode === "food" ? foodRules : businessMode === "sales" ? salesRules : serviceRules;
     // In text/browser_test mode there is no live phone call to transfer, so
     // override the voice-mode "transfer_to_owner" instruction from agentBasePrompts.
     // The correct text-mode behavior is: create_callback + honest messaging.

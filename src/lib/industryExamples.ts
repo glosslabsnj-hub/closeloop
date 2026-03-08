@@ -414,6 +414,43 @@ const SLUG_OBJECTION_OVERRIDES: Record<string, Array<{ objection: string; respon
     { objection: "Pool maintenance is too expensive", response: "We hear that! But a green pool or damaged pump can run $500–$2,000+ to fix. Our maintenance plans start at $125/week with chemicals included — no surprise bills at the end of the month." },
     { objection: "It's only seasonal, I don't need regular service", response: "Exactly why we offer seasonal packages — spring opening, summer maintenance, and winterization bundled at a discount. Most clients get more swim time because their pool is always ready to go." },
   ],
+
+  // ── Sales mode objection overrides ──
+
+  "car-dealership-new": [
+    { objection: "I'm just browsing, not ready to buy", response: "That's totally fine — most people start that way! Coming in for a test drive is zero pressure and a great way to know if the vehicle actually fits your lifestyle. When would work for you?" },
+    { objection: "I can get it cheaper online", response: "Online pricing often doesn't include local incentives, dealer cash, or loyalty bonuses that we can apply. Let's put together a real out-the-door number — you might be surprised." },
+    { objection: "I want to think about it", response: "Of course! While you're thinking, the vehicle might sell — popular models move fast. How about coming in to hold it with a test drive, and if it's not right, you walk away with zero obligation?" },
+    { objection: "I already have a good offer from another dealer", response: "Bring it in! We'll do our best to match or beat it, and we'd love a chance to show you what makes us different. Test drive first and let the numbers speak for themselves." },
+  ],
+
+  "car-dealership-used": [
+    { objection: "How do I know it hasn't been in an accident?", response: "We run a Carfax and full inspection on every vehicle. I can pull the report right now — it shows full history including accidents, ownership, and service records." },
+    { objection: "Used cars are risky", response: "That's why we inspect every vehicle before it hits the lot, and most of our inventory comes with warranty options. You get a like-new vehicle at a fraction of the cost." },
+    { objection: "I can find it cheaper on Facebook Marketplace", response: "You might! The difference is you have zero recourse if something goes wrong with a private sale. We stand behind every vehicle we sell with inspections, titles, and warranty options." },
+    { objection: "I need to talk to my spouse first", response: "Absolutely, bring them in! We'd love to do a test drive together — makes the decision a lot easier when you both feel the vehicle. What day works?" },
+  ],
+
+  real_estate: [
+    { objection: "I'm just exploring, not ready to buy yet", response: "Perfectly fine — most buyers take 3-6 months from first look to closing. Talking to an agent now actually saves time later because you'll know exactly what to look for." },
+    { objection: "I'll just use Zillow / search myself", response: "Zillow is great for browsing! What it can't do is get you into homes before they hit the market, negotiate on your behalf, or guide you through the paperwork. That's where we come in — and it's free for buyers." },
+    { objection: "I need to get pre-approved first", response: "Smart thinking! I can connect you with a lender right now who can give you a pre-approval in 24 hours. Once that's done, we're ready to start touring — want me to make that introduction?" },
+    { objection: "I'm already working with an agent", response: "No problem at all. If that relationship ever changes or you want a second opinion on a specific property, feel free to reach out — we're always here." },
+  ],
+
+  "solar-installer": [
+    { objection: "I'm not sure solar makes sense for my area", response: "That's the most common question we get! Your roof's orientation, local utility rates, and sun exposure all matter. Our free assessment tells you exactly what to expect — and if it doesn't pencil out, we'll tell you honestly." },
+    { objection: "I heard it takes years to pay off", response: "It depends on your usage and the incentives you qualify for. Most of our customers see payback in 5-8 years, and after that it's basically free electricity. With net metering, you can even earn credits." },
+    { objection: "I'll wait until prices come down more", response: "Solar prices have dropped 70% in the last decade and have leveled off. But the 30% federal tax credit won't last forever. Waiting typically costs more than acting now." },
+    { objection: "My roof might need replacement first", response: "Good thinking — we always inspect the roof before installation. If it needs work, we can coordinate it or advise you on timing. Better to know now." },
+  ],
+
+  "insurance-agency": [
+    { objection: "I already have insurance through my bank / employer", response: "That's great! Many people don't realize they might be overpaying or under-covered. A quick review is free and takes 10 minutes — you might find gaps you didn't know you had." },
+    { objection: "Can you just give me a quote over the phone?", response: "Absolutely. I just need a few details — takes about 5 minutes and I can have a number for you right away. What type of coverage are you looking for?" },
+    { objection: "I shop online, it's usually cheaper", response: "Online quotes are great for comparison! What they can't do is customize your coverage or be there when you file a claim. Our clients typically end up with better coverage for the same price." },
+    { objection: "I want to think about it", response: "Of course. While you're thinking, your current policy is still in place. Whenever you're ready to compare, we're here — and the quote is always free." },
+  ],
 };
 
 /**

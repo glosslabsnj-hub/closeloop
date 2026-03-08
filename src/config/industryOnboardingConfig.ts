@@ -478,6 +478,123 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your contracting business",
   },
 
+  // ── Sales industries ──
+
+  "car-dealership-new": {
+    preAnswers: {
+      offersFinancing: true,
+      offersTradeIn: true,
+    },
+    setupChecklist: [
+      { label: "Add your vehicle models and pricing ranges", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your showroom hours (Mon–Sat for most dealers)", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about financing, trade-ins, and warranties", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for test drive appointments", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'I'm looking for a new SUV under $40K'", icon: "phone" },
+      { label: "Add your vehicle lineup so your AI knows what you carry", icon: "services" },
+      { label: "Set your showroom hours — most dealers work Saturdays", icon: "calendar" },
+      { label: "Add FAQs about financing options and trade-in process", icon: "book" },
+    ],
+    setupTitle: "your dealership",
+  },
+
+  "car-dealership-used": {
+    preAnswers: {
+      offersFinancing: true,
+      offersTradeIn: true,
+    },
+    setupChecklist: [
+      { label: "Add your vehicle inventory categories and pricing ranges", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your lot hours (Mon–Sat for most used car lots)", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about financing, certified pre-owned, and inspections", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for test drives", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'I'm looking for a used pickup truck under $25K'", icon: "phone" },
+      { label: "Add your vehicle categories so your AI can match customers", icon: "services" },
+      { label: "Add FAQs about financing and warranty options", icon: "book" },
+      { label: "Customize your AI's greeting script", icon: "sparkles" },
+    ],
+    setupTitle: "your used car lot",
+  },
+
+  "car-dealership-full": {
+    preAnswers: {
+      offersFinancing: true,
+      offersTradeIn: true,
+    },
+    setupChecklist: [
+      { label: "Add your new and used vehicle categories", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your dealership hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about new vs. CPO, financing, and service department", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for sales and service appointments", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'What SUVs do you have available?'", icon: "phone" },
+      { label: "Add vehicle categories (new, certified pre-owned, used)", icon: "services" },
+      { label: "Add FAQs about financing, trade-ins, and your service department", icon: "book" },
+      { label: "Customize your AI's sales approach and greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your dealership",
+  },
+
+  real_estate: {
+    preAnswers: {
+      offersShowings: true,
+    },
+    setupChecklist: [
+      { label: "Add your listing types and price ranges", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your availability for showings", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about your process, buyer consultation, and market areas", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for showing appointments", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'I'm looking for a 3-bedroom home near good schools'", icon: "phone" },
+      { label: "Add your coverage areas and listing types", icon: "services" },
+      { label: "Add FAQs about your buyer consultation and the home buying process", icon: "book" },
+      { label: "Customize your AI's greeting to match your brand", icon: "sparkles" },
+    ],
+    setupTitle: "your real estate business",
+  },
+
+  "solar-installer": {
+    preAnswers: {
+      offersFreeEstimates: true,
+    },
+    setupChecklist: [
+      { label: "Add your solar system types and pricing tiers", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about savings, rebates, tax credits, and timeline", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'How much would solar cost for my house?'", icon: "phone" },
+      { label: "Add your solar products and installation packages", icon: "services" },
+      { label: "Add FAQs about the federal tax credit, payback period, and warranties", icon: "book" },
+      { label: "Set your service area so the AI knows where you install", icon: "map" },
+    ],
+    setupTitle: "your solar company",
+  },
+
+  "insurance-agency": {
+    preAnswers: {},
+    setupChecklist: [
+      { label: "Add your insurance products (auto, home, life, commercial)", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services"] },
+      { label: "Set your office hours", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about your products and quoting process", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+      { label: "Connect your calendar for consultation appointments", fixPath: "/app/business-brain?section=availability", icon: "calendar" },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'I need a quote for my business'", icon: "phone" },
+      { label: "Add your insurance lines so your AI knows what you offer", icon: "services" },
+      { label: "Add FAQs about your quoting process and turnaround time", icon: "book" },
+      { label: "Customize your AI's greeting for your agency", icon: "sparkles" },
+    ],
+    setupTitle: "your insurance agency",
+  },
+
   // ── Dispatch industries ──
 
   courier: {

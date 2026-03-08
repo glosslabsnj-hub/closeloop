@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const API_KEY = "sk_2b27cfbfbc65aab7bfff4e370c598be68abcbe515e488d68";
 const BASE_API = "https://api.elevenlabs.io/v1/convai";
-const SUPABASE_URL = "https://zsqfzluyylzmmjtfxwgr.supabase.co/functions/v1";
+const SUPABASE_URL = "https://yltzlvzgwkidbeqaoevp.supabase.co/functions/v1";
 const MEDICAL_AGENT_ID = "agent_1001kghfstqzfryadtx3kh9t4ye4";
 
 const SECRET_HEADER = { "X-CL-Secret": { secret_id: "9G30VIglbkIoULRKR7xD" } };

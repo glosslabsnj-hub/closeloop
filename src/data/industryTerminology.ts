@@ -555,6 +555,92 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     exampleServices: ["Washer Repair", "Dryer Repair", "Refrigerator Repair", "Dishwasher Repair", "Oven/Range Repair", "Diagnostic Service"],
     exampleFAQs: ["What brands do you service?", "Do you charge a diagnostic fee?", "How quickly can you get parts?"],
   },
+
+  // ── Sales mode slugs ──
+
+  "car-dealership-new": {
+    appointmentLabel: "test drive",
+    customerLabel: "buyer",
+    teamMemberLabel: "sales rep",
+    servicesLabel: "Vehicle Lineup",
+    catalogCardTitle: "Your Vehicles",
+    addItemButton: "Add Vehicle",
+    itemNamePlaceholder: "e.g. 2025 SUV",
+    servicesCategoryTitle: "New Vehicles",
+    locationLabel: "showroom",
+    exampleServices: ["SUVs", "Sedans", "Trucks", "Hybrids & EVs", "Minivans"],
+    exampleFAQs: ["What vehicles do you have in stock?", "Do you offer financing?", "Can I trade in my current vehicle?", "Do you do test drives on weekends?"],
+  },
+
+  "car-dealership-used": {
+    appointmentLabel: "test drive",
+    customerLabel: "buyer",
+    teamMemberLabel: "sales rep",
+    servicesLabel: "Vehicle Inventory",
+    catalogCardTitle: "Your Vehicles",
+    addItemButton: "Add Vehicle",
+    itemNamePlaceholder: "e.g. 2020 SUV",
+    servicesCategoryTitle: "Pre-Owned Vehicles",
+    locationLabel: "lot",
+    exampleServices: ["Pre-Owned Sedans", "Pre-Owned SUVs", "Pre-Owned Trucks", "Certified Pre-Owned", "Budget-Friendly Options"],
+    exampleFAQs: ["What's the mileage on the vehicle?", "Do you offer financing for used cars?", "Are vehicles inspected?", "Can I get a Carfax report?"],
+  },
+
+  "car-dealership-full": {
+    appointmentLabel: "test drive",
+    customerLabel: "buyer",
+    teamMemberLabel: "sales consultant",
+    servicesLabel: "Vehicle Inventory",
+    catalogCardTitle: "Your Vehicles",
+    addItemButton: "Add Vehicle",
+    itemNamePlaceholder: "e.g. 2025 Pickup Truck",
+    servicesCategoryTitle: "Vehicle Inventory",
+    locationLabel: "dealership",
+    exampleServices: ["New Vehicles", "Certified Pre-Owned", "Pre-Owned Vehicles", "Fleet Sales", "Service Department"],
+    exampleFAQs: ["What brands do you carry?", "Do you offer financing?", "Can I trade in my car?", "What's the difference between new and certified pre-owned?"],
+  },
+
+  real_estate: {
+    appointmentLabel: "showing",
+    customerLabel: "buyer",
+    teamMemberLabel: "agent",
+    servicesLabel: "What We Help With",
+    catalogCardTitle: "Our Services",
+    addItemButton: "Add Service",
+    itemNamePlaceholder: "e.g. Buyer Representation",
+    servicesCategoryTitle: "Real Estate Services",
+    locationLabel: "office",
+    exampleServices: ["Buyer Representation", "Seller Representation", "First-Time Buyers", "Investment Properties", "Luxury Homes"],
+    exampleFAQs: ["What areas do you specialize in?", "What's the home buying process?", "Do I need to be pre-approved before viewing homes?", "What's your commission?"],
+  },
+
+  "solar-installer": {
+    appointmentLabel: "consultation",
+    customerLabel: "homeowner",
+    teamMemberLabel: "solar consultant",
+    servicesLabel: "Solar Packages",
+    catalogCardTitle: "Our Solar Systems",
+    addItemButton: "Add Package",
+    itemNamePlaceholder: "e.g. Residential Solar (10kW)",
+    servicesCategoryTitle: "Solar Packages",
+    locationLabel: "service area",
+    exampleServices: ["Residential Solar", "Battery Storage", "EV Charger Installation", "Commercial Solar", "Free Solar Assessment"],
+    exampleFAQs: ["How much can I save on my electric bill?", "Is there a federal tax credit?", "How long does installation take?", "Do you offer financing?"],
+  },
+
+  "insurance-agency": {
+    appointmentLabel: "consultation",
+    customerLabel: "client",
+    teamMemberLabel: "agent",
+    servicesLabel: "Insurance Products",
+    catalogCardTitle: "Our Insurance Products",
+    addItemButton: "Add Product",
+    itemNamePlaceholder: "e.g. Auto Insurance",
+    servicesCategoryTitle: "Insurance Products",
+    locationLabel: "office",
+    exampleServices: ["Auto Insurance", "Homeowners Insurance", "Life Insurance", "Business Insurance", "Health Insurance"],
+    exampleFAQs: ["How quickly can I get a quote?", "Do you work with multiple carriers?", "Can you bundle home and auto?", "What discounts do you offer?"],
+  },
 };
 
 // ---------------------------------------------------------------------------
