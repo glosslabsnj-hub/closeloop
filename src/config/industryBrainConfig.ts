@@ -730,6 +730,257 @@ const SLUG_OVERRIDES: Record<string, DeepPartial<IndustryBrainConfig>> = {
       },
     },
   },
+  "landscaping": {
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Service Needed",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Job",
+      quickActionDescription: "Schedule a landscaping job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — mowing, hedge trimming, mulching, seasonal cleanup.",
+      },
+    },
+  },
+  "painting": {
+    pricing: {
+      priceModifiersLabel: "Project Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Project Type",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "Schedule Estimate",
+      quickActionDescription: "Schedule a free painting estimate",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — interior painting, exterior painting, cabinet painting, deck staining.",
+      },
+    },
+  },
+  "cleaning": {
+    pricing: {
+      priceModifiersLabel: "Extra Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Cleaning Type",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Cleanings This Week",
+      quickActionLabel: "New Cleaning",
+      quickActionDescription: "Schedule a new cleaning job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — standard cleaning, deep cleaning, move in/out, office cleaning.",
+      },
+    },
+  },
+  "pest_control": {
+    pricing: {
+      priceModifiersLabel: "Additional Fees",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Pest Issue",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Service Calls This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule a pest control service call",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — general pest, termite, rodent control, bed bug treatment.",
+      },
+    },
+  },
+  "locksmith": {
+    pricing: {
+      priceModifiersLabel: "Trip Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Service Needed",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Service Calls This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule a locksmith service call",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — lockout, rekey, lock installation, car key programming.",
+      },
+    },
+  },
+  "moving": {
+    pricing: {
+      priceModifiersLabel: "Extra Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Move Type",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Moves This Week",
+      quickActionLabel: "New Move",
+      quickActionDescription: "Schedule a moving job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — local move, long-distance, packing, storage.",
+      },
+    },
+  },
+  "carpet_cleaning": {
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Cleaning Needed",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Job",
+      quickActionDescription: "Schedule a carpet cleaning job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — carpet cleaning, upholstery, area rugs, stain treatment.",
+      },
+    },
+  },
+  "pool_service": {
+    pricing: {
+      priceModifiersLabel: "Additional Fees",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Service Needed",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Service Calls This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule a pool service visit",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — weekly cleaning, opening/closing, equipment repair.",
+      },
+    },
+  },
+  "pressure_washing": {
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Surface to Clean",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Job",
+      quickActionDescription: "Schedule a pressure washing job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — driveway, house wash, deck, fence, commercial.",
+      },
+    },
+  },
+  "tree_service": {
+    pricing: {
+      priceModifiersLabel: "Project Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Service Needed",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "Schedule Estimate",
+      quickActionDescription: "Schedule a free tree service estimate",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — tree removal, trimming, stump grinding, emergency removal.",
+      },
+    },
+  },
+  "junk_removal": {
+    pricing: {
+      priceModifiersLabel: "Additional Fees",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Items to Remove",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Jobs This Week",
+      quickActionLabel: "New Job",
+      quickActionDescription: "Schedule a junk removal job",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — half load, full load, estate cleanout, furniture removal.",
+      },
+    },
+  },
+  "garage_door": {
+    pricing: {
+      priceModifiersLabel: "Trip Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Issue Reported",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Service Calls This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule a garage door service call",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — door repair, spring replacement, opener install, new door.",
+      },
+    },
+  },
+  "appliance_repair": {
+    pricing: {
+      priceModifiersLabel: "Trip Fees & Surcharges",
+    },
+    inbox: {
+      fieldLabels: {
+        "booking.service_requested": "Appliance Issue",
+      },
+    },
+    dashboard: {
+      primaryMetricLabel: "Service Calls This Week",
+      quickActionLabel: "New Service Call",
+      quickActionDescription: "Schedule an appliance repair visit",
+    },
+    brain: {
+      emptyStateSuggestions: {
+        "service-catalog": "Add your services — washer repair, dryer, refrigerator, dishwasher, oven.",
+      },
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
