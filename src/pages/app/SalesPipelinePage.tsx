@@ -19,21 +19,32 @@ import {
 } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar } from "lucide-react";
+import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag } from "lucide-react";
 import { useSalesLeads } from "@/hooks/useSalesLeads";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
-const PIPELINE_COLUMNS = [
-  { key: "new", label: "New", color: "bg-blue-500" },
-  { key: "contacted", label: "Contacted", color: "bg-yellow-500" },
-  { key: "qualified", label: "Qualified", color: "bg-purple-500" },
-  { key: "appointment_set", label: "Appointment", color: "bg-indigo-500" },
-  { key: "test_drive", label: "Test Drive", color: "bg-cyan-500" },
-  { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
-  { key: "sold", label: "Sold", color: "bg-green-500" },
-  { key: "lost", label: "Lost", color: "bg-gray-500" },
+const ALL_PIPELINE_COLUMNS = [
+  { key: "new", label: "New", color: "bg-blue-500", dealerOnly: false },
+  { key: "contacted", label: "Contacted", color: "bg-yellow-500", dealerOnly: false },
+  { key: "qualified", label: "Qualified", color: "bg-purple-500", dealerOnly: false },
+  { key: "appointment_set", label: "Appointment", color: "bg-indigo-500", dealerOnly: false },
+  { key: "test_drive", label: "Test Drive", color: "bg-cyan-500", dealerOnly: true },
+  { key: "negotiation", label: "Negotiation", color: "bg-orange-500", dealerOnly: false },
+  { key: "sold", label: "Sold", color: "bg-green-500", dealerOnly: false },
+  { key: "lost", label: "Lost", color: "bg-gray-500", dealerOnly: false },
 ] as const;
+
+const CAR_DEALERSHIP_SLUGS = new Set([
+  "car-dealership-new",
+  "car-dealership-used",
+  "car-dealership-full",
+  "rv-dealer",
+  "boat-dealer",
+  "motorcycle-dealer",
+  "equipment-sales",
+]);
 
 const priorityColors: Record<string, string> = {
   hot: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -45,6 +56,9 @@ const priorityColors: Record<string, string> = {
 export default function SalesPipelinePage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_leads"]);
   const { leads, isLoading, stats, updateLead } = useSalesLeads();
+  const { industrySlug } = useTenantConfig();
+  const isCarDealership = industrySlug ? CAR_DEALERSHIP_SLUGS.has(industrySlug) : false;
+  const PIPELINE_COLUMNS = ALL_PIPELINE_COLUMNS.filter((c) => !c.dealerOnly || isCarDealership);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLead, setSelectedLead] = useState<(typeof leads)[number] | null>(null);
 
@@ -222,7 +236,9 @@ export default function SalesPipelinePage() {
                 )}
                 {selectedLead.vehicle_interest && (
                   <div className="flex items-center gap-2">
-                    <Car className="h-4 w-4 text-muted-foreground" />
+                    {isCarDealership
+                      ? <Car className="h-4 w-4 text-muted-foreground" />
+                      : <Tag className="h-4 w-4 text-muted-foreground" />}
                     <span>{selectedLead.vehicle_interest}</span>
                   </div>
                 )}

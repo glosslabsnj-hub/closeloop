@@ -1,35 +1,31 @@
-import { Car, Users, TrendingUp, CalendarCheck, Warehouse } from "lucide-react";
+import { Car, Users, TrendingUp, CalendarCheck, Warehouse, PhoneCall, Flame } from "lucide-react";
 import { QuickActionButton } from "../widgets/QuickActionButton";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
 import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
 import { useTestDrives } from "@/hooks/useTestDrives";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, parseISO } from "date-fns";
 import { useSalesInventory } from "@/hooks/useSalesInventory";
+import { useSalesLeads } from "@/hooks/useSalesLeads";
+
+const CAR_DEALERSHIP_SLUGS = new Set([
+  "car-dealership-new",
+  "car-dealership-used",
+  "car-dealership-full",
+  "rv-dealer",
+  "boat-dealer",
+  "motorcycle-dealer",
+  "equipment-sales",
+]);
 
 export function SalesDashboardLayout() {
-  const { tenant } = useAuth();
+  const { industrySlug } = useTenantConfig();
+  const isCarDealership = industrySlug ? CAR_DEALERSHIP_SLUGS.has(industrySlug) : false;
   const { stats: driveStats, testDrives } = useTestDrives();
   const { stats: inventoryStats } = useSalesInventory();
-
-  // Get hot leads count
-  const { data: hotLeadsCount = 0 } = useQuery({
-    queryKey: ["hot-leads-count", tenant?.id],
-    queryFn: async () => {
-      if (!tenant?.id) return 0;
-      const { count } = await (supabase as any)
-        .from("leads")
-        .select("*", { count: "exact", head: true })
-        .eq("tenant_id", tenant.id)
-        .eq("lead_score", "hot");
-      return count ?? 0;
-    },
-    enabled: !!tenant?.id,
-  });
+  const { stats: leadStats } = useSalesLeads();
 
   // Today's test drives
   const todayDrives = testDrives.filter((d) => {
@@ -45,66 +41,105 @@ export function SalesDashboardLayout() {
 
   return (
     <div className="space-y-6">
-      {/* Stats Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <Car className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{driveStats.today}</p>
-              <p className="text-xs text-muted-foreground">Test Drives Today</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary/10">
-              <CalendarCheck className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{driveStats.thisWeek}</p>
-              <p className="text-xs text-muted-foreground">This Week</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-accent">
-              <TrendingUp className="h-5 w-5 text-accent-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{hotLeadsCount}</p>
-              <p className="text-xs text-muted-foreground">Hot Leads</p>
-            </div>
-          </CardContent>
-        </Card>
-         <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-secondary">
-              <Warehouse className="h-5 w-5 text-secondary-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{inventoryStats.available}</p>
-              <p className="text-xs text-muted-foreground">Vehicles Available</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-full bg-secondary">
-              <Users className="h-5 w-5 text-secondary-foreground" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{driveStats.pending}</p>
-              <p className="text-xs text-muted-foreground">Pending Test Drives</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Stats Row — adapts to car dealership vs other sales industries */}
+      {isCarDealership ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Car className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{driveStats.today}</p>
+                <p className="text-xs text-muted-foreground">Test Drives Today</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <CalendarCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{driveStats.thisWeek}</p>
+                <p className="text-xs text-muted-foreground">This Week</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-accent">
+                <Flame className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leadStats.hot}</p>
+                <p className="text-xs text-muted-foreground">Hot Leads</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-secondary">
+                <Warehouse className="h-5 w-5 text-secondary-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{inventoryStats.available}</p>
+                <p className="text-xs text-muted-foreground">Vehicles Available</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <PhoneCall className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leadStats.new}</p>
+                <p className="text-xs text-muted-foreground">New Leads</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-accent">
+                <Flame className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leadStats.hot}</p>
+                <p className="text-xs text-muted-foreground">Hot Leads</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leadStats.qualified}</p>
+                <p className="text-xs text-muted-foreground">Qualified</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-full bg-secondary">
+                <Users className="h-5 w-5 text-secondary-foreground" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{leadStats.total}</p>
+                <p className="text-xs text-muted-foreground">Total Leads</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Today's Schedule + Quick Actions */}
+      {isCarDealership ? (
       <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
         <Card>
           <CardContent className="p-4">
@@ -161,6 +196,30 @@ export function SalesDashboardLayout() {
           />
         </div>
       </div>
+      ) : (
+      <div className="flex justify-end">
+        <div className="space-y-2">
+          <QuickActionButton
+            label="View Pipeline"
+            description="Track leads through your sales funnel"
+            href="/app/sales-pipeline"
+            icon={TrendingUp}
+          />
+          <QuickActionButton
+            label="View Leads"
+            description="All incoming leads from your AI"
+            href="/app/leads"
+            icon={Users}
+          />
+          <QuickActionButton
+            label="Call History"
+            description="Review recent AI conversations"
+            href="/app/calls"
+            icon={PhoneCall}
+          />
+        </div>
+      </div>
+      )}
 
       <ROIPerformanceWidget />
       <LeadRecoveryWidget />

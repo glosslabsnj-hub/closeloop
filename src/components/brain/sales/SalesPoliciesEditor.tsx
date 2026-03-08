@@ -7,6 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,25 @@ interface SalesWorkflowConfig {
   sales_inventory_presentation: string;
 }
 
+const CAR_DEALERSHIP_SLUGS = new Set([
+  "car-dealership-new",
+  "car-dealership-used",
+  "car-dealership-full",
+  "rv-dealer",
+  "boat-dealer",
+  "motorcycle-dealer",
+  "equipment-sales",
+]);
+
+// Appointment label default varies by industry
+function getDefaultAppointmentLabel(slug: string | null): string {
+  if (!slug) return "test drive";
+  if (CAR_DEALERSHIP_SLUGS.has(slug)) return "test drive";
+  if (slug === "real_estate") return "showing";
+  if (slug === "solar-installer" || slug === "insurance-agency") return "consultation";
+  return "consultation";
+}
+
 const DEFAULTS: Omit<SalesWorkflowConfig, "tenant_id"> = {
   sales_pricing_strategy: "deflect_to_visit",
   sales_ask_trade_in: true,
@@ -42,7 +62,7 @@ const DEFAULTS: Omit<SalesWorkflowConfig, "tenant_id"> = {
   sales_ask_timeline: true,
   sales_ask_budget: "careful",
   sales_max_vehicles_to_mention: 3,
-  sales_appointment_label: "test drive",
+  sales_appointment_label: "consultation", // overridden per-industry at load time
   sales_push_intensity: "medium",
   sales_follow_up_script: "",
   sales_lead_capture_minimum: "name_phone_interest",
@@ -51,6 +71,8 @@ const DEFAULTS: Omit<SalesWorkflowConfig, "tenant_id"> = {
 
 export function SalesPoliciesEditor() {
   const { tenant } = useAuth();
+  const { industrySlug } = useTenantConfig();
+  const isCarDealership = industrySlug ? CAR_DEALERSHIP_SLUGS.has(industrySlug) : false;
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,7 +104,7 @@ export function SalesPoliciesEditor() {
         sales_ask_timeline: data?.sales_ask_timeline !== false,
         sales_ask_budget: data?.sales_ask_budget || DEFAULTS.sales_ask_budget,
         sales_max_vehicles_to_mention: data?.sales_max_vehicles_to_mention || DEFAULTS.sales_max_vehicles_to_mention,
-        sales_appointment_label: data?.sales_appointment_label || DEFAULTS.sales_appointment_label,
+        sales_appointment_label: data?.sales_appointment_label || getDefaultAppointmentLabel(industrySlug),
         sales_push_intensity: data?.sales_push_intensity || DEFAULTS.sales_push_intensity,
         sales_follow_up_script: data?.sales_follow_up_script || DEFAULTS.sales_follow_up_script,
         sales_lead_capture_minimum: data?.sales_lead_capture_minimum || DEFAULTS.sales_lead_capture_minimum,
@@ -243,16 +265,18 @@ export function SalesPoliciesEditor() {
           <CardDescription>What your AI asks to qualify leads</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>Ask about trade-ins</Label>
-              <p className="text-xs text-muted-foreground">Ask if caller has something to trade in</p>
+          {isCarDealership && (
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Ask about trade-ins</Label>
+                <p className="text-xs text-muted-foreground">Ask if caller has something to trade in</p>
+              </div>
+              <Switch
+                checked={formData.sales_ask_trade_in}
+                onCheckedChange={(v) => updateField("sales_ask_trade_in", v)}
+              />
             </div>
-            <Switch
-              checked={formData.sales_ask_trade_in}
-              onCheckedChange={(v) => updateField("sales_ask_trade_in", v)}
-            />
-          </div>
+          )}
 
           <div className="flex items-center justify-between">
             <div>
