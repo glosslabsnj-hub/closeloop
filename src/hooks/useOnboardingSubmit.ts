@@ -41,6 +41,8 @@ function getServiceDefaultFlow(industry: string): "schedule_first" | "urgency_ch
 function getPaymentDefaults(industryCategory: string): string[] {
   // Home services (plumbing, HVAC, electrical) commonly accept checks
   if (industryCategory === "home_services") return ["cash", "credit_card", "debit_card", "check"];
+  // Dealerships always offer financing as a payment method
+  if (industryCategory === "sales_dealerships") return ["cash", "credit_card", "debit_card", "check", "financing"];
   return ["cash", "credit_card", "debit_card"];
 }
 

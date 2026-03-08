@@ -70,14 +70,14 @@ const FAQ_BY_MODE: Record<BusinessMode, SuggestedFAQ[]> = {
     { question: "How quickly can you get back to me?", answer: "We typically respond within 24 hours during business days, often much sooner." },
   ],
   sales: [
-    { question: "What products do you carry?", answer: "We carry a wide selection. Tell me what you're looking for and I can help narrow it down." },
-    { question: "Do you offer financing?", answer: "Yes, we offer multiple financing options with approved credit. I can explain the available plans." },
-    { question: "Can I schedule a viewing?", answer: "Absolutely! I can set up a time for you to come see our inventory. When works for you?" },
-    { question: "Do you accept trade-ins?", answer: "Yes, we accept trade-ins and offer fair market value. Bring yours in for an assessment." },
-    { question: "What's your return policy?", answer: "We offer a 30-day return policy on most items with original receipt." },
-    { question: "Do you price match?", answer: "Yes, we match competitor prices on identical items. Just show us the advertised price." },
-    { question: "Do you deliver?", answer: "Yes, we offer delivery for an additional fee. I can give you a quote based on your location." },
-    { question: "Are there current promotions?", answer: "We frequently run special promotions. Let me check what's currently available." },
+    { question: "What do you have in stock?", answer: "We have a wide selection available. Tell me what you're looking for and I can check our current inventory." },
+    { question: "Do you offer financing?", answer: "Yes, we work with multiple lenders to find the best rate for your situation. I can help you schedule a consultation — no obligation." },
+    { question: "Can I schedule a test drive?", answer: "Absolutely! I can book a test drive for you right now. What are you interested in and when works best?" },
+    { question: "Do you accept trade-ins?", answer: "Yes, we accept trade-ins on all makes and models and apply the value toward your purchase. Come in for a free appraisal." },
+    { question: "Are there current promotions?", answer: "We frequently have special offers running. I can check what's available right now or have a specialist call you back." },
+    { question: "Can I get pre-approved before visiting?", answer: "Yes, we can start the pre-approval process over the phone. It takes about 5 minutes and helps you know your budget before you visit." },
+    { question: "How long does the buying process take?", answer: "Most purchases can be completed in 2–3 hours once you've found the right vehicle. Financing and paperwork are handled on-site." },
+    { question: "Do you have certified pre-owned options?", answer: "Yes, our certified pre-owned vehicles are inspected and come with warranty coverage. They're a great value compared to buying new." },
   ],
 };
 

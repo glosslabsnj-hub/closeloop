@@ -1380,7 +1380,27 @@ const salesTenants: TestTenantConfig[] = [
       missedCallBehavior: "both",
       unknownQuestionBehavior: "try_help",
     },
-    seedData: { callCount: 10, faqCount: 6, serviceCount: 5, bookingCount: 4 },
+    seedData: {
+      callCount: 10,
+      bookingCount: 4,
+      faqCount: 6,
+      serviceCount: 5,
+      customServices: [
+        { name: "Test Drive", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 0 },
+        { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "fixed", display_order: 1 },
+        { name: "Trade-In Appraisal", description: "Bring your vehicle in for a free trade-in value assessment", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 2 },
+        { name: "Vehicle Delivery Setup", description: "Walk through your new vehicle features and complete delivery paperwork", duration_minutes: 60, price_amount: 0, price_type: "fixed", display_order: 3 },
+        { name: "Service Department Appointment", description: "Schedule maintenance or repairs with our certified technicians", duration_minutes: 60, price_amount: 0, price_type: "quote_only", display_order: 4 },
+      ],
+      customFaqs: [
+        { question: "What vehicles do you have in stock?", answer: "We carry a full lineup of new and certified pre-owned vehicles. Our inventory includes SUVs, sedans, trucks, and electric vehicles. Call us or visit our showroom and we'll help you find the right fit.", priority_weight: 10 },
+        { question: "Do you offer financing?", answer: "Yes! We work with multiple lenders to get you the best rate. We offer options for all credit types including first-time buyers. I can help you schedule a financing consultation — no commitment required.", priority_weight: 9 },
+        { question: "Can I trade in my current vehicle?", answer: "Absolutely. We accept trade-ins on all makes and models. Bring it in for a free appraisal and we'll apply the value toward your new purchase.", priority_weight: 8 },
+        { question: "How do I schedule a test drive?", answer: "I can schedule a test drive for you right now! Just tell me which vehicle you're interested in and your preferred day and time.", priority_weight: 7 },
+        { question: "What's the difference between new and certified pre-owned?", answer: "New vehicles have no prior ownership. Certified pre-owned (CPO) vehicles are manufacturer-inspected, often with extended warranty coverage, and are priced below new. Both are great options depending on your budget.", priority_weight: 6 },
+        { question: "Do you have weekend hours?", answer: "Yes, our showroom is open Monday through Saturday. Saturday is one of our busiest days — I recommend calling ahead or booking an appointment so a sales consultant is ready for you.", priority_weight: 5 },
+      ],
+    },
   },
   {
     slug: "test-real-estate",
