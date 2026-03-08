@@ -115,6 +115,35 @@ describe("Edge fn terminology: mode-level defaults", () => {
   });
 });
 
+// ─── Underscore slug aliases (industryCatalog.ts format) ──────────────────
+// Bug fixed (2026-03-08): edge fn only had hyphen variants (carpet-cleaning, pool-service)
+// but industryCatalog.ts uses underscore slugs (carpet_cleaning, pool_service).
+// Tenants are assigned underscore slugs, so edge fn SMS would say "appointment"
+// instead of "job" for pool service, tree service, junk removal, cleaning, etc.
+
+describe("Edge fn terminology: underscore slug aliases (industryCatalog format)", () => {
+  const underscoreSlugs: Array<[string, string]> = [
+    ["pest_control", "job"],
+    ["garage_door", "job"],
+    ["carpet_cleaning", "job"],
+    ["pressure_washing", "job"],
+    ["pool_service", "job"],
+    ["tree_service", "job"],
+    ["junk_removal", "job"],
+    ["cleaning", "job"],
+    ["moving", "job"],
+    ["appliance_repair", "job"],
+    ["auto_repair", "job"],
+    ["personal_training", "session"],
+  ];
+
+  for (const [slug, expectedLabel] of underscoreSlugs) {
+    it(`${slug} (underscore form) maps to "${expectedLabel}"`, () => {
+      expect(terminologySrc).toContain(`${slug}: "${expectedLabel}"`);
+    });
+  }
+});
+
 // ─── Consistency: frontend vs edge fn ─────────────────────────────────────
 
 describe("Edge fn terminology: matches frontend industryTerminology.ts", () => {

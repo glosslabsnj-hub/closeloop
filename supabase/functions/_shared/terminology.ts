@@ -12,25 +12,39 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 // Industry slug → appointmentLabel overrides (highest specificity)
+// IMPORTANT: industryCatalog.ts uses underscore slugs (pool_service, tree_service, etc.)
+// Both underscore and hyphen forms are listed so both resolve correctly.
 const SLUG_LABELS: Record<string, string> = {
   // home_services category → "job"
   plumbing: "job",
   hvac: "job",
   electrical: "job",
   "pest-control": "job",
+  pest_control: "job",
   "garage-doors": "job",
+  garage_door: "job",
   "carpet-cleaning": "job",
+  carpet_cleaning: "job",
   roofing: "inspection",
   "lawn-care": "job",
   landscaping: "job",
   "pressure-washing": "job",
+  pressure_washing: "job",
   "pool-service": "job",
+  pool_service: "job",
+  tree_service: "job",
+  junk_removal: "job",
+  cleaning: "job",
   handyman: "job",
   general_contractor: "estimate",
   painting: "job",
+  moving: "job",
   "moving-company": "job",
   locksmith: "job",
   "appliance-repair": "job",
+  appliance_repair: "job",
+  auto_repair: "job",
+  "auto-repair": "job",
   // professional_services category → "consultation"
   lawyer: "consultation",
   accountant: "consultation",
@@ -40,6 +54,7 @@ const SLUG_LABELS: Record<string, string> = {
   "it-consultant": "consultation",
   // fitness_recreation category → "session"
   "personal-trainer": "session",
+  personal_training: "session",
   "yoga-studio": "session",
   // food slug overrides → "order"
   bakery: "order",
