@@ -541,9 +541,43 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Weekly Cleaning', duration: 45, price: 125, priceType: 'fixed' },
       { name: 'Pool Opening', duration: 120, price: 250, priceType: 'fixed' },
       { name: 'Pool Closing', duration: 120, price: 250, priceType: 'fixed' },
-      { name: 'Equipment Repair', duration: 120, price: 150, priceType: 'starting_at' },
+      { name: 'Chemical Balancing', duration: 60, price: 75, priceType: 'fixed' },
+      { name: 'Green-to-Clean / Algae Treatment', duration: 180, price: 350, priceType: 'starting_at' },
+      { name: 'Filter Cleaning', duration: 45, price: 85, priceType: 'fixed' },
+      { name: 'Equipment Repair', duration: 120, price: 200, priceType: 'starting_at' },
+      { name: 'Heater Repair', duration: 120, price: 200, priceType: 'starting_at' },
+      { name: 'Salt System Service', duration: 60, price: 125, priceType: 'fixed' },
+      { name: 'Tile & Surface Cleaning', duration: 120, price: 175, priceType: 'starting_at' },
+      { name: 'Monthly Maintenance Plan', duration: 45, price: 150, priceType: 'fixed' },
+      { name: 'Pool Inspection', duration: 60, price: 100, priceType: 'fixed' },
       { name: 'Acid Wash', duration: 240, price: 400, priceType: 'starting_at' },
       { name: 'Leak Detection', duration: 90, price: 200, priceType: 'fixed' },
+    ],
+    contextFields: [
+      { key: 'current_issue', label: 'Current Issue / Service Needed', type: 'text', required: true },
+      { key: 'urgency', label: 'Urgency', type: 'select', options: ['Routine', 'Soon (this week)', 'Urgent'], required: true },
+      { key: 'surface_type', label: 'Pool Surface', type: 'select', options: ['Concrete/Plaster', 'Vinyl Liner', 'Fiberglass'], required: false },
+      { key: 'has_heater', label: 'Pool Heater?', type: 'select', options: ['Yes', 'No'], required: false },
+      { key: 'has_salt_system', label: 'Salt System?', type: 'select', options: ['Yes', 'No'], required: false },
+    ],
+    faqs: [
+      { question: "What are your business hours?", answer: "We service pools Monday through Saturday. Same-day or next-day appointments are usually available for urgent water quality issues." },
+      { question: "How often should my pool be cleaned?", answer: "We recommend weekly service for most pools to maintain safe water chemistry and prevent algae buildup. Bi-weekly is possible for pools with light use." },
+      { question: "Do you offer monthly service contracts?", answer: "Yes! Our monthly maintenance plan includes weekly or bi-weekly visits, all chemical testing and balancing, and priority scheduling. It's our most popular option." },
+      { question: "What chemicals do you use?", answer: "We use professional-grade chlorine, algaecides, pH balancers, and clarifiers. All chemicals are safe, EPA-compliant, and appropriate for your pool type." },
+      { question: "Do you service saltwater pools?", answer: "Yes, we service both traditional chlorine and saltwater (salt-chlorine generator) pools. We can inspect and service your salt cell as part of our visits." },
+      { question: "Can you repair pool heaters?", answer: "Yes, we repair gas, electric, and heat pump pool heaters. We'll diagnose the issue and give you an upfront quote before any work begins." },
+      { question: "What about winter / off-season maintenance?", answer: "We offer professional pool closing to protect your equipment over winter, and spring opening to get your pool swim-ready. We recommend both to extend the life of your pool." },
+      { question: "Do you require a deposit?", answer: "We may require a deposit for larger jobs like acid washes or equipment repairs. Routine service visits are billed after each visit." },
+      { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed and insured. Our technicians are certified pool operators." },
+      { question: "What's your cancellation policy?", answer: "We ask for at least 24 hours notice to reschedule. For recurring service, we'll always notify you before your scheduled visit." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I can maintain my own pool", response: "Many homeowners do! But most find that maintaining proper chemical balance consistently is trickier than it looks — and one bad week can lead to an expensive algae problem. Our service saves time and prevents costly repairs." },
+      { objection: "I already have a pool service", response: "That's great! If you're ever looking to switch or want a second opinion on a repair quote, we're happy to do a free inspection. No pressure at all." },
+      { objection: "Pool maintenance is too expensive", response: "We understand — but consider the alternative. A green pool or damaged equipment can cost thousands to fix. Our service plans start at $125/week and include chemicals, so there are no surprise bills." },
+      { objection: "It's only seasonal", response: "Exactly why we offer seasonal packages! Pool opening, weekly summer service, and closing — all bundled at a discount. Many clients get more swim time because their pool is always ready." },
     ],
   },
   {
@@ -2686,7 +2720,7 @@ export function getPopularIndustries(count: number = 15): IndustryCatalogEntry[]
   const popularSlugs = [
     'plumbing', 'hvac', 'electrical', 'general_contractor', 'handyman', 'locksmith', 'auto_detailing', 'salon',
     'dental', 'restaurant', 'cleaning', 'towing', 'massage',
-    'landscaping', 'roofing', 'pest_control'
+    'landscaping', 'roofing', 'pest_control', 'pool_service'
   ];
   
   return popularSlugs
