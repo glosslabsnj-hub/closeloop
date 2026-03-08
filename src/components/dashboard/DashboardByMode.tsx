@@ -294,6 +294,7 @@ function FoodTodayView({ stats }: { stats?: TodayStats }) {
 }
 
 function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode: boolean }) {
+  const { terms } = useIndustryContext();
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Patient Intake Queue</h3>
@@ -330,6 +331,7 @@ function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode
 }
 
 function SalesTodayView({ stats }: { stats?: TodayStats }) {
+  const { terms } = useIndustryContext();
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Showroom Activity</h3>
@@ -348,7 +350,7 @@ function SalesTodayView({ stats }: { stats?: TodayStats }) {
           href="/app/sales-pipeline"
         />
         <StatCard
-          title="Appointments Today"
+          title={`${terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1)} Today`}
           value={stats?.completedItems || 0}
           icon={Calendar}
           variant="success"

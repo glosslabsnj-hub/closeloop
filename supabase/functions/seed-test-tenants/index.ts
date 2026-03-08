@@ -172,6 +172,9 @@ Deno.serve(async (req) => {
       await serviceClient.from("food_orders").delete().eq("tenant_id", tenantId);
       await serviceClient.from("medical_intakes").delete().eq("tenant_id", tenantId);
       await serviceClient.from("leads").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("sales_leads").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("test_drives").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("sales_inventory").delete().eq("tenant_id", tenantId);
       await serviceClient.from("services").delete().eq("tenant_id", tenantId);
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
@@ -199,6 +202,9 @@ Deno.serve(async (req) => {
       await serviceClient.from("food_orders").delete().eq("tenant_id", tenantId);
       await serviceClient.from("medical_intakes").delete().eq("tenant_id", tenantId);
       await serviceClient.from("leads").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("sales_leads").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("test_drives").delete().eq("tenant_id", tenantId);
+      await serviceClient.from("sales_inventory").delete().eq("tenant_id", tenantId);
       await serviceClient.from("services").delete().eq("tenant_id", tenantId);
       await serviceClient.from("business_faqs").delete().eq("tenant_id", tenantId);
       await serviceClient.from("objection_responses").delete().eq("tenant_id", tenantId);
