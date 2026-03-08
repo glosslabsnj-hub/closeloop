@@ -83,8 +83,16 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
     }
 
     if (!fromNumber) {
-      console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId} (need A2P approval or toll-free verification)`);
-      return { success: false, skipped: true, reason: "no_verified_channel" };
+      // Last resort: use global TWILIO_FROM_NUMBER (system-level fallback for test/unregistered tenants)
+      const globalFromNumber = Deno.env.get("TWILIO_FROM_NUMBER");
+      if (globalFromNumber) {
+        fromNumber = globalFromNumber;
+        channel = "10dlc";
+        console.log(`[sms-sender] Using global TWILIO_FROM_NUMBER fallback for tenant ${tenantId} (no A2P)`);
+      } else {
+        console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId} (need A2P approval or toll-free verification)`);
+        return { success: false, skipped: true, reason: "no_verified_channel" };
+      }
     }
   }
 
