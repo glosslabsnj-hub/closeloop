@@ -26,6 +26,12 @@ export interface IndustryTerminology {
   addItemButton: string;
   itemNamePlaceholder: string;
   servicesCategoryTitle: string;
+  /**
+   * Optional override for the bookings calendar nav label.
+   * Use when appointmentLabel would auto-derive a bookingsPageTitle that conflicts with another module.
+   * (e.g. GC: appointmentLabel="estimate" auto-derives "Estimates" — clashes with Estimates module nav.)
+   */
+  bookingsPageTitle?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +491,10 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
   },
   "general_contractor": {
     appointmentLabel: "estimate",
+    // Override bookingsPageTitle so the /app/bookings nav item doesn't clash with /app/estimates.
+    // applyAppointmentLabel would auto-derive "Estimates" from appointmentLabel="estimate" —
+    // creating two sidebar items both labeled "Estimates". "Estimate Schedule" is clearly the calendar.
+    bookingsPageTitle: "Estimate Schedule",
     teamMemberLabel: "project manager",
     servicesLabel: "Services & Estimates",
     catalogCardTitle: "Your Services",

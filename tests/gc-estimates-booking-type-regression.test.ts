@@ -157,3 +157,50 @@ describe("standard service industries: no estimates module", () => {
     });
   }
 });
+
+// ─── GC nav label collision fix ───────────────────────────────────────────────
+// GC has both /app/bookings (calendar) and /app/estimates (formal quote builder).
+// appointmentLabel="estimate" would auto-derive bookingsPageTitle="Estimates" via applyAppointmentLabel,
+// creating two sidebar items both labeled "Estimates". The slug override must prevent this.
+
+import { getIndustryTerminology } from "../src/data/industryTerminology";
+import { getTerminology, applyAppointmentLabel } from "../src/lib/terminology";
+
+describe("GC: no duplicate Estimates nav label", () => {
+  const slug = "general_contractor";
+  const terminology = getIndustryTerminology("service", "home_services", slug);
+  const baseterms = applyAppointmentLabel(getTerminology("service"), terminology.appointmentLabel);
+  // Simulate useIndustryContext override
+  const terms = terminology.bookingsPageTitle
+    ? { ...baseterms, bookingsPageTitle: terminology.bookingsPageTitle }
+    : baseterms;
+
+  it("GC appointmentLabel is 'estimate'", () => {
+    expect(terminology.appointmentLabel).toBe("estimate");
+  });
+
+  it("applyAppointmentLabel alone would produce 'Estimates' — confirming collision risk", () => {
+    expect(baseterms.bookingsPageTitle).toBe("Estimates");
+  });
+
+  it("terminology has bookingsPageTitle override to break the collision", () => {
+    expect(terminology.bookingsPageTitle).toBeDefined();
+    expect(terminology.bookingsPageTitle).not.toBe("Estimates");
+  });
+
+  it("resolved terms.bookingsPageTitle does NOT equal 'Estimates'", () => {
+    expect(terms.bookingsPageTitle).not.toBe("Estimates");
+  });
+
+  it("resolved terms.bookingsPageTitle is 'Estimate Schedule'", () => {
+    expect(terms.bookingsPageTitle).toBe("Estimate Schedule");
+  });
+
+  it("roofing does NOT have this collision (inspection != estimates)", () => {
+    const roofingTerms = getIndustryTerminology("service", "home_services", "roofing");
+    const roofingBase = applyAppointmentLabel(getTerminology("service"), roofingTerms.appointmentLabel);
+    // Roofing auto-derives "Inspections" — no conflict with "Estimates" nav item
+    expect(roofingBase.bookingsPageTitle).toBe("Inspections");
+    expect(roofingBase.bookingsPageTitle).not.toBe("Estimates");
+  });
+});

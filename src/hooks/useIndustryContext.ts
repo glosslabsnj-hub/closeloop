@@ -53,7 +53,13 @@ export function useIndustryContext(): IndustryContext {
     const mode = catalogEntry?.businessMode ?? businessMode;
 
     const terminology = getIndustryTerminology(mode, category ?? undefined, slug ?? undefined);
-    const terms = applyAppointmentLabel(getTerminology(mode), terminology.appointmentLabel);
+    let terms = applyAppointmentLabel(getTerminology(mode), terminology.appointmentLabel);
+    // Apply slug-level bookingsPageTitle override AFTER applyAppointmentLabel.
+    // Needed when auto-derived title clashes with another module's nav label
+    // (e.g. GC: "estimate" → "Estimates" conflicts with the /app/estimates module nav item).
+    if (terminology.bookingsPageTitle) {
+      terms = { ...terms, bookingsPageTitle: terminology.bookingsPageTitle };
+    }
     const config = getIndustryBrainConfig(mode, category ?? undefined, slug ?? undefined);
 
     return {
