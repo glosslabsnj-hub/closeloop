@@ -54,8 +54,13 @@ interface DispatchCommandTableProps {
 }
 
 const priorityConfig: Record<string, { label: string; className: string; rowClass: string }> = {
-  urgent: { 
-    label: "Urgent", 
+  emergency: {
+    label: "Emergency",
+    className: "bg-destructive text-destructive-foreground animate-pulse",
+    rowClass: "bg-destructive/10 hover:bg-destructive/15"
+  },
+  urgent: {
+    label: "Urgent",
     className: "bg-destructive text-destructive-foreground",
     rowClass: "bg-destructive/5 hover:bg-destructive/10"
   },

@@ -46,6 +46,7 @@ interface DispatchJobsTableProps {
 }
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
+  emergency: { label: "Emergency", className: "bg-destructive text-destructive-foreground animate-pulse" },
   urgent: { label: "Urgent", className: "bg-destructive text-destructive-foreground" },
   high: { label: "High", className: "bg-warning/15 text-warning border-warning/30" },
   normal: { label: "Normal", className: "bg-muted text-muted-foreground" },

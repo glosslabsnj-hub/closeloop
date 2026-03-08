@@ -90,6 +90,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 const priorityConfig: Record<string, { label: string; className: string }> = {
+  emergency: { label: "Emergency", className: "bg-destructive text-destructive-foreground animate-pulse" },
   urgent: { label: "Urgent", className: "bg-destructive text-destructive-foreground" },
   high: { label: "High", className: "bg-warning/15 text-warning border-warning/30" },
   normal: { label: "Normal", className: "bg-muted text-muted-foreground" },
@@ -425,7 +426,7 @@ export function DispatchJobDetailsSheet({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Service Type</p>
-                <p className="text-sm font-medium">{job.job_type || "General"}</p>
+                <p className="text-sm font-medium">{job.job_type ? job.job_type.replace(/\b\w/g, c => c.toUpperCase()) : "General"}</p>
               </div>
               {job.price_cents !== null && job.price_cents !== undefined && (
                 <div className="space-y-1">
@@ -468,7 +469,7 @@ export function DispatchJobDetailsSheet({
                 <div className="grid grid-cols-2 gap-4">
                   {job.assigned_crew && (
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">Crew</p>
+                      <p className="text-xs text-muted-foreground">Driver</p>
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-muted-foreground" />
                         <p className="text-sm font-medium">{job.assigned_crew}</p>

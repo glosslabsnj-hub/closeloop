@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const priorityColors: Record<string, string> = {
+  emergency: "bg-destructive text-destructive-foreground animate-pulse",
   urgent: "bg-destructive text-destructive-foreground",
   high: "bg-warning/10 text-warning border-warning/30",
   normal: "bg-muted text-muted-foreground border-border",
@@ -79,7 +80,7 @@ export function DispatchJobCard<T>({ job, onAssign, onUpdateStatus, onCall }: Di
       {/* Service type */}
       {job.job_type && (
         <p className={cn("text-sm font-medium mb-2", job.priority === "low" && "text-muted-foreground")}>
-          {job.job_type}
+          {job.job_type.replace(/\b\w/g, c => c.toUpperCase())}
         </p>
       )}
 
