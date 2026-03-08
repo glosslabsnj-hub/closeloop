@@ -408,6 +408,12 @@ const SLUG_OBJECTION_OVERRIDES: Record<string, Array<{ objection: string; respon
     { objection: "Can you come right now?", response: "We treat lockouts as emergencies. Let me check our nearest technician's location — in most cases we can have someone there within 30-45 minutes." },
     { objection: "I'll just break a window", response: "That'll cost you a lot more than a lockout service, plus the security risk. We can get you in cleanly without any damage to your door or lock." },
   ],
+  "pool_service": [
+    { objection: "I can maintain my own pool", response: "A lot of pool owners start that way! But consistent chemical balance is trickier than it looks — one off week can turn into a green pool that costs hundreds to fix. We save you time and prevent those surprises." },
+    { objection: "I already have a pool service", response: "That's great! If you're ever looking to switch or want a second opinion on a repair quote, we'd love to do a free inspection — no pressure at all." },
+    { objection: "Pool maintenance is too expensive", response: "We hear that! But a green pool or damaged pump can run $500–$2,000+ to fix. Our maintenance plans start at $125/week with chemicals included — no surprise bills at the end of the month." },
+    { objection: "It's only seasonal, I don't need regular service", response: "Exactly why we offer seasonal packages — spring opening, summer maintenance, and winterization bundled at a discount. Most clients get more swim time because their pool is always ready to go." },
+  ],
 };
 
 /**

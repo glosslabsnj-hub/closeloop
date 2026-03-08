@@ -434,6 +434,28 @@ const slugConfigs: Record<string, Partial<IndustryOnboardingConfig>> = {
     setupTitle: "your handyman business",
   },
 
+  pool_service: {
+    preAnswers: {
+      offersMobileService: true,
+      chargesTripFee: false,
+      offersRecurringService: true,
+      requiresDeposits: false,
+    },
+    setupChecklist: [
+      { label: "Add your pool services and maintenance plans", fixPath: "/app/business-brain?section=services", icon: "services", flagKeys: ["no_services", "few_services", "missing_pricing"] },
+      { label: "Set your service area", fixPath: "/app/business-brain?section=service-area", icon: "coverage", flagKeys: ["missing_service_area"] },
+      { label: "Set your business hours (Mon–Sat for most pool companies)", fixPath: "/app/business-brain?section=hours", icon: "hours", flagKeys: ["missing_hours"] },
+      { label: "Add FAQs about chemicals, contracts, and service frequency", fixPath: "/app/business-brain?section=knowledge", icon: "faqs", flagKeys: ["missing_faqs", "few_faqs"] },
+    ],
+    nextSteps: [
+      { label: "Make a test call — try 'My pool is turning green'", icon: "phone" },
+      { label: "Set your service area and coverage radius", icon: "map" },
+      { label: "Add FAQs about chemicals, saltwater pools, and heater repairs", icon: "book" },
+      { label: "Customize your AI's greeting", icon: "sparkles" },
+    ],
+    setupTitle: "your pool service company",
+  },
+
   general_contractor: {
     preAnswers: {
       offersMobileService: true,

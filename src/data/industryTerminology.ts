@@ -476,6 +476,8 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
     itemNamePlaceholder: "e.g. Weekly Cleaning",
     servicesCategoryTitle: "Pool Services",
     teamMemberLabel: "pool tech",
+    appointmentLabel: "service visit",
+    customerLabel: "customer",
     exampleServices: ["Weekly Cleaning", "Pool Opening", "Pool Closing", "Equipment Repair", "Acid Wash"],
     exampleFAQs: ["How often should my pool be cleaned?", "Do you handle equipment repairs?", "Do you offer monthly contracts?"],
   },
