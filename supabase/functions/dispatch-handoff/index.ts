@@ -136,8 +136,12 @@ serve(async (req) => {
       }
 
       if (method === "email" && notify_email) {
-        console.log(`[TEST] Would send email to ${notify_email}:`, testPayload);
-        return jsonResponse({ success: true, method: "email", message: "Email test logged" });
+        await sendEmail({
+          to: notify_email,
+          subject: "[TEST] Flux Receptionist Dispatch Notification",
+          html: `<h2>Test Dispatch Alert</h2><p>This is a test dispatch notification from Flux Receptionist.</p><pre style="background:#f5f5f5;padding:12px;border-radius:4px;">${JSON.stringify(testPayload, null, 2)}</pre>`,
+        });
+        return jsonResponse({ success: true, method: "email" });
       }
 
       if (method === "sms" && notify_phone) {
