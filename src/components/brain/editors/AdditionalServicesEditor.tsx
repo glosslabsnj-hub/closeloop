@@ -230,6 +230,15 @@ const INDUSTRY_ADDON_SUGGESTIONS: Record<string, AdditionalServiceSuggestion[]> 
     { name: "Access Control", description: "Commercial access systems", category: "Commercial" },
     { name: "Key Duplication", description: "Key copying services", category: "Services" },
   ],
+
+  // Pest Control
+  pest_control: [
+    { name: "Wildlife Removal", description: "Humane removal of birds, bats, raccoons, etc.", category: "Specialty" },
+    { name: "Exclusion Services", description: "Sealing entry points to prevent re-infestation", category: "Prevention" },
+    { name: "Moisture Control", description: "Crawl space moisture barriers and dehumidifiers", category: "Prevention" },
+    { name: "Annual Inspection", description: "Full property pest and termite inspection", category: "Inspection" },
+    { name: "Organic / Eco-Friendly Treatment", description: "Pet and kid-safe plant-based treatments", category: "Specialty" },
+  ],
 };
 
 // Map business_mode to default suggestions when no specific industry match
@@ -470,6 +479,8 @@ export function AdditionalServicesEditor() {
       cleaning: "a cleaning service might also offer deep cleaning, carpet cleaning, or pressure washing",
       landscaping: "a landscaping company might also offer irrigation systems or tree services",
       auto_repair: "an auto shop might also offer detailing, body work, or inspections",
+      pest_control: "a pest control company might also offer wildlife removal, exclusion services, or moisture control",
+      locksmith: "a locksmith might also offer security systems, access control, or safe services",
     };
     
     // Try to find a matching example
