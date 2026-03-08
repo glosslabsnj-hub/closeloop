@@ -91,12 +91,36 @@ describe("DayAvailabilityTimeline mode-aware labels", () => {
 
 // ─── DashboardByMode uses mode-aware "Today" title ──────────────────────────
 describe("DashboardByMode mode-aware stat titles", () => {
+  const content = readFileSync(
+    resolve("src/components/dashboard/DashboardByMode.tsx"),
+    "utf-8"
+  );
+
   it('does not have hardcoded "Appointments Today"', () => {
-    const content = readFileSync(
-      resolve("src/components/dashboard/DashboardByMode.tsx"),
-      "utf-8"
-    );
     expect(content).not.toContain('"Appointments Today"');
+  });
+
+  it('MedicalTodayView calls useIndustryContext (prevent ReferenceError on terms)', () => {
+    // MedicalTodayView uses terms.bookings — it MUST have its own useIndustryContext() call.
+    // Without this, medical dashboard throws runtime ReferenceError.
+    const medicalFn = content.slice(content.indexOf("function MedicalTodayView"));
+    const nextFn = medicalFn.indexOf("function ", 10);
+    const medicalBody = medicalFn.slice(0, nextFn > 0 ? nextFn : undefined);
+    expect(medicalBody).toContain("useIndustryContext");
+  });
+
+  it('SalesTodayView calls useIndustryContext (car dealers see Test Drives Today)', () => {
+    // SalesTodayView must use terms.bookings not hardcoded "Appointments Today".
+    const salesFn = content.slice(content.indexOf("function SalesTodayView"));
+    const nextFn = salesFn.indexOf("function ", 10);
+    const salesBody = salesFn.slice(0, nextFn > 0 ? nextFn : undefined);
+    expect(salesBody).toContain("useIndustryContext");
+    expect(salesBody).toContain("terms.bookings");
+  });
+
+  it('does not have hardcoded "Showroom Activity" heading', () => {
+    // Was hardcoded — now dynamic via terms.bookings so real-estate sees "Showing Activity"
+    expect(content).not.toContain('"Showroom Activity"');
   });
 });
 

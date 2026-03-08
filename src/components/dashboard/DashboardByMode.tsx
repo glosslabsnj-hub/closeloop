@@ -334,7 +334,7 @@ function SalesTodayView({ stats }: { stats?: TodayStats }) {
   const { terms } = useIndustryContext();
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">Showroom Activity</h3>
+      <h3 className="text-lg font-semibold">Today's {terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1)} Activity</h3>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Calls Today"

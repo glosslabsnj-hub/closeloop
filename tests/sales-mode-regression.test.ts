@@ -397,3 +397,56 @@ describe("sales mode terminology additions do not regress other modes", () => {
     expect(t.customerLabel).not.toBe("buyer");
   });
 });
+
+// ---------------------------------------------------------------------------
+// seed-test-tenants: cleanup covers sales tables (bug: duplicate inventory on reseed)
+// ---------------------------------------------------------------------------
+describe("seed-test-tenants cleanup completeness", () => {
+  const source = readFileSync(
+    join(process.cwd(), "supabase/functions/seed-test-tenants/index.ts"),
+    "utf-8"
+  );
+
+  // Verify all 3 sales-specific tables are cleaned in BOTH delete and reseed paths.
+  // Bug fixed 2026-03-08 (b24232c): reseed did not clear sales_inventory/sales_leads/test_drives,
+  // causing repeated reseed to double inventory (8 → 16 → 24 vehicles).
+
+  const deleteBlock = source.slice(
+    source.indexOf('action === "delete"'),
+    source.indexOf('action === "reseed"')
+  );
+
+  const reseedBlock = source.slice(
+    source.indexOf('action === "reseed"'),
+    source.indexOf('action === "create_and_seed"')
+  );
+
+  it("DELETE action clears sales_inventory", () => {
+    expect(deleteBlock).toContain('"sales_inventory"');
+  });
+
+  it("DELETE action clears sales_leads", () => {
+    expect(deleteBlock).toContain('"sales_leads"');
+  });
+
+  it("DELETE action clears test_drives", () => {
+    expect(deleteBlock).toContain('"test_drives"');
+  });
+
+  it("RESEED action clears sales_inventory before re-inserting", () => {
+    expect(reseedBlock).toContain('"sales_inventory"');
+  });
+
+  it("RESEED action clears sales_leads", () => {
+    expect(reseedBlock).toContain('"sales_leads"');
+  });
+
+  it("RESEED action clears test_drives", () => {
+    expect(reseedBlock).toContain('"test_drives"');
+  });
+
+  it("seedTenantData inserts into sales_inventory when customInventory provided", () => {
+    expect(source).toContain('"sales_inventory"');
+    expect(source).toContain("customInventory");
+  });
+});
