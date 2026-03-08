@@ -53,16 +53,20 @@ function getDefaultSettings(appointmentLabel: string): SmsSettings {
   };
 }
 
-// Known default message patterns — if saved template matches one of these,
-// it was never customized and should regenerate with correct terminology.
-const DEFAULT_PATTERNS = [
-  /^Hi \{\{customer_name\}\}! Your \w+ with \{\{business_name\}\} is confirmed/,
-  /^Reminder: (You have a|Your) \w+ with \{\{business_name\}\} (is )?tomorrow/,
-  /^Thank you for (visiting|choosing) \{\{business_name\}\}/,
+// Known terminology labels used by the system. If a saved template EXACTLY
+// matches the auto-generated default for any of these labels, it was never
+// customized and should be regenerated with the tenant's correct terminology.
+// Using exact matching (not regex) prevents overwriting genuinely custom messages
+// that happen to start with a similar phrase.
+const KNOWN_APPOINTMENT_LABELS = [
+  "appointment", "booking", "job", "session", "reservation",
+  "visit", "consultation", "service", "order", "intake", "lead",
 ];
 
-function isDefaultTemplate(message: string, index: number): boolean {
-  return DEFAULT_PATTERNS[index]?.test(message) ?? false;
+function isDefaultTemplate(message: string, key: keyof SmsSettings): boolean {
+  return KNOWN_APPOINTMENT_LABELS.some(
+    (label) => getDefaultSettings(label)[key].message === message
+  );
 }
 
 // Static fallback for useState initialization (before terminology loads)
@@ -168,8 +172,8 @@ export function SmsSettingsSection() {
     if (savedSmsSettings) {
       const keys: (keyof SmsSettings)[] = ["appointment_confirmation", "appointment_reminder", "review_request"];
       const merged = { ...savedSmsSettings };
-      keys.forEach((key, i) => {
-        if (merged[key] && isDefaultTemplate(merged[key].message, i)) {
+      keys.forEach((key) => {
+        if (merged[key] && isDefaultTemplate(merged[key].message, key)) {
           merged[key] = { ...merged[key], message: terminologyDefaults[key].message };
         }
       });
