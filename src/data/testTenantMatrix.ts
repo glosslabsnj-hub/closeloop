@@ -16,7 +16,7 @@ export interface CustomService {
   description?: string;
   duration_minutes: number;
   price_amount: number;
-  price_type?: "fixed" | "quote_only" | "deposit_based";
+  price_type?: "fixed" | "quote_only" | "deposit_based" | "starting_at";
   service_category?: string;
   display_order?: number;
 }
@@ -31,6 +31,22 @@ export interface CustomObjection {
   objection: string;
   response: string;
   priority_weight?: number;
+}
+
+export interface CustomInventoryItem {
+  year: number;
+  make: string;
+  model: string;
+  trim?: string;
+  body_style?: string;
+  condition: "new" | "used" | "certified";
+  exterior_color?: string;
+  mileage?: number;
+  asking_price_cents: number;
+  internet_price_cents?: number;
+  stock_number?: string;
+  features?: string[];
+  description?: string;
 }
 
 export interface TestTenantConfig {
@@ -71,6 +87,7 @@ export interface TestTenantConfig {
     customServices?: CustomService[];
     customFaqs?: CustomFaq[];
     customObjections?: CustomObjection[];
+    customInventory?: CustomInventoryItem[];
   };
 }
 
@@ -1399,6 +1416,16 @@ const salesTenants: TestTenantConfig[] = [
         { question: "How do I schedule a test drive?", answer: "I can schedule a test drive for you right now! Just tell me which vehicle you're interested in and your preferred day and time.", priority_weight: 7 },
         { question: "What's the difference between new and certified pre-owned?", answer: "New vehicles have no prior ownership. Certified pre-owned (CPO) vehicles are manufacturer-inspected, often with extended warranty coverage, and are priced below new. Both are great options depending on your budget.", priority_weight: 6 },
         { question: "Do you have weekend hours?", answer: "Yes, our showroom is open Monday through Saturday. Saturday is one of our busiest days — I recommend calling ahead or booking an appointment so a sales consultant is ready for you.", priority_weight: 5 },
+      ],
+      customInventory: [
+        { year: 2025, make: "Toyota", model: "RAV4", trim: "XLE", body_style: "SUV", condition: "new", exterior_color: "Midnight Black", asking_price_cents: 3189500, internet_price_cents: 3149500, stock_number: "N2501", features: ["AWD", "Apple CarPlay", "Heated Seats", "Safety Sense 3.0"], description: "Brand new RAV4 XLE with all-wheel drive and Toyota Safety Sense." },
+        { year: 2025, make: "Toyota", model: "Camry", trim: "SE", body_style: "Sedan", condition: "new", exterior_color: "Celestial Silver", asking_price_cents: 2889500, internet_price_cents: 2849500, stock_number: "N2502", features: ["Lane Departure Alert", "Apple CarPlay", "V6 Engine", "Sport Suspension"], description: "2025 Camry SE with sporty trim and V6 power." },
+        { year: 2024, make: "Toyota", model: "Tacoma", trim: "TRD Off-Road", body_style: "Truck", condition: "certified", exterior_color: "Army Green", mileage: 12400, asking_price_cents: 4189500, internet_price_cents: 4099500, stock_number: "C2401", features: ["4x4", "Multi-Terrain Select", "Crawl Control", "Toyota Certified Pre-Owned"], description: "Certified Pre-Owned Tacoma TRD Off-Road. Like new with full warranty." },
+        { year: 2023, make: "Toyota", model: "Highlander", trim: "Limited", body_style: "SUV", condition: "used", exterior_color: "Wind Chill Pearl", mileage: 28700, asking_price_cents: 3799500, internet_price_cents: 3749500, stock_number: "U2301", features: ["3rd Row Seating", "Panoramic Roof", "12-inch Touchscreen", "All-Wheel Drive"], description: "One-owner Highlander Limited, full service history on file." },
+        { year: 2025, make: "Toyota", model: "Tundra", trim: "SR5", body_style: "Truck", condition: "new", exterior_color: "Blueprint", asking_price_cents: 4889500, internet_price_cents: 4799500, stock_number: "N2503", features: ["i-FORCE MAX Hybrid", "Tow Package", "8-inch Touchscreen", "Pre-Collision System"], description: "Full-size pickup with hybrid powertrain and class-leading towing capacity." },
+        { year: 2024, make: "Toyota", model: "Corolla", trim: "LE", body_style: "Sedan", condition: "certified", exterior_color: "Ice Cap White", mileage: 19800, asking_price_cents: 2249500, internet_price_cents: 2199500, stock_number: "C2402", features: ["Toyota Safety Sense 2.0", "Apple CarPlay", "Backup Camera", "Certified Pre-Owned"], description: "Certified Pre-Owned Corolla, fuel-efficient and loaded with safety features." },
+        { year: 2022, make: "Toyota", model: "4Runner", trim: "TRD Pro", body_style: "SUV", condition: "used", exterior_color: "Lunar Rock", mileage: 34200, asking_price_cents: 4999500, internet_price_cents: 4949500, stock_number: "U2201", features: ["4WD", "Fox Shocks", "Crawl Control", "Premium Audio"], description: "Low-mileage 4Runner TRD Pro, the ultimate off-road SUV." },
+        { year: 2025, make: "Toyota", model: "bZ4X", trim: "XLE", body_style: "SUV", condition: "new", exterior_color: "Supersonic Red", asking_price_cents: 4289500, internet_price_cents: 4199500, stock_number: "N2504", features: ["All-Electric", "AWD", "250mi Range", "V2L Vehicle-to-Load"], description: "All-new electric SUV with over 250 miles of range and all-wheel drive." },
       ],
     },
   },

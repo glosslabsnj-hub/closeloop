@@ -59,6 +59,21 @@ interface SeedRequest {
         response: string;
         priority_weight?: number;
       }[];
+      customInventory?: {
+        year: number;
+        make: string;
+        model: string;
+        trim?: string;
+        body_style?: string;
+        condition: "new" | "used" | "certified";
+        exterior_color?: string;
+        mileage?: number;
+        asking_price_cents: number;
+        internet_price_cents?: number;
+        stock_number?: string;
+        features?: string[];
+        description?: string;
+      }[];
     };
   };
 }
@@ -497,6 +512,28 @@ async function seedTenantData(
       priority_weight: o.priority_weight ?? i,
     }));
     await client.from("objection_responses").insert(objections);
+  }
+
+  // Seed inventory (sales mode only)
+  if (seedData.customInventory && seedData.customInventory.length > 0) {
+    const inventory = seedData.customInventory.map((v) => ({
+      tenant_id: tenantId,
+      year: v.year,
+      make: v.make,
+      model: v.model,
+      trim: v.trim ?? null,
+      body_style: v.body_style ?? null,
+      condition: v.condition,
+      exterior_color: v.exterior_color ?? null,
+      mileage: v.mileage ?? null,
+      asking_price_cents: v.asking_price_cents,
+      internet_price_cents: v.internet_price_cents ?? v.asking_price_cents,
+      stock_number: v.stock_number ?? null,
+      features: v.features ?? [],
+      description: v.description ?? null,
+      status: "available",
+    }));
+    await client.from("sales_inventory").insert(inventory);
   }
 
   // Seed sample call sessions
