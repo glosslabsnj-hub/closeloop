@@ -329,6 +329,9 @@ describe("Booking verb helpers — full coverage", () => {
     it("appointment → 'book appointments automatically'", () => {
       expect(getAutoBookSummary("appointment")).toBe("book appointments automatically");
     });
+    it("treatment → 'schedule treatments automatically' (pest_control)", () => {
+      expect(getAutoBookSummary("treatment")).toBe("schedule treatments automatically");
+    });
     it("unknown → fallback 'book appointments automatically'", () => {
       expect(getAutoBookSummary("xyz")).toBe("book appointments automatically");
     });
@@ -355,6 +358,9 @@ describe("Booking verb helpers — full coverage", () => {
     });
     it("appointment → 'book appointments'", () => {
       expect(getReadinessVerb("appointment")).toBe("book appointments");
+    });
+    it("treatment → 'schedule treatments' (pest_control)", () => {
+      expect(getReadinessVerb("treatment")).toBe("schedule treatments");
     });
     it("unknown → fallback 'book appointments'", () => {
       expect(getReadinessVerb("xyz")).toBe("book appointments");
@@ -383,9 +389,50 @@ describe("Booking verb helpers — full coverage", () => {
     it("appointment → 'booking appointments'", () => {
       expect(getActiveVerb("appointment")).toBe("booking appointments");
     });
+    it("treatment → 'scheduling treatments' (pest_control)", () => {
+      expect(getActiveVerb("treatment")).toBe("scheduling treatments");
+    });
     it("unknown → fallback 'booking appointments'", () => {
       expect(getActiveVerb("xyz")).toBe("booking appointments");
     });
+  });
+});
+
+// ─── getBookingActionPhrase: BOOKING_VERBS treatment regression ─────────────
+// Bug fixed 2026-03-08 (commit 8abf72a): "treatment" was missing from BOOKING_VERBS,
+// causing getBookingActionPhrase("treatment") to return "book an treatment" (wrong grammar).
+// After fix: returns "schedule a treatment" (correct).
+
+describe("getBookingActionPhrase: BOOKING_VERBS coverage including treatment", () => {
+  it("treatment → 'schedule a treatment' (NOT 'book an treatment')", () => {
+    expect(getBookingActionPhrase("treatment")).toBe("schedule a treatment");
+  });
+
+  it("job → 'schedule a job'", () => {
+    expect(getBookingActionPhrase("job")).toBe("schedule a job");
+  });
+
+  it("estimate → 'schedule a free estimate'", () => {
+    expect(getBookingActionPhrase("estimate")).toBe("schedule a free estimate");
+  });
+
+  it("inspection → 'schedule a roof inspection'", () => {
+    expect(getBookingActionPhrase("inspection")).toBe("schedule a roof inspection");
+  });
+
+  it("appointment → 'book an appointment'", () => {
+    expect(getBookingActionPhrase("appointment")).toBe("book an appointment");
+  });
+
+  it("order → 'place an order'", () => {
+    expect(getBookingActionPhrase("order")).toBe("place an order");
+  });
+
+  it("pest_control end-to-end: appointmentLabel resolves to 'schedule a treatment'", () => {
+    // Full chain: industry slug → appointmentLabel → actionPhrase
+    const { appointmentLabel } = getIndustryTerminology("service", "home_services", "pest_control");
+    expect(appointmentLabel).toBe("treatment");
+    expect(getBookingActionPhrase(appointmentLabel)).toBe("schedule a treatment");
   });
 });
 

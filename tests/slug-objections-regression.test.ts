@@ -43,6 +43,7 @@ describe("getSlugObjectionExamples: slug overrides replace base commonObjections
     "painting",
     "cleaning",
     "pest_control",
+    "locksmith",
   ] as const;
 
   for (const slug of overriddenSlugs) {
@@ -173,6 +174,31 @@ describe("getSlugObjectionExamples: cleaning includes supply/last-cleaner object
   });
 });
 
+describe("getSlugObjectionExamples: locksmith includes AAA and landlord objections (eng 2026-03-08)", () => {
+  const result = getSlugObjectionExamples("service", "locksmith");
+
+  it("includes an AAA alternative objection", () => {
+    const hasAaa = result.commonObjections.some(
+      (o) => o.objection.toLowerCase().includes("aaa")
+    );
+    expect(hasAaa).toBe(true);
+  });
+
+  it("includes a landlord responsibility objection", () => {
+    const hasLandlord = result.commonObjections.some(
+      (o) => o.objection.toLowerCase().includes("landlord")
+    );
+    expect(hasLandlord).toBe(true);
+  });
+
+  it("response to AAA objection mentions faster response or direct service", () => {
+    const aaaObj = result.commonObjections.find(
+      (o) => o.objection.toLowerCase().includes("aaa")
+    );
+    expect(aaaObj?.response.toLowerCase()).toMatch(/faster|direct|wait/);
+  });
+});
+
 describe("getSlugObjectionExamples: pest_control includes safety objection", () => {
   const result = getSlugObjectionExamples("service", "pest_control");
 
@@ -253,6 +279,7 @@ describe("SLUG_OBJECTION_OVERRIDES structure integrity", () => {
     "painting",
     "cleaning",
     "pest_control",
+    "locksmith",
   ];
 
   for (const slug of slugsToCheck) {

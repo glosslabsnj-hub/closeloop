@@ -422,13 +422,13 @@ describe("getIndustryTerminology: 3-tier resolution priority", () => {
     expect(withSlug.teamMemberLabel).toBe("crew");
   });
 
-  it("category override wins over mode default (no slug override)", () => {
-    // pest_control has no teamMemberLabel override in SLUG_OVERRIDES
-    // It should fall through to category or mode default
+  it("pest_control slug override wins over home_services category (treatment, pest tech)", () => {
+    // pest_control SLUG_OVERRIDE sets teamMemberLabel="pest tech", appointmentLabel="treatment"
+    // These slug overrides must take priority over the home_services category default (job)
     const t = getIndustryTerminology("service", "home_services", "pest_control");
-    // Should be non-empty (not crashed), whatever category sets
-    expect(t.teamMemberLabel).toBeTruthy();
-    expect(t.appointmentLabel).toBeTruthy();
+    expect(t.teamMemberLabel).toBe("pest tech");
+    expect(t.appointmentLabel).toBe("treatment");
+    expect(t.customerLabel).toBe("customer");
   });
 
   it("unknown slug falls back to category default (no crash)", () => {
@@ -519,6 +519,10 @@ describe("appointmentLabel + indefiniteArticle integration", () => {
     { slug: "handyman",           expectedLabel: "job",        expectedPhrase: "a job" },
     { slug: "painting",           expectedLabel: "job",        expectedPhrase: "a job" },
     { slug: "landscaping",        expectedLabel: "job",        expectedPhrase: "a job" },
+    // pest_control slug override wins over home_services category → "treatment" not "job"
+    { slug: "pest_control",       expectedLabel: "treatment",  expectedPhrase: "a treatment" },
+    // locksmith: home_services category sets "job"
+    { slug: "locksmith",          expectedLabel: "job",        expectedPhrase: "a job" },
   ];
 
   for (const { slug, expectedLabel, expectedPhrase } of cases) {
@@ -577,4 +581,85 @@ describe("getIndustryTerminology: appliance_repair slug", () => {
     const faqs = t.exampleFAQs.join(" ").toLowerCase();
     expect(faqs).toMatch(/brand|diagnos|parts/);
   });
+});
+
+// ─── pest_control: full terminology regression (UX 2026-03-08) ─────────────
+// Bug: before this UX session, pest_control had no teamMemberLabel/appointmentLabel/customerLabel
+// in SLUG_OVERRIDES, so a pest control owner saw generic "technician / appointment / customer".
+// Now: teamMemberLabel="pest tech", appointmentLabel="treatment", customerLabel="customer"
+//
+// Critical: appointmentLabel="treatment" must win over home_services category default "job",
+// otherwise getBookingActionPhrase would return "book an treatment" (grammar bug too).
+
+describe("getIndustryTerminology: pest_control full terminology override", () => {
+  const t = getIndustryTerminology("service", "home_services", "pest_control");
+
+  it("teamMemberLabel is 'pest tech'", () => {
+    expect(t.teamMemberLabel).toBe("pest tech");
+  });
+
+  it("appointmentLabel is 'treatment' (not 'job' from home_services category)", () => {
+    expect(t.appointmentLabel).toBe("treatment");
+  });
+
+  it("customerLabel is 'customer'", () => {
+    expect(t.customerLabel).toBe("customer");
+  });
+
+  it("exampleServices include rodent control and quarterly plan", () => {
+    const services = t.exampleServices.join(" ").toLowerCase();
+    expect(services).toMatch(/termite|rodent|bed bug|quarterly/);
+  });
+
+  it("exampleFAQs mention pet safety and treatment warranty", () => {
+    const faqs = t.exampleFAQs.join(" ").toLowerCase();
+    expect(faqs).toMatch(/pet|warrant|treatment/);
+  });
+});
+
+// ─── locksmith: full terminology regression (eng 2026-03-08) ───────────────
+// eng session expanded locksmith from 6→16 services, added FAQs, objections, context fields.
+// Verify the terminology resolves correctly.
+
+describe("getIndustryTerminology: locksmith full terminology", () => {
+  const t = getIndustryTerminology("service", "home_services", "locksmith");
+
+  it("teamMemberLabel is 'locksmith'", () => {
+    expect(t.teamMemberLabel).toBe("locksmith");
+  });
+
+  it("exampleServices include lockout, rekey, and car key programming", () => {
+    const services = t.exampleServices.join(" ").toLowerCase();
+    expect(services).toMatch(/lockout|rekey|key/);
+  });
+
+  it("exampleFAQs address trip fee and response time", () => {
+    const faqs = t.exampleFAQs.join(" ").toLowerCase();
+    expect(faqs).toMatch(/trip fee|quickly|car key/);
+  });
+});
+
+// ─── salon/hair-salon: stylist + client labels (UX 2026-03-08) ─────────────
+// UX session added teamMemberLabel="stylist", customerLabel="client" for salon/hair-salon.
+// These drive "Your stylist will call you" and "client" in dashboard metrics.
+
+describe("getIndustryTerminology: salon/hair-salon stylist + client labels", () => {
+  for (const slug of ["salon", "hair-salon"] as const) {
+    describe(`slug: ${slug}`, () => {
+      const t = getIndustryTerminology("service", "beauty_wellness", slug);
+
+      it("teamMemberLabel is 'stylist'", () => {
+        expect(t.teamMemberLabel).toBe("stylist");
+      });
+
+      it("customerLabel is 'client'", () => {
+        expect(t.customerLabel).toBe("client");
+      });
+
+      it("exampleServices include women's haircut and color", () => {
+        const services = t.exampleServices.join(" ").toLowerCase();
+        expect(services).toMatch(/haircut|color/);
+      });
+    });
+  }
 });
