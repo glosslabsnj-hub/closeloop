@@ -402,6 +402,12 @@ const SLUG_OBJECTION_OVERRIDES: Record<string, Array<{ objection: string; respon
     { objection: "Is it safe for my kids and pets?", response: "Absolutely — we use EPA-registered products and our technicians are trained in targeted application. We'll tell you exactly when it's safe to re-enter." },
     { objection: "I'll wait and see if they go away on their own", response: "Most infestations get larger if untreated. Catching it early is always cheaper and less disruptive than dealing with a serious infestation later." },
   ],
+  "locksmith": [
+    { objection: "I'll just call AAA", response: "AAA is great for roadside assistance, but they typically sub out locksmith calls to local services — sometimes with a 2-3 hour wait. We can usually be there faster, and we handle home and car lockouts directly." },
+    { objection: "My landlord should pay for this", response: "That's fair for some situations — if it's a lock malfunction, your landlord may be responsible. We can help you get in now and provide documentation you can use for reimbursement." },
+    { objection: "Can you come right now?", response: "We treat lockouts as emergencies. Let me check our nearest technician's location — in most cases we can have someone there within 30-45 minutes." },
+    { objection: "I'll just break a window", response: "That'll cost you a lot more than a lockout service, plus the security risk. We can get you in cleanly without any damage to your door or lock." },
+  ],
 };
 
 /**
