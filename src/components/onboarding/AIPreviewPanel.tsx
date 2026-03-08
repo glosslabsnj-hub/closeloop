@@ -74,6 +74,7 @@ const SLUG_CALLER_MESSAGES: Record<string, string> = {
   veterinary: "My dog needs his annual checkup. Do you have any openings?",
   pizza: "Hi, I'd like to place an order for pickup.",
   general_contractor: "Hi, I want to remodel my kitchen. Can I get a free estimate?",
+  handyman: "I have a leaky faucet and a loose door hinge. Can someone come out today?",
   roofing: "I have a roof leak and need someone to come take a look.",
   painting: "I need the exterior of my house painted. Do you offer free quotes?",
   flooring: "I want to replace my carpet with hardwood. Can I schedule a consultation?",
