@@ -619,14 +619,47 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     slug: 'locksmith',
     name: 'Locksmith',
     icon: '🔐',
-    tags: ['locksmith', 'locks', 'keys', 'lockout', 'security', 'safe'],
+    tags: ['locksmith', 'locks', 'keys', 'lockout', 'security', 'safe', 'deadbolt', 'rekey', 'transponder', 'car keys', 'access control'],
     services: [
       { name: 'House Lockout', duration: 30, price: 85, priceType: 'starting_at' },
       { name: 'Car Lockout', duration: 30, price: 75, priceType: 'starting_at' },
+      { name: 'Commercial Lockout', duration: 45, price: 125, priceType: 'starting_at' },
       { name: 'Lock Rekey', duration: 30, price: 25, priceType: 'fixed' },
-      { name: 'Lock Installation', duration: 45, price: 100, priceType: 'starting_at' },
-      { name: 'Key Duplication', duration: 15, price: 5, priceType: 'starting_at' },
-      { name: 'Safe Cracking', duration: 120, price: 200, priceType: 'starting_at' },
+      { name: 'Broken Key Extraction', duration: 30, price: 75, priceType: 'starting_at' },
+      { name: 'Deadbolt Installation', duration: 45, price: 150, priceType: 'starting_at' },
+      { name: 'Lock Repair', duration: 30, price: 75, priceType: 'starting_at' },
+      { name: 'Lock Replacement', duration: 45, price: 100, priceType: 'starting_at' },
+      { name: 'High-Security Lock Install', duration: 60, price: 250, priceType: 'starting_at' },
+      { name: 'Smart Lock Installation', duration: 60, price: 200, priceType: 'starting_at' },
+      { name: 'Master Key System', duration: 90, price: 300, priceType: 'starting_at' },
+      { name: 'Transponder Key Programming', duration: 45, price: 150, priceType: 'starting_at' },
+      { name: 'Car Key Made Without Original', duration: 60, price: 200, priceType: 'starting_at' },
+      { name: 'Mailbox Lock', duration: 20, price: 40, priceType: 'fixed' },
+      { name: 'Safe Cracking / Opening', duration: 120, price: 200, priceType: 'starting_at' },
+      { name: 'Access Control System', duration: 120, price: 0, priceType: 'quote_only' },
+    ],
+    contextFields: [
+      { key: 'lock_type', label: 'Lock Type', type: 'select', options: ['Residential Door', 'Commercial Door', 'Car/Vehicle', 'Safe', 'Mailbox', 'Padlock', 'Other'], required: true },
+      { key: 'urgency', label: 'Urgency', type: 'select', options: ['Not urgent', 'Soon', 'Urgent - locked out now', 'Emergency'], required: true },
+      { key: 'vehicle_info', label: 'Vehicle (Year/Make/Model)', type: 'text', required: false },
+      { key: 'num_locks', label: 'Number of Locks', type: 'number', required: false },
+    ],
+    faqs: [
+      ...commonFAQs,
+      { question: "How fast can you get here?", answer: "We typically arrive within 15-30 minutes for emergency lockouts in our service area. Give us your location and we'll confirm the ETA right now." },
+      { question: "Do you charge a trip fee?", answer: "We charge a service call fee that covers travel and diagnosis. This fee is applied toward the total cost of your service." },
+      { question: "Can you make a car key without the original?", answer: "Yes — most modern vehicles can be rekeyed or have a new key programmed without the original. We'll need your VIN and proof of ownership." },
+      { question: "Do you work on smart locks?", answer: "Yes, we install and repair most major smart lock brands including Schlage, Kwikset, Yale, and August. Let us know your model and we'll confirm compatibility." },
+      { question: "Are you available 24/7?", answer: "Yes, we offer 24-hour emergency service for lockouts. Standard service is available during regular business hours. After-hours calls may have an additional fee." },
+      { question: "Can you open a safe without damaging it?", answer: "In most cases, yes. We use non-destructive techniques first. If the safe must be drilled, we'll let you know before we start." },
+      { question: "Do you offer emergency service?", answer: "Yes, we're available 24/7 for lockouts and urgent security needs. Give us a call and we'll be there fast." },
+    ],
+    objections: [
+      ...commonObjections,
+      { objection: "I'll just call AAA", response: "AAA is great for basic car lockouts, but for home lockouts, lock repairs, rekeying, or key programming, a licensed locksmith is faster and more capable. We can be there in about 15-30 minutes — want me to book you?" },
+      { objection: "My landlord should pay for this", response: "That's a fair point. You're welcome to reach out to your landlord for reimbursement, but we can get you back in now so you're not waiting. We'll email you a receipt for your records." },
+      { objection: "Can you come right now?", response: "Absolutely — that's what we're here for. Give me your address and I'll dispatch a technician. We'll have an ETA for you within a few minutes." },
+      { objection: "I'll just break a window", response: "Breaking a window could cost you hundreds in repairs and leave your home unsecured. We can usually get you in for much less and have a technician there in under 30 minutes." },
     ],
   },
   {
@@ -2582,9 +2615,9 @@ export function searchIndustries(query: string): IndustryCatalogEntry[] {
 export function getPopularIndustries(count: number = 15): IndustryCatalogEntry[] {
   // Prioritized popular industries
   const popularSlugs = [
-    'plumbing', 'hvac', 'electrical', 'general_contractor', 'handyman', 'auto_detailing', 'salon',
+    'plumbing', 'hvac', 'electrical', 'general_contractor', 'handyman', 'locksmith', 'auto_detailing', 'salon',
     'dental', 'restaurant', 'cleaning', 'towing', 'massage',
-    'landscaping', 'personal_training', 'roofing', 'pest_control'
+    'landscaping', 'roofing', 'pest_control'
   ];
   
   return popularSlugs
