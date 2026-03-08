@@ -635,6 +635,8 @@ const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string;
   order: { actionPhrase: "place an order", autoSummary: "take orders automatically", readinessVerb: "take orders", activeVerb: "taking orders" },
   // Events / entertainment: booking an event
   event: { actionPhrase: "book an event", autoSummary: "book events automatically", readinessVerb: "book events", activeVerb: "booking events" },
+  // Pest control: scheduling a treatment
+  treatment: { actionPhrase: "schedule a treatment", autoSummary: "schedule treatments automatically", readinessVerb: "schedule treatments", activeVerb: "scheduling treatments" },
 };
 
 /** Returns phrasing like "schedule a job" or "book an appointment" based on appointmentLabel */
