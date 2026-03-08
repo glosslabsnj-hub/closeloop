@@ -43,6 +43,7 @@ import {
 import { useTenantConfig, type BusinessMode } from "@/hooks/useTenantConfig";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { formatDistanceToNow } from "date-fns";
+import { indefiniteArticle } from "@/lib/utils";
 
 interface AutomationRulesSectionProps {
   tenantId: string;
@@ -97,10 +98,10 @@ export function AutomationRulesSection({ tenantId }: AutomationRulesSectionProps
   // Apply industry-aware terminology to booking events
   const applyTerms = (id: string, meta: { label: string; description: string; modes: BusinessMode[] }) => {
     if (id === "booking.created") {
-      return { ...meta, label: `${cap(terms.booking)} Created`, description: `When a new ${terms.booking} is made` };
+      return { ...meta, label: `${cap(terms.booking)} Created`, description: `When ${indefiniteArticle(terms.booking)} new ${terms.booking} is made` };
     }
     if (id === "booking.confirmed") {
-      return { ...meta, label: `${cap(terms.booking)} Confirmed`, description: `When a ${terms.booking} is confirmed` };
+      return { ...meta, label: `${cap(terms.booking)} Confirmed`, description: `When ${indefiniteArticle(terms.booking)} ${terms.booking} is confirmed` };
     }
     return meta;
   };

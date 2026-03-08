@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+import { cn, indefiniteArticle } from "@/lib/utils";
 import { Info, HelpCircle } from "lucide-react";
 import BusinessHoursEditor, { type BusinessHours } from "@/components/onboarding/BusinessHoursEditor";
 import {
@@ -345,7 +345,7 @@ export function SchedulingSetup({
                 <div>
                   <div className="flex items-center gap-1.5">
                     <p className="font-medium text-sm">Same-day booking</p>
-                    <WhyTooltip text={`When enabled, callers can book a ${apptLabel} for later today if you have open slots. Turn this off if you need lead time to prepare (e.g., ordering supplies, scheduling staff).`} />
+                    <WhyTooltip text={`When enabled, callers can book ${indefiniteArticle(apptLabel)} ${apptLabel} for later today if you have open slots. Turn this off if you need lead time to prepare (e.g., ordering supplies, scheduling staff).`} />
                   </div>
                   <p className="text-xs text-muted-foreground">Allow {terms.customerLabel}s to book {apptLabel}s for today</p>
                 </div>

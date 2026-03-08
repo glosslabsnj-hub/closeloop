@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, ShieldAlert } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, indefiniteArticle } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 import { getIndustryTerminology } from "@/data/industryTerminology";
 
@@ -325,7 +325,7 @@ export function CommunicationPreferences({
           {/* Required intake fields */}
           <div className="space-y-3">
             <div>
-              <p className="text-sm font-medium">Required info before {apptLabel === "appointment" ? "booking" : `scheduling a ${apptLabel}`}</p>
+              <p className="text-sm font-medium">Required info before {apptLabel === "appointment" ? "booking" : `scheduling ${indefiniteArticle(apptLabel)} ${apptLabel}`}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 AI must collect this information before creating any {apptLabel} or request.
               </p>

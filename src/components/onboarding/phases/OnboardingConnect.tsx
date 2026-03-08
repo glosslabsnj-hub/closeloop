@@ -11,6 +11,7 @@ import { Calendar, Phone, MessageSquare, HelpCircle, ArrowRight, Check, External
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { indefiniteArticle } from "@/lib/utils";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 interface OnboardingConnectProps {
@@ -138,7 +139,7 @@ export const OnboardingConnect = React.memo(function OnboardingConnect({
                       <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-[200px]">{`Get a text alert whenever your AI books a ${apptLabel} or captures a lead.`}</p>
+                      <p className="text-xs max-w-[200px]">{`Get a text alert whenever your AI books ${indefiniteArticle(apptLabel)} ${apptLabel} or captures a lead.`}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>

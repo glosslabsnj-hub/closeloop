@@ -1,5 +1,6 @@
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { indefiniteArticle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Lightbulb } from "lucide-react";
 
@@ -9,7 +10,7 @@ interface ScenarioSelectorProps {
 
 function getServiceScenarios(apptLabel: string): { label: string; prompt: string }[] {
   return [
-    { label: `Book a ${apptLabel}`, prompt: `Hi, I'd like to book a ${apptLabel} for tomorrow morning.` },
+    { label: `Book ${indefiniteArticle(apptLabel)} ${apptLabel}`, prompt: `Hi, I'd like to book ${indefiniteArticle(apptLabel)} ${apptLabel} for tomorrow morning.` },
     { label: "Ask about pricing", prompt: "How much do you charge for your services?" },
     { label: "Emergency request", prompt: "I have an emergency, can someone come out today?" },
     { label: `Cancel ${apptLabel}`, prompt: `I need to cancel my ${apptLabel} scheduled for Friday.` },
