@@ -162,8 +162,10 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.requiredQuestions,
     };
     s["custom-policies"] = {
-      status: "optional",
-      statusText: "Additional policies for specific scenarios",
+      status: summaries.customPoliciesCount > 0 ? "complete" : "optional",
+      statusText: summaries.customPoliciesCount > 0
+        ? `${summaries.customPoliciesCount} custom rule${summaries.customPoliciesCount === 1 ? "" : "s"} added`
+        : "Additional policies for specific scenarios",
     };
     s["booking-delivery"] = {
       status: summaries.bookingDelivery !== "Not set up yet" && summaries.bookingDelivery !== "No delivery method set" ? "complete" : "incomplete",

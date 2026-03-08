@@ -38,6 +38,15 @@ export function useCustomerEnrichment(customerIds: string[]) {
         .not("status", "in", '("canceled","cancelled")')
         .order("start_at", { ascending: false });
 
+      // Fetch dispatch jobs per customer for dispatch-mode last-service tracking
+      const { data: dispatchJobs } = await supabase
+        .from("dispatch_jobs")
+        .select("customer_id, created_at, status")
+        .eq("tenant_id", tenantId)
+        .not("status", "eq", "cancelled")
+        .in("customer_id", customerIds)
+        .order("created_at", { ascending: false });
+
       // Build last-service map (most recent PAST booking) and next-booking map
       const lastServiceMap = new Map<string, string>();
       const nextBookingMap = new Map<string, string>();
@@ -60,7 +69,16 @@ export function useCustomerEnrichment(customerIds: string[]) {
         }
       }
 
-      // Fetch recent call counts (last 90 days for activity, display last 30)
+      // Merge dispatch jobs into lastServiceMap (dispatch jobs don't have future scheduling)
+      for (const job of dispatchJobs || []) {
+        if (!job.customer_id) continue;
+        const existing = lastServiceMap.get(job.customer_id);
+        if (!existing || job.created_at > existing) {
+          lastServiceMap.set(job.customer_id, job.created_at);
+        }
+      }
+
+      // Fetch recent call counts (last 90 days for activity and display)
       const ninetyDaysAgo = new Date();
       ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -73,16 +91,11 @@ export function useCustomerEnrichment(customerIds: string[]) {
 
       const callCountMap = new Map<string, number>();
       const hasRecentCallMap = new Map<string, boolean>();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString();
 
       for (const c of calls || []) {
         if (c.customer_id) {
           hasRecentCallMap.set(c.customer_id, true);
-          if (c.started_at >= thirtyDaysAgoStr) {
-            callCountMap.set(c.customer_id, (callCountMap.get(c.customer_id) || 0) + 1);
-          }
+          callCountMap.set(c.customer_id, (callCountMap.get(c.customer_id) || 0) + 1);
         }
       }
 

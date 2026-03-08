@@ -61,9 +61,12 @@ export function AdminTenantSwitcher() {
     if (isLoading) return;
     if (modeIsLoading) return;
     if (autoSwitchInFlightRef.current) return;
+    // Don't auto-switch if effectiveTenantId is null/undefined — tenant may still be loading.
+    // This prevents spurious switches during re-renders (e.g., mobile nav URL changes).
+    if (!effectiveTenantId) return;
 
     // Only run auto-switch at most once per (mode, currentTenant) combo to prevent loops.
-    const key = `${selectedMode}:${effectiveTenantId ?? "none"}`;
+    const key = `${selectedMode}:${effectiveTenantId}`;
     if (lastAutoSwitchKeyRef.current === key) return;
 
     const currentTenantMatchesMode = tenants.some(t => t.id === effectiveTenantId);

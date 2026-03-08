@@ -453,7 +453,12 @@ export function DispatchServiceCatalog() {
         open={editorOpen}
         onOpenChange={setEditorOpen}
         editingService={editingService}
-        onSuccess={() => setEditingService(null)}
+        onSuccess={(category) => {
+          setEditingService(null);
+          if (category) {
+            setExpandedCategories(prev => new Set([...prev, category]));
+          }
+        }}
       />
 
       {/* Delete Confirmation */}

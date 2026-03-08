@@ -56,3 +56,75 @@ FIXED 4 QA blockers (3 consecutive rounds at 7/10):
 Deployed: elevenlabs-create-callback, text-conversation, elevenlabs-suggest-availability
 Commit: a1c788a
 [2026-03-06T15:38:44Z] receptionist_eng: Plumbing data fix (6 services >500 → quote_only). QA handoffs: #468 plumbing R6, #469 stale gate verifications. No code changes.
+
+--- receptionist_ux R2 (2026-03-06 20:30) ---
+IDENTITY: The Designer — UX agent for Flux Receptionist
+MISSION: Electrical QA prep — fix terminology gaps in remaining 8 pages
+
+CHANGES:
+1. popularIntegrations.ts — square_pos description food-neutral, stripe_connect avoids bad singular substitution
+2. IntegrationsPage.tsx — SELF_SETUP_INTEGRATIONS now gets booking/bookings terminology replacement at render time
+3. testScenarioBuilder.ts — Added INDUSTRY_DEFAULTS (10 slugs), wired industrySlug param (was _industrySlug unused)
+4. SettingsPage.tsx — sectionMeta integrations + automation descriptions now use terms.bookings
+
+COMMITS: 9db1261, c869ead, afe1625 — all pushed to main
+BUILD: Clean | TESTS: 1676/1676 passing (no new tests — pure UX copy fixes)
+GATES: No new gates set (only receptionist_qa can set gates)
+HANDOFFS FILED: None new (existing #496, #497 still pending QA)
+Session log entry
+receptionist_ux R6 (Fri, Mar  6, 2026 11:27:18 PM): Industry-specific UX improvements. 4 changes deployed. 1792/1792 tests. Commits 669d37c + 13e7229.
+
+--- receptionist_ux R7 (2026-03-07 19:08) ---
+Commits: 4dbe345
+Tests: 1792/1792
+
+Handoffs processed:
+  #513 (high): Business name placeholder showing Acme Plumbing for electrical → FIXED
+  #514 (medium): Electrical template not auto-applied → FIXED
+
+Root cause: CreateTestTenantDialog didn't set tenant.industry, so useIndustryContext() returned slug=null, disabling all slug-specific overrides.
+
+Fix (CreateTestTenantDialog.tsx):
+  - Added Industry dropdown showing all industries for current mode
+  - After tenant creation: updates tenant.industry + seeds catalog services/FAQs
+  - Electrical: seeds 7 services (Outlet Installation, Panel Upgrade, etc.) + 7 FAQs (permits, EV chargers, etc.)
+  - Helper hint shows count before submit
+
+Filed handoff #518 to QA: re-test electrical with fresh tenant from updated dialog.
+receptionist_fix R22 (2026-03-07 00:19): Commit 1718781 | Tests: 1828/1828 (+36) | Added regression tests for BUG #505 (cross-mode food hook gating), BUG #506 (hours FAQ live override), BUG #513/#514 (CreateTestTenantDialog industry seeding). No bugs to fix — all gates awaiting QA.
+
+---
+SESSION: receptionist_overseer R26 | 2026-03-07 00:32 AM ET
+STATUS: completed
+FINDINGS:
+  - Chain: HEALTHY (95/111 sessions productive, 14% timeout - acceptable)
+  - Gates: 38/42 (90%) service mode - UP from 37/42 (88%) last cycle
+  - ElevenLabs: HEALTHY - claude-sonnet-4-5, 10 tools, no empty placeholders, no broken workflow nodes
+  - Gloss Labs: NO REGRESSION - tenant exists, 14 active services, ai_enabled=false (flagged to Jack)
+  - Handoffs: 3 pending (all fresh <2h), 0 expired, 0 stale
+  - Electrical QA trend: 6->7->7->8/10 (improving, blocked on #519 UX fix)
+  - Telegram: SENT
+  - system-brain.md: UPDATED
+receptionist_ux R8 (2026-03-07 19:58): Deep UX audit — build clean, 1828/1828 tests. No code changes needed. Audit findings: (1) Integrations no broken buttons — verified. (2) All 49 pages have ErrorBoundary. (3) Electrical terminology correct. (4) SuggestedFAQButtons shows electrical-specific FAQs first. (5) ModeFAQSuggestions is dead code (not imported anywhere) — harmless. Filed handoff #523 to QA for error_states_have_recovery verification.
+receptionist_fix R23 (2026-03-07 01:06): Tests: 1941/1941. +113 tests: call-flow-article (BUG #520 a/an), slug-industry-examples (commit 13e7229). Commit: 9892c36. Deployed: 200.
+
+--- receptionist_overseer [2026-03-07 03:33 ET] ---
+CHAIN STATUS: HEALTHY / IMPROVING (38/42 service gates = 90%)
+ElevenLabs: HEALTHY (claude-sonnet-4-5, 10 tools, no empty placeholders, start_node only, correct webhook)
+Gloss Labs: SERVICES OK (14/14 active), ai_enabled=false FLAGGED (question filed for Jack)
+Handoffs: 19 pending, 0 stale/expired (none over 2h old, all have valid content)
+Sessions: 23/25 productive (2 timeout = orchestrator restarts, expected)
+FAILING GATE: onboarding/smart_defaults_prefilled (roofing-specific)
+BLOCKER: Roofing test tenant (test-roofing-storm) committed to repo but not seeded to DB
+Telegram report: sent (msg_id 3468)
+receptionist_eng R25 (2026-03-07): Fixed text-conversation HTTP 500 for roofing tenant. ROOT CAUSE: hours_json with windows[0].open='closed' (non-HH:MM string) — normalizeHours set is_open=true with open='closed', then buildWeeklyHoursSummary called formatTime('closed') → undefined.toString() → crash. FIX: isValidTime(/^\d{1,2}:\d{2}$/) validator added to normalizeHours, getTodayHours, formatTimeForSpeech, formatTime. Deployed edge function + frontend (200 OK verified). Handoff #567 closed, #569 filed to QA.
+receptionist_ux R6 (2026-03-07 05:32): Fixed price modifiers (flatbed→industry-specific), GC+roofing terminology slugs, GC onboarding configs. Committed messaging center. 3 commits, 1941/1941 tests.
+
+--- receptionist_overseer R10 (2026-03-07 06:33) ---
+Gates: 38/42 SERVICE (90%) — stable, no regressions
+ElevenLabs: OK (LLM: claude-sonnet-4-5, 10 tools, no empty placeholders, webhook OK, start_node only)
+Gloss Labs: ai_enabled=FALSE flagged to Jack (may be intentional). 14 services active. Brain build needs user JWT (expected).
+Handoffs: 14 pending, 0 expired this cycle. All have content and are recent (<6h).
+Key pending: #570 messaging_center migration needs eng session. #569 roofing 500 verify. #568 roofing brain QA.
+Remaining 4 gates: terminology (fix in review), booking_sms (WIP), calendar/sms (externally blocked).
+Telegram sent: message_id 3502

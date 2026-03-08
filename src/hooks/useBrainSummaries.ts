@@ -35,6 +35,7 @@ interface BrainSummaries {
   
   // Policies
   policies: string;
+  customPoliciesCount: number;
   guardrails: string;
   requiredQuestions: string;
   bookingDelivery: string;
@@ -109,12 +110,13 @@ export function useBrainSummaries(): BrainSummaries {
     queryFn: async () => {
       if (!tenant?.id) return null;
       
-      const [services, faqs, objections, knowledge, slots] = await Promise.all([
+      const [services, faqs, objections, knowledge, slots, policies] = await Promise.all([
         supabase.from("services").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("is_active", true),
         supabase.from("business_faqs").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id),
         supabase.from("objection_responses").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id),
         supabase.from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id),
         supabase.from("availability_slots").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("is_available", true),
+        supabase.from("ai_knowledge_base").select("id", { count: "exact", head: true }).eq("tenant_id", tenant.id).eq("type", "policy" as any),
       ]);
 
       return {
@@ -123,6 +125,7 @@ export function useBrainSummaries(): BrainSummaries {
         objections: objections.count || 0,
         knowledge: knowledge.count || 0,
         slots: slots.count || 0,
+        policies: policies.count || 0,
       };
     },
     enabled: !!tenant?.id,
@@ -249,6 +252,7 @@ export function useBrainSummaries(): BrainSummaries {
       if (tenantData?.refund_policy) parts.push("Refund");
       return parts.length > 0 ? `${parts.join(", ")} policies set` : "No policies set yet";
     })(),
+    customPoliciesCount: counts?.policies ?? 0,
     guardrails: (() => {
       const neverPromise = tenantData?.ai_never_promise;
       if (Array.isArray(neverPromise) && neverPromise.length > 0) {
@@ -310,6 +314,7 @@ export function useBrainSummaries(): BrainSummaries {
     custom: counts?.knowledge
       ? `${counts.knowledge} custom fact${counts.knowledge === 1 ? "" : "s"}`
       : "Nothing extra added yet",
+    customPoliciesCount: counts?.policies ?? 0,
     documents: "Uploaded files and references",
 
     // Completion stats - now using the dynamic completion system

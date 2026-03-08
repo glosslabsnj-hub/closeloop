@@ -94,7 +94,7 @@ export function SubscriptionDetailsCard() {
               size="sm"
               className="mt-2 gap-2"
               onClick={() =>
-                window.open("https://getfluxdata.com/pricing", "_blank")
+                window.open("/pricing", "_blank")
               }
             >
               <CreditCard className="h-3.5 w-3.5" />

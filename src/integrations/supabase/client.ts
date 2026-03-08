@@ -9,27 +9,35 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Custom fetch with automatic retry + exponential backoff for 429 (rate limit) responses.
- * Prevents the auth death spiral: when Supabase rate-limits token refresh, the JS client
- * fires SIGNED_OUT → clears session → retry → 429 again → infinite loop.
- * By retrying at the fetch level, the token refresh succeeds after backoff and
- * SIGNED_OUT is never fired.
+ * Custom fetch with automatic retry + exponential backoff for:
+ * - 429 (rate limit): prevents the auth death spiral where SIGNED_OUT fires on token refresh.
+ * - Network errors (ERR_INSUFFICIENT_RESOURCES, ERR_NETWORK_CHANGED, etc.): Chrome can
+ *   temporarily fail fetches when too many concurrent requests are in flight (e.g., dispatch
+ *   mode settings page loading many queries simultaneously). Retrying after a short delay
+ *   resolves these transient failures.
  */
 const fetchWithRateLimitRetry: typeof fetch = async (input, init) => {
   const MAX_RETRIES = 3;
   let delay = 2000;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    const response = await fetch(input, init);
+    try {
+      const response = await fetch(input, init);
 
-    if (response.status !== 429 || attempt === MAX_RETRIES) {
-      return response;
+      if (response.status !== 429 || attempt === MAX_RETRIES) {
+        return response;
+      }
+
+      const retryAfter = response.headers.get("Retry-After");
+      const waitMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 30000) : delay;
+      await new Promise(r => setTimeout(r, waitMs));
+      delay *= 2;
+    } catch (err) {
+      // Network-level failure (ERR_INSUFFICIENT_RESOURCES, ERR_NETWORK_CHANGED, etc.)
+      // Retry with backoff — these are transient Chrome/OS resource exhaustion errors
+      if (attempt === MAX_RETRIES) throw err;
+      await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
     }
-
-    const retryAfter = response.headers.get("Retry-After");
-    const waitMs = retryAfter ? Math.min(parseInt(retryAfter, 10) * 1000, 30000) : delay;
-    await new Promise(r => setTimeout(r, waitMs));
-    delay *= 2;
   }
 
   // Unreachable, but satisfies TypeScript

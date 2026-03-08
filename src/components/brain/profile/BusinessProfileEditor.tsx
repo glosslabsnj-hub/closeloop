@@ -46,7 +46,19 @@ function parseAddressComponents(address: string): {
     }
     return { line1: parts[0], city: parts[1], state: parts.slice(2).join(", "), zip: "" };
   }
-  if (parts.length === 2) return { line1: parts[0], city: parts[1], state: "", zip: "" };
+  if (parts.length === 2) {
+    // Handle "CITY ST" or "CITY ST ZIP" in the second part (e.g., "Houston TX" or "Houston TX 77001")
+    const cityStateMatch = parts[1].match(/^(.*?)\s+([A-Z]{2})(?:\s+(\d{5}(?:-\d{4})?))?$/i);
+    if (cityStateMatch) {
+      return {
+        line1: parts[0],
+        city: cityStateMatch[1].trim(),
+        state: cityStateMatch[2].toUpperCase(),
+        zip: cityStateMatch[3] || "",
+      };
+    }
+    return { line1: parts[0], city: parts[1], state: "", zip: "" };
+  }
   return { line1: address, city: "", state: "", zip: "" };
 }
 

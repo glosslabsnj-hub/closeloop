@@ -128,7 +128,7 @@ interface DispatchServiceEditorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editingService?: any;
-  onSuccess?: () => void;
+  onSuccess?: (category?: string) => void;
 }
 
 export function DispatchServiceEditor({
@@ -273,7 +273,7 @@ export function DispatchServiceEditor({
       queryClient.invalidateQueries({ queryKey: ["business-context"] });
       
       onOpenChange(false);
-      onSuccess?.();
+      onSuccess?.(formData.service_category || "uncategorized");
     } catch (error: any) {
       toast.error(error.message || "Failed to save service");
     } finally {
