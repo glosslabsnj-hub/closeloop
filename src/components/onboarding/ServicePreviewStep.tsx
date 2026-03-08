@@ -240,12 +240,19 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                   </div>
                 ) : (
                   <div>
-                    <p className={cn(
-                      "text-sm font-medium",
-                      !service.enabled && "text-muted-foreground line-through"
-                    )}>
-                      {service.name || `New ${terms.serviceItemLabel}`}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className={cn(
+                        "text-sm font-medium",
+                        !service.enabled && "text-muted-foreground line-through"
+                      )}>
+                        {service.name || `New ${terms.serviceItemLabel}`}
+                      </p>
+                      {service.bookingType === "estimate_first" && (
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20 shrink-0">
+                          Estimate required
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">
                       {service.priceType === "quote_only"
                         ? "Pricing varies"
