@@ -172,6 +172,18 @@ function parseDate(input: string, timezone: string): string {
     return formatDateLocal(candidate, timezone);
   }
 
+  // "Wednesday March 11" / "Tuesday June 5th" — weekday prefix then month + day
+  const weekdayMonthDay = lower.match(/^[a-z]+\s+([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/);
+  if (weekdayMonthDay) {
+    const monthIndex = MONTH_NAMES[weekdayMonthDay[1]];
+    if (monthIndex !== undefined) {
+      const year = now.getFullYear();
+      const candidate = new Date(Date.UTC(year, monthIndex, parseInt(weekdayMonthDay[2]), 12, 0, 0));
+      if (candidate < now) candidate.setUTCFullYear(year + 1);
+      return formatDateLocal(candidate, timezone);
+    }
+  }
+
   // "March 5" / "March 5th" / "5th of March"
   const monthDay = lower.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/) ||
                    lower.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)$/);

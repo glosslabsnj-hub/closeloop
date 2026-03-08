@@ -110,6 +110,18 @@ function parseDate(input: string, timezone: string): string {
     return formatDate(candidate, timezone);
   }
 
+  // "Wednesday March 11" / "Tuesday June 5th" — weekday prefix then month + day
+  const weekdayMonthDay = lower.match(/^[a-z]+\s+([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/);
+  if (weekdayMonthDay) {
+    const monthIndex = MONTH_NAMES[weekdayMonthDay[1]];
+    if (monthIndex !== undefined) {
+      const year = now.getFullYear();
+      const candidate = new Date(Date.UTC(year, monthIndex, parseInt(weekdayMonthDay[2]), 12, 0, 0));
+      if (candidate < now) candidate.setUTCFullYear(year + 1);
+      return formatDate(candidate, timezone);
+    }
+  }
+
   // "March 5" / "March 5th" / "5th of March"
   const monthDay = lower.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/) ||
                    lower.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+(?:of\s+)?([a-z]+)$/);
@@ -142,6 +154,33 @@ function parseDate(input: string, timezone: string): string {
   // Log unparseable input and fall back to today (agent usually sends ISO)
   console.warn(`[reschedule-booking] Could not parse date "${input}", defaulting to today`);
   return formatDate(now, timezone);
+}
+
+const DAY_LABELS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+function getDayLabel(dateStr: string): string {
+  const [y, mo, d] = dateStr.split("-").map(Number);
+  return DAY_LABELS[new Date(Date.UTC(y, mo - 1, d, 12, 0, 0)).getUTCDay()];
+}
+
+function isOpenDay(dateStr: string, hoursJson: Record<string, unknown> | null | undefined): boolean {
+  if (!hoursJson) return true; // no hours config = always open
+  const dayLabel = getDayLabel(dateStr);
+  const dayHours = hoursJson[dayLabel] as { open?: string; close?: string; closed?: boolean } | undefined;
+  if (!dayHours) return false; // day not configured = closed
+  if (dayHours.closed === true) return false;
+  return !!(dayHours.open && dayHours.close);
+}
+
+function nextOpenDay(fromDateStr: string, hoursJson: Record<string, unknown> | null | undefined): string | null {
+  const [y, mo, d] = fromDateStr.split("-").map(Number);
+  const base = new Date(Date.UTC(y, mo - 1, d, 12, 0, 0));
+  for (let i = 1; i <= 7; i++) {
+    const next = new Date(base.getTime() + i * 24 * 60 * 60 * 1000);
+    const iso = next.toISOString().slice(0, 10);
+    if (isOpenDay(iso, hoursJson)) return iso;
+  }
+  return null;
 }
 
 function formatDate(date: Date, tz: string): string {
@@ -317,19 +356,40 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get tenant timezone
+    // Get tenant timezone + hours
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("timezone, appointment_buffer_minutes")
+      .select("timezone, appointment_buffer_minutes, hours_json")
       .eq("id", resolvedTenantId)
       .single();
 
     const timezone = tenant?.timezone || "America/New_York";
     const bufferMinutes = tenant?.appointment_buffer_minutes || 15;
+    const hoursJson = (tenant?.hours_json as Record<string, unknown> | null) ?? null;
 
     // Calculate new times
     const targetDate = parseDate(newDate, timezone);
     const targetTime = parseTime(newTime);
+
+    // Validate: reject closed business days
+    if (!isOpenDay(targetDate, hoursJson)) {
+      const dayLabel = getDayLabel(targetDate);
+      const capitalizedDay = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+      const altDate = nextOpenDay(targetDate, hoursJson);
+      const altMsg = altDate
+        ? ` Our next available day is ${formatDateDisplay(altDate)}.`
+        : "";
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `We're closed on ${capitalizedDay}s.${altMsg} What other day works for you?`,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
     const tzOffset = getTimezoneOffset(timezone);
 
     // Calculate duration from existing booking
