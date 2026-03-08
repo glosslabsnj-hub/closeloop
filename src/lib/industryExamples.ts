@@ -249,6 +249,13 @@ const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
     serviceNamePlaceholder: "Exterior Wash, Interior Detail, Full Detail, Ceramic Coating",
     priceExamples: "Example: Full Detail - $150, Ceramic Coating - Starting at $500",
   },
+  // alias: industryCatalog uses underscore
+  "auto_repair": {
+    serviceName: "service",
+    serviceNamePlaceholder: "Oil Change, Brake Job, Diagnostic, Tire Rotation",
+    descriptionPlaceholder: "What's included, parts/labor notes, warranty info...",
+    priceExamples: "Example: Oil Change - $49.99, Brake Job - Starting at $199",
+  },
   "salon": {
     serviceName: "service",
     serviceNamePlaceholder: "Women's Cut, Balayage, Keratin Treatment, Blowout",
@@ -259,6 +266,62 @@ const SLUG_SERVICE_OVERRIDES: Record<string, Partial<ServiceExamples>> = {
     serviceName: "menu item",
     serviceNamePlaceholder: "Build Your Own Pizza, Specialty Pizza, Wings, Salads",
     priceExamples: "Example: Large Pizza - $18.99, Wings (12pc) - $14.99",
+  },
+  "pest_control": {
+    serviceNamePlaceholder: "General Pest Treatment, Termite Inspection, Rodent Control, Bed Bug Treatment",
+    descriptionPlaceholder: "Treatment method, areas covered, safety info, any guarantee...",
+    priceExamples: "Example: General Treatment - $150, Quarterly Plan - $100/quarter",
+  },
+  "locksmith": {
+    serviceNamePlaceholder: "Lockout Service, Lock Rekey, Lock Installation, Car Key Programming",
+    descriptionPlaceholder: "What's included, response time, any guarantees...",
+    priceExamples: "Example: Lockout - $85, Rekey - $75/lock, Car Key - Starting at $150",
+  },
+  "moving": {
+    serviceNamePlaceholder: "Local Move, Long-Distance Move, Packing Services, Storage",
+    descriptionPlaceholder: "What's included, truck size, number of movers, insurance coverage...",
+    priceExamples: "Example: Local Move (2 movers) - $120/hr, Long-Distance - Quote",
+  },
+  "carpet_cleaning": {
+    serviceNamePlaceholder: "Carpet Cleaning, Upholstery Cleaning, Area Rug, Stain Treatment",
+    descriptionPlaceholder: "Method (steam/dry), rooms included, drying time...",
+    priceExamples: "Example: 3-Room Carpet - $120, Upholstery Cleaning - Starting at $85",
+  },
+  "pool_service": {
+    serviceNamePlaceholder: "Weekly Cleaning, Pool Opening, Pool Closing, Equipment Repair",
+    descriptionPlaceholder: "What's included in the service, chemical treatment, equipment check...",
+    priceExamples: "Example: Weekly Service - $125/visit, Pool Opening - $250",
+  },
+  "pressure_washing": {
+    serviceNamePlaceholder: "Driveway Cleaning, House Wash, Deck Cleaning, Fence Cleaning",
+    descriptionPlaceholder: "Area covered, hot/cold water, any pre-treatment or sealing included...",
+    priceExamples: "Example: Driveway - $150+, House Wash - Starting at $300",
+  },
+  "tree_service": {
+    serviceNamePlaceholder: "Tree Removal, Tree Trimming, Stump Grinding, Emergency Removal",
+    descriptionPlaceholder: "What's included, debris cleanup, stump handling, any permit requirements...",
+    priceExamples: "Example: Tree Trimming - Starting at $200, Stump Grinding - $100-300",
+  },
+  "junk_removal": {
+    serviceName: "load type",
+    serviceNamePlaceholder: "Single Item, Half Truck Load, Full Truck Load, Estate Cleanout",
+    descriptionPlaceholder: "What's included, any recycling/donation, items you don't take...",
+    priceExamples: "Example: Single Item - $75, Full Load - Starting at $350",
+  },
+  "garage_door": {
+    serviceNamePlaceholder: "Door Repair, Spring Replacement, Opener Installation, Tune-Up",
+    descriptionPlaceholder: "What's included, parts/labor, warranty on parts...",
+    priceExamples: "Example: Spring Replace - $250, Opener Install - $300",
+  },
+  "appliance_repair": {
+    serviceNamePlaceholder: "Washer Repair, Dryer Repair, Refrigerator Repair, Diagnostic",
+    descriptionPlaceholder: "What's included, parts warranty, trip fee info...",
+    priceExamples: "Example: Diagnostic - $89, Washer Repair - Starting at $150",
+  },
+  "cleaning": {
+    serviceNamePlaceholder: "Standard Cleaning, Deep Cleaning, Move In/Out Cleaning, Office Cleaning",
+    descriptionPlaceholder: "What's included (rooms/areas), products used, frequency options...",
+    priceExamples: "Example: Standard Clean - Starting at $150, Deep Clean - Starting at $300",
   },
 };
 
@@ -355,6 +418,62 @@ const SLUG_PROFILE_OVERRIDES: Record<string, Partial<ProfileExamples>> = {
     taglinePlaceholder: "Fast response, fair prices, 24/7",
     taglineHint: "Example: \"Average 30-min response\" or \"Licensed & fully insured\"",
   },
+  // alias
+  "auto_repair": {
+    businessNamePlaceholder: "Reliable Auto Repair, Main Street Garage, TrustMech Auto",
+    taglinePlaceholder: "Honest auto repair you can count on",
+    taglineHint: "Example: \"ASE-certified technicians\" or \"All makes and models\"",
+  },
+  "pest_control": {
+    businessNamePlaceholder: "BugOut Pest Control, Shield Pest Solutions, SafeHome Exterminators",
+    taglinePlaceholder: "Safe, effective pest control for your home and business",
+    taglineHint: "Example: \"Pet-safe treatments\" or \"Guaranteed results\"",
+  },
+  "locksmith": {
+    businessNamePlaceholder: "Rapid Lock & Key, TrustLock Locksmith, Precision Lock Service",
+    taglinePlaceholder: "Fast, reliable locksmith service 24/7",
+    taglineHint: "Example: \"15-min response\" or \"Licensed & bonded\"",
+  },
+  "moving": {
+    businessNamePlaceholder: "Easy Move Pros, Smooth Movers, Metro Moving & Storage",
+    taglinePlaceholder: "Stress-free moving, handled with care",
+    taglineHint: "Example: \"Licensed & fully insured\" or \"Local & long-distance moves\"",
+  },
+  "carpet_cleaning": {
+    businessNamePlaceholder: "SpotFree Carpet Care, CleanStep Services, FreshHome Carpet",
+    taglinePlaceholder: "Deep clean carpets, fast drying, guaranteed results",
+    taglineHint: "Example: \"Same-day service\" or \"Pet-safe cleaning solutions\"",
+  },
+  "pool_service": {
+    businessNamePlaceholder: "Blue Wave Pool Service, Crystal Clear Pools, AquaCare Pool",
+    taglinePlaceholder: "Keep your pool crystal clear all season",
+    taglineHint: "Example: \"Weekly service contracts\" or \"Equipment repair & maintenance\"",
+  },
+  "pressure_washing": {
+    businessNamePlaceholder: "Blast Clean Pro, Power Wash Experts, ShineBrite Services",
+    taglinePlaceholder: "Professional pressure washing, results you can see",
+    taglineHint: "Example: \"Insured & professional\" or \"Residential & commercial\"",
+  },
+  "tree_service": {
+    businessNamePlaceholder: "Pro Tree Service, Green Summit Arborists, SafeTree Removal",
+    taglinePlaceholder: "Professional tree care, safe removal, fast response",
+    taglineHint: "Example: \"ISA-certified arborists\" or \"Emergency storm service\"",
+  },
+  "junk_removal": {
+    businessNamePlaceholder: "Haul It Away, ClearSpace Junk Removal, 1-Load Junk",
+    taglinePlaceholder: "Fast, affordable junk removal — we do all the heavy lifting",
+    taglineHint: "Example: \"Same-day pickups available\" or \"We donate & recycle\"",
+  },
+  "garage_door": {
+    businessNamePlaceholder: "DoorMaster, Quick Garage Door, Reliable Door & Opener",
+    taglinePlaceholder: "Fast garage door service, same-day repairs",
+    taglineHint: "Example: \"All makes & models\" or \"Emergency service available\"",
+  },
+  "appliance_repair": {
+    businessNamePlaceholder: "Fix-It Appliance Repair, ProTech Appliances, TrustFix Services",
+    taglinePlaceholder: "Fast appliance repair, all major brands",
+    taglineHint: "Example: \"Same-day service\" or \"90-day parts warranty\"",
+  },
 };
 
 /**
@@ -396,6 +515,19 @@ export const SLUG_COMPLEXITY_OVERRIDES: Record<string, { simple: string; complex
   "electrical": { simple: "Outlet install, light fixture, switch", complex: "Panel upgrade, rewiring, inspection" },
   "cleaning": { simple: "Standard cleaning, touch-up", complex: "Deep clean, move-out, post-construction" },
   "landscaping": { simple: "Mowing, trimming, leaf cleanup", complex: "Hardscaping, irrigation install, tree removal" },
+  // alias: industryCatalog uses underscore
+  "auto_repair": { simple: "Oil change, tire rotation, brake pads", complex: "Engine diagnostic, electrical, transmission" },
+  "pest_control": { simple: "General spray, preventive treatment", complex: "Termite treatment, full fumigation, bed bug heat" },
+  "locksmith": { simple: "Lockout, rekey, key copy", complex: "High-security locks, master key system, commercial" },
+  "moving": { simple: "Small local move (studio/1BR)", complex: "Full home move, long-distance, packing services" },
+  "carpet_cleaning": { simple: "1-2 room cleaning", complex: "Whole home, heavy stains, pet odor treatment" },
+  "pool_service": { simple: "Weekly cleaning, chemical balance", complex: "Equipment repair, acid wash, replaster" },
+  "pressure_washing": { simple: "Driveway or walkway", complex: "Full exterior house wash, commercial building" },
+  "tree_service": { simple: "Light trimming, small tree removal", complex: "Large tree removal, emergency storm damage" },
+  "junk_removal": { simple: "Single item or small load", complex: "Full estate cleanout, construction debris" },
+  "garage_door": { simple: "Spring adjustment, basic repair", complex: "Full door replacement, opener install" },
+  "appliance_repair": { simple: "Diagnostic, simple repair", complex: "Major component replacement, sealed system" },
+  "cleaning": { simple: "Standard clean (1-2BR)", complex: "Deep clean, move-out, post-construction" },
 };
 
 /**
@@ -429,4 +561,17 @@ export const SLUG_PRICE_FACTOR_OVERRIDES: Record<string, string> = {
   "hair-salon": "e.g., Hair length, color complexity, product used",
   "salon": "e.g., Hair length, color complexity, product used",
   "dental": "e.g., Number of teeth, complexity, insurance coverage",
+  // alias
+  "auto_repair": "e.g., Vehicle make/model/year, part availability, labor complexity",
+  "pest_control": "e.g., Property size, pest type, infestation severity, number of visits",
+  "locksmith": "e.g., Lock brand, commercial vs residential, emergency after-hours",
+  "moving": "e.g., Number of rooms, distance, stairs, packing services, specialty items",
+  "carpet_cleaning": "e.g., Room size, carpet condition, stain type, number of rooms",
+  "pool_service": "e.g., Pool size (gallons), condition, equipment issues",
+  "pressure_washing": "e.g., Surface type, square footage, condition, stories",
+  "tree_service": "e.g., Tree size/height, proximity to structures, number of trees",
+  "junk_removal": "e.g., Volume (cubic yards), item type, weight, location",
+  "garage_door": "e.g., Door size, number of springs, opener brand",
+  "appliance_repair": "e.g., Brand, appliance type, age, part availability",
+  "cleaning": "e.g., Square footage, number of rooms, frequency, current condition",
 };
