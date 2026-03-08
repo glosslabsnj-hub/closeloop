@@ -252,7 +252,7 @@ export function ROIPerformanceWidget() {
   const storyHeadline = buildStoryHeadline(data.storyTemplate, {
     verb: data.actionVerbPast,
     count: data.entitiesCreated,
-    entity: data.entityName.toLowerCase(),
+    entity: (data.entitiesCreated === 1 ? data.entityNameSingular : data.entityName).toLowerCase(),
     value: formatRevenue(data.aiRevenueCents),
   });
 

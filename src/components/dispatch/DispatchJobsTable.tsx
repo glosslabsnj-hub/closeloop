@@ -145,7 +145,7 @@ export function DispatchJobsTable({
                   </div>
                 </TableCell>
                 <TableCell className="text-sm">
-                  {job.job_type || "Service"}
+                  {job.job_type ? job.job_type.replace(/\b\w/g, c => c.toUpperCase()) : "Service"}
                 </TableCell>
                 <TableCell className="hidden lg:table-cell max-w-[200px]">
                   <span className="truncate block text-sm text-muted-foreground">

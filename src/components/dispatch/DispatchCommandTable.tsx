@@ -221,7 +221,7 @@ export function DispatchCommandTable({
 
                 {/* Service Type */}
                 <TableCell>
-                  <span className="text-sm">{job.job_type || "Service"}</span>
+                  <span className="text-sm">{job.job_type ? job.job_type.replace(/\b\w/g, c => c.toUpperCase()) : "Service"}</span>
                 </TableCell>
 
                 {/* Price */}
