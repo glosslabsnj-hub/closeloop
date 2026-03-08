@@ -79,6 +79,10 @@ function getModeEmptyState(mode: string, autoSummary: string, readinessVerb: str
       steps: ["Add services & visit types", "Configure patient intake", "Schedule patients via AI"],
       encouragement: `Your AI is ready to ${autoSummary} and handle patient inquiries securely.`,
     };
+    case "sales": return {
+      steps: ["Add your inventory & pricing", "Connect your phone", "Qualify prospects via AI calls"],
+      encouragement: "Your AI is ready to answer calls, qualify buyers, and schedule test drives 24/7.",
+    };
     default: return {
       steps: ["Add your offerings", "Connect your phone", "Capture leads via AI calls"],
       encouragement: "Your AI is ready to answer calls and capture leads for your business.",

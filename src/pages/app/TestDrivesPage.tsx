@@ -118,7 +118,7 @@ export default function TestDrivesPage() {
           <EmptyState
             icon={Car}
             title="No test drives yet"
-            description="Test drives will appear here as your AI agent schedules them."
+            description="When a caller asks to schedule a test drive, your AI will book it and it will appear here. You can also schedule one manually using the button above."
           />
         ) : filteredDrives.length === 0 ? (
           <EmptyState

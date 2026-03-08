@@ -1,4 +1,5 @@
-import { Car, Users, TrendingUp, CalendarCheck, Warehouse, PhoneCall, Flame } from "lucide-react";
+import { Car, Users, TrendingUp, CalendarCheck, Warehouse, PhoneCall, Flame, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { QuickActionButton } from "../widgets/QuickActionButton";
 import { ROIPerformanceWidget } from "../ROIPerformanceWidget";
 import { LeadRecoveryWidget } from "../LeadRecoveryWidget";
@@ -151,7 +152,12 @@ export function SalesDashboardLayout() {
               </Badge>
             </div>
             {todayDrives.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No test drives scheduled for today</p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-muted-foreground">No test drives scheduled for today — your AI will book them automatically when callers call in.</p>
+                <Link to="/app/test-drives" className="text-xs text-primary hover:underline flex items-center gap-1 ml-4 shrink-0">
+                  View all <ArrowRight className="h-3 w-3" />
+                </Link>
+              </div>
             ) : (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {todayDrives.map((d) => (
@@ -197,8 +203,8 @@ export function SalesDashboardLayout() {
         </div>
       </div>
       ) : (
-      <div className="flex justify-end">
-        <div className="space-y-2">
+      <div className="flex justify-end sm:justify-end">
+        <div className="space-y-2 w-full sm:w-auto">
           <QuickActionButton
             label="View Pipeline"
             description="Track leads through your sales funnel"

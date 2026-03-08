@@ -123,7 +123,7 @@ export default function SalesInventoryPage() {
           <EmptyState
             icon={Warehouse}
             title="No inventory yet"
-            description="Add items manually or sync from your DMS system."
+            description="Add vehicles manually or sync from your dealer management system (DMS) using the Sync panel above. Once added, your AI will know what's available and can answer callers' questions about specific vehicles."
           />
         ) : filteredInventory.length === 0 ? (
           <EmptyState

@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag } from "lucide-react";
+import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag, PhoneCall } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useSalesLeads } from "@/hooks/useSalesLeads";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -57,6 +58,7 @@ export default function SalesPipelinePage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["sales_leads"]);
   const { leads, isLoading, stats, updateLead } = useSalesLeads();
   const { industrySlug } = useTenantConfig();
+  const navigate = useNavigate();
   const isCarDealership = industrySlug ? CAR_DEALERSHIP_SLUGS.has(industrySlug) : false;
   const PIPELINE_COLUMNS = ALL_PIPELINE_COLUMNS.filter((c) => !c.dealerOnly || isCarDealership);
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,9 +113,16 @@ export default function SalesPipelinePage() {
 
         {leads.length === 0 ? (
           <EmptyState
-            icon={DollarSign}
-            title="No sales leads yet"
-            description="Sales leads will appear here as your AI agent qualifies callers."
+            icon={PhoneCall}
+            title="No leads in your pipeline yet"
+            description={isCarDealership
+              ? "When your AI answers a call and qualifies a prospect, they'll appear here. Each caller becomes a lead you can move through New → Contacted → Test Drive → Sold."
+              : "When your AI answers a call and qualifies a prospect, they'll appear here. Move leads through your pipeline stages as you follow up."}
+            action={{
+              label: "View Call History",
+              icon: PhoneCall,
+              onClick: () => navigate("/app/calls"),
+            }}
           />
         ) : (
           /* Kanban board */
