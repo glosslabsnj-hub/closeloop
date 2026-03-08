@@ -179,6 +179,10 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       status: summaries.dispatchSettings !== "Not set up yet" && summaries.dispatchSettings !== "No notifications set" ? "complete" : "incomplete",
       statusText: summaries.dispatchSettings,
     };
+    s["sales-policies"] = {
+      status: "optional",
+      statusText: "Pricing strategy, lead qualification rules, and push intensity",
+    };
     s["distance-pricing"] = {
       status: "optional",
       statusText: "Configure default distance pricing method",
