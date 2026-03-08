@@ -80,8 +80,19 @@ Deno.serve(async (req: Request) => {
     // ─── Assemble Context (parallel) ────────────────────────────────
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
+    console.log(`[partner-analysis] Fetching brain snapshot for tenant: ${tenantId}`);
+    let brainSnapshotResult;
+    try {
+      brainSnapshotResult = await getBusinessBrainSnapshot(supabase, { tenantId });
+    } catch (snapErr: any) {
+      console.error(`[partner-analysis] getBusinessBrainSnapshot failed:`, snapErr?.message, snapErr?.stack);
+      return errorResponse(`Brain snapshot error: ${snapErr?.message || "unknown"}`, 500);
+    }
+    console.log(`[partner-analysis] Brain snapshot OK, fetching metrics...`);
+
+    const brainSnapshot = brainSnapshotResult;
+
     const [
-      brainSnapshot,
       callOutcomesResult,
       patternsResult,
       knowledgeGapsResult,
@@ -91,7 +102,6 @@ Deno.serve(async (req: Request) => {
       staffCountResult,
       calendarResult,
     ] = await Promise.all([
-      getBusinessBrainSnapshot(supabase, { tenantId }),
       supabase
         .from("call_outcomes")
         .select("outcome_type, intent, conversion_value_cents, ai_handled_fully, created_at")
@@ -190,8 +200,10 @@ Deno.serve(async (req: Request) => {
     // ─── Call AI via Anthropic API ──────────────────────────────────
     const anthropicApiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!anthropicApiKey) {
+      console.error("[partner-analysis] ANTHROPIC_API_KEY not configured");
       return errorResponse("ANTHROPIC_API_KEY not configured", 500);
     }
+    console.log(`[partner-analysis] Calling Anthropic API (model: claude-haiku-4-5-20251001)...`);
 
     const systemPrompt = buildSystemPrompt();
 
