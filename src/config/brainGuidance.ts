@@ -179,9 +179,10 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     what: "Choose what your AI does on calls — take messages, handle scheduling, or run the full conversation.",
     why: "This is the single most impactful setting. It determines whether your AI is a receptionist, a scheduling agent, or a full service rep.",
     tips: {
-      default: "Start with 'Schedule {{appointmentLabelPlural}}' if you're a service business. Switch to 'Full service' once you've trained your AI with FAQs and policies.",
+      default: "Start with 'Capture & Callback' if you want to review leads first. Switch to 'Full service' once you've added FAQs and trained your AI.",
       dispatch: "Most towing companies use 'Full service' so the AI can collect all job details and dispatch immediately.",
       food: "Use 'Full service' so your AI can take orders, answer menu questions, and handle reservations.",
+      sales: "Use 'Full service' so your AI can qualify buyers, book test drives, and schedule follow-ups automatically.",
     },
   },
   "call-flow": {

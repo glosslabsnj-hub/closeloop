@@ -35,6 +35,27 @@ export interface HubStep {
   hiddenWhenCallbackOnly?: boolean;
 }
 
+/** Mode-specific usedByAI text overrides keyed by stepId then mode */
+const MODE_USEDBYAI: Record<string, Partial<Record<BusinessMode, string[]>>> = {
+  offerings: {
+    food: [
+      "Reads menu items aloud and answers pricing questions",
+      "Takes orders from the menu during the call",
+      "Answers ingredient and allergy questions",
+    ],
+    dispatch: [
+      "Quotes job rates and service fees on the spot",
+      "Dispatches the right service type based on the job",
+      "Tells callers what's included in each service",
+    ],
+    sales: [
+      "Tells buyers what vehicles and products you carry",
+      "Answers pricing and financing questions accurately",
+      "Qualifies leads and books test drives from this list",
+    ],
+  },
+};
+
 /** Mode-specific title overrides keyed by stepId then mode */
 const MODE_TITLES: Record<string, Partial<Record<BusinessMode, string>>> = {
   offerings: {
@@ -211,6 +232,16 @@ export function getStepTitle(stepId: string, mode: BusinessMode): string {
   if (modeOverride) return modeOverride;
   const step = HUB_STEPS.find(s => s.id === stepId);
   return step?.title ?? "";
+}
+
+/**
+ * Get the mode-specific usedByAI bullets for a step, falling back to the default.
+ */
+export function getStepUsedByAI(stepId: string, mode: BusinessMode): string[] {
+  const modeOverride = MODE_USEDBYAI[stepId]?.[mode];
+  if (modeOverride) return modeOverride;
+  const step = HUB_STEPS.find(s => s.id === stepId);
+  return step?.usedByAI ?? [];
 }
 
 /**

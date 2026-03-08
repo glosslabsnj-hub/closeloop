@@ -497,6 +497,7 @@ export function AdditionalServicesEditor() {
       food: "a restaurant might also offer catering or meal prep services",
       medical: "a medical practice might also offer telemedicine or wellness programs",
       general: "a business might also offer consulting or add-on services",
+      sales: "a dealership might also offer protection packages, accessories, or service plans",
     };
     return modeExamples[businessMode] || modeExamples.general;
   }, [tenantIndustry, businessMode]);

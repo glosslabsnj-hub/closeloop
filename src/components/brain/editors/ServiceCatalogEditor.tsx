@@ -917,7 +917,7 @@ export function ServiceCatalogEditor() {
               <div>
                 <h3 className="font-semibold text-lg mb-1">No {terms.services} yet</h3>
                 <p className="text-sm text-muted-foreground">
-                  Add every {terms.service} you offer. The AI will only mention what's listed here — it won't quote services you haven't added.
+                  Add every {terms.service} you offer. The AI will only mention what's listed here — it won't quote {terms.services} you haven't added.
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 w-full justify-center">

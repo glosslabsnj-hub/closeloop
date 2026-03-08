@@ -329,36 +329,36 @@ const MODE_FAQS: Record<BusinessMode, SuggestedFAQ[]> = {
   ],
   sales: [
     {
-      question: "What products do you carry?",
-      answer: "We carry a wide selection of products. I can help you find exactly what you're looking for. What are you interested in?"
+      question: "What vehicles do you have in stock?",
+      answer: "We have a great selection in stock right now. Can I ask what you're looking for — new or pre-owned, and any particular make or model?"
     },
     {
       question: "Do you offer financing?",
-      answer: "Yes, we offer financing options with approved credit. I can walk you through the available plans."
+      answer: "Yes, we work with multiple lenders to find you the best rate. Our finance team can walk you through all your options when you come in."
     },
     {
-      question: "Can I schedule a viewing?",
-      answer: "Absolutely! I can schedule a time for you to come in and see our available inventory."
+      question: "Can I schedule a test drive?",
+      answer: "Absolutely! I can set up a test drive at a time that works for you. What vehicle are you interested in?"
     },
     {
       question: "Do you accept trade-ins?",
-      answer: "Yes, we accept trade-ins. Bring your item in and we'll provide a fair market value assessment."
+      answer: "Yes, we accept trade-ins. Bring your vehicle in and we'll give you a fair market appraisal — no obligation."
     },
     {
-      question: "What's your return policy?",
-      answer: "We offer a 30-day return policy on most items with original receipt and packaging."
+      question: "Do you have certified pre-owned vehicles?",
+      answer: "Yes, we carry certified pre-owned inventory that comes with extended warranties and passes a multi-point inspection."
     },
     {
-      question: "Do you price match?",
-      answer: "Yes, we match competitor prices on identical items. Just show us the advertised price."
+      question: "What do I need for a test drive?",
+      answer: "Just bring a valid driver's license. If you're thinking about financing, it also helps to have proof of income and insurance."
     },
     {
-      question: "Do you deliver?",
-      answer: "Yes, we offer delivery for an additional fee depending on your location. I can give you a quote."
+      question: "Do you deliver vehicles?",
+      answer: "Yes, we can arrange vehicle delivery. I can give you more details when you speak with our sales team."
     },
     {
       question: "Are there any current promotions?",
-      answer: "We often have special promotions running. Let me check what's currently available for you."
+      answer: "We often have special financing offers and manufacturer incentives running. Let me have someone check what's available for the model you're interested in."
     },
   ],
 };

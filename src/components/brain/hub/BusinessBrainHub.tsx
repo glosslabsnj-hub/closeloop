@@ -16,7 +16,7 @@ import { Brain, PhoneIncoming, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { StepCard } from "./StepCard";
-import { getOrderedSteps, getStepTitle, getStepPurpose, isStepEmphasized } from "./hubStepsConfig";
+import { getOrderedSteps, getStepTitle, getStepPurpose, getStepUsedByAI, isStepEmphasized } from "./hubStepsConfig";
 import { GuidedSetupOverlay } from "../editors/GuidedSetupOverlay";
 
 interface BusinessBrainHubProps {
@@ -185,6 +185,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
     const emphasized = isStepEmphasized(step, businessMode);
     const title = getStepTitle(step.id, businessMode);
     const purpose = getStepPurpose(step.id, isCallbackOnly);
+    const usedByAI = getStepUsedByAI(step.id, businessMode);
 
     return (
       <StepCard
@@ -194,7 +195,7 @@ export function BusinessBrainHub({ onNavigateToSection }: BusinessBrainHubProps)
         title={title}
         purpose={purpose}
         icon={step.icon}
-        usedByAI={step.usedByAI}
+        usedByAI={usedByAI}
         isComplete={isComplete}
         isEmphasized={emphasized}
         mode={businessMode}
