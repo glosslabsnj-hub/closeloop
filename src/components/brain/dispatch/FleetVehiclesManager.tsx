@@ -116,8 +116,12 @@ export function FleetVehiclesManager() {
           {vehicles.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Truck className="h-12 w-12 mx-auto mb-3 opacity-20" />
-              <p>No vehicles added yet</p>
-              <p className="text-sm">Add your first vehicle to start managing your fleet</p>
+              <p className="font-medium">No vehicles added yet</p>
+              <p className="text-sm mt-1 mb-4">Add your trucks so the AI knows your fleet capacity</p>
+              <Button size="sm" onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Vehicle
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">

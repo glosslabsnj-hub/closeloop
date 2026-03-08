@@ -106,8 +106,12 @@ export function FleetDriversManager() {
           {drivers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <User className="h-12 w-12 mx-auto mb-3 opacity-20" />
-              <p>{labels.emptyTitle}</p>
-              <p className="text-sm">{labels.emptyDesc}</p>
+              <p className="font-medium">{labels.emptyTitle}</p>
+              <p className="text-sm mt-1 mb-4">{labels.emptyDesc}</p>
+              <Button size="sm" onClick={handleAdd}>
+                <Plus className="h-4 w-4 mr-2" />
+                {labels.addBtn}
+              </Button>
             </div>
           ) : (
             <div className="space-y-3">
