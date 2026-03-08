@@ -271,11 +271,11 @@ export default function ImpoundLotPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search plate, VIN, make..."
-              className="w-64 pl-10"
+              className="w-full sm:w-64 pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
