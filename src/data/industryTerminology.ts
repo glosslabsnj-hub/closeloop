@@ -593,6 +593,10 @@ const BOOKING_VERBS: Record<string, { actionPhrase: string; autoSummary: string;
   session: { actionPhrase: "book a session", autoSummary: "book sessions automatically", readinessVerb: "book sessions", activeVerb: "booking sessions" },
   consultation: { actionPhrase: "schedule a consultation", autoSummary: "schedule consultations automatically", readinessVerb: "schedule consultations", activeVerb: "scheduling consultations" },
   appointment: { actionPhrase: "book an appointment", autoSummary: "book appointments automatically", readinessVerb: "book appointments", activeVerb: "booking appointments" },
+  // GC: the "appointment" is a free on-site estimate visit
+  estimate: { actionPhrase: "schedule a free estimate", autoSummary: "schedule free estimates automatically", readinessVerb: "schedule estimates", activeVerb: "scheduling estimates" },
+  // Roofing: the "appointment" is an inspection
+  inspection: { actionPhrase: "schedule a roof inspection", autoSummary: "schedule inspections automatically", readinessVerb: "schedule inspections", activeVerb: "scheduling inspections" },
 };
 
 /** Returns phrasing like "schedule a job" or "book an appointment" based on appointmentLabel */
