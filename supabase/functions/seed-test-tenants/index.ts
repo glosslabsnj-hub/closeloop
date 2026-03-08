@@ -74,6 +74,20 @@ interface SeedRequest {
         features?: string[];
         description?: string;
       }[];
+      customSalesLeads?: {
+        status?: string;
+        priority?: string;
+        vehicle_interest?: string;
+        interest_type?: string;
+        budget_range?: string;
+        has_trade_in?: boolean;
+        trade_in_details?: string | null;
+        financing_preapproved?: boolean;
+        timeline?: string;
+        source?: string;
+        notes?: string;
+        lead_number?: string;
+      }[];
     };
   };
 }
@@ -540,6 +554,26 @@ async function seedTenantData(
       status: "available",
     }));
     await client.from("sales_inventory").insert(inventory);
+  }
+
+  // Seed sales leads (sales mode only)
+  if (seedData.customSalesLeads && seedData.customSalesLeads.length > 0) {
+    const leads = seedData.customSalesLeads.map((l) => ({
+      tenant_id: tenantId,
+      status: l.status ?? "new",
+      priority: l.priority ?? "normal",
+      vehicle_interest: l.vehicle_interest ?? null,
+      interest_type: l.interest_type ?? null,
+      budget_range: l.budget_range ?? null,
+      has_trade_in: l.has_trade_in ?? false,
+      trade_in_details: l.trade_in_details ?? null,
+      financing_preapproved: l.financing_preapproved ?? false,
+      timeline: l.timeline ?? null,
+      source: l.source ?? "ai_call",
+      notes: l.notes ?? null,
+      lead_number: l.lead_number ?? null,
+    }));
+    await client.from("sales_leads").insert(leads);
   }
 
   // Seed sample call sessions
