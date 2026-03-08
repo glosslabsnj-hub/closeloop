@@ -152,7 +152,7 @@ export const HUB_STEPS: HubStep[] = [
     usedByAI: [
       "Checks if caller is in your service area",
       "Calculates arrival times based on distance",
-      "Politely declines jobs outside coverage",
+      "Handles callers outside your coverage area",
     ],
     emphasis: ["dispatch", "service"],
     hiddenModes: ["general"],

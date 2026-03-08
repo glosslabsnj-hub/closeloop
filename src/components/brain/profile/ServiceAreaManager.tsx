@@ -289,7 +289,7 @@ function parseAddressString(address: string | null | undefined): {
 
 export function ServiceAreaManager() {
   const { serviceArea, isLoading, isSaving, saveServiceArea } = useServiceArea();
-  const { _businessMode } = useTenantConfig();
+  const { businessMode } = useTenantConfig();
   const { tenant } = useAuth();
   const [formData, setFormData] = useState<ServiceAreaConfig>(serviceArea);
   const [hasChanges, setHasChanges] = useState(false);
@@ -660,16 +660,26 @@ export function ServiceAreaManager() {
 
           {/* Out-of-Area Message / Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">What should AI say when someone is outside your area?</Label>
+            <Label htmlFor="notes">
+              {businessMode === "sales"
+                ? "What should AI say when someone is outside your delivery area?"
+                : "What should AI say when someone is outside your area?"}
+            </Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => updateForm({ notes: e.target.value })}
-              placeholder="e.g., It looks like you're outside our normal service area. I can take your details and have someone call you back with options."
+              placeholder={
+                businessMode === "sales"
+                  ? "e.g., We're based in Cherry Hill but can arrange delivery across the tri-state area. Want to discuss your options?"
+                  : "e.g., It looks like you're outside our normal service area. I can take your details and have someone call you back with options."
+              }
               rows={3}
             />
             <p className="text-xs text-muted-foreground">
-              Write this naturally — your AI will say it when a caller's location is outside your coverage.
+              {businessMode === "sales"
+                ? "Write this naturally — your AI will say it when a caller asks about a location outside your delivery range."
+                : "Write this naturally — your AI will say it when a caller's location is outside your coverage."}
             </p>
           </div>
 

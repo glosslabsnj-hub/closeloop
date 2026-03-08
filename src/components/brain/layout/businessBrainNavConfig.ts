@@ -298,7 +298,7 @@ export const BRAIN_CATEGORIES: CategoryConfig[] = [
         purpose: "Quick view of where you currently serve",
         usedByAI: [
           "Checks if caller location is in your service area",
-          "Politely declines jobs outside coverage",
+          "Handles callers outside your coverage area",
         ],
         defaultCollapsed: false,
         setupPriority: "recommended",

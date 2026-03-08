@@ -113,7 +113,7 @@ export const SECTION_HELPERS: Record<string, SectionHelperContent> = {
     howAIUsesIt: [
       "Checks if the caller's location is within your service area",
       "Calculates realistic ETAs based on distance and current busyness",
-      "Politely declines or offers callbacks for out-of-area requests",
+      "Handles out-of-area requests based on your settings",
     ],
     examplesByMode: {
       service: "\"We serve a 25-mile radius from downtown. What's your ZIP code?\"",

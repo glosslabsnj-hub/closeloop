@@ -210,7 +210,9 @@ export const TAB_GUIDANCE: Record<string, (mode: BusinessMode) => TabGuidance> =
     whatItControls: "Where your business provides service and estimated travel times.",
     howAIUsesIt: [
       "Checks if caller's location is within your service area",
-      "Politely declines jobs outside your coverage",
+      mode === "sales"
+        ? "Lets customers know which areas you serve or deliver to"
+        : "Politely handles callers outside your coverage area",
       mode === "dispatch"
         ? "Calculates accurate ETAs based on distance"
         : "Estimates arrival or travel times when relevant",

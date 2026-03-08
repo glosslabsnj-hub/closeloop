@@ -123,7 +123,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
   },
   "coverage": {
     what: "Define where your business provides service — by radius, ZIP codes, or specific areas.",
-    why: "Your AI uses this to tell callers whether you can serve their location, and politely declines jobs outside your area.",
+    why: "Your AI uses this to tell callers whether you can serve their location, and handles out-of-area requests based on your settings.",
     tips: {
       service: "Set your travel radius from your shop or home base.",
       dispatch: "Define your coverage zones with pricing that increases by distance.",
