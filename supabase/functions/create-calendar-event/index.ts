@@ -184,7 +184,14 @@ serve(async (req) => {
     const customerPhone = booking.lead?.phone || "";
     const customerEmail = booking.lead?.email || "";
 
-    const eventPayload = {
+    // Extract customer address from notes (stored as "Address: {addr}" by create-booking)
+    let customerAddress = "";
+    if (booking.notes) {
+      const addrMatch = booking.notes.match(/Address:\s*([^|]+)/i);
+      if (addrMatch) customerAddress = addrMatch[1].trim();
+    }
+
+    const eventPayload: Record<string, unknown> = {
       summary: `${serviceName} - ${customerName}`,
       description: [
         `Booked via Flux Receptionist AI`,
@@ -207,6 +214,11 @@ serve(async (req) => {
         ],
       },
     };
+
+    // Add location if customer address is available (important for field service businesses)
+    if (customerAddress) {
+      eventPayload.location = customerAddress;
+    }
 
     // Create event in Google Calendar
     const createResponse = await fetch(

@@ -136,6 +136,7 @@ export function CreateTestTenantDialog({
               price_amount: svc.price > 0 ? svc.price : null,
               duration_minutes: svc.duration,
               is_active: true,
+              ...(svc.bookingType ? { booking_type: svc.bookingType } : {}),
             }));
             const { error: svcErr } = await supabase.from("services").insert(servicesToInsert);
             if (svcErr) console.warn("Failed to seed services:", svcErr);

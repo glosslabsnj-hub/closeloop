@@ -23,6 +23,7 @@ export interface EditableService {
   priceType: "fixed" | "starting_at" | "quote_only";
   description?: string;
   enabled: boolean;
+  bookingType?: "direct_book" | "estimate_first" | "consultation";
 }
 
 interface ServicePreviewStepProps {

@@ -172,6 +172,7 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
       setTemplateServices(config.services.map(s => ({
         name: s.name, duration: s.duration, price: s.price,
         priceType: s.priceType || "fixed", description: s.description, enabled: true,
+        bookingType: s.bookingType,
       })));
       setTemplateFAQs(config.faqs.map(f => ({ question: f.question, answer: f.answer, enabled: true })));
       setTemplatePolicies({

@@ -245,10 +245,9 @@ Deno.serve(async (req) => {
         tenant_id: tenantId,
         conversation_id: conversationId,
         direction: "inbound",
-        channel: "sms",
-        content: messageBody,
-        external_id: messageSid,
+        body: messageBody,
         status: "delivered",
+        meta_json: { twilio_sid: messageSid, channel: "sms" },
       });
     }
 
@@ -324,9 +323,9 @@ Deno.serve(async (req) => {
               tenant_id: tenantId,
               conversation_id: conversationId,
               direction: "outbound",
-              channel: "sms",
-              content: aiReply,
+              body: aiReply,
               status: "sent",
+              meta_json: { channel: "sms" },
             });
           }
 
@@ -378,9 +377,9 @@ Deno.serve(async (req) => {
                     tenant_id: tenantId,
                     conversation_id: conversationId,
                     direction: "outbound",
-                    channel: "sms",
-                    content: result.reply,
+                    body: result.reply,
                     status: "sent",
+                    meta_json: { channel: "sms" },
                   });
                 }
 

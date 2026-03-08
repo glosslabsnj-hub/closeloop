@@ -13,6 +13,13 @@ export interface ServiceTemplate {
   pricingNote?: string;
   /** Sort order within category (lower = first) */
   popularityRank?: number;
+  /**
+   * How the AI handles booking this service.
+   * - "direct_book": AI checks availability and books immediately (default)
+   * - "estimate_first": AI books an estimate visit instead of the full job
+   * - "consultation": AI collects details and schedules a callback
+   */
+  bookingType?: 'direct_book' | 'estimate_first' | 'consultation';
 }
 
 export interface ContextField {

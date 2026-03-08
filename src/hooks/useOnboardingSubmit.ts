@@ -192,6 +192,7 @@ export function useOnboardingSubmit(userId?: string) {
             duration_minutes: s.duration, price_amount: s.price,
             price_type: (s.priceType || "fixed") as "fixed" | "starting_at" | "quote_only",
             is_active: true,
+            ...(s.bookingType ? { booking_type: s.bookingType } : {}),
           }));
         if (servicesToInsert.length > 0) {
           await supabase.from("services").delete().eq("tenant_id", tenantId!);
