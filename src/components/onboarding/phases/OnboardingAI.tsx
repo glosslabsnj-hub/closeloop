@@ -65,7 +65,7 @@ export const OnboardingAI = React.memo(function OnboardingAI({
 }: OnboardingAIProps) {
   const showBookingMode = businessMode !== "dispatch";
   const industryEntry = industrySlug ? getIndustryBySlug(industrySlug) : undefined;
-  const terms = getIndustryTerminology(businessMode, industryEntry?.category);
+  const terms = getIndustryTerminology(businessMode, industryEntry?.category, industrySlug);
   const bookingLabel = terms.appointmentLabel ?? "appointment";
 
   return (

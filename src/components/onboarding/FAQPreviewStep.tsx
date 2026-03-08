@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronDown, ChevronRight, Plus, X } from "lucide-react";
 import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
 
 export interface EditableFAQ {
@@ -33,7 +34,8 @@ export function FAQPreviewStep({
   faqs,
   onChange,
 }: FAQPreviewStepProps) {
-  const terms = getIndustryTerminology(businessMode);
+  const catalogEntry = getIndustryBySlug(industrySlug);
+  const terms = getIndustryTerminology(businessMode, catalogEntry?.category, industrySlug);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const toggleFAQ = (idx: number) => {
