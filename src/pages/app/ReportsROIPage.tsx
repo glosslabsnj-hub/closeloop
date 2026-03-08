@@ -479,13 +479,15 @@ export default function ReportsROIPage() {
   // e.g. plumber sees "Jobs" instead of generic "Appointments"
   const entityName = terms.bookingsMetricLabel || data?.entityName || "Bookings";
   const entityNameLower = terms.bookings || data?.entityName.toLowerCase() || "bookings";
+  const entityNameSingularLower = terms.booking || data?.entityNameSingular?.toLowerCase() || entityNameLower.replace(/s$/, '');
 
   // Build story-driven content when we have data
+  // Use singular form when count = 1 (e.g. "1 job" not "1 jobs")
   const storyHeadline = data
     ? buildStoryHeadline(data.storyTemplate, {
         verb: data.actionVerbPast,
         count: data.entitiesCreated,
-        entity: entityNameLower,
+        entity: data.entitiesCreated === 1 ? entityNameSingularLower : entityNameLower,
         value: formatRevenue(data.aiRevenueCents),
       })
     : "";

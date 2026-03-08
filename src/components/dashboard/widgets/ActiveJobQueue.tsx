@@ -12,6 +12,15 @@ const statusColors: Record<string, string> = {
   on_site: "bg-violet-500/10 text-violet-600 border-violet-500/30",
 };
 
+const statusLabels: Record<string, string> = {
+  pending: "Pending",
+  assigned: "Assigned",
+  en_route: "En Route",
+  on_site: "On Site",
+  completed: "Completed",
+  cancelled: "Cancelled",
+};
+
 export function ActiveJobQueue() {
   const { data, isLoading } = useDispatchDashboard();
 
@@ -79,7 +88,7 @@ export function ActiveJobQueue() {
                     )}
                   </div>
                   <Badge variant="outline" className={cn("text-xs shrink-0", statusColors[job.status] || "")}>
-                    {job.status.replace("_", " ")}
+                    {statusLabels[job.status] || job.status.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </Badge>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 /**
- * DispatchMapView — Renders technician locations on a Mapbox GL map.
+ * DispatchMapView — Renders driver locations on a Mapbox GL map.
  */
 import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
@@ -96,7 +96,7 @@ export function DispatchMapView({ token, locations }: DispatchMapViewProps) {
 
       const popup = new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
         <div style="font-family: system-ui; font-size: 13px; line-height: 1.5; color: #e5e5e5;">
-          <strong style="color: white;">Technician</strong>
+          <strong style="color: white;">Driver</strong>
           <br/><strong>Updated:</strong> ${timeAgo}
           ${speedText}
         </div>

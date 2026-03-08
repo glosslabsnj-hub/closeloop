@@ -181,11 +181,23 @@ export function LiveActivityFeed() {
           .order("created_at", { ascending: false })
           .limit(3);
 
+        const dispatchStatusLabel: Record<string, string> = {
+          pending: "Pending",
+          assigned: "Assigned",
+          en_route: "En Route",
+          on_site: "On Site",
+          completed: "Completed",
+          cancelled: "Cancelled",
+        };
         jobs?.forEach((job) => {
+          const jobTypeLabel = job.job_type
+            ? job.job_type.replace(/\b\w/g, (c: string) => c.toUpperCase())
+            : 'Job';
+          const statusLabel = dispatchStatusLabel[job.status] || job.status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
           results.push({
             id: `dispatch-${job.id}`,
             type: "dispatch",
-            title: `${job.job_type || 'Job'} ${job.status}`,
+            title: `${jobTypeLabel} — ${statusLabel}`,
             subtitle: job.customer_name || terms.customer,
             time: formatDistanceToNow(new Date(job.created_at), { addSuffix: true }),
             timestamp: new Date(job.created_at),
