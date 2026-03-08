@@ -530,7 +530,7 @@ async function seedTenantData(
       trim: v.trim ?? null,
       body_style: v.body_style ?? null,
       condition: v.condition,
-      exterior_color: v.exterior_color ?? null,
+      color_exterior: v.exterior_color ?? null,
       mileage: v.mileage ?? null,
       asking_price_cents: v.asking_price_cents,
       internet_price_cents: v.internet_price_cents ?? v.asking_price_cents,
