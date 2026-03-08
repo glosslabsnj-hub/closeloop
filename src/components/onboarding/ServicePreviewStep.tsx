@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Plus, AlertCircle, DollarSign } from "lucide-react";
 import { getIndustryTerminology } from "@/data/industryTerminology";
+import { getIndustryBySlug } from "@/data/industryCatalog";
 import { cn } from "@/lib/utils";
 import { getPricingModel } from "@/config/pricingModels";
 import type { BusinessMode } from "@/components/onboarding/BusinessModeSelector";
@@ -37,7 +38,8 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
   services,
   onChange,
 }: ServicePreviewStepProps) {
-  const terms = getIndustryTerminology(businessMode);
+  const catalogEntry = useMemo(() => getIndustryBySlug(industrySlug), [industrySlug]);
+  const terms = getIndustryTerminology(businessMode, catalogEntry?.category, industrySlug);
   const pricingModel = useMemo(() => getPricingModel(businessMode, industrySlug), [businessMode, industrySlug]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
 
