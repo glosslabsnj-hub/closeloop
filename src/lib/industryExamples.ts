@@ -347,6 +347,78 @@ export function getObjectionExamples(mode: BusinessMode): ObjectionExamples {
   return OBJECTION_EXAMPLES[mode] || OBJECTION_EXAMPLES.general;
 }
 
+// ---------------------------------------------------------------------------
+// Slug-specific objection overrides (highest priority)
+// ---------------------------------------------------------------------------
+
+const SLUG_OBJECTION_OVERRIDES: Record<string, Array<{ objection: string; response: string }>> = {
+  "handyman": [
+    { objection: "I can probably just do it myself", response: "Totally fair — a lot of homeowners feel that way. But if it's been on your to-do list, we can take care of it today so you can focus on other things." },
+    { objection: "I need to get a few quotes", response: "We understand. We're upfront about pricing and happy to give you a phone estimate right now so you can compare." },
+    { objection: "That's too expensive for a small job", response: "I hear you. Our minimum is kept low on purpose. For small jobs, you're paying for a skilled pro who shows up same-day and gets it done right." },
+  ],
+  "plumbing": [
+    { objection: "Can you just give me a ballpark?", response: "For most plumbing jobs, the range is wide because we can't see what's behind the wall until we're there. A quick visit is free and gets you an accurate number." },
+    { objection: "My regular plumber said it was cheaper", response: "That's worth comparing! Just make sure the quote covers everything — labor, parts, and cleanup. Our price is all-in, no surprise charges." },
+    { objection: "It's just a small drip, I'll wait", response: "Small drips often mean bigger problems underneath. Catching it now usually costs far less than water damage repair later." },
+  ],
+  "hvac": [
+    { objection: "My warranty should cover this", response: "Great — if it does, we'll work with the warranty provider. Let me get your unit details and we can confirm what's covered before we start." },
+    { objection: "I'll just wait until it breaks completely", response: "We hear that a lot, but emergency repairs in summer or winter cost 2-3x more than a scheduled service. A quick tune-up now could save you a lot." },
+    { objection: "Another company quoted me less", response: "Make sure you compare what's included — sometimes a low quote doesn't cover the refrigerant, parts, or labor. Our price is all-in with no surprises." },
+  ],
+  "electrical": [
+    { objection: "Can't I just watch a YouTube video and do it?", response: "For minor things like swapping a fixture, maybe. But anything involving your panel, new circuits, or outlets really does need a licensed electrician — it's a safety and insurance issue." },
+    { objection: "Do I really need a permit for this?", response: "For most electrical work, yes — it protects you when you sell the house and makes sure the work is inspected. We handle all permit pulling, so it's one less thing for you." },
+    { objection: "That's more than I expected", response: "Electrical work needs to be done right the first time. We use licensed, bonded electricians and our work is fully warranted. I can walk you through exactly what the price covers." },
+  ],
+  "roofing": [
+    { objection: "Just give me a ballpark price", response: "Every roof is different based on pitch, square footage, and material. Our free inspection gives you an accurate number — usually takes under 30 minutes." },
+    { objection: "I already have other quotes", response: "Smart move to compare. We'd love to give you ours too. Many clients choose us for our warranty and workmanship even if we're not the absolute cheapest." },
+    { objection: "Can't I just patch it?", response: "Sometimes, yes. We'll tell you honestly whether a patch makes sense or if it would just delay a bigger expense. That's what the free inspection is for." },
+  ],
+  "general_contractor": [
+    { objection: "Just give me a ballpark price", response: "For a project like that, the range is wide depending on materials, scope, and site conditions. A free on-site estimate gives you an accurate number with no obligation." },
+    { objection: "I already have other quotes", response: "That's smart to compare. We'd love to give you our quote too. Many clients choose us for communication and quality even if we're not the lowest bid." },
+    { objection: "That timeline seems too long", response: "I understand you want to move quickly. Let me get you scheduled for an estimate so we can talk timeline options and what might speed things up." },
+  ],
+  "landscaping": [
+    { objection: "I was just going to do it myself", response: "Makes sense for some things! For jobs like mulching, grading, or regular mowing, most customers find it's worth hiring out when they see how fast we get it done." },
+    { objection: "Can't I just wait until spring?", response: "For lawn care, timing matters. Fall prep actually sets you up for a much better lawn in spring. I can explain exactly what we'd do and why it helps." },
+    { objection: "That seems like a lot for just mowing", response: "Our service includes edging, cleanup, and blowing — not just a cut. Plus you get a reliable schedule every week so your lawn always looks its best." },
+  ],
+  "painting": [
+    { objection: "My brother-in-law can do it cheaper", response: "Family can definitely help on some jobs! Professional painters typically go faster, provide better prep, and warranty their work. It comes down to what matters most to you." },
+    { objection: "Why does the prep take so long?", response: "Prep is 80% of a great paint job — filling holes, sanding, caulking, taping. Skipping it means the paint looks bad in a year. We do it right so you don't repaint in two years." },
+    { objection: "I was just going to DIY this", response: "DIY can work for small areas! For larger projects, most customers find professional results are worth it — and we clean up everything when we're done." },
+  ],
+  "cleaning": [
+    { objection: "My last cleaner was cheaper", response: "We hear that. Our pricing includes background-checked, insured cleaners, consistent quality, and a satisfaction guarantee. The difference usually shows up right away." },
+    { objection: "I can just clean it myself", response: "Of course! We're for homeowners who want that time back. Most clients say the first clean is what converts them — they didn't realize how deep we go." },
+    { objection: "Do you bring your own supplies?", response: "Yes, we bring everything — commercial-grade products and equipment. You don't need to provide anything." },
+  ],
+  "pest_control": [
+    { objection: "I tried sprays from the hardware store", response: "Store sprays treat what you see, but not the nest or entry points. Professional treatment gets to the source so it doesn't come back in two weeks." },
+    { objection: "Is it safe for my kids and pets?", response: "Absolutely — we use EPA-registered products and our technicians are trained in targeted application. We'll tell you exactly when it's safe to re-enter." },
+    { objection: "I'll wait and see if they go away on their own", response: "Most infestations get larger if untreated. Catching it early is always cheaper and less disruptive than dealing with a serious infestation later." },
+  ],
+};
+
+/**
+ * Get slug-aware objection examples.
+ * Returns slug-specific suggestions if available, falls back to mode defaults.
+ */
+export function getSlugObjectionExamples(mode: BusinessMode, slug?: string | null): ObjectionExamples {
+  const base = getObjectionExamples(mode);
+  if (!slug) return base;
+  const slugOverrides = SLUG_OBJECTION_OVERRIDES[slug];
+  if (!slugOverrides || slugOverrides.length === 0) return base;
+  return {
+    ...base,
+    commonObjections: slugOverrides,
+  };
+}
+
 export function getProfileExamples(mode: BusinessMode): ProfileExamples {
   return PROFILE_EXAMPLES[mode] || PROFILE_EXAMPLES.general;
 }

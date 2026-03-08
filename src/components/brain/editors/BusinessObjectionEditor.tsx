@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { KnowledgeSection } from "../shared/KnowledgeSection";
 import { KnowledgeItem } from "../shared/KnowledgeItem";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
-import { getObjectionExamples } from "@/lib/industryExamples";
+import { getSlugObjectionExamples } from "@/lib/industryExamples";
 
 interface ObjectionResponse {
   id: string;
@@ -26,10 +26,10 @@ interface ObjectionResponse {
 
 export function BusinessObjectionEditor() {
   const { tenant } = useAuth();
-  const { businessMode } = useTenantConfig();
+  const { businessMode, industrySlug } = useTenantConfig();
   const queryClient = useQueryClient();
-  
-  const examples = getObjectionExamples(businessMode);
+
+  const examples = getSlugObjectionExamples(businessMode, industrySlug);
 
   const [objections, setObjections] = useState<ObjectionResponse[]>([]);
   const [loading, setLoading] = useState(true);

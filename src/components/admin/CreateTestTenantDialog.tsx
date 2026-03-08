@@ -153,6 +153,18 @@ export function CreateTestTenantDialog({
             const { error: faqErr } = await supabase.from("business_faqs").insert(faqsToInsert);
             if (faqErr) console.warn("Failed to seed FAQs:", faqErr);
           }
+
+          // Seed objections from catalog
+          if (catalogEntry.objections?.length > 0) {
+            const objectionsToInsert = catalogEntry.objections.map((obj, i) => ({
+              tenant_id: tenantId,
+              objection: obj.objection,
+              response: obj.response,
+              priority_weight: i,
+            }));
+            const { error: objErr } = await supabase.from("objection_responses").insert(objectionsToInsert);
+            if (objErr) console.warn("Failed to seed objections:", objErr);
+          }
         }
       }
 
