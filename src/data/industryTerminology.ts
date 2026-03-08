@@ -560,6 +560,7 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
 
   "car-dealership-new": {
     appointmentLabel: "test drive",
+    bookingsPageTitle: "Showroom Appointments", // prevent nav collision with /app/test-drives
     customerLabel: "buyer",
     teamMemberLabel: "sales rep",
     servicesLabel: "Vehicle Lineup",
@@ -574,6 +575,7 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
 
   "car-dealership-used": {
     appointmentLabel: "test drive",
+    bookingsPageTitle: "Showroom Appointments",
     customerLabel: "buyer",
     teamMemberLabel: "sales rep",
     servicesLabel: "Vehicle Inventory",
@@ -588,6 +590,7 @@ const SLUG_OVERRIDES: Record<string, Partial<IndustryTerminology>> = {
 
   "car-dealership-full": {
     appointmentLabel: "test drive",
+    bookingsPageTitle: "Showroom Appointments",
     customerLabel: "buyer",
     teamMemberLabel: "sales consultant",
     servicesLabel: "Vehicle Inventory",
