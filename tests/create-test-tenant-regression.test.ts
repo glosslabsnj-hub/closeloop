@@ -152,6 +152,34 @@ describe("CreateTestTenantDialog: FAQs are seeded from catalog", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Catalog seeding: Objections from catalog (added 2026-03-08 commit 2598d78)
+// ---------------------------------------------------------------------------
+
+describe("CreateTestTenantDialog: Objections are seeded from catalog", () => {
+  it("seeds objections when catalogEntry.objections.length > 0", () => {
+    expect(source).toContain("catalogEntry.objections?.length > 0");
+    // Inserts into objection_responses table
+    expect(source).toContain('from("objection_responses")');
+  });
+
+  it("objectionsToInsert is built with tenant_id", () => {
+    expect(source).toContain("objectionsToInsert");
+    const objIdx = source.indexOf("objectionsToInsert");
+    const objBlock = source.slice(objIdx, objIdx + 400);
+    expect(objBlock).toContain("tenant_id");
+  });
+
+  it("handles objection seed failure gracefully (warn, not throw)", () => {
+    // Objection seeding uses console.warn on error — tenant is still created even if seeding fails
+    expect(source).toContain("objErr");
+    // Must have a console.warn or console.log call after the error check
+    const errIdx = source.indexOf("objErr");
+    const errBlock = source.slice(errIdx, errIdx + 200);
+    expect(errBlock).toMatch(/console\.(warn|log)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Toast message confirms industry slug on success
 // ---------------------------------------------------------------------------
 

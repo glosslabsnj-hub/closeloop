@@ -101,6 +101,7 @@ describe("verify_jwt: handoff functions", () => {
 describe("verify_jwt: internally-called functions", () => {
   const internalFunctions = [
     "send-sms",
+    "send-sms-internal",   // added 2026-03-08: trusted server-to-server SMS
     "outbound-call",
     "test-call-phone",
     "notify-job-update",
