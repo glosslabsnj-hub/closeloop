@@ -1,6 +1,33 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-07 12:32 AM ET (receptionist_overseer R26 — chain audit)
+## Last Session: 2026-03-09 (receptionist_eng R30 — GC estimate-first prompt regression tests)
+
+### What Was Done
+- **Regression tests: GC estimate-first AI prompt** (commit af70c69): +25 tests in `tests/gc-estimate-first-prompt-regression.test.ts`. Covers: (1) `buildBusinessContext` generates ESTIMATE-FIRST SERVICES prompt block when services have `booking_type=estimate_first`. (2) Correct instructions in prompt (no direct booking, explain free estimate process, "Free Estimate - [service name]" pattern). (3) booking_type normalization and `[ESTIMATE FIRST]` tag in services_for_prompt. (4) testTenantMatrix GC entry has correct booking_type values. (5) seed-test-tenants propagates booking_type to DB. (6) Conditional section only renders when estimate_first services exist. 3436/3436 tests passing (was 3411, +25).
+- **QA pipeline status**: Handoffs #782-#786 filed, awaiting QA. Blocked by Anthropic API credits (Jack task #20). GC onboarding retest (#786) and Pool Service dashboard (#802) both ready once QA agent runs.
+
+### Previous Session: 2026-03-09 R29 (receptionist_ux — sales UX terminology + test drive dialog + pool call history)
+- **UX: Sales mode terminology fixes** (commit 881d0b9): SalesTodayView "Test Drives Today" stat now links to /app/test-drives (not /app/bookings) for car dealers. AgreementsPage AgreementListItem shows "appointments" not "visits" for sales mode. AgreementBuilder template cards show "Custom pricing" (not $0.00/mo) and "appointment(s)" for SALES_PLAN_TEMPLATES.
+- **UX: Test drive dialog auto-open** (commit 806fdd4): CallDetailPanel "New Test Drive" button navigates to /app/test-drives?openNew=true. TestDrivesPage reads ?openNew=true via useSearchParams and calls setCreateOpen(true) — no extra click needed. Regression test updated to match new URL.
+- **Data: Pool service call history** (commit 7a4fd8a): Crystal Clear Pool Service testTenantMatrix entry now has 10 pool-specific customCallSessions (algae emergency, monthly plan signup, equipment repair, seasonal open/close, HOA commercial inquiry, out-of-area lost call). Mirrors car dealership pattern for dashboard QA call_history_real_data gate.
+- **QA handoffs filed**: #785 (sales UX batch), #786 (GC onboarding retest)
+- **Deployed**: Frontend VPS (200 verified), 3318/3318 tests passing
+
+### Previous Session (R28 — sales brain + agreements fix)
+- **CRITICAL BUG FIXED**: Sales mode brain had 3 orphaned sections — Lead Pipeline, Follow-Up Sequences, Sales Objection Playbook. Editor components existed but were missing from brainSectionRegistry.ts and SALES_LAYOUT. Car dealership users couldn't access these sections. Fixed both files. Commit 5ab70c4.
+- **AgreementBuilder mode-aware** (commit cec8022): SALES_PLAN_TEMPLATES (Standard Purchase/Financing Plan/Premium Deal) vs SERVICE_PLAN_TEMPLATES. Plan type dropdown, placeholders, labels all mode-aware for sales/medical/service.
+- **Square sync fix** (commit 114629e): sync-square-booking + sync-square-customers now use `tenant_id+provider` compound key instead of `id` for integration status updates.
+- **+37 regression tests**: agreement-builder-mode-regression.test.ts (25), sales-mode-brain-qa.test.ts (+12)
+- **Deployed**: frontend to VPS (200), sync-square-booking, sync-square-customers to Supabase prod
+- **Tests**: 3318/3318 passing (76 test files)
+- **Previous session fixes** (R27, context compacted): text-conversation graceful 500 on API quota, ai-plan-response false-positive escalation heuristic removed, buildBusinessContext hours \\n→\n
+- **Pending QA handoffs**: #781 (service reschedule), #782 (sales functional batch), #783 (sales dashboard batch) — all blocked by Anthropic API credits
+- **External blockers**: Anthropic API credits (Jack task #20), A2P 10DLC, Google OAuth Testing mode
+
+### BLOCKING: Anthropic API Credits
+Filed Jack task #20 (urgent). Both keys out. text-conversation returns HTTP 200 with graceful error when API unavailable. All AI functional tests will fail until refilled.
+
+## Previous Session: 2026-03-07 12:32 AM ET (receptionist_overseer R26 — chain audit)
 
 ### What Was Done
 - **Chain status**: HEALTHY. No pause warranted.
