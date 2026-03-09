@@ -380,3 +380,83 @@ describe("cross-mode safety: pool_service changes don't break other industries",
     expect(industryCatalog.length).toBeGreaterThanOrEqual(25);
   });
 });
+
+// ===== Brain fix: service descriptions + objection quality (brain-r1-fixes) =====
+
+describe("industryCatalog: pool_service service descriptions (brain-r1-fixes)", () => {
+  const poolEntry = getIndustryBySlug("pool_service");
+
+  it("all pool_service services have descriptions", () => {
+    const servicesWithoutDesc = poolEntry!.services.filter(
+      (s) => !s.description || s.description.trim() === ""
+    );
+    expect(servicesWithoutDesc).toHaveLength(0);
+  });
+
+  it("Weekly Cleaning description mentions key activities", () => {
+    const svc = poolEntry!.services.find((s) => s.name === "Weekly Cleaning");
+    expect(svc!.description).toBeTruthy();
+    expect(svc!.description!.toLowerCase()).toMatch(/skim|brush|vacuum|chemical/);
+  });
+
+  it("Green-to-Clean description mentions urgency/timeline", () => {
+    const svc = poolEntry!.services.find((s) => s.name.includes("Green-to-Clean"));
+    expect(svc!.description).toBeTruthy();
+    expect(svc!.description!.toLowerCase()).toMatch(/hour|shock|algae/);
+  });
+
+  it("Equipment Repair description mentions upfront quote", () => {
+    const svc = poolEntry!.services.find((s) => s.name === "Equipment Repair");
+    expect(svc!.description).toBeTruthy();
+    expect(svc!.description!.toLowerCase()).toMatch(/quote|upfront/);
+  });
+
+  it("Monthly Maintenance Plan description mentions chemicals included", () => {
+    const svc = poolEntry!.services.find(
+      (s) => s.name.includes("Monthly") || s.name.includes("Maintenance Plan")
+    );
+    expect(svc!.description).toBeTruthy();
+    expect(svc!.description!.toLowerCase()).toMatch(/chemical|plan|include/);
+  });
+});
+
+describe("industryCatalog: pool_service objection quality (brain-r1-fixes)", () => {
+  const poolEntry = getIndustryBySlug("pool_service");
+
+  it("has at least 4 pool-specific objections", () => {
+    expect(poolEntry!.objections.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it("has pool-maintenance-specific price objection (not generic 'That's too expensive')", () => {
+    const priceObj = poolEntry!.objections.find((o) =>
+      o.objection.toLowerCase().includes("expensive") ||
+      o.objection.toLowerCase().includes("too expensive")
+    );
+    expect(priceObj).toBeDefined();
+    // Pool-specific response should mention pool costs or pool maintenance
+    expect(priceObj!.response.toLowerCase()).toMatch(/pool|green|repair|chemical|\$125|\$150/);
+  });
+
+  it("does NOT have generic 'I'll call back later' objection", () => {
+    const generic = poolEntry!.objections.find((o) =>
+      o.objection.toLowerCase() === "i'll call back later" ||
+      o.objection.toLowerCase() === "i'll call back later"
+    );
+    expect(generic).toBeUndefined();
+  });
+
+  it("does NOT have generic 'I'm just shopping around' objection", () => {
+    const generic = poolEntry!.objections.find((o) =>
+      o.objection.toLowerCase().includes("shopping around")
+    );
+    expect(generic).toBeUndefined();
+  });
+
+  it("seasonal objection response mentions packages or discount", () => {
+    const seasonal = poolEntry!.objections.find((o) =>
+      o.objection.toLowerCase().includes("seasonal")
+    );
+    expect(seasonal).toBeDefined();
+    expect(seasonal!.response.toLowerCase()).toMatch(/package|discount|bundle|swim/);
+  });
+});
