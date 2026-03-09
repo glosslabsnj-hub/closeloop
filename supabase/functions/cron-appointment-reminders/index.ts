@@ -1,15 +1,16 @@
 /**
  * cron-appointment-reminders: Send SMS reminders for upcoming appointments.
  *
- * Called by pg_cron every 15 minutes. Sends reminders based on tenant's
- * configured timing in assistant_settings.settings_json.sms_templates.
+ * Called by pg_cron every 15 minutes. Uses UNIFIED automation settings
+ * (messaging_automations table primary, settings_json fallback).
  *
- * Uses shared sms-sender for intelligent 10DLC/toll-free routing.
+ * Mode-aware: uses business-appropriate terminology per tenant.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
 import { getAppointmentLabel } from "../_shared/terminology.ts";
+import { getAutomationConfig } from "../_shared/automationSettings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -29,9 +30,9 @@ serve(async (_req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date();
-    const results = { checked: 0, sent_reminders: 0, errors: 0, skipped_sms: 0 };
+    const results = { checked: 0, sent_reminders: 0, errors: 0, skipped_sms: 0, skipped_disabled: 0 };
 
-    // Get all tenants with SMS templates configured
+    // Get all tenants with assistant settings
     const { data: allSettings, error: settingsErr } = await supabase
       .from("assistant_settings")
       .select("tenant_id, settings_json");
@@ -41,22 +42,12 @@ serve(async (_req: Request) => {
       return new Response(JSON.stringify({ error: settingsErr.message }), { status: 500 });
     }
 
-    const enabledTenants = (allSettings || []).filter((s: any) => {
-      const json = s.settings_json as Record<string, any> | null;
-      return json?.sms_templates?.appointment_reminder?.enabled === true;
-    });
-
-    if (enabledTenants.length === 0) {
-      return new Response(JSON.stringify({ message: "No tenants with reminders enabled", ...results }));
+    if (!allSettings?.length) {
+      return new Response(JSON.stringify({ message: "No tenants configured", ...results }));
     }
 
-    const tenantIds = enabledTenants.map((s: any) => s.tenant_id);
-
-    // Build tenant settings map
-    const settingsMap = new Map<string, any>();
-    for (const s of enabledTenants) {
-      settingsMap.set(s.tenant_id, s.settings_json || {});
-    }
+    const tenantIds = allSettings.map((s: any) => s.tenant_id);
+    const settingsMap = new Map(allSettings.map((s: any) => [s.tenant_id, s.settings_json || {}]));
 
     // Get tenant business names + mode/industry for terminology
     const { data: tenants } = await supabase
@@ -67,13 +58,20 @@ serve(async (_req: Request) => {
 
     // Process each tenant
     for (const tenantId of tenantIds) {
-      const tenantSettings = settingsMap.get(tenantId) || {};
-      const smsTemplates = tenantSettings.sms_templates || {};
-      const reminderConfig = smsTemplates.appointment_reminder || {};
-      const delayMinutes = reminderConfig.delayMinutes || 1440;
+      const legacySettings = settingsMap.get(tenantId);
       const tenantInfo = tenantInfoMap.get(tenantId);
       const apptLabel = getAppointmentLabel(tenantInfo?.business_mode || "service", tenantInfo?.industry);
-      const template = reminderConfig.message || getDefaultReminderTemplate(apptLabel);
+
+      // Use unified settings resolver
+      const config = await getAutomationConfig(supabase, tenantId, "appointment_reminder", legacySettings);
+
+      if (!config.enabled) {
+        results.skipped_disabled++;
+        continue;
+      }
+
+      const delayMinutes = config.delayMinutes || 1440;
+      const template = config.template || getDefaultReminderTemplate(apptLabel);
 
       // Window: target time ± 15 min (cron frequency)
       const targetMs = delayMinutes * 60 * 1000;
@@ -134,19 +132,20 @@ serve(async (_req: Request) => {
               .eq("id", booking.id);
             results.sent_reminders++;
 
-            // 3.2: Also queue an outbound AI voice reminder call
+            // Queue outbound AI voice reminder call (2h before appointment)
             try {
               await supabase.from("outbound_call_queue").insert({
                 tenant_id: tenantId,
                 customer_phone: phone,
                 call_purpose: "reminder",
-                scheduled_at: new Date(new Date(booking.start_at).getTime() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours before appointment
+                scheduled_at: new Date(new Date(booking.start_at).getTime() - 2 * 60 * 60 * 1000).toISOString(),
                 context_json: {
                   customer_name: lead?.full_name || "",
                   service_name: (booking.services as any)?.name || "your appointment",
                   appointment_time: startTime,
                   appointment_date: startDate,
                   booking_id: booking.id,
+                  business_mode: tenantInfo?.business_mode || "service",
                 },
                 max_attempts: 2,
               });

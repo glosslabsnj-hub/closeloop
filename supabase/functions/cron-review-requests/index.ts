@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { getAutomationConfig } from "../_shared/automationSettings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -54,16 +55,12 @@ serve(async (_req: Request) => {
       return new Response(JSON.stringify({ error: settingsErr.message }), { status: 500 });
     }
 
-    const enabledTenants = (allSettings || []).filter((s: any) => {
-      const json = s.settings_json as Record<string, any> | null;
-      return json?.sms_templates?.review_request?.enabled === true;
-    });
-
-    if (enabledTenants.length === 0) {
-      return new Response(JSON.stringify({ message: "No tenants with review requests enabled", ...results }));
+    if (!allSettings?.length) {
+      return new Response(JSON.stringify({ message: "No tenants configured", ...results }));
     }
 
-    const tenantIds = enabledTenants.map((s: any) => s.tenant_id);
+    const tenantIds = allSettings.map((s: any) => s.tenant_id);
+    const settingsMap = new Map(allSettings.map((s: any) => [s.tenant_id, s.settings_json || {}]));
 
     // Fetch tenants with business_mode for mode-aware templates
     const { data: tenants } = await supabase
@@ -73,23 +70,24 @@ serve(async (_req: Request) => {
 
     const tenantMap = new Map((tenants || []).map((t: any) => [t.id, t]));
 
-    for (const setting of enabledTenants) {
-      const tenantId = setting.tenant_id;
+    for (const tenantId of tenantIds) {
       const tenant = tenantMap.get(tenantId);
       const reviewLink = tenant?.review_link;
       const businessMode = tenant?.business_mode || "general";
+      const legacySettings = settingsMap.get(tenantId);
 
       if (!reviewLink) {
         results.skipped_no_link++;
         continue;
       }
 
-      const smsTemplates = (setting.settings_json as any)?.sms_templates || {};
-      const reviewConfig = smsTemplates.review_request || {};
-      const delayMinutes = reviewConfig.delayMinutes || 60;
+      // Use unified settings resolver
+      const config = await getAutomationConfig(supabase, tenantId, "review_request", legacySettings);
+      if (!config.enabled) continue;
 
+      const delayMinutes = config.delayMinutes || 60;
       // Use custom template if set, otherwise use mode-aware default
-      const template = reviewConfig.message || MODE_REVIEW_TEMPLATES[businessMode] || FALLBACK_TEMPLATE;
+      const template = config.template || MODE_REVIEW_TEMPLATES[businessMode] || FALLBACK_TEMPLATE;
 
       const targetTime = new Date(now.getTime() - delayMinutes * 60 * 1000);
       const windowStart = new Date(targetTime.getTime() - 15 * 60 * 1000).toISOString();

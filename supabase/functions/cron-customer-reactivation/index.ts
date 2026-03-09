@@ -10,12 +10,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { getAutomationConfig } from "../_shared/automationSettings.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const DEFAULT_REACTIVATION_TEMPLATE =
-  "Hey {{first_name}}, it's been a while! {{business_name}} here. Ready for another detail? Book online or just text us back. We'd love to see you again!";
+// Mode-aware reactivation templates
+const MODE_REACTIVATION_TEMPLATES: Record<string, string> = {
+  service: "Hey {{first_name}}, it's been a while! {{business_name}} here. Ready to schedule your next service? Book online or just text us back. We'd love to hear from you!",
+  dispatch: "Hey {{first_name}}, {{business_name}} here. Just checking in! If you ever need us again, we're just a call or text away.",
+  food: "Hey {{first_name}}, we miss you at {{business_name}}! It's been a while since your last order. Come see what's new on the menu!",
+  medical: "Hi {{first_name}}, this is {{business_name}}. It's been a while since your last visit. We'd love to get you scheduled for a checkup. Reply or call us anytime.",
+  general: "Hey {{first_name}}, it's been a while! {{business_name}} here. We'd love to work with you again. Text us back or give us a call!",
+};
+
+const DEFAULT_REACTIVATION_TEMPLATE = MODE_REACTIVATION_TEMPLATES.general;
 
 function resolveTemplate(
   template: string,
@@ -43,7 +52,7 @@ serve(async (_req: Request) => {
 
     const { data: tenants } = await supabase
       .from("tenants")
-      .select("id, name, website")
+      .select("id, name, website, business_mode")
       .in("id", tenantIds);
 
     const tenantMap = new Map((tenants || []).map((t: any) => [t.id, t]));
@@ -59,11 +68,12 @@ serve(async (_req: Request) => {
       const settings = settingsMap.get(tenantId);
       const settingsJson = settings?.settings_json as Record<string, any> | null;
 
-      // Check if reactivation is enabled (default: true)
-      if (settingsJson?.customer_reactivation?.enabled === false) continue;
+      // Use unified settings resolver
+      const config = await getAutomationConfig(supabase, tenantId, "customer_reactivation", settingsJson);
+      if (!config.enabled) continue;
 
-      const customTemplate = settingsJson?.sms_templates?.reactivation?.template;
-      const inactiveDays = settingsJson?.customer_reactivation?.inactive_days || 60;
+      const customTemplate = config.template || null;
+      const inactiveDays = (config.settings.inactive_days as number) || 60;
       const inactiveCutoff = new Date(Date.now() - inactiveDays * 24 * 60 * 60 * 1000).toISOString();
 
       // Find customers with completed bookings older than the cutoff
@@ -136,9 +146,10 @@ serve(async (_req: Request) => {
           continue;
         }
 
-        // Build and send the message
+        // Build and send the message (mode-aware template)
         const firstName = (lead.full_name || "").split(" ")[0] || "there";
-        const template = customTemplate || DEFAULT_REACTIVATION_TEMPLATE;
+        const businessMode = tenant.business_mode || "general";
+        const template = customTemplate || MODE_REACTIVATION_TEMPLATES[businessMode] || DEFAULT_REACTIVATION_TEMPLATE;
         const message = resolveTemplate(template, {
           first_name: firstName,
           business_name: tenant.name || "us",
