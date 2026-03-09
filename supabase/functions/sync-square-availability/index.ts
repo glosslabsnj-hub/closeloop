@@ -261,6 +261,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Load tenant services so we can resolve Square variation IDs to Flux services
+    const { data: tenantServices } = await supabase
+      .from("services")
+      .select("id, name, duration_minutes, price_amount, pricing_config_json")
+      .eq("tenant_id", effectiveTenantId)
+      .eq("is_active", true);
+
+    // Build a map: square_variation_id -> Flux service
+    const variationToService = new Map<string, { id: string; name: string; duration_minutes: number; price_cents: number | null }>();
+    for (const svc of (tenantServices || [])) {
+      const config = svc.pricing_config_json as any;
+      if (config?.tiers) {
+        for (const tier of config.tiers) {
+          if (tier.square_variation_id) {
+            variationToService.set(tier.square_variation_id, {
+              id: svc.id,
+              name: svc.name,
+              duration_minutes: svc.duration_minutes,
+              price_cents: tier.price_cents || (svc.price_amount ? svc.price_amount * 100 : null),
+            });
+          }
+        }
+      }
+      // Also check for direct square_variation_id on the service config
+      if (config?.square_variation_id) {
+        variationToService.set(config.square_variation_id, {
+          id: svc.id,
+          name: svc.name,
+          duration_minutes: svc.duration_minutes,
+          price_cents: svc.price_amount ? svc.price_amount * 100 : null,
+        });
+      }
+    }
+
     // Create Flux booking records for bookings that don't have them yet
     let bookingsCreated = 0;
     for (const booking of needFluxBooking) {
@@ -279,10 +313,27 @@ Deno.serve(async (req) => {
       const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
       const customer = customerMap.get(booking.customer_id) || { name: "Square Customer", phone: "", email: null };
 
+      // Resolve Square service variation to Flux service
+      let serviceId: string | null = null;
+      let priceCents: number | null = null;
+      let serviceName: string | null = null;
+      if (booking.appointment_segments?.length > 0) {
+        const variationId = booking.appointment_segments[0].service_variation_id;
+        if (variationId) {
+          const matched = variationToService.get(variationId);
+          if (matched) {
+            serviceId = matched.id;
+            priceCents = matched.price_cents;
+            serviceName = matched.name;
+            console.log(`[sync-square-avail] Resolved service: ${variationId} -> ${matched.name}`);
+          }
+        }
+      }
+
       // Find-or-create a lead for this Square customer
       let leadId: string | null = null;
       if (customer.phone) {
-        const { data: existingLead, error: lookupErr } = await supabase
+        const { data: existingLead } = await supabase
           .from("leads")
           .select("id")
           .eq("tenant_id", effectiveTenantId)
@@ -315,26 +366,47 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`[sync-square-avail] Lead for ${booking.id}: ${leadId}`);
       if (!leadId) continue;
 
-      const { error: bookingErr } = await supabase.from("bookings").insert({
+      const notes = [
+        booking.customer_note,
+        serviceName ? `Service: ${serviceName}` : null,
+        customer.name !== "Square Customer" ? `Customer: ${customer.name}` : null,
+      ].filter(Boolean).join(". ") || "Imported from Square";
+
+      const bookingInsert: Record<string, unknown> = {
         tenant_id: effectiveTenantId,
         lead_id: leadId,
         start_at: startDate.toISOString(),
         end_at: endDate.toISOString(),
         status: mapSquareStatus(booking.status),
-        notes: booking.customer_note || `Imported from Square`,
+        notes,
         external_event_id: booking.id,
         external_provider: "square",
-      });
+      };
+      if (serviceId) bookingInsert.service_id = serviceId;
+      if (priceCents) bookingInsert.price_cents = priceCents;
+
+      const { data: createdBooking, error: bookingErr } = await supabase
+        .from("bookings")
+        .insert(bookingInsert)
+        .select("id")
+        .single();
 
       if (bookingErr) {
-        debugErrors.push({ id: booking.id, error: "booking_insert", details: bookingErr });
         console.error(`[sync-square-avail] Failed to create booking for ${booking.id}:`, bookingErr);
       } else {
         bookingsCreated++;
-        console.log(`[sync-square-avail] Created Flux booking for Square ${booking.id} (${customer.name}) [${mapSquareStatus(booking.status)}]`);
+        console.log(`[sync-square-avail] Created Flux booking for Square ${booking.id} (${customer.name}${serviceName ? ` - ${serviceName}` : ""}) [${mapSquareStatus(booking.status)}]`);
+
+        // Link the busy_block to this booking
+        if (createdBooking?.id) {
+          await supabase
+            .from("busy_blocks")
+            .update({ booking_id: createdBooking.id })
+            .eq("tenant_id", effectiveTenantId)
+            .eq("external_event_id", `square_${booking.id}`);
+        }
       }
     }
 

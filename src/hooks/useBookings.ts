@@ -254,6 +254,15 @@ export function useBookings() {
 
   const cancelBooking = useMutation({
     mutationFn: async (id: string) => {
+      // Get booking details first to check for Square sync
+      const { data: booking, error: fetchErr } = await supabase
+        .from("bookings")
+        .select("id, external_event_id, external_provider")
+        .eq("id", id)
+        .single();
+      if (fetchErr) throw fetchErr;
+
+      // Cancel in Flux
       const { data, error } = await supabase
         .from("bookings")
         .update({ status: "canceled" })
@@ -261,6 +270,36 @@ export function useBookings() {
         .select()
         .single();
       if (error) throw error;
+
+      // Deactivate linked busy_block
+      await supabase
+        .from("busy_blocks")
+        .update({ is_active: false })
+        .eq("booking_id", id);
+
+      // Also deactivate by external_event_id for Square imports
+      if (booking?.external_provider === "square" && booking?.external_event_id) {
+        await supabase
+          .from("busy_blocks")
+          .update({ is_active: false })
+          .eq("external_event_id", `square_${booking.external_event_id}`)
+          .eq("is_active", true);
+
+        // Cancel in Square via edge function
+        try {
+          await supabase.functions.invoke("sync-square-cancel", {
+            body: {
+              tenant_id: tenant?.id,
+              booking_id: id,
+              square_booking_id: booking.external_event_id,
+            },
+          });
+        } catch (squareErr) {
+          console.error("Square cancel sync failed:", squareErr);
+          // Don't fail the whole operation if Square sync fails
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
@@ -273,12 +312,43 @@ export function useBookings() {
 
   const deleteBooking = useMutation({
     mutationFn: async (id: string) => {
+      // Get booking details first to check for Square sync
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("id, external_event_id, external_provider")
+        .eq("id", id)
+        .single();
+
+      // Deactivate linked busy_blocks
+      await supabase.from("busy_blocks").update({ is_active: false }).eq("booking_id", id);
+
+      if (booking?.external_provider === "square" && booking?.external_event_id) {
+        await supabase
+          .from("busy_blocks")
+          .update({ is_active: false })
+          .eq("external_event_id", `square_${booking.external_event_id}`)
+          .eq("is_active", true);
+
+        // Cancel in Square
+        try {
+          await supabase.functions.invoke("sync-square-cancel", {
+            body: {
+              tenant_id: tenant?.id,
+              booking_id: id,
+              square_booking_id: booking.external_event_id,
+            },
+          });
+        } catch (squareErr) {
+          console.error("Square cancel sync failed:", squareErr);
+        }
+      }
+
       const { error } = await supabase.from("bookings").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking deleted", description: "Appointment removed." });
+      toast({ title: "Booking deleted", description: "Appointment removed and synced." });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
