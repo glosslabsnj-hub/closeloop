@@ -120,6 +120,22 @@ const LEGACY_ITEM_TARGETS: Record<string, string> = {
   "ai-voice": "scripts",
 };
 
+/**
+ * Item ID aliases — map intuitive/common item param values to their real registry IDs.
+ * Used when navigating via ?item= URL params (deep links, bookmarks, internal nav).
+ */
+const ITEM_ALIASES: Record<string, string> = {
+  // Friendly aliases that differ from internal IDs
+  "hours": "business-hours",
+  "custom-rules": "custom-policies",
+  "ai-mode": "ai-behavior-mode",
+  "ai-behavior": "ai-behavior-mode",
+  "call-rules": "call-flow",
+  "profile": "business-info",
+  "calendar": "calendar-sync",
+  "service-area": "coverage",
+};
+
 /** Legacy tab param mapping (from old ?tab= format) */
 const LEGACY_TAB_TO_SECTION: Record<string, { section: ModeSectionId; item?: string }> = {
   review: { section: "training", item: "review" },
@@ -252,9 +268,10 @@ export default function BusinessBrainPage() {
   const activeItemId = useMemo(() => {
     if (!activeSection || activeSection === "intelligence" || activeSection === "workflow") return null;
 
-    // 1. Explicit ?item= param
+    // 1. Explicit ?item= param (resolve aliases before lookup)
     if (itemParamRaw) {
-      const match = visibleItems.find(i => i.id === itemParamRaw);
+      const resolvedItemId = ITEM_ALIASES[itemParamRaw] ?? itemParamRaw;
+      const match = visibleItems.find(i => i.id === resolvedItemId);
       if (match) return match.id;
     }
 
