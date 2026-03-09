@@ -1504,6 +1504,7 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
     let line = `• ${s.name}: ${priceText} ${dropoffTag} ${bookingTag}`;
     if (s.price_factors) line += `\n  Price depends on: ${s.price_factors}`;
     if (s.prerequisite_note) line += `\n  Prerequisite: ${s.prerequisite_note}`;
+    if (s.prep_instructions) line += `\n  Customer prep: ${s.prep_instructions}`;
     if (s.complexity === "complex" && s.description) line += `\n  Info: ${s.description}`;
     // Duration line — show range when min/max are set
     if (s.duration_min_minutes && s.duration_max_minutes && s.duration_minutes) {
@@ -2896,6 +2897,7 @@ export async function buildBusinessContext(
       recurring_enabled: assistantSettings?.recurring_enabled === true,
       deposit_required: assistantSettings?.deposit_required === true,
       deposit_amount: assistantSettings?.deposit_amount || "",
+      dropoff_instructions: assistantSettings?.dropoff_instructions || "",
       ai_guardrails: (assistantSettings?.settings_json as any)?.ai_guardrails || "",
       required_intake_fields: Array.isArray((assistantSettings?.settings_json as any)?.required_intake_fields)
         ? (assistantSettings?.settings_json as any).required_intake_fields
@@ -3521,6 +3523,7 @@ Do NOT claim you cannot take orders if menu IS available above.
     if (ctx.policies.payment_methods.length > 0) prompt += `- Payment methods: ${ctx.policies.payment_methods.join(", ")}\\n`;
     if (ctx.policies.payment_timing) prompt += `- Payment timing: ${ctx.policies.payment_timing}\\n`;
     if (emergencySurcharge) prompt += `- After-hours/emergency surcharge: ${emergencySurcharge} added to same-day, emergency, or after-hours calls. DISCLOSE THIS to callers who request same-day or emergency service BEFORE confirming.\\n`;
+    if (ctx.ai_settings.dropoff_instructions) prompt += `- Drop-off/Key Drop: ${ctx.ai_settings.dropoff_instructions}\\n`;
     for (const p of customPolicies) {
       prompt += `- ${p.title}: ${p.content}\\n`;
     }

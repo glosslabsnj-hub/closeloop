@@ -10,6 +10,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { parseTime } from "../_shared/parseTime.ts";
+import { resolveService } from "../_shared/resolveService.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -312,34 +313,15 @@ serve(async (req: Request) => {
     
     console.log(`[check-availability] Tenant: ${tenantId.substring(0, 8)}..., Date: ${targetDate}, Time: ${targetTime}`);
 
-    // Resolve service for duration
-    let finalDuration = durationOverride || 60;
-    let resolvedServiceName: string | null = null;
-
-    if (serviceId) {
-      const { data: service } = await supabase
-        .from("services")
-        .select("name, duration_minutes")
-        .eq("id", serviceId)
-        .eq("tenant_id", tenantId)
-        .single();
-      if (service) {
-        finalDuration = service.duration_minutes || finalDuration;
-        resolvedServiceName = service.name;
-      }
-    } else if (serviceName) {
-      const { data: service } = await supabase
-        .from("services")
-        .select("name, duration_minutes")
-        .eq("tenant_id", tenantId)
-        .ilike("name", `%${serviceName}%`)
-        .limit(1)
-        .maybeSingle();
-      if (service) {
-        finalDuration = service.duration_minutes || finalDuration;
-        resolvedServiceName = service.name;
-      }
-    }
+    // Resolve service for duration (fuzzy matching handles &, /, partial names)
+    const resolved = await resolveService(supabase, tenantId, {
+      serviceId: serviceId || undefined,
+      serviceName: serviceName || undefined,
+      durationOverride: durationOverride,
+    });
+    const finalDuration = resolved.duration;
+    const resolvedServiceName = resolved.service?.name || null;
+    console.log(`[check-availability] Service resolved: ${resolvedServiceName || "none"}, duration: ${finalDuration}min`);
 
     // Build timestamp in tenant timezone
     const tzOffset = getTimezoneOffset(timezone, new Date(`${targetDate}T12:00:00Z`));

@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { CalendarCheck, Bell, AlertCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { CalendarCheck, Bell, AlertCircle, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 
@@ -29,17 +30,19 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
   const [bookingMode, setBookingMode] = useState<'auto_book' | 'pending_approval'>('auto_book');
   const [notifyEmail, setNotifyEmail] = useState(true);
   const [notifySms, setNotifySms] = useState(true);
+  const [dropoffInstructions, setDropoffInstructions] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (assistantSettings) {
       // Normalize backend values to UI values
       const rawMode = assistantSettings.ai_booking_mode;
-      const normalizedMode: 'auto_book' | 'pending_approval' = 
+      const normalizedMode: 'auto_book' | 'pending_approval' =
         rawMode === 'pending_approval' || rawMode === 'pending' ? 'pending_approval' : 'auto_book';
       setBookingMode(normalizedMode);
       setNotifyEmail(assistantSettings.pending_booking_notify_email ?? true);
       setNotifySms(assistantSettings.pending_booking_notify_sms ?? true);
+      setDropoffInstructions((assistantSettings as any).dropoff_instructions ?? "");
     }
   }, [assistantSettings]);
 
@@ -54,7 +57,8 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
           ai_booking_mode: bookingMode,
           pending_booking_notify_email: notifyEmail,
           pending_booking_notify_sms: notifySms,
-        })
+          dropoff_instructions: dropoffInstructions || null,
+        } as any)
         .eq('tenant_id', tenant.id);
 
       if (error) throw error;
@@ -80,7 +84,7 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
       }
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [bookingMode, notifyEmail, notifySms]);
+  }, [bookingMode, notifyEmail, notifySms, dropoffInstructions]);
 
   if (compact) {
     return (
@@ -219,6 +223,24 @@ export default function BookingBehaviorSettings({ compact, onSave }: BookingBeha
               "I've submitted your {terms.booking} request for [date/time]. Someone from our team will confirm your {terms.booking} shortly."
             </p>
           )}
+        </div>
+
+        {/* Drop-off / Key Drop Instructions */}
+        <div className="space-y-3 pt-4 border-t">
+          <div className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-muted-foreground" />
+            <Label className="text-base font-medium">Drop-Off / Key Drop Instructions</Label>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Instructions your AI will share with {customerLabel} who ask about dropping off items, after-hours drop-off, or key drop locations.
+            Leave blank if not applicable.
+          </p>
+          <Textarea
+            placeholder="e.g. Customers can drop their vehicle off anytime. Park in the lot and leave keys in the lockbox by the garage door. Code is 1234."
+            value={dropoffInstructions}
+            onChange={(e) => setDropoffInstructions(e.target.value)}
+            rows={3}
+          />
         </div>
       </CardContent>
     </Card>

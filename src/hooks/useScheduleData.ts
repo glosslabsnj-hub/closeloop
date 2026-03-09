@@ -44,6 +44,7 @@ export function useScheduleData(weekStart: Date) {
           status,
           notes,
           staff_member_id,
+          external_event_id,
           lead:leads(full_name),
           service:services(name)
         `)
@@ -169,13 +170,28 @@ export function useScheduleData(weekStart: Date) {
     }
   }
 
-  // Map busy blocks to events
+  // Map busy blocks to events, skipping those that already have a booking record
+  // (e.g. Square busy_blocks that were also synced as Flux bookings)
+  const bookingExternalIds = new Set(
+    (bookings || [])
+      .filter((b: any) => b.external_event_id)
+      .map((b: any) => b.external_event_id),
+  );
+
   if (busyBlocks) {
     for (const block of busyBlocks) {
       const isHold = block.block_type === "hold";
       const metadata = block.metadata_json as Record<string, unknown> | null;
       const isExternalBusy = block.block_type === "external_busy";
-      
+
+      // Skip external busy blocks that have a matching booking record
+      if (isExternalBusy && block.external_event_id) {
+        const squareId = block.external_event_id.replace(/^square_/, "");
+        if (bookingExternalIds.has(squareId) || bookingExternalIds.has(block.external_event_id)) {
+          continue;
+        }
+      }
+
       events.push({
         id: block.id,
         title: isHold ? "Hold" : (metadata?.summary as string) || "Busy",

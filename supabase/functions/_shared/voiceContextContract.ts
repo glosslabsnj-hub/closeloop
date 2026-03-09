@@ -1419,6 +1419,14 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "ai_settings",
   },
   {
+    key: "dropoff_instructions",
+    description: "Drop-off/key-drop instructions for customers (e.g. where to leave keys, parking, after-hours drop-off policy). AI communicates these when relevant.",
+    type: "string",
+    source: "ai_settings.dropoff_instructions",
+    defaultValue: "",
+    category: "ai_settings",
+  },
+  {
     key: "ai_guardrails",
     description: "Things the AI should never promise or say (owner-defined guardrails)",
     type: "string",

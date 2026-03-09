@@ -51,6 +51,8 @@ type BookingType = "direct_book" | "estimate_first" | "consultation";
 
 type PaymentTiming = "at_booking" | "at_service" | "deposit_then_balance" | "quote_first";
 
+type ConfirmationMode = "global" | "auto_confirm" | "pending";
+
 interface ServiceFormData {
   name: string;
   description: string;
@@ -67,6 +69,7 @@ interface ServiceFormData {
   duration_max_minutes: number | null;
   required_intake_fields: string[];
   payment_timing: PaymentTiming;
+  confirmation_mode: ConfirmationMode;
 }
 
 // Essential intake fields shown for all non-food modes (minimal, always relevant)
@@ -116,6 +119,7 @@ const defaultFormData: ServiceFormData = {
   duration_max_minutes: null,
   required_intake_fields: [],
   payment_timing: "at_service",
+  confirmation_mode: "global",
 };
 
 // Extracted outside ServiceCatalogEditor to prevent focus loss on re-render
@@ -420,6 +424,31 @@ function ServiceForm({
         </div>
       )}
 
+      {/* Confirmation Mode — per-service override for auto-confirm vs pending */}
+      {businessMode !== "food" && (
+        <div className="space-y-2">
+          <Label className="text-xs">Booking confirmation mode</Label>
+          <Select
+            value={formData.confirmation_mode}
+            onValueChange={(v) => onChange("confirmation_mode", v)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="global">Use global setting</SelectItem>
+              <SelectItem value="auto_confirm">Always auto-confirm</SelectItem>
+              <SelectItem value="pending">Always require approval</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            {formData.confirmation_mode === "global" && "Uses your default booking behavior setting."}
+            {formData.confirmation_mode === "auto_confirm" && "This service is instantly confirmed when booked."}
+            {formData.confirmation_mode === "pending" && "This service requires your manual approval before confirming."}
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-end gap-2 pt-2">
         <Button variant="outline" size="sm" onClick={onCancel} disabled={isSaving}>
           <X className="h-4 w-4 mr-1" />
@@ -532,6 +561,7 @@ export function ServiceCatalogEditor() {
             duration_max_minutes: service.duration_max_minutes ?? null,
             required_intake_fields: Array.isArray((service as any).required_intake_fields) ? (service as any).required_intake_fields : [],
             payment_timing: (service as any).payment_timing || "at_service",
+            confirmation_mode: (service as any).confirmation_mode || "global",
           }
         }));
       }
@@ -573,6 +603,7 @@ export function ServiceCatalogEditor() {
         duration_max_minutes: formData.duration_max_minutes,
         required_intake_fields: formData.required_intake_fields.length > 0 ? formData.required_intake_fields : undefined,
         payment_timing: formData.payment_timing,
+        confirmation_mode: formData.confirmation_mode === "global" ? null : formData.confirmation_mode,
       } as any);
       toast.success("Service updated");
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -665,6 +696,7 @@ export function ServiceCatalogEditor() {
           duration_max_minutes: newServiceData.duration_max_minutes,
           required_intake_fields: newServiceData.required_intake_fields.length > 0 ? newServiceData.required_intake_fields : undefined,
           payment_timing: newServiceData.payment_timing,
+          confirmation_mode: newServiceData.confirmation_mode === "global" ? null : newServiceData.confirmation_mode,
         } as any);
         toast.success("Service created");
       }

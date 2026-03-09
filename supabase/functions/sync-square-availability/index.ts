@@ -154,24 +154,79 @@ Deno.serve(async (req) => {
       (existingBlocks || []).map((b: { external_event_id: string }) => b.external_event_id),
     );
 
-    // Filter to only Square bookings NOT created by Flux and NOT already in busy_blocks
-    const newExternalBookings = squareBookings.filter((b: any) => {
+    // Map Square status to Flux booking status
+    function mapSquareStatus(squareStatus: string): string {
+      switch (squareStatus) {
+        case "ACCEPTED": return "confirmed";
+        case "PENDING": return "pending";
+        case "NO_SHOW": return "no_show";
+        case "CANCELLED_BY_CUSTOMER":
+        case "CANCELLED_BY_SELLER": return "cancelled";
+        default: return "confirmed"; // Default to confirmed for unknown active statuses
+      }
+    }
+
+    // Active (non-cancelled) Square bookings not created by Flux
+    const activeExternalBookings = squareBookings.filter((b: any) => {
       if (b.status === "CANCELLED_BY_CUSTOMER" || b.status === "CANCELLED_BY_SELLER") return false;
       if (fluxSyncedIds.has(b.id)) return false;
-      if (existingBlockIds.has(`square_${b.id}`)) return false;
       return true;
     });
 
-    console.log(`[sync-square-avail] ${newExternalBookings.length} new external bookings to sync`);
+    // Split into: need busy_blocks vs need Flux booking records
+    const needBusyBlock = activeExternalBookings.filter((b: any) => !existingBlockIds.has(`square_${b.id}`));
+
+    // Check which bookings already have Flux booking records
+    const { data: existingFluxBookings } = await supabase
+      .from("bookings")
+      .select("external_event_id")
+      .eq("tenant_id", effectiveTenantId)
+      .eq("external_provider", "square")
+      .not("external_event_id", "is", null);
+
+    const existingFluxBookingIds = new Set(
+      (existingFluxBookings || []).map((b: { external_event_id: string }) => b.external_event_id),
+    );
+
+    const needFluxBooking = activeExternalBookings.filter((b: any) => !existingFluxBookingIds.has(b.id));
+
+    console.log(`[sync-square-avail] ${activeExternalBookings.length} active external, ${needBusyBlock.length} need busy_blocks, ${needFluxBooking.length} need Flux bookings`);
 
     let syncedCount = 0;
 
-    for (const booking of newExternalBookings) {
+    // Combine all bookings that need any work (dedup by id, not by reference)
+    const seenIds = new Set<string>();
+    const allBookingsNeedingWork: any[] = [];
+    for (const b of [...needBusyBlock, ...needFluxBooking]) {
+      if (!seenIds.has(b.id)) {
+        seenIds.add(b.id);
+        allBookingsNeedingWork.push(b);
+      }
+    }
+    const customerIds = [...new Set(allBookingsNeedingWork.map((b: any) => b.customer_id).filter(Boolean))];
+    const customerMap = new Map<string, { name: string; phone: string; email: string | null }>();
+
+    for (let i = 0; i < customerIds.length; i += 10) {
+      const batch = customerIds.slice(i, i + 10);
+      for (const cid of batch) {
+        const custRes = await squareFetch(`/customers/${cid}`, accessToken, "GET");
+        if (custRes.ok && custRes.data.customer) {
+          const c = custRes.data.customer;
+          customerMap.set(cid, {
+            name: [c.given_name, c.family_name].filter(Boolean).join(" ") || "Square Customer",
+            phone: c.phone_number || "",
+            email: c.email_address || null,
+          });
+        }
+      }
+    }
+
+    // Create busy_blocks for bookings that don't have them yet
+    for (const booking of needBusyBlock) {
       const startAt = booking.start_at;
       if (!startAt) continue;
 
-      // Calculate end time from appointment segments
-      let durationMinutes = 60; // default
+      let durationMinutes = 60;
       if (booking.appointment_segments?.length > 0) {
         durationMinutes = booking.appointment_segments.reduce(
           (sum: number, seg: any) => sum + (seg.duration_minutes || 0),
@@ -181,8 +236,7 @@ Deno.serve(async (req) => {
 
       const startDate = new Date(startAt);
       const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
-
-      const customerName = booking.customer_note || "Square booking";
+      const customer = customerMap.get(booking.customer_id) || { name: "Square Customer", phone: "", email: null };
 
       const { error: insertError } = await supabase.from("busy_blocks").insert({
         tenant_id: effectiveTenantId,
@@ -196,7 +250,7 @@ Deno.serve(async (req) => {
           square_booking_id: booking.id,
           square_status: booking.status,
           customer_id: booking.customer_id,
-          summary: customerName,
+          summary: customer.name,
         },
       });
 
@@ -204,6 +258,97 @@ Deno.serve(async (req) => {
         console.error(`[sync-square-avail] Failed to insert busy_block for ${booking.id}:`, insertError);
       } else {
         syncedCount++;
+      }
+    }
+
+    // Create Flux booking records for bookings that don't have them yet
+    let bookingsCreated = 0;
+    for (const booking of needFluxBooking) {
+      const startAt = booking.start_at;
+      if (!startAt) continue;
+
+      let durationMinutes = 60;
+      if (booking.appointment_segments?.length > 0) {
+        durationMinutes = booking.appointment_segments.reduce(
+          (sum: number, seg: any) => sum + (seg.duration_minutes || 0),
+          0,
+        );
+      }
+
+      const startDate = new Date(startAt);
+      const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
+      const customer = customerMap.get(booking.customer_id) || { name: "Square Customer", phone: "", email: null };
+
+      // Find-or-create a lead for this Square customer
+      let leadId: string | null = null;
+      if (customer.phone) {
+        const { data: existingLead, error: lookupErr } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("tenant_id", effectiveTenantId)
+          .eq("phone", customer.phone)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingLead) {
+          leadId = existingLead.id;
+        }
+      }
+
+      if (!leadId) {
+        const { data: newLead, error: leadErr } = await supabase
+          .from("leads")
+          .insert({
+            tenant_id: effectiveTenantId,
+            full_name: customer.name,
+            phone: customer.phone || null,
+            email: customer.email,
+            source: "square_import",
+          })
+          .select("id")
+          .single();
+
+        if (newLead) {
+          leadId = newLead.id;
+        } else {
+          console.error(`[sync-square-avail] Failed to create lead for ${booking.id}:`, leadErr);
+        }
+      }
+
+      console.log(`[sync-square-avail] Lead for ${booking.id}: ${leadId}`);
+      if (!leadId) continue;
+
+      const { error: bookingErr } = await supabase.from("bookings").insert({
+        tenant_id: effectiveTenantId,
+        lead_id: leadId,
+        start_at: startDate.toISOString(),
+        end_at: endDate.toISOString(),
+        status: mapSquareStatus(booking.status),
+        notes: booking.customer_note || `Imported from Square`,
+        external_event_id: booking.id,
+        external_provider: "square",
+      });
+
+      if (bookingErr) {
+        debugErrors.push({ id: booking.id, error: "booking_insert", details: bookingErr });
+        console.error(`[sync-square-avail] Failed to create booking for ${booking.id}:`, bookingErr);
+      } else {
+        bookingsCreated++;
+        console.log(`[sync-square-avail] Created Flux booking for Square ${booking.id} (${customer.name}) [${mapSquareStatus(booking.status)}]`);
+      }
+    }
+
+    // Also update status on existing Flux bookings that may have changed in Square
+    for (const booking of activeExternalBookings) {
+      if (existingFluxBookingIds.has(booking.id)) {
+        const newStatus = mapSquareStatus(booking.status);
+        await supabase
+          .from("bookings")
+          .update({ status: newStatus })
+          .eq("tenant_id", effectiveTenantId)
+          .eq("external_event_id", booking.id)
+          .eq("external_provider", "square")
+          .neq("status", newStatus);
       }
     }
 
@@ -215,6 +360,7 @@ Deno.serve(async (req) => {
 
     let deactivatedCount = 0;
     for (const cancelled of cancelledBookings) {
+      // Deactivate the busy_block
       const { data: updated } = await supabase
         .from("busy_blocks")
         .update({ is_active: false })
@@ -226,6 +372,16 @@ Deno.serve(async (req) => {
       if (updated && updated.length > 0) {
         deactivatedCount++;
       }
+
+      // Also cancel the Flux booking if one was created from this Square booking
+      await supabase
+        .from("bookings")
+        .update({ status: "cancelled" })
+        .eq("tenant_id", effectiveTenantId)
+        .eq("external_event_id", cancelled.id)
+        .eq("external_provider", "square")
+        .neq("status", "cancelled")
+        .neq("status", "canceled");
     }
 
     // Update integration last_tested_at as a sync timestamp
@@ -238,15 +394,16 @@ Deno.serve(async (req) => {
       .eq("id", integration.id);
 
     console.log(
-      `[sync-square-avail] Done: ${syncedCount} synced, ${deactivatedCount} deactivated`,
+      `[sync-square-avail] Done: ${syncedCount} busy_blocks, ${bookingsCreated} bookings created, ${deactivatedCount} deactivated`,
     );
 
     return jsonResponse({
       success: true,
       synced_count: syncedCount,
+      bookings_created: bookingsCreated,
       deactivated_count: deactivatedCount,
       total_square_bookings: squareBookings.length,
-      new_external: newExternalBookings.length,
+      active_external: activeExternalBookings.length,
     });
   } catch (error) {
     console.error("[sync-square-avail] Error:", error);
