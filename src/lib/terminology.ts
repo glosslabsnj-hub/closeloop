@@ -218,17 +218,20 @@ export function applyAppointmentLabel(
     return base;
   }
 
-  const s = appointmentLabel; // e.g. "job", "visit", "consultation"
+  const s = appointmentLabel; // e.g. "job", "visit", "test drive"
   // Irregular English plurals for appointment label words
   const IRREGULAR_PLURALS: Record<string, string> = {
     dispatch: "dispatches",
     search: "searches",
     match: "matches",
     request: "requests",
+    "test drive": "test drives",
   };
-  const p = IRREGULAR_PLURALS[s] ?? (s.endsWith("s") ? s : s + "s"); // "jobs", "dispatches", etc.
-  const cap = s.charAt(0).toUpperCase() + s.slice(1);
+  const p = IRREGULAR_PLURALS[s] ?? (s.endsWith("s") ? s : s + "s"); // "jobs", "dispatches", "test drives"
+  const cap = s.charAt(0).toUpperCase() + s.slice(1); // "Job", "Test drive" — sentence case for messages
   const capP = p.charAt(0).toUpperCase() + p.slice(1);
+  // Title case version for button labels like "New Test Drive" (each word capitalized)
+  const titleCap = s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
   return {
     ...base,
@@ -236,7 +239,7 @@ export function applyAppointmentLabel(
     bookings: p,
     bookingCreated: `${cap} scheduled`,
     bookingConfirmed: `${cap} confirmed`,
-    newBooking: `New ${cap}`,
+    newBooking: `New ${titleCap}`,
     viewBookings: `View ${capP}`,
     pendingBooking: `pending ${s}`,
     pendingBookings: `pending ${p}`,
