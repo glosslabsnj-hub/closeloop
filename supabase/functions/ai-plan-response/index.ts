@@ -131,7 +131,8 @@ function retrieveKnowledge(
   }
 
   for (const svc of services) {
-    const searchText = `${svc.name} ${svc.description || ''} ${svc.preparation_instructions || ''}`;
+    // Include "service" keyword so generic queries ("what services do you offer?") always match
+    const searchText = `${svc.name} service ${svc.description || ''} ${svc.preparation_instructions || ''}`;
     const baseScore = calculateRelevance(queryText, searchText);
     const intentBoost = getIntentBoost(intent, 'service');
     let content = `${svc.description || 'No description available'}`;
@@ -438,6 +439,10 @@ Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text().catch(() => '');
+      const isQuotaError = aiResponse.status === 429 || errText.includes('credit') || errText.includes('quota') || errText.includes('overloaded');
+      if (isQuotaError) {
+        return { reply: "I'm having a brief technical issue. Please try again in a moment.", next_action: 'error' as any };
+      }
       throw new Error(`Anthropic API error: ${aiResponse.status} ${errText}`);
     }
 
@@ -453,10 +458,12 @@ Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 
 
     return { reply, next_action };
   } catch (error) {
+    const errMsg = String(error);
+    const isQuota = errMsg.includes('credit') || errMsg.includes('quota') || errMsg.includes('429') || errMsg.includes('overloaded');
     console.error("AI generation error:", error);
     return {
-      reply: brain.ai_settings?.fallback || "I'd be happy to help! Let me have someone get back to you shortly.",
-      next_action: 'escalate',
+      reply: isQuota ? "I'm having a brief technical issue. Please try again in a moment." : (brain.ai_settings?.fallback || "I'd be happy to help! Let me have someone get back to you shortly."),
+      next_action: (isQuota ? 'error' : 'escalate') as any,
     };
   }
 }
