@@ -28,8 +28,9 @@ const agreementsPageSrc = readFileSync(join(root, "src/pages/app/AgreementsPage.
 // ---------------------------------------------------------------------------
 describe("CallDetailPanel: New Test Drive button — sales/dashboard/bookings_crud_works", () => {
   it("navigates to /app/test-drives when mode is sales", () => {
-    // The button onClick uses mode === "sales" ? "/app/test-drives" : "/app/bookings"
-    expect(callDetailPanelSrc).toContain(`mode === "sales" ? "/app/test-drives" : "/app/bookings"`);
+    // The button onClick uses mode === "sales" ? "/app/test-drives?openNew=true" : "/app/bookings"
+    // ?openNew=true auto-opens the create dialog (skips extra click after navigation)
+    expect(callDetailPanelSrc).toContain(`mode === "sales" ? "/app/test-drives?openNew=true" : "/app/bookings"`);
   });
 
   it("does NOT hardcode /app/bookings for the test drive button (regression guard)", () => {

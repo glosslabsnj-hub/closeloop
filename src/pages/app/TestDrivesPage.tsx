@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { Card, CardContent } from "@/components/ui/card";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -39,9 +40,17 @@ const statusColors: Record<string, string> = {
 export default function TestDrivesPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["test_drives"]);
   const { testDrives, isLoading, stats, createTestDrive, updateTestDrive } = useTestDrives();
+  const [searchParams] = useSearchParams();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+
+  // Auto-open create dialog when navigated from call context (e.g. "New Test Drive" in call panel)
+  useEffect(() => {
+    if (searchParams.get("openNew") === "true") {
+      setCreateOpen(true);
+    }
+  }, [searchParams]);
   const [newDrive, setNewDrive] = useState({
     customerName: "",
     vehicleMake: "",

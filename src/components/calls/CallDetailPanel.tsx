@@ -207,7 +207,7 @@ import { useNavigate } from "react-router-dom";
                  Call Back
                </Button>
              )}
-             <Button variant="outline" className="flex-1" onClick={() => { onClose(); navigate(mode === "sales" ? "/app/test-drives" : "/app/bookings"); }}>
+             <Button variant="outline" className="flex-1" onClick={() => { onClose(); navigate(mode === "sales" ? "/app/test-drives?openNew=true" : "/app/bookings"); }}>
                <Calendar className="w-4 h-4 mr-2" />
                {terms.newBooking}
              </Button>
