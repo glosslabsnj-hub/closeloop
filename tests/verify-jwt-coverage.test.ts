@@ -142,3 +142,44 @@ describe("verify_jwt: text-conversation (QA testing)", () => {
     ).toBe(false);
   });
 });
+
+describe("webhook-to-handoff auth: must use x-closeloop-secret not Bearer token", () => {
+  // BUG FIX (2026-03-09): test-drive-handoff and sales-lead-handoff were called
+  // with Authorization: Bearer token. Both use requireInternalSecret() which expects
+  // x-closeloop-secret. This caused all sales notifications to silently fail.
+  //
+  // This test ensures the webhook uses the correct auth header when calling
+  // functions that use requireInternalSecret.
+
+  const webhookSource = readFileSync(
+    join(process.cwd(), "supabase/functions/elevenlabs-webhook/index.ts"),
+    "utf-8"
+  );
+
+  const handoffsRequiringInternalSecret = [
+    "test-drive-handoff",
+    "sales-lead-handoff",
+    "booking-handoff",
+    "dispatch-handoff",
+    "order-handoff",
+  ];
+
+  for (const handoff of handoffsRequiringInternalSecret) {
+    it(`${handoff}: webhook uses x-closeloop-secret (not Bearer) when calling it`, () => {
+      const idx = webhookSource.indexOf(`/v1/${handoff}`);
+      if (idx === -1) return; // function not called from webhook — skip
+      // Grab 300 chars around the call
+      const callBlock = webhookSource.slice(idx, idx + 300);
+      // Must use x-closeloop-secret
+      expect(
+        callBlock,
+        `${handoff} call uses Bearer token instead of x-closeloop-secret`
+      ).toContain("x-closeloop-secret");
+      // Must NOT use Authorization: Bearer ${supabaseKey}
+      expect(
+        callBlock,
+        `${handoff} still has stale Authorization Bearer header`
+      ).not.toContain('"Authorization"');
+    });
+  }
+});
