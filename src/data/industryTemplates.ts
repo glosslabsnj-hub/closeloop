@@ -4,7 +4,7 @@ export interface ServiceTemplate {
   name: string;
   duration: number; // minutes
   price: number;
-  priceType: 'fixed' | 'starting_at' | 'quote_only';
+  priceType: 'fixed' | 'starting_at' | 'quote_only' | 'free';
   description?: string;
   depositAmount?: number;
   /** Visual grouping: "Standard Services", "Premium", "Add-Ons" */
@@ -646,5 +646,6 @@ export const durationOptions = [
 export const priceTypeOptions = [
   { value: 'fixed', label: 'Fixed Price' },
   { value: 'starting_at', label: 'Starting At' },
+  { value: 'free', label: 'Free / Complimentary' },
   { value: 'quote_only', label: 'Quote Only' },
 ];

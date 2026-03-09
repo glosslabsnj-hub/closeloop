@@ -338,6 +338,7 @@ export function AdditionalServicesEditor() {
 
   const formatPrice = (service: any) => {
     if (service.price_type === "quote_only") return "Quote/Callback";
+    if (service.price_type === "free") return "Free";
     if (!service.price_amount) return "Not Set";
     const prefix = service.price_type === "starting_at" ? "From " : "";
     return `${prefix}$${service.price_amount}`;

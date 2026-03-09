@@ -20,7 +20,7 @@ export interface EditableService {
   name: string;
   duration: number;
   price: number;
-  priceType: "fixed" | "starting_at" | "quote_only";
+  priceType: "fixed" | "starting_at" | "quote_only" | "free";
   description?: string;
   enabled: boolean;
   bookingType?: "direct_book" | "estimate_first" | "consultation";
@@ -76,7 +76,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
   };
 
   const enabledCount = services.filter((s) => s.enabled).length;
-  const enabledNoPriceCount = services.filter((s) => s.enabled && s.price === 0 && s.priceType !== "quote_only").length;
+  const enabledNoPriceCount = services.filter((s) => s.enabled && s.price === 0 && s.priceType !== "quote_only" && s.priceType !== "free").length;
   const allEnabled = services.length > 0 && enabledCount === services.length;
   const noneEnabled = enabledCount === 0;
 
@@ -183,6 +183,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       {([
                         { value: "fixed", label: "Exact price" },
                         { value: "starting_at", label: "Starting at" },
+                        { value: "free", label: "Free" },
                         { value: "quote_only", label: "Varies / quote" },
                       ] as const).map((pt) => (
                         <button
@@ -201,7 +202,7 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                       ))}
                     </div>
                     <div className="flex flex-wrap gap-2 items-end">
-                      {service.priceType !== "quote_only" && (
+                      {service.priceType !== "quote_only" && service.priceType !== "free" && (
                         <div className="space-y-1">
                           <label className="text-[11px] font-medium text-muted-foreground">
                             {service.priceType === "starting_at" ? "Starting price ($)" : "Price ($)"}
@@ -237,6 +238,9 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                     {service.priceType === "quote_only" && (
                       <p className="text-[11px] text-muted-foreground">Your AI will tell callers that pricing varies and offer to schedule an estimate.</p>
                     )}
+                    {service.priceType === "free" && (
+                      <p className="text-[11px] text-muted-foreground">Your AI will tell callers this is complimentary — no charge.</p>
+                    )}
                   </div>
                 ) : (
                   <div>
@@ -256,6 +260,8 @@ export const ServicePreviewStep = React.memo(function ServicePreviewStep({
                     <p className="text-xs text-muted-foreground mt-1">
                       {service.priceType === "quote_only"
                         ? "Pricing varies"
+                        : service.priceType === "free"
+                        ? "Free"
                         : service.priceType === "starting_at" && service.price > 0
                         ? `From $${service.price}`
                         : service.price > 0

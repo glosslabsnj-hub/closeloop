@@ -601,13 +601,13 @@ describe("testTenantMatrix: car dealership seed data regression — QA bugs (94a
     expect(carDealerBlock.toLowerCase()).toContain("spouse");
   });
 
-  it("Financing Consultation service has price_type 'quote_only' (not 'fixed')", () => {
-    // Find the Financing Consultation entry and verify price_type
+  it("Financing Consultation service has price_type 'free' (complimentary, not 'fixed')", () => {
+    // Financing consultations at car dealerships are complimentary — no charge to the customer
     const financingIdx = carDealerBlock.indexOf('"Financing Consultation"');
     expect(financingIdx).toBeGreaterThan(-1);
     // Extract a small window around the entry to check price_type
     const financingWindow = carDealerBlock.slice(financingIdx, financingIdx + 300);
-    expect(financingWindow).toContain("quote_only");
+    expect(financingWindow).toContain("free");
     expect(financingWindow).not.toContain('"fixed"');
   });
 

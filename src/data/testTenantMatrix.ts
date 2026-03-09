@@ -1440,10 +1440,10 @@ const salesTenants: TestTenantConfig[] = [
         { caller_phone: "+12145550010", outcome: "booked", summary: "Customer inquired about Highlander Limited for family use. Wants 3rd row seating, AWD. Test drive scheduled for stock #U2301. Very excited about panoramic roof.", lead_score: "hot", followup_status: "completed", hours_ago: 48, duration_seconds: 240 },
       ],
       customServices: [
-        { name: "Test Drive", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 0 },
-        { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "quote_only", display_order: 1 },
-        { name: "Trade-In Appraisal", description: "Bring your vehicle in for a free trade-in value assessment", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 2 },
-        { name: "Vehicle Delivery Setup", description: "Walk through your new vehicle features and complete delivery paperwork", duration_minutes: 60, price_amount: 0, price_type: "fixed", display_order: 3 },
+        { name: "Test Drive", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 30, price_amount: 0, price_type: "free", display_order: 0 },
+        { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "free", display_order: 1 },
+        { name: "Trade-In Appraisal", description: "Bring your vehicle in for a free trade-in value assessment", duration_minutes: 30, price_amount: 0, price_type: "free", display_order: 2 },
+        { name: "Vehicle Delivery Setup", description: "Walk through your new vehicle features and complete delivery paperwork", duration_minutes: 60, price_amount: 0, price_type: "free", display_order: 3 },
         { name: "Service Department Appointment", description: "Schedule maintenance or repairs with our certified technicians", duration_minutes: 60, price_amount: 0, price_type: "quote_only", display_order: 4 },
       ],
       customFaqs: [

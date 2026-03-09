@@ -2144,10 +2144,10 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['car', 'dealership', 'new cars', 'auto dealer', 'vehicle sales', 'test drive'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Vehicle Delivery Setup', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Vehicle Delivery Setup', duration: 60, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2158,10 +2158,10 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['used cars', 'pre-owned', 'second hand', 'car lot', 'auto sales'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Vehicle Inspection', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Vehicle Inspection', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2172,9 +2172,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['car dealership', 'full service', 'new used', 'auto dealer', 'sales service'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Test Drive', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Test Drive', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'free' },
       { name: 'Service Appointment', duration: 60, price: 0, priceType: 'quote_only' },
     ],
   },
@@ -2186,9 +2186,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['rv', 'recreational vehicle', 'camper', 'motorhome', 'travel trailer'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'RV Tour / Walkthrough', duration: 60, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'RV Tour / Walkthrough', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2199,9 +2199,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['boat', 'marine', 'yacht', 'watercraft', 'pontoon', 'fishing boat'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Boat Tour / Sea Trial', duration: 60, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Boat Tour / Sea Trial', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2212,9 +2212,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['motorcycle', 'powersports', 'atv', 'side by side', 'scooter'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Test Ride', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Test Ride', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Financing Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 30, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2225,9 +2225,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['real estate', 'realtor', 'property', 'homes', 'houses', 'buyer agent'],
     enabledModules: salesLeadsOnlyModules,
     services: [
-      { name: 'Property Showing', duration: 60, price: 0, priceType: 'fixed' },
-      { name: 'Buyer Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Listing Consultation', duration: 60, price: 0, priceType: 'fixed' },
+      { name: 'Property Showing', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Buyer Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Listing Consultation', duration: 60, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2238,9 +2238,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['solar', 'solar panels', 'home improvement', 'energy', 'green energy'],
     enabledModules: salesLeadsOnlyModules,
     services: [
-      { name: 'Site Visit / Assessment', duration: 60, price: 0, priceType: 'fixed' },
-      { name: 'Design Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Financing Review', duration: 30, price: 0, priceType: 'fixed' },
+      { name: 'Site Visit / Assessment', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Design Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Financing Review', duration: 30, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2251,9 +2251,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['insurance', 'auto insurance', 'home insurance', 'life insurance', 'agent'],
     enabledModules: salesLeadsOnlyModules,
     services: [
-      { name: 'Policy Review', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Quote Consultation', duration: 30, price: 0, priceType: 'fixed' },
-      { name: 'Claims Assistance', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Policy Review', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Quote Consultation', duration: 30, price: 0, priceType: 'free' },
+      { name: 'Claims Assistance', duration: 45, price: 0, priceType: 'free' },
     ],
   },
   {
@@ -2264,9 +2264,9 @@ export const industryCatalog: IndustryCatalogEntry[] = [
     tags: ['equipment', 'heavy equipment', 'machinery', 'construction', 'industrial'],
     enabledModules: salesWithInventoryModules,
     services: [
-      { name: 'Equipment Demo', duration: 60, price: 0, priceType: 'fixed' },
-      { name: 'Sales Consultation', duration: 45, price: 0, priceType: 'fixed' },
-      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'fixed' },
+      { name: 'Equipment Demo', duration: 60, price: 0, priceType: 'free' },
+      { name: 'Sales Consultation', duration: 45, price: 0, priceType: 'free' },
+      { name: 'Trade-In Appraisal', duration: 45, price: 0, priceType: 'free' },
     ],
   },
   {

@@ -190,12 +190,14 @@ function ServiceForm({
             <SelectContent>
               <SelectItem value="fixed">Quote exact price</SelectItem>
               <SelectItem value="starting_at">Quote "starting at" price</SelectItem>
+              <SelectItem value="free">Free / Complimentary</SelectItem>
               <SelectItem value="quote_only">Don't quote - offer callback</SelectItem>
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
             {formData.price_type === "fixed" && "AI says: \"That's $X\""}
             {formData.price_type === "starting_at" && "AI says: \"Starting at $X, depending on...\""}
+            {formData.price_type === "free" && "AI says: \"That's complimentary — no charge!\""}
             {formData.price_type === "quote_only" && "AI says: \"I'd need to have someone call you with a quote\""}
           </p>
         </div>
@@ -207,7 +209,7 @@ function ServiceForm({
             value={formData.price_amount ?? ""}
             onChange={(e) => onChange("price_amount", e.target.value ? parseFloat(e.target.value) : null)}
             placeholder="150.00"
-            disabled={formData.price_type === "quote_only"}
+            disabled={formData.price_type === "quote_only" || formData.price_type === "free"}
           />
         </div>
       </div>
@@ -499,6 +501,7 @@ export function ServiceCatalogEditor() {
 
   const formatPrice = (service: any) => {
     if (service.price_type === "quote_only") return "Quote Required";
+    if (service.price_type === "free") return "Free";
     if (!service.price_amount) return "Not Set";
     const prefix = service.price_type === "starting_at" ? "From " : "";
     return `${prefix}$${service.price_amount}`;
