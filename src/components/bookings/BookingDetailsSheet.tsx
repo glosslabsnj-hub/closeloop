@@ -78,7 +78,7 @@ export function BookingDetailsSheet({
   const [smsOpen, setSmsOpen] = useState(false);
 
   if (!booking) return null;
-  const serviceName = booking.service?.name || "Service";
+  const serviceName = booking.service?.name || (terms.service.charAt(0).toUpperCase() + terms.service.slice(1));
   const customerName = booking.lead?.full_name || "Unknown";
   const phone = booking.lead?.phone;
   const email = booking.lead?.email;
@@ -175,7 +175,7 @@ export function BookingDetailsSheet({
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Briefcase className="h-4 w-4" />
-                Service
+                {terms.service.charAt(0).toUpperCase() + terms.service.slice(1)}
               </div>
               <div className="rounded-lg border p-3">
                 <div className="flex items-center justify-between">

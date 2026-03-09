@@ -194,7 +194,7 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     },
   },
   "booking-behavior": {
-    what: "Choose whether your AI confirms bookings instantly or holds them for your review.",
+    what: "Choose whether your AI confirms {{appointmentLabelPlural}} instantly or holds them for your review.",
     why: "Auto-confirm gives callers instant gratification. Pending mode gives you control but adds a delay before the customer hears back.",
     tips: {
       default: "Auto-confirm is recommended if your calendar is connected. Use pending mode if you need to manually approve {{appointmentLabelPlural}}.",
