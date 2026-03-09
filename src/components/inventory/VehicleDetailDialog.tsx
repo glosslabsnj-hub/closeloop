@@ -93,7 +93,7 @@ export function VehicleDetailDialog({ vehicle, open, onOpenChange }: Props) {
               <div className="flex items-start justify-between gap-2">
                 <DialogTitle className="text-xl">{title}</DialogTitle>
                 <Badge className={cn("text-xs shrink-0", statusColors[vehicle.status] || statusColors.available)}>
-                  {vehicle.status}
+                  {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
                 </Badge>
               </div>
               {vehicle.trim && (
@@ -150,7 +150,7 @@ export function VehicleDetailDialog({ vehicle, open, onOpenChange }: Props) {
               )}
               {vehicle.condition && (
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[10px]">{vehicle.condition}</Badge>
+                  <Badge variant="outline" className="text-[10px]">{vehicle.condition.charAt(0).toUpperCase() + vehicle.condition.slice(1)}</Badge>
                 </div>
               )}
               {vehicle.days_on_lot > 0 && (
