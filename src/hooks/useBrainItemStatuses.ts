@@ -214,7 +214,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.scripts,
     };
     s["guidelines"] = {
-      status: summaries.guidelines !== "No special instructions yet" ? "complete" : "incomplete",
+      status: summaries.guidelines !== "No special instructions yet" ? "complete" : "optional",
       statusText: summaries.guidelines,
     };
 
@@ -230,7 +230,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.faqs,
     };
     s["objections"] = {
-      status: summaries.objections !== "No responses set — your AI uses generic replies to pushback" ? "complete" : "incomplete",
+      status: summaries.objections !== "No responses set — your AI uses generic replies to pushback" ? "complete" : "optional",
       statusText: summaries.objections,
     };
     s["menu-knowledge"] = {
@@ -258,17 +258,17 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: capabilities.hasInsuranceKnowledge ? "Insurance knowledge configured" : "Carrier-specific scripts and coverage",
     };
     s["product-knowledge"] = {
-      status: capabilities.hasProductKnowledge ? "complete" : "incomplete",
+      status: capabilities.hasProductKnowledge ? "complete" : "optional",
       statusText: capabilities.hasProductKnowledge ? "Product knowledge configured" : "Products you use and their benefits",
     };
     s["aftercare"] = {
-      status: capabilities.hasAftercare ? "complete" : "incomplete",
+      status: capabilities.hasAftercare ? "complete" : "optional",
       statusText: capabilities.hasAftercare ? "Aftercare instructions configured" : "Post-service care instructions",
     };
     s["competitors"] = { status: "optional", statusText: "How to respond when competitors are mentioned" };
     s["seasonal"] = { status: "optional", statusText: "Holiday and event-specific info" };
     s["custom"] = {
-      status: summaries.custom !== "Nothing extra added yet" ? "complete" : "incomplete",
+      status: summaries.custom !== "Nothing extra added yet" ? "complete" : "optional",
       statusText: summaries.custom,
     };
     s["documents"] = {
