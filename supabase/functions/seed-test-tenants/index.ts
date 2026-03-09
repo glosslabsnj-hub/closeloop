@@ -317,6 +317,8 @@ Deno.serve(async (req) => {
         hipaa_mode: config.hipaa_mode,
         hours_json: config.hours_json ?? defaultHours,
         onboarding_completed_at: new Date().toISOString(),
+        // Test tenants have AI enabled by default so Brain Debugger shows correct state
+        ai_enabled: true,
       };
 
       if (config.phone_public) tenantInsert.phone_public = config.phone_public;

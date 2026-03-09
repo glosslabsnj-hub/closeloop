@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, Send, Loader2, Brain, RefreshCw, Bug, CalendarCheck, Wrench } from "lucide-react";
+import { MessageSquare, Send, Loader2, Brain, RefreshCw, Bug, CalendarCheck, Wrench, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ToolCall {
   tool: string;
@@ -32,6 +33,7 @@ export default function TextConversationSimulator() {
   const [loading, setLoading] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [greetingLoaded, setGreetingLoaded] = useState(false);
+  const [apiQuotaError, setApiQuotaError] = useState(false);
   // Full API-level conversation history (preserves tool_use/tool_result blocks)
   // deno-lint-ignore no-explicit-any
   const [conversationHistory, setConversationHistory] = useState<any[] | null>(null);
@@ -93,6 +95,13 @@ export default function TextConversationSimulator() {
         setConversationHistory(data.conversationMessages);
       }
 
+      // Detect api_quota error — show banner instead of confusing sorry message
+      if (data.debug?.error_type === "api_quota") {
+        setApiQuotaError(true);
+        setLoading(false);
+        return;
+      }
+
       const aiMsg: Message = {
         role: "assistant",
         content: data.reply || "(no response)",
@@ -132,6 +141,15 @@ export default function TextConversationSimulator() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* API quota banner */}
+        {apiQuotaError && (
+          <Alert variant="default" className="border-amber-200 bg-amber-50 text-amber-900">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription>
+              <strong>AI Simulator temporarily unavailable.</strong> System credits are being refilled — this does not affect your live phone calls. Try again in a few minutes.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* Chat log */}
         <div className="border rounded-lg p-3 h-72 overflow-y-auto space-y-3 bg-muted/20">
           {messages.length === 0 && (
