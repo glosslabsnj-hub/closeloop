@@ -165,14 +165,14 @@ export default function SalesInventoryPage() {
                         {item.trim && <p className="text-xs text-muted-foreground">{item.trim}</p>}
                       </div>
                       <Badge className={cn("text-[10px]", statusColors[item.status] || statusColors.available)}>
-                        {item.status}
+                        {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                       </Badge>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       {item.condition && (
                         <Badge variant="outline" className="text-[10px]">
-                          {item.condition}
+                          {item.condition.charAt(0).toUpperCase() + item.condition.slice(1)}
                         </Badge>
                       )}
                       {item.color_exterior && <span>{item.color_exterior}</span>}
