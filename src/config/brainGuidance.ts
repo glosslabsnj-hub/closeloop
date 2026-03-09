@@ -277,6 +277,30 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
       default: "Keeping this updated helps your AI give accurate availability information.",
     },
   },
+  "lead-pipeline": {
+    what: "Define the stages a prospect moves through — from first call to closed deal.",
+    why: "Your AI uses these stages to qualify leads correctly and route them to the right follow-up step automatically.",
+    tips: {
+      sales: "Common stages: New → Contacted → Qualified → Appointment Set → Negotiation → Sold. Remove stages you don't use.",
+      default: "Keep it simple. 4-5 stages is usually better than 8-10.",
+    },
+  },
+  "follow-up-sequences": {
+    what: "Set how your AI follows up with leads — timing, message, and trigger for each step.",
+    why: "Most deals close after 3-5 follow-ups. Without sequences, leads go cold because nobody followed up in time.",
+    tips: {
+      sales: "Start with a 3-step sequence: immediate text after call, 24-hour check-in, 48-hour offer. Adjust from there.",
+      default: "Automated follow-up sequences convert 2-3x more leads than manual follow-up.",
+    },
+  },
+  "sales-scripts": {
+    what: "Give your AI proven responses to the most common sales objections — price, timing, competition.",
+    why: "When a prospect says 'I need to think about it,' your AI needs a response ready. Without this, it accepts the objection and the lead goes cold.",
+    tips: {
+      sales: "Top objections to handle: 'Too expensive', 'Need to think about it', 'Already have one', 'Let me talk to my spouse'.",
+      default: "Keep responses short and empathetic — acknowledge the concern, then redirect to value.",
+    },
+  },
   "hipaa": {
     what: "Enable HIPAA-compliant mode for handling protected health information.",
     why: "Required for medical practices. Ensures your AI handles patient data according to HIPAA regulations.",
