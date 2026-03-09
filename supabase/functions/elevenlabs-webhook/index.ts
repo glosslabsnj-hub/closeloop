@@ -3766,13 +3766,13 @@ async function persistSalesLead(
 
   console.log(`[persistSalesLead] Created sales lead: ${salesLead.id} (${leadNumber})`);
 
-  // Trigger sales-lead-handoff
+  // Trigger sales-lead-handoff (uses x-closeloop-secret, not Bearer token)
   try {
     await fetch(`${supabaseUrl}/functions/v1/sales-lead-handoff`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
+        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseKey,
       },
       body: JSON.stringify({
         tenant_id: tenantId,
