@@ -115,13 +115,13 @@ const SETUP_GUIDES: Record<string, GuideContent> = {
     ],
   },
   square_pos: {
-    title: "Coming soon — how to connect Square",
+    title: "How to connect Square",
     steps: [
-      { step: 1, text: 'Click "Connect" here and sign in to your Square account' },
-      { step: 2, text: "Choose which Square location to connect" },
-      { step: 3, text: "Orders and payments will sync to Square automatically" },
+      { step: 1, text: 'Click "Connect" and sign in to your Square account' },
+      { step: 2, text: "Authorize Flux Receptionist to access your Square data" },
+      { step: 3, text: "Bookings, customers, and payments will sync automatically" },
     ],
-    tip: "While Square connect is in beta, use our webhook integration to forward order data to your Square account.",
+    tip: "Square syncs appointments both ways: bookings made through Flux appear in Square, and Square availability blocks Flux from double-booking.",
     links: [
       { label: "Square developer docs", url: "https://developer.squareup.com/docs/oauth-api/overview" },
     ],

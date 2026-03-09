@@ -67,7 +67,7 @@ export const CALENDAR_PROVIDERS = [
     authType: "oauth" as const,
     description: "Sync with Square Appointments",
     category: "booking" as const,
-    status: "coming_soon" as const,
+    status: "available" as const,
   },
   {
     id: "calendly" as const,

@@ -75,6 +75,14 @@ const WIZARD_STEPS_INTERNAL = [
   { id: 5, label: "Behavior" },
 ];
 
+const WIZARD_STEPS_SQUARE = [
+  { id: 1, label: "Provider" },
+  { id: 3, label: "Hours" },
+  { id: 4, label: "Rules" },
+  { id: 5, label: "Behavior" },
+  { id: 6, label: "Test" },
+];
+
 export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnectionWizardProps) {
   const { createConnection, connections, refetch } = useCalendarConnections();
   const { sync: syncCalendar } = useCalendarSync();
@@ -175,17 +183,41 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
     if (!isConnecting || !selectedProvider) return;
 
     const pollInterval = setInterval(async () => {
-      const { data } = await supabase
-        .from("calendar_connections")
-        .select("*")
-        .eq("provider", selectedProvider)
-        .eq("status", "connected")
-        .maybeSingle();
+      if (selectedProvider === "square") {
+        // Square uses the integrations table, not calendar_connections
+        const { data } = await supabase
+          .from("integrations")
+          .select("id, status, config_json")
+          .eq("provider", "square_pos")
+          .eq("status", "connected")
+          .maybeSingle();
 
-      if (data) {
-        clearInterval(pollInterval);
-        processNewConnection(data);
-        refetch();
+        if (data) {
+          clearInterval(pollInterval);
+          setIsConnecting(false);
+          toast({ title: "Square connected!", description: "Your Square Appointments are now synced." });
+          // Also create a calendar_connection record so availability sync knows about it
+          await createConnection.mutateAsync({
+            provider: "square" as any,
+            auth_type: "oauth",
+            config_json: { integration_id: data.id },
+          });
+          setStep(3); // Skip calendar selection, go to hours
+          refetch();
+        }
+      } else {
+        const { data } = await supabase
+          .from("calendar_connections")
+          .select("*")
+          .eq("provider", selectedProvider)
+          .eq("status", "connected")
+          .maybeSingle();
+
+        if (data) {
+          clearInterval(pollInterval);
+          processNewConnection(data);
+          refetch();
+        }
       }
     }, 2000);
 
@@ -224,7 +256,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
   const [providerStatus, setProviderStatus] = useState<Record<string, "available" | "not_configured" | "coming_soon" | "unknown">>({
     google: "unknown",
     microsoft: "unknown",
-    square: "coming_soon",
+    square: "available",
     calendly: "available",
     jobber: "coming_soon",
     ics: "available",
@@ -477,6 +509,31 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
         // Start OAuth flow
         startOAuth(selectedProvider);
         return;
+      } else if (selectedProvider === "square") {
+        // Start Square OAuth via integration system
+        setIsConnecting(true);
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            toast({ title: "Please log in first", variant: "destructive" });
+            setIsConnecting(false);
+            return;
+          }
+          const response = await supabase.functions.invoke("integration-oauth-start", {
+            body: { provider: "square_pos", tenant_id: tenant?.id },
+          });
+          if (response.error || response.data?.error) {
+            throw new Error(response.data?.error || response.error?.message || "Failed to start Square OAuth");
+          }
+          if (response.data?.url) {
+            window.open(response.data.url, "_blank", "width=600,height=700");
+          }
+        } catch (err) {
+          console.error("Square OAuth error:", err);
+          toast({ title: "Failed to start Square connection", description: String(err), variant: "destructive" });
+          setIsConnecting(false);
+        }
+        return;
       } else if (selectedProvider === "calendly") {
         setStep(2); // Go to Calendly API key input
       } else if (selectedProvider === "ics") {
@@ -655,7 +712,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
             
             {/* Progress indicator */}
             <div className="flex gap-1 mt-4">
-              {(selectedProvider === "internal" || selectedProvider === "manual" ? WIZARD_STEPS_INTERNAL : WIZARD_STEPS_FULL).map((s) => (
+              {(selectedProvider === "internal" || selectedProvider === "manual" ? WIZARD_STEPS_INTERNAL : selectedProvider === "square" ? WIZARD_STEPS_SQUARE : WIZARD_STEPS_FULL).map((s) => (
                 <div key={s.id} className="flex-1 space-y-1">
                   <div
                     className={`h-1 rounded-full transition-colors ${
@@ -797,8 +854,30 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 )}
               </label>
 
-              {/* Square, Jobber - still coming soon */}
-              {CALENDAR_PROVIDERS.filter(p => ["square", "jobber"].includes(p.id)).map((provider) => (
+              {/* Square Appointments — OAuth via integration system */}
+              <label
+                className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  selectedProvider === "square"
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:bg-muted/50"
+                }`}
+              >
+                <RadioGroupItem value="square" className="sr-only" />
+                <span className="text-2xl">⬜</span>
+                <div className="flex-1">
+                  <p className="font-medium flex items-center gap-2">
+                    Square Appointments
+                    <Badge variant="secondary" className="text-xs">OAuth</Badge>
+                  </p>
+                  <p className="text-sm text-muted-foreground">Sync with Square Appointments</p>
+                </div>
+                {selectedProvider === "square" && (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                )}
+              </label>
+
+              {/* Jobber - still coming soon */}
+              {CALENDAR_PROVIDERS.filter(p => p.id === "jobber").map((provider) => (
                 <label
                   key={provider.id}
                   className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-not-allowed opacity-60"
@@ -1349,7 +1428,7 @@ export function CalendarConnectionWizard({ open, onOpenChange }: CalendarConnect
                 {(isConnecting || isVerifyingCalendly || createConnection.isPending || isUpdating) ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : null}
-                {step === 1 && (selectedProvider === "google" || selectedProvider === "microsoft")
+                {step === 1 && (selectedProvider === "google" || selectedProvider === "microsoft" || selectedProvider === "square")
                   ? "Connect"
                   : step === 2 && selectedProvider === "calendly"
                     ? (isVerifyingCalendly ? "Verifying..." : "Verify & Connect")
