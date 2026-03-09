@@ -26,8 +26,12 @@ Deno.serve(async (req: Request) => {
     const yearMax = params.year_max ? parseInt(params.year_max) : null;
     const priceMin = params.price_min ? Math.round(parseFloat(params.price_min) * 100) : null;
     const priceMax = params.price_max ? Math.round(parseFloat(params.price_max) * 100) : (params.max_price ? Math.round(parseFloat(params.max_price) * 100) : null);
-    const condition = params.condition || "";
-    const bodyStyle = params.body_style || params.category || "";
+    // Separate condition keywords from body style - category="used" should filter condition, not body_style
+    const CONDITION_KEYWORDS = new Set(["new", "used", "certified", "pre-owned", "preowned", "cpo"]);
+    const categoryIsCondition = params.category && CONDITION_KEYWORDS.has(params.category.toLowerCase());
+    const conditionFromCategory = categoryIsCondition ? (params.category.toLowerCase() === "pre-owned" || params.category.toLowerCase() === "preowned" || params.category.toLowerCase() === "cpo" ? "certified" : params.category.toLowerCase()) : "";
+    const condition = params.condition || conditionFromCategory || "";
+    const bodyStyle = params.body_style || (!categoryIsCondition ? params.category : "") || "";
     const color = params.color || "";
     const maxResults = Math.min(parseInt(params.max_results || "5"), 10);
 
@@ -60,7 +64,7 @@ Deno.serve(async (req: Request) => {
     // Build dynamic query
     let dbQuery = supabase
       .from("sales_inventory")
-      .select("id, year, make, model, trim, body_style, condition, exterior_color, mileage, msrp_cents, asking_price_cents, internet_price_cents, features, stock_number, description")
+      .select("id, year, make, model, trim, body_style, condition, color_exterior, mileage, msrp_cents, asking_price_cents, internet_price_cents, features, stock_number, description")
       .eq("tenant_id", resolvedTenantId)
       .eq("status", "available");
 
@@ -90,7 +94,7 @@ Deno.serve(async (req: Request) => {
       dbQuery = dbQuery.ilike("body_style", `%${bodyStyle}%`);
     }
     if (color) {
-      dbQuery = dbQuery.ilike("exterior_color", `%${color}%`);
+      dbQuery = dbQuery.ilike("color_exterior", `%${color}%`);
     }
 
     // If free-text query provided but no structured filters, try keyword parsing
@@ -126,7 +130,7 @@ Deno.serve(async (req: Request) => {
       const colors = ["red", "blue", "black", "white", "silver", "gray", "grey", "green", "yellow", "orange", "brown", "gold", "beige", "tan"];
       const matchedColor = colors.find(c => q.includes(c));
       if (matchedColor) {
-        dbQuery = dbQuery.ilike("exterior_color", `%${matchedColor}%`);
+        dbQuery = dbQuery.ilike("color_exterior", `%${matchedColor}%`);
       }
 
       // Make/model - check if any word matches common makes
@@ -202,7 +206,7 @@ Deno.serve(async (req: Request) => {
         `${v.year} ${v.make} ${v.model}${v.trim ? ` ${v.trim}` : ""}`,
       ];
       if (v.body_style) parts[0] += ` (${v.body_style})`;
-      if (v.exterior_color) parts.push(v.exterior_color);
+      if (v.color_exterior) parts.push(v.color_exterior);
       if (v.mileage) parts.push(formatMileage(v.mileage));
       parts.push(formatPrice(price));
       if (v.condition === "certified") parts.push("Certified Pre-Owned");
@@ -232,7 +236,7 @@ Deno.serve(async (req: Request) => {
           trim: v.trim,
           body_style: v.body_style,
           condition: v.condition,
-          color: v.exterior_color,
+          color: v.color_exterior,
           mileage: v.mileage,
           price_cents: v.internet_price_cents || v.asking_price_cents,
           stock_number: v.stock_number,

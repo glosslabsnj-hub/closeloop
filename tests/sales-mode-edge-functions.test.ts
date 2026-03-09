@@ -8,7 +8,7 @@
  * 2. test-drive-handoff — required fields, secret auth, SMS + webhook flow
  * 3. sales-lead-handoff — handoff structure and auth
  * 4. config.toml — all sales functions have verify_jwt = false
- * 5. Color field consistency: testTenantMatrix (exterior_color) → DB (exterior_color) → hook (color_exterior)
+ * 5. Color field consistency: testTenantMatrix (exterior_color) → seed maps to DB (color_exterior) → hook (color_exterior)
  *
  * Gate targets: sales functional/booking_creates_correctly, functional/ai_handles_edge_cases
  */
@@ -105,10 +105,9 @@ describe("elevenlabs-search-inventory: tool structure — functional/ai_handles_
     expect(searchInventorySource).toContain('"available"');
   });
 
-  it("uses exterior_color column name in DB query (consistent with seed data)", () => {
-    // DB column is exterior_color — must match what seed-test-tenants and elevenlabs-search-inventory use
-    expect(searchInventorySource).toContain("exterior_color");
-    expect(searchInventorySource).not.toContain("color_exterior");
+  it("uses color_exterior column name in DB query (correct DB column name)", () => {
+    // DB column is color_exterior — seed-test-tenants inserts to color_exterior, search queries color_exterior
+    expect(searchInventorySource).toContain("color_exterior");
   });
 
   it("supports structured filters: make, model, year_min, year_max", () => {
@@ -274,11 +273,10 @@ describe("Color field name consistency across sales stack (regression: f59b1fd)"
     expect(seedSource).toMatch(/color_exterior:\s*v\.exterior_color/);
   });
 
-  it("elevenlabs-search-inventory queries DB column exterior_color (same as seed DB)", () => {
-    // The seed inserts to color_exterior but search queries exterior_color — these must match
-    // Actually: the DB schema column name must be consistent
-    // Search inventory selects 'exterior_color' from DB
-    expect(searchInventorySource).toContain("exterior_color");
+  it("elevenlabs-search-inventory queries DB column color_exterior (correct DB column)", () => {
+    // seed-test-tenants inserts to color_exterior DB column; search-inventory must query the same column
+    expect(searchInventorySource).toContain("color_exterior");
+    expect(searchInventorySource).not.toContain('"exterior_color"');
   });
 
   it("useSalesInventory hook interface uses color_exterior (TypeScript field)", () => {
