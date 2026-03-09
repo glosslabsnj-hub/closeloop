@@ -279,6 +279,13 @@ serve(async (req: Request) => {
       .eq("tenant_id", tenantId)
       .eq("booking_id", booking.id);
 
+    // For sales mode: also cancel the linked test_drive record
+    await supabase
+      .from("test_drives")
+      .update({ status: "cancelled" })
+      .eq("tenant_id", tenantId)
+      .eq("booking_id", booking.id);
+
     // Cancel in Square if this booking was synced there
     if (booking.external_provider === "square" && booking.external_event_id) {
       try {

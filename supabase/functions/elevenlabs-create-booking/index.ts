@@ -656,19 +656,27 @@ serve(async (req: Request) => {
           (serviceName || "").toLowerCase().includes("test drive");
 
         if (isTestDrive || tenantFull.business_mode === "sales") {
-          await supabase.from("test_drives").insert({
+          // Extract scheduled_date from startAt (YYYY-MM-DD format)
+          const scheduledDateStr = targetDate || startAt.toISOString().slice(0, 10);
+          const { error: tdInsertErr } = await supabase.from("test_drives").insert({
             tenant_id: tenantId,
             customer_id: customerId,
             scheduled_at: startAt.toISOString(),
+            scheduled_date: scheduledDateStr,
+            scheduled_time: targetTime || null,
             duration_minutes: finalDuration,
-            status: initialStatus === "confirmed" ? "confirmed" : "scheduled",
-            salesperson: null,
+            // status enum: pending|confirmed|completed|cancelled|no_show
+            status: initialStatus === "confirmed" ? "confirmed" : "pending",
             notes: notes || null,
             booking_id: booking.id,
             session_id: sessionId,
             vehicle_description: resolvedServiceName || null,
           });
-          console.log(`[create-booking] Created test_drive for sales tenant`);
+          if (tdInsertErr) {
+            console.error("[create-booking] test_drive insert failed:", tdInsertErr.message);
+          } else {
+            console.log(`[create-booking] Created test_drive for sales tenant`);
+          }
         }
       }
     } catch (e) {

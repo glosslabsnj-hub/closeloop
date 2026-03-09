@@ -97,18 +97,21 @@ describe("elevenlabs-create-booking: sales mode creates test_drives — function
   it("test_drives record stores vehicle_description (from service name)", () => {
     const testDriveInsert = createBookingSource.slice(
       createBookingSource.indexOf('"test_drives"'),
-      createBookingSource.indexOf('"test_drives"') + 500
+      createBookingSource.indexOf('"test_drives"') + 800
     );
     expect(testDriveInsert).toContain("vehicle_description");
   });
 
-  it("test_drives status matches booking status (confirmed or scheduled)", () => {
+  it("test_drives status uses valid DB enum values (confirmed or pending)", () => {
+    // BUG FIX: was using 'scheduled' which violates the DB CHECK constraint.
+    // Valid values: pending|confirmed|completed|cancelled|no_show
     const testDriveBlock = createBookingSource.slice(
       createBookingSource.indexOf("sales-mode tenants"),
       createBookingSource.indexOf("Trigger booking handoff")
     );
     expect(testDriveBlock).toContain("confirmed");
-    expect(testDriveBlock).toContain("scheduled");
+    expect(testDriveBlock).toContain("pending");
+    expect(testDriveBlock).not.toContain('"scheduled"');
   });
 
   it("booking triggers booking-handoff AFTER test_drive creation", () => {
