@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CalendarDays, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfDay, addDays, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
@@ -14,27 +16,36 @@ interface UpcomingBooking {
   id: string;
   start_at: string;
   status: string;
+  booking_source: string | null;
   services: { name: string } | null;
   leads: { full_name: string } | null;
 }
 
+const sourceLabels: Record<string, string> = {
+  website: "Web",
+  phone_ai: "Phone",
+  square_direct: "Manual",
+  square_online: "Square",
+};
+
 export default function UpcomingAppointmentsWidget() {
   const { tenant } = useAuth();
   const { terms } = useIndustryContext();
+  const [weekOffset, setWeekOffset] = useState(0);
 
-  const todayStart = startOfDay(new Date()).toISOString();
-  const weekEnd = addDays(new Date(), 7).toISOString();
+  const rangeStart = startOfDay(addDays(new Date(), weekOffset * 7)).toISOString();
+  const rangeEnd = addDays(new Date(), weekOffset * 7 + 7).toISOString();
 
   const { data: bookings, isLoading } = useQuery({
-    queryKey: ["upcoming-appointments-7day", tenant?.id],
+    queryKey: ["upcoming-appointments-7day", tenant?.id, weekOffset],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bookings")
-        .select("id, start_at, status, services(name), leads(full_name)")
+        .select("id, start_at, status, booking_source, services(name), leads(full_name)")
         .eq("tenant_id", tenant!.id)
         .in("status", ["pending", "confirmed"])
-        .gte("start_at", todayStart)
-        .lte("start_at", weekEnd)
+        .gte("start_at", rangeStart)
+        .lte("start_at", rangeEnd)
         .order("start_at", { ascending: true })
         .limit(20);
 
@@ -64,6 +75,9 @@ export default function UpcomingAppointmentsWidget() {
   }
 
   const total = bookings?.length || 0;
+  const rangeLabel = weekOffset === 0
+    ? "Next 7 Days"
+    : `${format(parseISO(rangeStart), "MMM d")} - ${format(addDays(parseISO(rangeStart), 6), "MMM d")}`;
 
   return (
     <Card className="border-border/30 bg-card/60 backdrop-blur-sm card-interactive">
@@ -71,7 +85,35 @@ export default function UpcomingAppointmentsWidget() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Next 7 Days</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setWeekOffset((o) => o - 1)}
+              title="Previous week"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium">{rangeLabel}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => setWeekOffset((o) => o + 1)}
+              title="Next week"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            {weekOffset !== 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-xs"
+                onClick={() => setWeekOffset(0)}
+              >
+                Today
+              </Button>
+            )}
           </div>
           <Badge variant="secondary" className="text-xs">
             {total} {total !== 1 ? terms.bookings : terms.booking}
@@ -80,7 +122,7 @@ export default function UpcomingAppointmentsWidget() {
 
         {total === 0 ? (
           <p className="text-sm text-muted-foreground py-4 text-center">
-            No upcoming {terms.bookings} this week
+            No {terms.bookings} {weekOffset === 0 ? "this week" : "this period"}
           </p>
         ) : (
           <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -108,6 +150,11 @@ export default function UpcomingAppointmentsWidget() {
                         <span className="truncate text-xs text-muted-foreground">
                           {b.leads?.full_name || capitalize(terms.customer)} — {b.services?.name || capitalize(terms.service)}
                         </span>
+                        {b.booking_source && sourceLabels[b.booking_source] && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground shrink-0">
+                            {sourceLabels[b.booking_source]}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
