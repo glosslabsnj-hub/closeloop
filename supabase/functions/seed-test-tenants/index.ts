@@ -46,6 +46,7 @@ interface SeedRequest {
         duration_minutes: number;
         price_amount: number;
         price_type?: string;
+        booking_type?: string;
         service_category?: string;
         display_order?: number;
       }[];
@@ -478,6 +479,7 @@ async function seedTenantData(
       duration_minutes: s.duration_minutes,
       price_amount: s.price_amount,
       price_type: s.price_type ?? "fixed",
+      booking_type: s.booking_type ?? "direct_book",
       service_category: s.service_category ?? null,
       display_order: s.display_order ?? 0,
       is_active: true,

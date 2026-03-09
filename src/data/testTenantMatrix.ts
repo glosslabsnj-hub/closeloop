@@ -17,6 +17,7 @@ export interface CustomService {
   duration_minutes: number;
   price_amount: number;
   price_type?: "fixed" | "quote_only" | "deposit_based" | "starting_at" | "free";
+  booking_type?: "direct_book" | "estimate_first" | "consultation";
   service_category?: string;
   display_order?: number;
 }
@@ -661,16 +662,16 @@ const serviceTenants: TestTenantConfig[] = [
       serviceCount: 10,
       bookingCount: 3,
       customServices: [
-        { name: "Kitchen Remodel", description: "Full kitchen renovation including cabinets, countertops, flooring, and fixtures", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "remodeling", display_order: 1 },
-        { name: "Bathroom Remodel", description: "Complete bathroom renovation including tile, vanity, shower/tub, and plumbing fixtures", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "remodeling", display_order: 2 },
-        { name: "Room Addition", description: "Build a new room addition to your home including foundation, framing, and finish work", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "construction", display_order: 3 },
-        { name: "Deck Building", description: "Custom deck construction in wood or composite materials with optional railings and stairs", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "construction", display_order: 4 },
-        { name: "Basement Finishing", description: "Turn your unfinished basement into living space with framing, drywall, flooring, and electrical", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "remodeling", display_order: 5 },
-        { name: "Whole-Home Renovation", description: "Complete home renovation spanning multiple rooms, systems, and finishes", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "remodeling", display_order: 6 },
-        { name: "Drywall & Framing", description: "Interior framing and drywall installation, taping, mudding, and finishing", duration_minutes: 0, price_amount: 0, price_type: "quote_only", service_category: "construction", display_order: 7 },
-        { name: "Trim & Finish Carpentry", description: "Crown molding, baseboards, door casings, wainscoting, and built-in shelving", duration_minutes: 480, price_amount: 800, price_type: "quote_only", service_category: "carpentry", display_order: 8 },
-        { name: "Handyman Service", description: "Small repairs and odd jobs: drywall patches, door adjustments, fixture swaps, and more", duration_minutes: 120, price_amount: 150, price_type: "fixed", service_category: "handyman", display_order: 9 },
-        { name: "Free Estimate / Site Visit", description: "On-site consultation to assess your project, discuss options, and provide a detailed written estimate", duration_minutes: 60, price_amount: 0, price_type: "fixed", service_category: "consultation", display_order: 10 },
+        { name: "Kitchen Remodel", description: "Full kitchen renovation including cabinets, countertops, flooring, and fixtures", duration_minutes: 60, price_amount: 25000, price_type: "starting_at", booking_type: "estimate_first", service_category: "remodeling", display_order: 1 },
+        { name: "Bathroom Remodel", description: "Complete bathroom renovation including tile, vanity, shower/tub, and plumbing fixtures", duration_minutes: 60, price_amount: 8000, price_type: "starting_at", booking_type: "estimate_first", service_category: "remodeling", display_order: 2 },
+        { name: "Room Addition", description: "Build a new room addition to your home including foundation, framing, and finish work", duration_minutes: 60, price_amount: 40000, price_type: "starting_at", booking_type: "estimate_first", service_category: "construction", display_order: 3 },
+        { name: "Deck Building", description: "Custom deck construction in wood or composite materials with optional railings and stairs", duration_minutes: 60, price_amount: 8000, price_type: "starting_at", booking_type: "estimate_first", service_category: "construction", display_order: 4 },
+        { name: "Basement Finishing", description: "Turn your unfinished basement into living space with framing, drywall, flooring, and electrical", duration_minutes: 60, price_amount: 20000, price_type: "starting_at", booking_type: "estimate_first", service_category: "remodeling", display_order: 5 },
+        { name: "Whole-Home Renovation", description: "Complete home renovation spanning multiple rooms, systems, and finishes", duration_minutes: 60, price_amount: 50000, price_type: "starting_at", booking_type: "estimate_first", service_category: "remodeling", display_order: 6 },
+        { name: "Drywall & Framing", description: "Interior framing and drywall installation, taping, mudding, and finishing", duration_minutes: 60, price_amount: 3000, price_type: "starting_at", booking_type: "estimate_first", service_category: "construction", display_order: 7 },
+        { name: "Trim & Finish Carpentry", description: "Crown molding, baseboards, door casings, wainscoting, and built-in shelving", duration_minutes: 480, price_amount: 800, price_type: "starting_at", booking_type: "estimate_first", service_category: "carpentry", display_order: 8 },
+        { name: "Handyman Service", description: "Small repairs and odd jobs: drywall patches, door adjustments, fixture swaps, and more", duration_minutes: 120, price_amount: 150, price_type: "fixed", booking_type: "direct_book", service_category: "handyman", display_order: 9 },
+        { name: "Free Estimate / Site Visit", description: "On-site consultation to assess your project, discuss options, and provide a detailed written estimate", duration_minutes: 60, price_amount: 0, price_type: "free", booking_type: "direct_book", service_category: "consultation", display_order: 10 },
       ],
       customFaqs: [
         { question: "Are you licensed and insured?", answer: "Yes, we are fully licensed, bonded, and insured. We carry general liability and workers' compensation coverage and are happy to provide our license number and proof of insurance.", priority_weight: 10 },
