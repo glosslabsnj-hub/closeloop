@@ -539,12 +539,14 @@ export default function CustomerPortalPage() {
               <TabsContent value="agreements" className="mt-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg">Your Service Agreements</CardTitle>
+                    <CardTitle className="text-lg">
+                      {tenant?.business_mode === "sales" ? "Your Purchase Agreements" : tenant?.business_mode === "medical" ? "Your Patient Agreements" : "Your Service Agreements"}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     {agreements.length === 0 ? (
                       <p className="text-center text-muted-foreground py-8">
-                        No service agreements found.
+                        {tenant?.business_mode === "sales" ? "No purchase agreements found." : tenant?.business_mode === "medical" ? "No patient agreements found." : "No service agreements found."}
                       </p>
                     ) : (
                       <div className="space-y-3">
