@@ -63,7 +63,7 @@ export interface NormalizedService {
   id: string;
   name: string;
   description: string;
-  price_type: "fixed" | "starting_at" | "quote_required";
+  price_type: "fixed" | "starting_at" | "quote_required" | "free";
   price_amount: number | null;
   duration_minutes: number;
   deposit_required: boolean;
@@ -1220,9 +1220,11 @@ function normalizeServices(services: Array<{
   return services.map(s => {
     const priceAmount = s.price_amount ?? null;
     const hasPrice = priceAmount !== null && priceAmount > 0;
-    
-    let priceType: "fixed" | "starting_at" | "quote_required" = "quote_required";
-    if (s.price_type === "fixed" && hasPrice) {
+
+    let priceType: "fixed" | "starting_at" | "quote_required" | "free" = "quote_required";
+    if (s.price_type === "free") {
+      priceType = "free";
+    } else if (s.price_type === "fixed" && hasPrice) {
       priceType = "fixed";
     } else if (s.price_type === "starting_at" && hasPrice) {
       priceType = "starting_at";
@@ -1327,7 +1329,9 @@ function buildServicesSummary(services: NormalizedService[]): string {
   
   const summaries = services.slice(0, 8).map(s => {
     let line = s.name;
-    if (s.price_type === "fixed" && s.price_amount) {
+    if (s.price_type === "free") {
+      line += ` (free)`;
+    } else if (s.price_type === "fixed" && s.price_amount) {
       line += ` ($${s.price_amount})`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
       line += ` (from $${s.price_amount})`;
@@ -1478,6 +1482,8 @@ function buildServicesForPrompt(services: NormalizedService[]): string {
       }
     } else if (model === "variable") {
       priceText = s.price_amount ? `${tripFeeText}Starting at $${Number(s.price_amount).toFixed(2)} (varies by job)` : `${tripFeeText}Price varies by job`;
+    } else if (s.price_type === "free") {
+      priceText = `${tripFeeText}Free — no charge`;
     } else if (s.price_type === "fixed" && s.price_amount) {
       priceText = `${tripFeeText}$${Number(s.price_amount).toFixed(2)} (exact price)`;
     } else if (s.price_type === "starting_at" && s.price_amount) {
@@ -2288,7 +2294,9 @@ function buildActivePromotions(seasonal: SeasonalKnowledgeRow[]): string {
  * Returns human-readable price string for AI to use
  */
 export function formatPriceFromService(service: NormalizedService): string {
-  if (service.price_type === "fixed" && service.price_amount) {
+  if (service.price_type === "free") {
+    return "free";
+  } else if (service.price_type === "fixed" && service.price_amount) {
     return `$${service.price_amount}`;
   } else if (service.price_type === "starting_at" && service.price_amount) {
     return `starting at $${service.price_amount}`;
@@ -3997,12 +4005,18 @@ WHEN A CUSTOMER ASKS ABOUT PRICING:
    ✅ CORRECT: "That service starts at $X. The final price depends on [brief factor like size/complexity]"
    ❌ WRONG: "I'm not sure about the exact price"
 
-3. IF THE SERVICE SAYS "QUOTE REQUIRED":
+3. IF THE SERVICE SAYS "Free — no charge":
+   ✅ CORRECT: "That's complimentary — there's no charge for that!"
+   ✅ CORRECT: "Yes, that's completely free!"
+   ❌ WRONG: "We'll need to provide a quote" (it's FREE, not quote-required)
+   ❌ WRONG: "Let me have someone call you" (it's free, just confirm it)
+
+4. IF THE SERVICE SAYS "QUOTE REQUIRED":
    ✅ CORRECT: "We'll need to provide a custom quote for that. Can I ask a few quick questions about what you need?"
    ✅ CORRECT: "For that service, we provide custom estimates. Would you like me to schedule someone to assess the job?"
    ❌ WRONG: "I don't know the price" (instead, explain WHY it requires a quote)
 
-4. IF THE CUSTOMER ASKS ABOUT A SERVICE NOT ON YOUR LIST:
+5. IF THE CUSTOMER ASKS ABOUT A SERVICE NOT ON YOUR LIST:
    ❌ WRONG: "I don't have pricing for that"
    ✅ CORRECT: "I don't see that specific service in my system. Let me connect you with someone who can help. What exactly are you looking for?"
 
