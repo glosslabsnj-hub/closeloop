@@ -1072,7 +1072,8 @@ const salesQuestions: ScenarioQuestion[] = [
     onboardingVisible: true,
     // Real estate has MLS listings (managed externally), not internal inventory
     // Dealers always have inventory — auto-enable silently
-    suppressedFor: { slugs: ["real_estate"], categories: ["sales_dealerships"] },
+    // Note: two real-estate slugs exist (real_estate + real-estate-agency) — suppress both
+    suppressedFor: { slugs: ["real_estate", "real-estate-agency", "solar-installer", "insurance-agency"], categories: ["sales_dealerships"] },
   },
   {
     id: "crm-integration",

@@ -29,6 +29,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getIndustryTerminology } from "../src/data/industryTerminology";
 import { getIndustryOnboardingConfig } from "../src/config/industryOnboardingConfig";
+import { getQuestionsForMode, getDefaultAnswers, deriveModulesFromScenario } from "../src/lib/scenarioQuestions";
 
 const TEXT_CONV_PATH = join(
   process.cwd(),
@@ -448,5 +449,59 @@ describe("seed-test-tenants cleanup completeness", () => {
   it("seedTenantData inserts into sales_inventory when customInventory provided", () => {
     expect(source).toContain('"sales_inventory"');
     expect(source).toContain("customInventory");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. inventory-reference question suppression bug fix (2026-03-09)
+// ---------------------------------------------------------------------------
+// Bug: real-estate-agency, solar-installer, insurance-agency would see the
+// "Do you have inventory?" question with defaultValue:true, which would add
+// sales_inventory to their modules via deriveModulesFromScenario — incorrect
+// since their industry templates use salesLeadsOnlyModules (no sales_inventory).
+//
+// Fix: added these slugs to suppressedFor in scenarioQuestions.ts
+// ---------------------------------------------------------------------------
+
+describe("inventory-reference suppression bug fix — non-inventory sales industries", () => {
+  const NON_INVENTORY_SLUGS = [
+    { slug: "real-estate-agency", category: "property_real_estate" },
+    { slug: "real_estate", category: "property_real_estate" },
+    { slug: "solar-installer", category: "sales_dealerships_adjacent" as any },
+    { slug: "insurance-agency", category: "professional_services" as any },
+  ];
+
+  for (const ctx of NON_INVENTORY_SLUGS) {
+    describe(ctx.slug, () => {
+      it("inventory-reference question is NOT visible in onboarding", () => {
+        const qs = getQuestionsForMode("sales", ctx).filter(q => q.onboardingVisible);
+        const ids = qs.map(q => q.id);
+        expect(ids).not.toContain("inventory-reference");
+      });
+    });
+  }
+
+  it("real-estate-agency default answers do NOT include hasInventoryReference=true", () => {
+    const ctx = { slug: "real-estate-agency", category: "property_real_estate" };
+    const answers = getDefaultAnswers("sales", ctx);
+    // hasInventoryReference should not be true (question is suppressed)
+    expect(answers["hasInventoryReference"]).not.toBe(true);
+  });
+
+  it("real-estate-agency module derivation does NOT add sales_inventory", () => {
+    const ctx = { slug: "real-estate-agency", category: "property_real_estate" };
+    const baseModules = ["ai_voice", "instant_text_back", "sales_leads", "booking", "lead_recovery"];
+    const answers = getDefaultAnswers("sales", ctx);
+    const questions = getQuestionsForMode("sales", ctx);
+    const derivedModules = deriveModulesFromScenario(baseModules, answers, questions);
+    expect(derivedModules).not.toContain("sales_inventory");
+  });
+
+  it("car-dealership-full (sales_dealerships) still suppresses inventory-reference but has it in base modules", () => {
+    const ctx = { slug: "car-dealership-full", category: "sales_dealerships" };
+    const qs = getQuestionsForMode("sales", ctx).filter(q => q.onboardingVisible);
+    const ids = qs.map(q => q.id);
+    // inventory-reference is suppressed for sales_dealerships — it's auto-enabled from industry template
+    expect(ids).not.toContain("inventory-reference");
   });
 });

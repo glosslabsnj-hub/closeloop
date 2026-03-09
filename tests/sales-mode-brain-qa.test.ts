@@ -537,3 +537,148 @@ describe("testTenantMatrix: real estate tenant — sales mode non-car dealership
     expect(realEstateBlock).not.toContain('"sales_inventory"');
   });
 });
+
+// ---------------------------------------------------------------------------
+// 6. Seed data regression — bugs found by QA (commit 94a6abb fixes)
+// ---------------------------------------------------------------------------
+
+describe("testTenantMatrix: car dealership seed data regression — QA bugs (94a6abb)", () => {
+  it("car dealership name is 'Prestige Auto Group' (not 'Prestige Auto Excellence')", () => {
+    expect(carDealerBlock).toContain('"Prestige Auto Group"');
+    expect(carDealerBlock).not.toContain('"Prestige Auto Excellence"');
+  });
+
+  it("car dealership has exactly 4 objection handlers (not empty)", () => {
+    // Count objection entries in the car dealer block
+    const objectionMatches = carDealerBlock.match(/objection:\s*"/g) || [];
+    expect(objectionMatches.length).toBe(4);
+  });
+
+  it("car dealership objection handles 'too expensive' scenario", () => {
+    expect(carDealerBlock).toContain("too expensive");
+  });
+
+  it("car dealership objection handles 'think about it' / hesitation scenario", () => {
+    expect(carDealerBlock).toContain("think about it");
+  });
+
+  it("car dealership objection handles price matching scenario", () => {
+    expect(carDealerBlock.toLowerCase()).toContain("match");
+  });
+
+  it("car dealership objection handles spouse / partner consultation scenario", () => {
+    expect(carDealerBlock.toLowerCase()).toContain("spouse");
+  });
+
+  it("Financing Consultation service has price_type 'quote_only' (not 'fixed')", () => {
+    // Find the Financing Consultation entry and verify price_type
+    const financingIdx = carDealerBlock.indexOf('"Financing Consultation"');
+    expect(financingIdx).toBeGreaterThan(-1);
+    // Extract a small window around the entry to check price_type
+    const financingWindow = carDealerBlock.slice(financingIdx, financingIdx + 300);
+    expect(financingWindow).toContain("quote_only");
+    expect(financingWindow).not.toContain('"fixed"');
+  });
+
+  it("Test Drive service has price_amount 0 (free)", () => {
+    const testDriveIdx = carDealerBlock.indexOf('"Test Drive"');
+    expect(testDriveIdx).toBeGreaterThan(-1);
+    const testDriveWindow = carDealerBlock.slice(testDriveIdx, testDriveIdx + 200);
+    expect(testDriveWindow).toContain("price_amount: 0");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. industryExamples.ts — sales mode serviceNamePlaceholder
+// ---------------------------------------------------------------------------
+
+import { SERVICE_EXAMPLES } from "../src/lib/industryExamples";
+
+describe("industryExamples: sales mode serviceNamePlaceholder — brain/service_pricing_management", () => {
+  it("sales mode serviceNamePlaceholder exists", () => {
+    expect(SERVICE_EXAMPLES.sales).toBeDefined();
+    expect(SERVICE_EXAMPLES.sales.serviceNamePlaceholder).toBeTruthy();
+  });
+
+  it("sales mode serviceNamePlaceholder does NOT show 'Solar Panel' (solar installer language)", () => {
+    expect(SERVICE_EXAMPLES.sales.serviceNamePlaceholder).not.toContain("Solar Panel");
+  });
+
+  it("sales mode serviceNamePlaceholder does NOT show '3-Bed Home' (real estate language)", () => {
+    expect(SERVICE_EXAMPLES.sales.serviceNamePlaceholder).not.toContain("3-Bed");
+    expect(SERVICE_EXAMPLES.sales.serviceNamePlaceholder).not.toContain("Bed Home");
+  });
+
+  it("sales mode serviceNamePlaceholder contains car dealership relevant text", () => {
+    const placeholder = SERVICE_EXAMPLES.sales.serviceNamePlaceholder;
+    const hasDealerContent =
+      placeholder.includes("Test Drive") ||
+      placeholder.includes("Financing") ||
+      placeholder.includes("Trade-In");
+    expect(hasDealerContent).toBe(true);
+  });
+
+  it("service mode serviceNamePlaceholder still works (non-regression)", () => {
+    expect(SERVICE_EXAMPLES.service).toBeDefined();
+    expect(SERVICE_EXAMPLES.service.serviceNamePlaceholder).toBeTruthy();
+  });
+
+  it("dispatch mode serviceNamePlaceholder still works (non-regression)", () => {
+    expect(SERVICE_EXAMPLES.dispatch).toBeDefined();
+    expect(SERVICE_EXAMPLES.dispatch.serviceNamePlaceholder).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. seed-test-tenants: greeting_script update on reseed
+// ---------------------------------------------------------------------------
+
+const seedFnSource = readFileSync(
+  join(process.cwd(), "supabase/functions/seed-test-tenants/index.ts"),
+  "utf-8"
+);
+
+// ---------------------------------------------------------------------------
+// 9. OnboardingReview: booking label uses getAutoBookSummary (commit 9296fac)
+// ---------------------------------------------------------------------------
+
+const onboardingReviewSource = readFileSync(
+  join(process.cwd(), "src/components/onboarding/phases/OnboardingReview.tsx"),
+  "utf-8"
+);
+
+describe("OnboardingReview: auto_book label uses getAutoBookSummary — onboarding/correct_terminology", () => {
+  it("source imports getAutoBookSummary from industryTerminology", () => {
+    expect(onboardingReviewSource).toContain("getAutoBookSummary");
+  });
+
+  it("auto_book case uses getAutoBookSummary(appointmentLabel) not a hardcoded string", () => {
+    expect(onboardingReviewSource).toContain("getAutoBookSummary(appointmentLabel)");
+  });
+
+  it("old hardcoded 'Auto-booking enabled' string is NOT present (regression guard)", () => {
+    expect(onboardingReviewSource).not.toContain("Auto-booking enabled");
+  });
+
+  it("old hardcoded 'AI books instantly' string is NOT present (regression guard)", () => {
+    expect(onboardingReviewSource).not.toContain("AI books instantly");
+  });
+});
+
+describe("seed-test-tenants: greeting_script update on reseed — onboarding/complete_flow_works", () => {
+  it("seed function updates greeting_script on reseed", () => {
+    // The fix in 94a6abb added an explicit .update({ greeting_script: ... }) call
+    expect(seedFnSource).toContain("greeting_script");
+    expect(seedFnSource).toContain("config.name");
+  });
+
+  it("greeting_script template uses config.name (not hardcoded business name)", () => {
+    // Verify the update is parameterized, not hardcoded to old name
+    expect(seedFnSource).not.toContain("Prestige Auto Excellence");
+    expect(seedFnSource).not.toContain("greeting_script: `Thanks for calling Prestige Auto Group");
+  });
+
+  it("seed function targets ai_assistants table for greeting update", () => {
+    expect(seedFnSource).toContain("ai_assistants");
+  });
+});
