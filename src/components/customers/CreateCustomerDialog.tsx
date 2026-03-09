@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,6 +25,9 @@ interface CreateCustomerDialogProps {
 export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialogProps) {
   const { createCustomer } = useCustomers();
   const { tenant } = useAuth();
+  const { businessMode } = useTenantConfig();
+  const isProspect = businessMode === "sales";
+  const entityLabel = isProspect ? "Prospect" : "Customer";
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -66,7 +70,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
         .maybeSingle();
 
       if (existing) {
-        setDupWarning(`Customer "${existing.full_name}" already exists with this phone number.`);
+        setDupWarning(`${entityLabel} "${existing.full_name}" already exists with this phone number.`);
         return;
       }
     }
@@ -81,11 +85,11 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
         service_address: serviceAddress.trim() || undefined,
         source: "manual",
       });
-      toast.success("Customer created");
+      toast.success(`${entityLabel} created`);
       resetForm();
       onOpenChange(false);
     } catch {
-      toast.error("Failed to create customer");
+      toast.error(`Failed to create ${entityLabel.toLowerCase()}`);
     }
   };
 
@@ -93,9 +97,9 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Customer</DialogTitle>
+          <DialogTitle>Add {entityLabel}</DialogTitle>
           <DialogDescription>
-            Create a new customer record
+            Create a new {entityLabel.toLowerCase()} record
           </DialogDescription>
         </DialogHeader>
 
@@ -167,7 +171,7 @@ export function CreateCustomerDialog({ open, onOpenChange }: CreateCustomerDialo
             onClick={handleSubmit}
             disabled={createCustomer.isPending || !fullName.trim() || !phone.trim()}
           >
-            {createCustomer.isPending ? "Creating..." : "Add Customer"}
+            {createCustomer.isPending ? "Creating..." : `Add ${entityLabel}`}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -29,16 +29,20 @@ export function SalesDashboardLayout() {
   const { stats: leadStats, isLoading: leadsLoading } = useSalesLeads();
   const isLoading = drivesLoading || inventoryLoading || leadsLoading;
 
-  // Today's test drives
+  // Today's test drives — AI bookings use scheduled_date (string), manual bookings use scheduled_at (ISO timestamp)
   const todayDrives = testDrives.filter((d) => {
-    if (!d.scheduled_at) return false;
-    const date = new Date(d.scheduled_at);
     const now = new Date();
-    return (
-      date.getFullYear() === now.getFullYear() &&
-      date.getMonth() === now.getMonth() &&
-      date.getDate() === now.getDate()
-    );
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    if (d.scheduled_date) return d.scheduled_date.slice(0, 10) === todayStr;
+    if (d.scheduled_at) {
+      const date = new Date(d.scheduled_at);
+      return (
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate()
+      );
+    }
+    return false;
   });
 
   return (
@@ -167,7 +171,7 @@ export function SalesDashboardLayout() {
                     className="flex-shrink-0 rounded-lg border p-2.5 min-w-[140px] bg-primary/5 border-primary/20"
                   >
                     <p className="text-xs font-semibold tabular-nums">
-                      {d.scheduled_at ? format(parseISO(d.scheduled_at), "h:mm a") : "TBD"}
+                      {d.scheduled_time || (d.scheduled_at ? format(parseISO(d.scheduled_at), "h:mm a") : "TBD")}
                     </p>
                     <p className="text-xs font-medium truncate mt-1">
                       {d.customer?.full_name || "Prospect"}
