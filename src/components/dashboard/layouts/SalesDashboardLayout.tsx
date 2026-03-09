@@ -49,7 +49,7 @@ export function SalesDashboardLayout() {
     <div className="space-y-6">
       {/* Stats Row — adapts to car dealership vs other sales industries */}
       {isCarDealership ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
@@ -96,7 +96,7 @@ export function SalesDashboardLayout() {
           </Card>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
