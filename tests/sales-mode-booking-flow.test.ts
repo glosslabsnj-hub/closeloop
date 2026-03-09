@@ -183,6 +183,27 @@ describe("elevenlabs-reschedule-booking: reschedule flow — functional/reschedu
   it("handles CORS OPTIONS preflight", () => {
     expect(rescheduleBookingSource).toContain("OPTIONS");
   });
+
+  it("syncs test_drives scheduled_at when rescheduling (sales mode regression)", () => {
+    // Bug fixed: reschedule-booking previously only updated bookings + busy_blocks.
+    // For sales mode, the linked test_drive record also needs its scheduled_at updated.
+    // Otherwise the test drives dashboard shows the OLD date even after rescheduling.
+    expect(rescheduleBookingSource).toContain('"test_drives"');
+    expect(rescheduleBookingSource).toContain("scheduled_at");
+    // Verify the test_drives update is linked by booking_id (not just tenant_id)
+    const testDrivesUpdateIdx = rescheduleBookingSource.indexOf('"test_drives"');
+    const section = rescheduleBookingSource.slice(testDrivesUpdateIdx, testDrivesUpdateIdx + 300);
+    expect(section).toContain("booking_id");
+  });
+
+  it("test_drives sync runs AFTER booking update (order matters)", () => {
+    // The booking must be updated first, then test_drives.
+    // If test_drives update runs before booking update, a crash could leave data inconsistent.
+    const bookingUpdateIdx = rescheduleBookingSource.indexOf(".from(\"bookings\")");
+    const testDrivesUpdateIdx = rescheduleBookingSource.indexOf('"test_drives"');
+    expect(bookingUpdateIdx).toBeGreaterThan(-1);
+    expect(testDrivesUpdateIdx).toBeGreaterThan(bookingUpdateIdx);
+  });
 });
 
 // ---------------------------------------------------------------------------

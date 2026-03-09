@@ -446,6 +446,13 @@ serve(async (req: Request) => {
       .eq("booking_id", booking.id)
       .eq("is_active", true);
 
+    // For sales mode: sync the linked test_drive record to new date/time
+    await supabase
+      .from("test_drives")
+      .update({ scheduled_at: newStart.toISOString() })
+      .eq("tenant_id", resolvedTenantId)
+      .eq("booking_id", booking.id);
+
     const displayDate = formatDateDisplay(targetDate);
     const displayTime = formatTimeDisplay(targetTime);
 
