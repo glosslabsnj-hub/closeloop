@@ -300,10 +300,30 @@ export function useBookings() {
         }
       }
 
+      // Fire booking.cancelled workflow trigger for automations
+      if (tenant?.id) {
+        supabase.functions.invoke("trigger-workflow", {
+          body: {
+            tenant_id: tenant.id,
+            trigger: "booking.cancelled",
+            entity_type: "booking",
+            entity_id: id,
+          },
+        }).catch(() => { /* best-effort automation trigger */ });
+      }
+
+      // Notify owner about the cancellation via booking-handoff
+      if (tenant?.id) {
+        supabase.functions.invoke("booking-handoff", {
+          body: { booking_id: id, tenant_id: tenant.id, event: "cancelled" },
+        }).catch(() => { /* best-effort owner notification */ });
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
+      toast({ title: "Booking cancelled", description: "Appointment cancelled and synced." });
     },
     onError: () => {
       toast({ title: "Failed to cancel booking", description: "Please try again.", variant: "destructive" });

@@ -14,6 +14,7 @@ interface BookingHandoffRequest {
   booking_id?: string;
   tenant_id?: string;
   tenantId?: string;
+  event?: "created" | "confirmed" | "cancelled";
   test?: boolean;
   method?: string;
   webhook_url?: string;
@@ -76,7 +77,8 @@ serve(async (req) => {
 
   try {
     const body: BookingHandoffRequest = await req.json();
-    const { booking_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const { booking_id, event: eventType, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const isCancellation = eventType === "cancelled";
     const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
 
     // SECURITY: Validate access (user JWT or internal secret)
@@ -215,9 +217,10 @@ serve(async (req) => {
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Build payload
+    const payloadEventType = isCancellation ? "booking.cancelled" : (booking.status === "confirmed" ? "booking.confirmed" : "booking.created");
     const payload = {
       type: "booking",
-      event: "booking.created",
+      event: payloadEventType,
       tenant_id: tenantId,
       tenant_name: tenantData?.name,
       booking_id: booking.id,
@@ -251,7 +254,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           tenant_id: tenantId,
-          event_type: booking.status === "confirmed" ? "booking.confirmed" : "booking.created",
+          event_type: isCancellation ? "booking.cancelled" : (booking.status === "confirmed" ? "booking.confirmed" : "booking.created"),
           entity_type: "booking",
           entity_id: booking_id,
           actor_type: "system",
@@ -260,10 +263,12 @@ serve(async (req) => {
             customer_name: booking.lead?.full_name,
             scheduled_start: booking.start_at,
           },
-          confirmation_summary: booking.status === "confirmed"
+          confirmation_summary: isCancellation
+            ? `Booking cancelled: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString("en-US", { timeZone: tenantTimezone })}`
+            : booking.status === "confirmed"
             ? `Booking confirmed: ${booking.service?.name || "Service"} for ${booking.lead?.full_name || "Customer"} at ${new Date(booking.start_at).toLocaleString("en-US", { timeZone: tenantTimezone })}`
             : undefined,
-          confirmed_by: "staff",
+          confirmed_by: isCancellation ? "dashboard" : "staff",
         }),
       });
     } catch (e) {
@@ -331,11 +336,19 @@ serve(async (req) => {
           const startTime = new Date(payload.scheduled_start).toLocaleString("en-US", { timeZone: tenantTimezone });
           const businessName = payload.tenant_name || "Your Business";
 
-          const emailResult = await sendEmail({
-            to: settings.notify_email,
-            subject: `New Booking: ${customerName} — ${serviceName}`,
-            businessName,
-            html: `
+          const emailSubject = isCancellation
+            ? `Booking Cancelled: ${customerName} — ${serviceName}`
+            : `New Booking: ${customerName} — ${serviceName}`;
+          const emailHtml = isCancellation
+            ? `
+              <h2>Booking Cancelled</h2>
+              <p><strong>Customer:</strong> ${customerName}</p>
+              ${payload.customer.phone ? `<p><strong>Phone:</strong> ${payload.customer.phone}</p>` : ""}
+              <p><strong>Service:</strong> ${serviceName}</p>
+              <p><strong>Was Scheduled:</strong> ${startTime}</p>
+              ${payload.notes ? `<p><strong>Notes:</strong> ${payload.notes}</p>` : ""}
+            `.trim()
+            : `
               <h2>New Booking Received</h2>
               <p><strong>Customer:</strong> ${customerName}</p>
               ${payload.customer.phone ? `<p><strong>Phone:</strong> ${payload.customer.phone}</p>` : ""}
@@ -343,7 +356,13 @@ serve(async (req) => {
               <p><strong>Scheduled:</strong> ${startTime}</p>
               ${payload.notes ? `<p><strong>Notes:</strong> ${payload.notes}</p>` : ""}
               ${payload.deposit_required && !payload.deposit_paid ? `<p><em>Deposit required — not yet paid</em></p>` : ""}
-            `.trim(),
+            `.trim();
+
+          const emailResult = await sendEmail({
+            to: settings.notify_email,
+            subject: emailSubject,
+            businessName,
+            html: emailHtml,
           });
 
           results.email = { success: emailResult.success, error: emailResult.error };
@@ -362,7 +381,9 @@ serve(async (req) => {
           const customerName = booking.lead?.full_name || "Customer";
           const serviceName = booking.service?.name || "Service";
           const startTime = new Date(booking.start_at).toLocaleString("en-US", { timeZone: tenantTimezone });
-          const smsBody = `New booking: ${customerName} for ${serviceName} at ${startTime}`;
+          const smsBody = isCancellation
+            ? `Cancelled: ${customerName} for ${serviceName} (was ${startTime})`
+            : `New booking: ${customerName} for ${serviceName} at ${startTime}`;
 
           const smsResult = await sendTenantSms({
             tenantId,
@@ -396,6 +417,45 @@ serve(async (req) => {
           error_message: errorMessage,
         });
       }
+    }
+
+    // For cancellations: send customer SMS then return (skip calendar/Square — already handled by cancel flow)
+    if (isCancellation) {
+      try {
+        const customerPhone = booking.lead?.phone;
+        if (customerPhone) {
+          const smsTemplates = (assistSettingsRow?.settings_json as any)?.sms_templates;
+          const cancelConfig = smsTemplates?.appointment_cancellation;
+          const cancelEnabled = cancelConfig ? cancelConfig.enabled : true;
+
+          if (cancelEnabled) {
+            const apptLabel = getAppointmentLabel(tenantData?.business_mode || "service", tenantData?.industry);
+            const template = cancelConfig?.message ||
+              `Hi {{customer_name}}, your {{service_name}} with {{business_name}} has been cancelled. If you'd like to rebook, give us a call. Reply STOP to opt out.`;
+
+            const message = template
+              .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
+              .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
+              .replace(/\{\{service_name\}\}/g, booking.service?.name || apptLabel)
+              .replace(/\{\{appointment_time\}\}/g, new Date(booking.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tenantTimezone }))
+              .replace(/\{\{appointment_date\}\}/g, new Date(booking.start_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: tenantTimezone }));
+
+            const smsResult = await sendTenantSms({ tenantId, to: customerPhone, body: message });
+            if (smsResult.success) {
+              results.customer_cancellation = { success: true };
+              console.log(`[booking-handoff] Cancellation SMS sent for ${booking_id}`);
+            } else if (!smsResult.skipped) {
+              console.error(`[booking-handoff] Customer cancellation SMS failed:`, smsResult.error);
+            }
+          }
+        }
+      } catch (e) {
+        console.error("[booking-handoff] Customer cancellation SMS error:", e);
+      }
+
+      return new Response(JSON.stringify({ success: true, results }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Trigger workflow if any active workflow matches this event
