@@ -3687,13 +3687,13 @@ async function persistTestDrive(
 
   console.log(`[persistTestDrive] Created test drive: ${testDrive.id}`);
 
-  // Trigger test-drive-handoff
+  // Trigger test-drive-handoff (uses x-closeloop-secret, not Bearer token)
   try {
     await fetch(`${supabaseUrl}/functions/v1/test-drive-handoff`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${supabaseKey}`,
+        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || supabaseKey,
       },
       body: JSON.stringify({
         tenant_id: tenantId,
