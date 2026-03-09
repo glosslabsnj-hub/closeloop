@@ -318,7 +318,8 @@ Deno.serve(async (req) => {
           error_message: `Booking sync failed: ${JSON.stringify(createRes.data.errors?.[0]?.detail || createRes.data)}`.substring(0, 500),
           updated_at: new Date().toISOString(),
         })
-        .eq("id", integration.id);
+        .eq("tenant_id", tenant_id)
+      .eq("provider", "square_pos");
 
       return jsonResponse({
         success: false,
@@ -347,7 +348,8 @@ Deno.serve(async (req) => {
         last_tested_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", integration.id);
+      .eq("tenant_id", tenant_id)
+      .eq("provider", "square_pos");
 
     return jsonResponse({
       success: true,

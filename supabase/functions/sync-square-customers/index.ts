@@ -313,7 +313,8 @@ Deno.serve(async (req) => {
         last_tested_at: new Date().toISOString(),
         error_message: null,
       })
-      .eq("id", integration.id);
+      .eq("tenant_id", effectiveTenantId)
+      .eq("provider", "square_pos");
 
     console.log(`[sync-square-customers] Done: imported=${stats.imported}, updated=${stats.updated}, pushed=${stats.pushed_to_square}, skipped_no_phone=${stats.skipped_no_phone}, skipped_dup=${stats.skipped_duplicate}, errors=${stats.errors}`);
 
