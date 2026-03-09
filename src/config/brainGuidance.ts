@@ -262,10 +262,11 @@ export const SECTION_GUIDANCE: Record<string, SectionGuidance> = {
     },
   },
   "service-coverage": {
-    what: "Configure scheduling rules — how far out customers can book and how long each slot lasts.",
-    why: "Prevents your AI from scheduling {{appointmentLabelPlural}} too far in advance or not leaving enough time between {{appointmentLabelPlural}}.",
+    what: "Set same-day availability, travel time between {{appointmentLabelPlural}}, and default visit duration.",
+    why: "Your AI uses these to schedule accurately — it won't promise same-day if you're cut off, and won't stack {{appointmentLabelPlural}} without travel time.",
     tips: {
-      default: "Set realistic buffer times between {{appointmentLabelPlural}} to avoid running behind schedule.",
+      default: "Add a 15-30 minute travel buffer between {{appointmentLabelPlural}} so you're never running late to the next customer.",
+      service: "If most of your work is scheduled in advance (not emergency), turn off same-day and set your typical {{appointmentLabel}} duration.",
     },
   },
   "workload": {
