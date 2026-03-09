@@ -26,6 +26,23 @@ import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const cleaned = phone.replace(/\D/g, "");
+  if (cleaned.length === 11 && cleaned.startsWith("1")) {
+    return `(${cleaned.slice(1, 4)}) ${cleaned.slice(4, 7)}-${cleaned.slice(7)}`;
+  }
+  if (cleaned.length === 10) {
+    return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  return phone;
+}
+
+function formatTimeline(value: string | null | undefined): string {
+  if (!value) return "";
+  return value.replace(/_/g, " ");
+}
+
 const ALL_PIPELINE_COLUMNS = [
   { key: "new", label: "New", color: "bg-blue-500", dealerOnly: false },
   { key: "contacted", label: "Contacted", color: "bg-yellow-500", dealerOnly: false },
@@ -157,7 +174,7 @@ export default function SalesPipelinePage() {
                               </span>
                             </div>
                             <Badge className={cn("text-[10px] px-1.5", priorityColors[lead.priority])}>
-                              {lead.priority}
+                              {lead.priority.charAt(0).toUpperCase() + lead.priority.slice(1)}
                             </Badge>
                           </div>
 
@@ -171,13 +188,13 @@ export default function SalesPipelinePage() {
                             {lead.customer?.phone_e164 && (
                               <span className="flex items-center gap-1">
                                 <Phone className="h-3 w-3" />
-                                {lead.customer.phone_e164}
+                                {formatPhone(lead.customer.phone_e164)}
                               </span>
                             )}
                             {lead.timeline && (
                               <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3" />
-                                {lead.timeline.replace("_", " ")}
+                                {formatTimeline(lead.timeline)}
                               </span>
                             )}
                           </div>
@@ -231,7 +248,7 @@ export default function SalesPipelinePage() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Badge className={cn("text-xs", priorityColors[selectedLead.priority])}>
-                  {selectedLead.priority} priority
+                  {selectedLead.priority.charAt(0).toUpperCase() + selectedLead.priority.slice(1)} priority
                 </Badge>
                 {selectedLead.lead_number && (
                   <span className="text-xs text-muted-foreground">{selectedLead.lead_number}</span>
@@ -242,7 +259,7 @@ export default function SalesPipelinePage() {
                 {selectedLead.customer?.phone_e164 && (
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{selectedLead.customer.phone_e164}</span>
+                    <span>{formatPhone(selectedLead.customer.phone_e164)}</span>
                   </div>
                 )}
                 {selectedLead.customer?.email && (
@@ -268,7 +285,7 @@ export default function SalesPipelinePage() {
                 {selectedLead.timeline && (
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span>Timeline: {selectedLead.timeline.replace("_", " ")}</span>
+                    <span>Timeline: {formatTimeline(selectedLead.timeline)}</span>
                   </div>
                 )}
                 {selectedLead.assigned_sales_rep && (

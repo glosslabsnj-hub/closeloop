@@ -380,6 +380,12 @@ export function IntegrationConnectDialog({
                         ? "https://help.housecallpro.com/en/articles/8229791-api-documentation"
                         : providerId === "onfleet"
                         ? "https://docs.onfleet.com/docs/authentication"
+                        : providerId === "workiz"
+                        ? "https://help.workiz.com/en/articles/6047777-workiz-open-api"
+                        : providerId === "towbook"
+                        ? "https://towbook.com/developers"
+                        : providerId === "samsara"
+                        ? "https://developers.samsara.com/docs/authentication"
                         : "https://support.getfluxdata.com/integrations/api-keys"
                     }
                     target="_blank"
