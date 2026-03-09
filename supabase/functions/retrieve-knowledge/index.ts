@@ -55,8 +55,11 @@ function getIntentBoost(intent: string, sourceType: string): number {
     location: { faq: 0.3 },
     objection: { objection: 0.5 },
     urgent: { policy: 0.3 },
+    // general/faq: services always show up so users can discover what's available
+    general: { service: 0.15, faq: 0.1 },
+    faq: { service: 0.15, faq: 0.2 },
   };
-  
+
   return boosts[intent]?.[sourceType] || 0;
 }
 
@@ -136,7 +139,8 @@ serve(async (req) => {
 
     // Process services
     for (const svc of servicesResult.data || []) {
-      const searchText = `${svc.name} ${svc.description || ''} ${svc.preparation_instructions || ''}`;
+      // Include "service" keyword so generic queries ("what services do you offer?") always match
+      const searchText = `${svc.name} service ${svc.description || ''} ${svc.preparation_instructions || ''}`;
       const baseScore = calculateRelevance(queryText, searchText);
       const intentBoost = getIntentBoost(detectedIntent, 'service');
       
