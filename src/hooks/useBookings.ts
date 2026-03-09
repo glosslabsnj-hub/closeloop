@@ -295,7 +295,7 @@ export function useBookings() {
             },
           });
         } catch (squareErr) {
-          console.error("Square cancel sync failed:", squareErr);
+          console.error("[useBookings] Square cancel sync failed:", squareErr);
           // Don't fail the whole operation if Square sync fails
         }
       }
@@ -359,7 +359,7 @@ export function useBookings() {
             },
           });
         } catch (squareErr) {
-          console.error("Square cancel sync failed:", squareErr);
+          console.error("[useBookings] Square cancel sync failed:", squareErr);
         }
       }
 
