@@ -76,6 +76,22 @@ describe("brainModeLayout: SALES_LAYOUT — brain/relevant_sections_only", () =>
     expect(salesLayoutBlock).toContain("sales-policies");
   });
 
+  it("has 'lead-pipeline' itemId in training tab (Sales Pipeline group)", () => {
+    expect(salesLayoutBlock).toContain('"lead-pipeline"');
+  });
+
+  it("has 'follow-up-sequences' itemId in training tab (Sales Pipeline group)", () => {
+    expect(salesLayoutBlock).toContain('"follow-up-sequences"');
+  });
+
+  it("has 'sales-scripts' itemId in training tab (Sales Objection Playbook)", () => {
+    expect(salesLayoutBlock).toContain('"sales-scripts"');
+  });
+
+  it("has 'Sales Pipeline' group in training tab", () => {
+    expect(salesLayoutBlock).toContain("Sales Pipeline");
+  });
+
   it("has 'catalog' itemId in products tab", () => {
     expect(salesLayoutBlock).toContain('"catalog"');
   });
@@ -711,5 +727,62 @@ describe("seed-test-tenants: greeting_script update on reseed — onboarding/com
 
   it("seed function targets ai_assistants table for greeting update", () => {
     expect(seedFnSource).toContain("ai_assistants");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// brainSectionRegistry — sales-specific sections wired up
+// ---------------------------------------------------------------------------
+
+const registrySrc = readFileSync(
+  join(process.cwd(), "src/config/brainSectionRegistry.ts"),
+  "utf-8"
+);
+
+describe("brainSectionRegistry — sales pipeline sections regression", () => {
+  it("lead-pipeline is defined in registry", () => {
+    expect(registrySrc).toContain('"lead-pipeline"');
+  });
+
+  it("follow-up-sequences is defined in registry", () => {
+    expect(registrySrc).toContain('"follow-up-sequences"');
+  });
+
+  it("sales-scripts is defined in registry", () => {
+    expect(registrySrc).toContain('"sales-scripts"');
+  });
+
+  it("lead-pipeline has isSalesBusiness visibility guard", () => {
+    const pipelineIdx = registrySrc.indexOf('"lead-pipeline"');
+    const pipelineBlock = registrySrc.slice(pipelineIdx, pipelineIdx + 300);
+    expect(pipelineBlock).toContain("isSalesBusiness");
+  });
+
+  it("follow-up-sequences has isSalesBusiness visibility guard", () => {
+    const idx = registrySrc.indexOf('"follow-up-sequences"');
+    const block = registrySrc.slice(idx, idx + 300);
+    expect(block).toContain("isSalesBusiness");
+  });
+
+  it("sales-scripts has isSalesBusiness visibility guard", () => {
+    const idx = registrySrc.indexOf('"sales-scripts"');
+    const block = registrySrc.slice(idx, idx + 300);
+    expect(block).toContain("isSalesBusiness");
+  });
+
+  it("all three sales pipeline items are in the training tab", () => {
+    const pipelineIdx = registrySrc.indexOf('"lead-pipeline"');
+    const block = registrySrc.slice(pipelineIdx, pipelineIdx + 600);
+    expect(block).toContain('"training"');
+  });
+
+  it("BrainEditorRenderer has case for lead-pipeline", () => {
+    const rendererSrc = readFileSync(
+      join(process.cwd(), "src/components/brain/layout/BrainEditorRenderer.tsx"),
+      "utf-8"
+    );
+    expect(rendererSrc).toContain('case "lead-pipeline"');
+    expect(rendererSrc).toContain('case "follow-up-sequences"');
+    expect(rendererSrc).toContain('case "sales-scripts"');
   });
 });

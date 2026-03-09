@@ -256,6 +256,36 @@ const SERVICES_ITEMS: BrainSectionItem[] = [
     tab: "services",
     isVisible: (_mode, caps) => caps.isSalesBusiness,
   },
+  {
+    id: "lead-pipeline",
+    title: "Lead Pipeline",
+    icon: GitBranch,
+    group: "sales-pipeline",
+    groupLabel: "Sales Pipeline",
+    order: 1,
+    tab: "training",
+    isVisible: (_mode, caps) => caps.isSalesBusiness,
+  },
+  {
+    id: "follow-up-sequences",
+    title: "Follow-Up Sequences",
+    icon: Send,
+    group: "sales-pipeline",
+    groupLabel: "Sales Pipeline",
+    order: 2,
+    tab: "training",
+    isVisible: (_mode, caps) => caps.isSalesBusiness,
+  },
+  {
+    id: "sales-scripts",
+    title: "Sales Objection Playbook",
+    icon: MessageSquareText,
+    group: "sales-pipeline",
+    groupLabel: "Sales Pipeline",
+    order: 3,
+    tab: "training",
+    isVisible: (_mode, caps) => caps.isSalesBusiness,
+  },
 ];
 
 // ─── Operations Tab ─────────────────────────────────────────────────────────

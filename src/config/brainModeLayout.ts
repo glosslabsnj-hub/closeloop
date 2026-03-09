@@ -426,6 +426,7 @@ const SALES_LAYOUT: ModeLayout = {
       order: 4,
       groups: [
         { key: "ai-behavior", label: "How Your AI Acts", itemIds: ["ai-behavior-mode", "scripts"] },
+        { key: "sales-pipeline", label: "Sales Pipeline", itemIds: ["lead-pipeline", "follow-up-sequences", "sales-scripts"] },
         { key: "business-rules", label: "Business Rules", itemIds: ["policies", "never-promise", "required-questions", "custom-policies", "guidelines"] },
         { key: "knowledge", label: "Knowledge Base", itemIds: ["review", "faqs", "objections"] },
         { key: "industry-knowledge", label: "Industry Expertise", itemIds: ["product-knowledge"] },
