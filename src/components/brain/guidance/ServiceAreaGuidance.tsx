@@ -57,6 +57,20 @@ const SERVICE_AREA_EXAMPLES: SectionExample[] = [
     ],
   },
   {
+    mode: "sales",
+    label: "Car Dealership / Sales",
+    examples: [
+      {
+        field: "Showroom coverage summary",
+        value: "We're located in Cherry Hill, NJ and can deliver vehicles within 100 miles.",
+      },
+      {
+        field: "Out-of-area message",
+        value: "We're based in Cherry Hill, but we can arrange delivery or work with you remotely on financing. Want me to have a sales rep call you?",
+      },
+    ],
+  },
+  {
     mode: "general",
     label: "General Business",
     examples: [
@@ -115,6 +129,9 @@ export function ServiceAreaGuidance({
   } else if (businessMode === "medical") {
     industryTips.push("Patients may travel farther for specialists — consider a wider coverage area.");
     industryTips.push("If you offer telehealth, you can serve patients statewide.");
+  } else if (businessMode === "sales") {
+    industryTips.push("Most dealerships set a 50-100 mile delivery radius. Buyers outside that can still visit the showroom.");
+    industryTips.push("For out-of-area callers, offer a remote deal option — many buyers finance and ship without visiting.");
   }
 
   return (

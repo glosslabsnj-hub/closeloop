@@ -406,16 +406,24 @@ export function ServiceAreaManager() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MapPin className="h-5 w-5" />
-            Service Area Configuration
+            {businessMode === "sales"
+              ? "Showroom & Delivery Coverage"
+              : "Service Area Configuration"}
           </CardTitle>
           <CardDescription>
-            Define where your business provides services. Exclusions always override inclusions.
+            {businessMode === "sales"
+              ? "Define your showroom location and what area you can deliver or conduct test drives in. Exclusions always override inclusions."
+              : "Define where your business provides services. Exclusions always override inclusions."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Coverage Mode */}
           <div className="space-y-2">
-            <Label>How do you define your service area?</Label>
+            <Label>
+              {businessMode === "sales"
+                ? "How do you define your showroom's coverage area?"
+                : "How do you define your service area?"}
+            </Label>
             <Select
               value={formData.mode}
               onValueChange={(value) => updateForm({ mode: value as CoverageMode })}
@@ -688,7 +696,7 @@ export function ServiceAreaManager() {
             <Button onClick={handleSave} disabled={isSaving || !hasChanges}>
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               <Save className="h-4 w-4 mr-2" />
-              Save Service Area
+              {businessMode === "sales" ? "Save Coverage Area" : "Save Service Area"}
             </Button>
           </div>
         </CardContent>
