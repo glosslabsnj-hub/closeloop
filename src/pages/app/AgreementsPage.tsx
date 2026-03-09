@@ -155,8 +155,14 @@ export default function AgreementsPage() {
   const { businessMode } = useTenantConfig();
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking", "job_tracking"]);
   const { agreements, isLoading, error: agreementsError, refetch, stats, cancelAgreement, deleteAgreement } = useServiceAgreements();
-  const pageTitle = businessMode === "sales" ? "Purchase Agreements" : businessMode === "dispatch" ? "Service Agreements" : businessMode === "medical" ? "Patient Agreements" : "Service Agreements";
-  const pageDesc = businessMode === "sales" ? "Manage financing plans and purchase agreements" : businessMode === "medical" ? "Manage patient care plans and coverage agreements" : "Manage recurring maintenance plans and membership programs";
+  const pageTitle = businessMode === "sales" ? "Sales Agreements" : businessMode === "dispatch" ? "Service Agreements" : businessMode === "medical" ? "Patient Agreements" : "Service Agreements";
+  const pageDesc = businessMode === "sales" ? "Manage purchase agreements and financing plans for customers" : businessMode === "medical" ? "Manage patient care plans and coverage agreements" : "Manage recurring maintenance plans and membership programs";
+  const agreementLabel = businessMode === "sales" ? "purchase agreement" : businessMode === "medical" ? "patient agreement" : "service agreement";
+  const agreementLabelPlural = businessMode === "sales" ? "purchase agreements" : businessMode === "medical" ? "patient agreements" : "service agreements";
+  const createDialogTitle = businessMode === "sales" ? "Create Purchase Agreement" : businessMode === "medical" ? "Create Patient Agreement" : "Create Service Agreement";
+  const createDialogDesc = businessMode === "sales" ? "Set up a purchase agreement or financing plan for your customer." : businessMode === "medical" ? "Set up a care plan or coverage agreement for your patient." : "Set up a recurring maintenance plan or membership for your customer.";
+  const emptyStateTitle = businessMode === "sales" ? "No purchase agreements yet" : businessMode === "medical" ? "No patient agreements yet" : "No service agreements yet";
+  const emptyStateDesc = businessMode === "sales" ? "Create purchase agreements and financing plans to track customer commitments and close more deals." : businessMode === "medical" ? "Create care plans and coverage agreements to manage patient relationships." : "Create maintenance plans to generate recurring revenue and keep customers engaged.";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -240,7 +246,7 @@ export default function AgreementsPage() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-7 w-7 text-destructive" />
               </div>
-              <h2 className="text-xl font-semibold">Couldn't load your service agreements</h2>
+              <h2 className="text-xl font-semibold">Couldn't load your {agreementLabelPlural}</h2>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 This is usually a temporary connection issue. Try again, or come back in a minute.
               </p>
@@ -260,7 +266,7 @@ export default function AgreementsPage() {
   }
 
   return (
-    <ErrorBoundary context="loading your service agreements">
+    <ErrorBoundary context={`loading your ${agreementLabelPlural}`}>
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<FileCheck className="h-5 w-5" />}
@@ -375,13 +381,13 @@ export default function AgreementsPage() {
             {filteredAgreements.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <FileCheck className="h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-lg font-medium">No service agreements yet</h3>
+                <h3 className="text-lg font-medium">{emptyStateTitle}</h3>
                 <p className="text-muted-foreground mb-4">
-                  Create maintenance plans to generate recurring revenue and keep customers engaged.
+                  {emptyStateDesc}
                 </p>
                 <Button onClick={handleCreateNew}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Agreement
+                  New {businessMode === "sales" ? "Purchase" : businessMode === "medical" ? "Patient" : "Service"} Agreement
                 </Button>
               </div>
             ) : (
@@ -406,10 +412,10 @@ export default function AgreementsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editingAgreement ? "Edit Agreement" : "Create Service Agreement"}
+              {editingAgreement ? "Edit Agreement" : createDialogTitle}
             </DialogTitle>
             <DialogDescription>
-              Set up a recurring maintenance plan or membership for your customer.
+              {createDialogDesc}
             </DialogDescription>
           </DialogHeader>
           <AgreementBuilder
@@ -426,7 +432,7 @@ export default function AgreementsPage() {
           <DialogHeader>
             <DialogTitle>Cancel Agreement</DialogTitle>
             <DialogDescription>
-              Are you sure you want to cancel this service agreement? The customer will no longer receive scheduled services.
+              Are you sure you want to cancel this {agreementLabel}? {businessMode === "sales" ? "The customer's financing plan will be terminated." : businessMode === "medical" ? "The patient will no longer be covered under this plan." : "The customer will no longer receive scheduled services."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
