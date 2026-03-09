@@ -656,7 +656,7 @@ const serviceTenants: TestTenantConfig[] = [
       unknownQuestionBehavior: "offer_callback",
     },
     seedData: {
-      callCount: 8,
+      callCount: 0, // overridden by customCallSessions
       faqCount: 8,
       serviceCount: 10,
       bookingCount: 3,
@@ -688,6 +688,18 @@ const serviceTenants: TestTenantConfig[] = [
         { objection: "That timeline is too long", response: "I understand you'd like to move faster. Let me get you scheduled for an estimate so we can discuss timeline options and see what we can do.", priority_weight: 3 },
         { objection: "That's too expensive", response: "I hear you. We use quality materials and stand behind our work with a warranty. We also offer financing options that make larger projects more manageable. Want me to go over those?", priority_weight: 2 },
         { objection: "I need to think about it", response: "Of course, take your time. I'll send you a written estimate with all the details. Just know our schedule fills up, especially in spring and summer, so locking in early gets you the best timeline.", priority_weight: 1 },
+      ],
+      customCallSessions: [
+        { caller_phone: "+18565550001", outcome: "booked", summary: "Homeowner called about a full kitchen remodel — wants to update cabinets, countertops, and add an island. Budget around $40k. Free estimate scheduled for Thursday at 10am. Caller said they got our number from a neighbor in Voorhees.", lead_score: "hot", followup_status: "completed", hours_ago: 3, duration_seconds: 245 },
+        { caller_phone: "+18565550002", outcome: "followup", summary: "Customer asking about cost to finish their 800 sqft basement — wants a media room and a full bathroom added. Explained typical range $25k–$45k depending on finishes and plumbing roughin. Interested but wants to discuss with spouse. Follow-up call scheduled for Monday.", lead_score: "warm", followup_status: "new", hours_ago: 7, duration_seconds: 190 },
+        { caller_phone: "+18565550003", outcome: "booked", summary: "Homeowner wants a 16x20 composite deck with built-in benches before Memorial Day. Urgency confirmed — project must start within 3 weeks. Free estimate booked for Friday 8am. Very motivated buyer, prime lead.", lead_score: "hot", followup_status: "completed", hours_ago: 11, duration_seconds: 175 },
+        { caller_phone: "+18565550004", outcome: "booked", summary: "Customer has a master bathroom that needs a complete gut renovation — tile work, new vanity, shower conversion, and new fixtures. Estimate appointment set for next Tuesday at 9am. Also asked about financing — confirmed we offer options.", lead_score: "hot", followup_status: "completed", hours_ago: 18, duration_seconds: 210 },
+        { caller_phone: "+18565550005", outcome: "booked", summary: "Small handyman request — customer needs two interior doors rehung, a drywall patch in the hallway, and a ceiling fan swapped out. Quoted $150–$250 flat rate. Direct booking confirmed for this Saturday morning at 9am.", lead_score: "warm", followup_status: "completed", hours_ago: 24, duration_seconds: 130 },
+        { caller_phone: "+18565550006", outcome: "followup", summary: "Caller comparing 3 contractors for a room addition over the garage — 500 sqft, full HVAC extension needed. Asked if we pull permits (confirmed yes). Timeline concern — wants it done before Thanksgiving. Sent follow-up info via text. Awaiting callback to schedule estimate.", lead_score: "warm", followup_status: "new", hours_ago: 30, duration_seconds: 220 },
+        { caller_phone: "+18565550007", outcome: "lost", summary: "Caller located in Philadelphia Center City — requested commercial renovation quote for a retail space buildout. Explained our residential service area (South Jersey suburbs, max 30-mile radius from Cherry Hill). Could not accommodate commercial or Philly proper. Referred to commercial GC directory.", lead_score: "cool", followup_status: "lost", hours_ago: 36, duration_seconds: 95 },
+        { caller_phone: "+18565550008", outcome: "booked", summary: "Storm damage emergency — large tree branch fell through the back porch roof last night. Customer needs temporary tarping and structural assessment ASAP. Scheduled emergency site visit for this afternoon at 2pm. May develop into a full porch rebuild project.", lead_score: "hot", followup_status: "completed", hours_ago: 42, duration_seconds: 185 },
+        { caller_phone: "+18565550009", outcome: "followup", summary: "Homeowner wants to convert their attached 2-car garage into a living space — potential $60k+ project. Very early stage — just exploring. Asked about permit requirements and if the project would affect property taxes. Sent info packet, estimate scheduled for two weeks out.", lead_score: "warm", followup_status: "new", hours_ago: 48, duration_seconds: 260 },
+        { caller_phone: "+18565550010", outcome: "lost", summary: "Caller asked about whole-home renovation across 4 bathrooms, kitchen, and master suite — potential $150k+ project. Requested timeline within 4 months. After discussing our current 8-week lead time, caller said they cannot wait and will go with another contractor already on-site. Could not accommodate the timeline.", lead_score: "warm", followup_status: "lost", hours_ago: 54, duration_seconds: 200 },
       ],
     },
   },
