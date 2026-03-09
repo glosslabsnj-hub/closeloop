@@ -16,7 +16,7 @@ export interface CustomService {
   description?: string;
   duration_minutes: number;
   price_amount: number;
-  price_type?: "fixed" | "quote_only" | "deposit_based" | "starting_at";
+  price_type?: "fixed" | "quote_only" | "deposit_based" | "starting_at" | "free";
   service_category?: string;
   display_order?: number;
 }
