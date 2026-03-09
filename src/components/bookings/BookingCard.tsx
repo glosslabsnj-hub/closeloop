@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck } from "lucide-react";
+import { MoreVertical, Pencil, Phone, X, MessageSquare, CalendarClock, CheckCircle2, UserCheck, Globe, PhoneCall, SquareIcon, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatBookingDate, formatBookingTime, formatBookingDatetime } from "@/lib/formatBookingTime";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,13 @@ export const bookingStatusLabels: Record<string, string> = {
   completed: "Completed",
   canceled: "Cancelled",
   no_show: "No Show",
+};
+
+const bookingSourceConfig: Record<string, { label: string; icon: typeof Globe; color: string }> = {
+  website: { label: "Website", icon: Globe, color: "bg-blue-50 text-blue-600 border-blue-200" },
+  phone_ai: { label: "Phone", icon: PhoneCall, color: "bg-violet-50 text-violet-600 border-violet-200" },
+  square_direct: { label: "Manual", icon: User, color: "bg-gray-50 text-gray-600 border-gray-200" },
+  square_online: { label: "Square", icon: SquareIcon, color: "bg-green-50 text-green-600 border-green-200" },
 };
 
 interface BookingCardProps {
@@ -68,6 +75,19 @@ export function BookingCard({ booking, onEdit, onCancel, onApprove, onComplete }
             {formatBookingDate(booking.start_at, tenantTz)} at {formatBookingTime(booking.start_at, tenantTz)}
           </span>
           <div className="flex items-center gap-1.5 shrink-0">
+            {(booking as any).booking_source && bookingSourceConfig[(booking as any).booking_source] && (() => {
+              const src = bookingSourceConfig[(booking as any).booking_source];
+              const Icon = src.icon;
+              return (
+                <Badge
+                  variant="outline"
+                  className={cn("text-[11px] h-5 gap-0.5", src.color)}
+                >
+                  <Icon className="h-3 w-3" />
+                  {src.label}
+                </Badge>
+              );
+            })()}
             {(booking as any).customer_confirmed_at && (
               <Badge
                 variant="outline"

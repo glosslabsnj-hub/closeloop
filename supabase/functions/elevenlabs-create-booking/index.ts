@@ -602,6 +602,7 @@ serve(async (req: Request) => {
         notes: bookingNotes,
         session_id: sessionId,
         price_cents: resolvedPriceCents,
+        booking_source: "phone_ai",
       })
       .select("id")
       .single();

@@ -241,10 +241,31 @@ async function handleSquareWebhook(
     if (squareBookingId && tenantId) {
       console.log(`[square-webhook] Booking event: ${eventType}, id: ${squareBookingId}, status: ${squareBooking?.status}`);
 
-      // Check if this booking exists in our system (synced from Flux or from Square)
+      // ─── SOURCE DETECTION ────────────────────────────────────────
+      // Determine where this booking came from based on Square's source field
+      // and any tags embedded in the customer note
+      const squareSource = squareBooking?.source || body.data?.object?.booking?.source || "";
+      const customerNote = squareBooking?.customer_note || "";
+      let bookingSource = "unknown";
+
+      if (customerNote.includes("[source:website]")) {
+        bookingSource = "website";
+      } else if (customerNote.includes("[source:phone_ai]")) {
+        bookingSource = "phone_ai";
+      } else if (squareSource === "FIRST_PARTY_MERCHANT") {
+        bookingSource = "square_direct"; // Jack created it manually
+      } else if (squareSource === "FIRST_PARTY_CUSTOMER") {
+        bookingSource = "square_online"; // Customer self-booked via Square
+      } else if (squareSource === "API") {
+        bookingSource = "api_unknown"; // API but no tag — legacy or unknown
+      }
+
+      console.log(`[square-webhook] Source: ${bookingSource} (square_source: ${squareSource}, note_tags: ${customerNote.includes("[source:") ? "yes" : "no"})`);
+
+      // Check if this booking already exists in Flux (synced from Flux or from Square)
       const { data: fluxBooking } = await supabase
         .from("bookings")
-        .select("id, status, end_at, start_at, lead_id, service_id")
+        .select("id, status, end_at, start_at, lead_id, service_id, booking_source")
         .eq("tenant_id", tenantId)
         .eq("external_event_id", squareBookingId)
         .maybeSingle();
@@ -259,27 +280,23 @@ async function handleSquareWebhook(
 
       const squareStatus = squareBooking?.status;
 
-      if (squareStatus === "COMPLETED" || squareStatus === "completed") {
-        if (fluxBooking && fluxBooking.status !== "completed") {
-          // Mark Flux booking as completed so cron-review-requests picks it up
-          const endAt = squareBooking?.start_at
-            ? new Date(new Date(squareBooking.start_at).getTime() +
-                (squareBooking?.appointment_segments?.[0]?.duration_minutes || 60) * 60000).toISOString()
-            : fluxBooking.end_at || new Date().toISOString();
-
-          await supabase
-            .from("bookings")
-            .update({
-              status: "completed",
-              end_at: endAt,
-            })
-            .eq("id", fluxBooking.id);
-
-          console.log(`[square-webhook] Marked booking ${fluxBooking.id} as completed`);
-        } else if (!fluxBooking && busyBlock) {
-          // Square-originated booking completed. Create a booking record so
-          // review requests can be sent. We need customer info from Square.
+      // ─── NEW BOOKING (ACCEPTED/PENDING) ──────────────────────────
+      if (squareStatus === "ACCEPTED" || squareStatus === "PENDING" || squareStatus === "accepted" || squareStatus === "pending") {
+        if (fluxBooking) {
+          // Booking already exists in Flux — just update booking_source if missing
+          if (!fluxBooking.booking_source && bookingSource !== "unknown") {
+            await supabase
+              .from("bookings")
+              .update({ booking_source: bookingSource })
+              .eq("id", fluxBooking.id);
+            console.log(`[square-webhook] Updated booking_source to ${bookingSource} for ${fluxBooking.id}`);
+          }
+        } else {
+          // No Flux booking exists — this is a Square-originated booking
+          // Create a Flux record so it shows up in the dashboard
           const customerId = squareBooking?.customer_id;
+          let leadId: string | null = null;
+
           if (customerId) {
             // Find customer in our system by square_customer_id
             const { data: customer } = await supabase
@@ -290,7 +307,145 @@ async function handleSquareWebhook(
               .maybeSingle();
 
             if (customer) {
-              // Find or create a lead for this customer
+              // Find existing lead by phone
+              const { data: existingLead } = await supabase
+                .from("leads")
+                .select("id")
+                .eq("tenant_id", tenantId)
+                .eq("phone", customer.phone_e164)
+                .maybeSingle();
+
+              if (existingLead) {
+                leadId = existingLead.id;
+              } else {
+                const { data: newLead } = await supabase
+                  .from("leads")
+                  .insert({
+                    tenant_id: tenantId,
+                    full_name: customer.full_name,
+                    phone: customer.phone_e164,
+                    source: "square",
+                    status: "new",
+                  })
+                  .select("id")
+                  .single();
+                leadId = newLead?.id || null;
+              }
+            } else {
+              // Customer not synced yet — try to get info from Square booking
+              const customerName = squareBooking?.customer_note?.split("\n")?.[0] || "Square Customer";
+              const { data: newLead } = await supabase
+                .from("leads")
+                .insert({
+                  tenant_id: tenantId,
+                  full_name: customerName,
+                  source: "square",
+                  status: "new",
+                })
+                .select("id")
+                .single();
+              leadId = newLead?.id || null;
+            }
+          }
+
+          if (leadId) {
+            const startAt = squareBooking?.start_at;
+            const durationMin = squareBooking?.appointment_segments?.[0]?.duration_minutes || 60;
+            const endAt = startAt
+              ? new Date(new Date(startAt).getTime() + durationMin * 60000).toISOString()
+              : new Date(Date.now() + durationMin * 60000).toISOString();
+
+            // Strip source tags from notes before saving
+            const cleanNote = customerNote.replace(/\s*\[source:\w+\]/g, "").trim() || null;
+
+            const { data: newBooking } = await supabase
+              .from("bookings")
+              .insert({
+                tenant_id: tenantId,
+                lead_id: leadId,
+                start_at: startAt || new Date().toISOString(),
+                end_at: endAt,
+                status: squareStatus.toLowerCase() === "accepted" ? "confirmed" : "pending",
+                external_event_id: squareBookingId,
+                external_provider: "square",
+                booking_source: bookingSource,
+                notes: cleanNote,
+              })
+              .select("id")
+              .single();
+
+            console.log(`[square-webhook] Created Flux booking ${newBooking?.id} from Square (source: ${bookingSource})`);
+
+            // Create busy_block to prevent double-booking
+            if (startAt) {
+              await supabase.from("busy_blocks").insert({
+                tenant_id: tenantId,
+                booking_id: newBooking?.id,
+                start_at: startAt,
+                end_at: endAt,
+                external_event_id: `square_${squareBookingId}`,
+                block_type: "confirmed_booking",
+                is_active: true,
+              });
+            }
+
+            // ─── NOTIFICATION DEDUP ──────────────────────────────────
+            // Website and AI phone already sent SMS — skip notifications for those
+            // Square direct/online bookings need notifications via booking-handoff
+            const shouldNotify = bookingSource === "square_direct" || bookingSource === "square_online";
+
+            if (shouldNotify && newBooking?.id) {
+              try {
+                const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+                const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+                await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || serviceKey,
+                  },
+                  body: JSON.stringify({
+                    booking_id: newBooking.id,
+                    tenant_id: tenantId,
+                  }),
+                });
+                console.log(`[square-webhook] Triggered booking-handoff for ${newBooking.id}`);
+              } catch (e) {
+                console.error("[square-webhook] Failed to trigger booking-handoff:", e);
+              }
+            } else {
+              console.log(`[square-webhook] Skipping notifications for ${bookingSource} booking (already notified by source channel)`);
+            }
+          }
+        }
+      }
+
+      // ─── COMPLETED ───────────────────────────────────────────────
+      if (squareStatus === "COMPLETED" || squareStatus === "completed") {
+        if (fluxBooking && fluxBooking.status !== "completed") {
+          const endAt = squareBooking?.start_at
+            ? new Date(new Date(squareBooking.start_at).getTime() +
+                (squareBooking?.appointment_segments?.[0]?.duration_minutes || 60) * 60000).toISOString()
+            : fluxBooking.end_at || new Date().toISOString();
+
+          await supabase
+            .from("bookings")
+            .update({ status: "completed", end_at: endAt })
+            .eq("id", fluxBooking.id);
+
+          console.log(`[square-webhook] Marked booking ${fluxBooking.id} as completed`);
+        } else if (!fluxBooking && busyBlock) {
+          // Square-originated booking completed without a Flux record — create one
+          const customerId = squareBooking?.customer_id;
+          if (customerId) {
+            const { data: customer } = await supabase
+              .from("customers")
+              .select("id, phone_e164, full_name")
+              .eq("tenant_id", tenantId)
+              .contains("contact_preferences", { square_customer_id: customerId })
+              .maybeSingle();
+
+            if (customer) {
               let leadId: string | null = null;
               const { data: existingLead } = await supabase
                 .from("leads")
@@ -329,6 +484,7 @@ async function handleSquareWebhook(
                   status: "completed",
                   external_event_id: squareBookingId,
                   external_provider: "square",
+                  booking_source: bookingSource,
                   review_sent: false,
                   notes: "Completed via Square Appointments",
                 });
@@ -338,13 +494,36 @@ async function handleSquareWebhook(
             }
           }
         }
-      } else if (squareStatus === "CANCELLED_BY_CUSTOMER" || squareStatus === "CANCELLED_BY_SELLER") {
-        // Cancel the booking/block
+      }
+
+      // ─── CANCELLED ───────────────────────────────────────────────
+      if (squareStatus === "CANCELLED_BY_CUSTOMER" || squareStatus === "CANCELLED_BY_SELLER") {
         if (fluxBooking) {
           await supabase
             .from("bookings")
             .update({ status: "cancelled" })
             .eq("id", fluxBooking.id);
+
+          // ALWAYS notify owner on cancellations, regardless of booking source
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || serviceKey,
+              },
+              body: JSON.stringify({
+                booking_id: fluxBooking.id,
+                tenant_id: tenantId,
+                event: "cancelled",
+              }),
+            });
+            console.log(`[square-webhook] Triggered cancellation notification for ${fluxBooking.id}`);
+          } catch (e) {
+            console.error("[square-webhook] Failed to trigger cancellation notification:", e);
+          }
         }
         if (busyBlock) {
           await supabase
@@ -355,6 +534,20 @@ async function handleSquareWebhook(
         console.log(`[square-webhook] Cancelled booking ${squareBookingId}`);
       }
     }
+  }
+
+  // Mark webhook event as processed
+  const webhookExternalId = body.data?.id || body.entity_id || null;
+  if (webhookExternalId) {
+    await supabase
+      .from("integration_webhook_events")
+      .update({ status: "processed", processed_at: new Date().toISOString() })
+      .eq("tenant_id", tenantId)
+      .eq("provider", "square")
+      .eq("external_id", webhookExternalId)
+      .eq("status", "received")
+      .order("created_at", { ascending: false })
+      .limit(1);
   }
 
   return jsonResp({ status: "ok" });

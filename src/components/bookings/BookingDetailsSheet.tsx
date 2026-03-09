@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   Phone,
+  PhoneCall,
   Mail,
   Clock,
   DollarSign,
@@ -32,12 +33,21 @@ import {
   Calendar,
   User,
   Briefcase,
+  Globe,
+  SquareIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { bookingStatusColors, bookingStatusLabels } from "./BookingCard";
 import type { BookingWithDetails } from "@/hooks/useBookings";
+
+const sourceDisplay: Record<string, { label: string; icon: typeof Globe; color: string }> = {
+  website: { label: "Website", icon: Globe, color: "bg-blue-50 text-blue-600 border-blue-200" },
+  phone_ai: { label: "AI Phone", icon: PhoneCall, color: "bg-violet-50 text-violet-600 border-violet-200" },
+  square_direct: { label: "Manual", icon: User, color: "bg-gray-50 text-gray-600 border-gray-200" },
+  square_online: { label: "Square Online", icon: SquareIcon, color: "bg-green-50 text-green-600 border-green-200" },
+};
 import { SendSmsDialog } from "@/components/messaging/SendSmsDialog";
 
 interface BookingDetailsSheetProps {
@@ -101,12 +111,24 @@ export function BookingDetailsSheet({
           <SheetHeader className="space-y-3 pb-4">
             <div className="flex items-center justify-between">
               <SheetTitle className="text-lg">{terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)} Details</SheetTitle>
-              <Badge
-                variant="outline"
-                className={cn("text-xs", bookingStatusColors[booking.status])}
-              >
-                {bookingStatusLabels[booking.status] || booking.status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                {(booking as any).booking_source && sourceDisplay[(booking as any).booking_source] && (() => {
+                  const src = sourceDisplay[(booking as any).booking_source];
+                  const Icon = src.icon;
+                  return (
+                    <Badge variant="outline" className={cn("text-xs gap-0.5", src.color)}>
+                      <Icon className="h-3 w-3" />
+                      {src.label}
+                    </Badge>
+                  );
+                })()}
+                <Badge
+                  variant="outline"
+                  className={cn("text-xs", bookingStatusColors[booking.status])}
+                >
+                  {bookingStatusLabels[booking.status] || booking.status}
+                </Badge>
+              </div>
             </div>
           </SheetHeader>
 
