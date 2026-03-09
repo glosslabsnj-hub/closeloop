@@ -14,6 +14,7 @@ import {
 import { Plus, Trash2, Save, Loader2, Star } from "lucide-react";
 import { useServiceAgreements, ServiceAgreementWithCustomer } from "@/hooks/useServiceAgreements";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Badge } from "@/components/ui/badge";
 
 interface AgreementBuilderProps {
@@ -22,7 +23,7 @@ interface AgreementBuilderProps {
   onCancel: () => void;
 }
 
-const PLAN_TEMPLATES = [
+const SERVICE_PLAN_TEMPLATES = [
   {
     name: "Basic Maintenance",
     type: "maintenance",
@@ -55,6 +56,39 @@ const PLAN_TEMPLATES = [
   },
 ];
 
+const SALES_PLAN_TEMPLATES = [
+  {
+    name: "Standard Purchase",
+    type: "standard",
+    price_cents: 0,
+    billing_frequency: "annually",
+    visits_per_year: 1,
+    services: ["Vehicle purchase", "Standard warranty", "Title transfer"],
+    discount_percent: 0,
+    priority_service: false,
+  },
+  {
+    name: "Financing Plan",
+    type: "financing",
+    price_cents: 0,
+    billing_frequency: "monthly",
+    visits_per_year: 1,
+    services: ["Vehicle purchase", "Financing arranged", "Extended warranty option", "GAP coverage option"],
+    discount_percent: 0,
+    priority_service: false,
+  },
+  {
+    name: "Premium Deal",
+    type: "premium",
+    price_cents: 0,
+    billing_frequency: "monthly",
+    visits_per_year: 1,
+    services: ["Vehicle purchase", "Financing arranged", "Extended warranty included", "GAP coverage included", "Free first service"],
+    discount_percent: 5,
+    priority_service: true,
+  },
+];
+
 function formatCurrency(cents: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -65,12 +99,26 @@ function formatCurrency(cents: number): string {
 export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuilderProps) {
   const { createAgreement, updateAgreement } = useServiceAgreements();
   const { customers } = useCustomers();
+  const { businessMode } = useTenantConfig();
+  const isSales = businessMode === "sales";
+  const isMedical = businessMode === "medical";
   const isEditing = !!agreement;
+
+  const PLAN_TEMPLATES = isSales ? SALES_PLAN_TEMPLATES : SERVICE_PLAN_TEMPLATES;
+  const defaultPlanType = isSales ? "standard" : "maintenance";
+  const planNamePlaceholder = isSales
+    ? "e.g., Standard Purchase Agreement"
+    : isMedical
+    ? "e.g., Annual Care Plan"
+    : "e.g., Annual Maintenance Plan";
+  const servicesLabel = isSales ? "Items / Features Included" : isMedical ? "Services & Benefits" : "Services Included";
+  const visitsLabel = isSales ? "Appointments / Follow-ups" : "Visits Per Year";
+  const discountLabel = isSales ? "Customer Discount %" : "Service Discount %";
 
   // Form state
   const [customerId, setCustomerId] = useState(agreement?.customer_id || "");
   const [planName, setPlanName] = useState(agreement?.plan_name || "");
-  const [planType, setPlanType] = useState(agreement?.plan_type || "maintenance");
+  const [planType, setPlanType] = useState(agreement?.plan_type || defaultPlanType);
   const [priceCents, setPriceCents] = useState(agreement?.price_cents || 9900);
   const [billingFrequency, setBillingFrequency] = useState(agreement?.billing_frequency || "monthly");
   const [startDate, setStartDate] = useState(
@@ -217,7 +265,7 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
             id="planName"
             value={planName}
             onChange={(e) => setPlanName(e.target.value)}
-            placeholder="e.g., Annual Maintenance Plan"
+            placeholder={planNamePlaceholder}
           />
         </div>
         <div className="space-y-2">
@@ -227,10 +275,22 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-              <SelectItem value="priority">Priority</SelectItem>
-              <SelectItem value="premium">Premium</SelectItem>
-              <SelectItem value="custom">Custom</SelectItem>
+              {isSales ? (
+                <>
+                  <SelectItem value="standard">Standard</SelectItem>
+                  <SelectItem value="financing">Financing</SelectItem>
+                  <SelectItem value="lease">Lease</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </>
+              ) : (
+                <>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="priority">Priority</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -279,7 +339,7 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
       {/* Services & Benefits */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="visits">Visits Per Year</Label>
+          <Label htmlFor="visits">{visitsLabel}</Label>
           <Input
             id="visits"
             type="number"
@@ -289,7 +349,7 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="discount">Service Discount %</Label>
+          <Label htmlFor="discount">{discountLabel}</Label>
           <Input
             id="discount"
             type="number"
@@ -313,9 +373,9 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
         </div>
       </div>
 
-      {/* Services Included */}
+      {/* Services / Items Included */}
       <div className="space-y-2">
-        <Label>Services Included</Label>
+        <Label>{servicesLabel}</Label>
         <div className="flex gap-2">
           <Input
             value={newService}
