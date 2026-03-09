@@ -3,6 +3,7 @@
  import { Badge } from "@/components/ui/badge";
  import { Phone, Calendar, Clock, ArrowUpRight, ArrowDownLeft, ChevronRight } from "lucide-react";
  import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
  import { cn } from "@/lib/utils";
  import { useIndustryContext } from "@/hooks/useIndustryContext";
  import { computeCallPriority } from "@/lib/priorityScoring";
@@ -87,7 +88,8 @@
  }
 
  export function CallDetailPanel({ call, onClose, customerName }: CallDetailPanelProps) {
-   const { terms, config } = useIndustryContext();
+   const navigate = useNavigate();
+   const { terms, config, mode } = useIndustryContext();
 
    if (!call) return null;
 
@@ -205,7 +207,7 @@
                  Call Back
                </Button>
              )}
-             <Button variant="outline" className="flex-1">
+             <Button variant="outline" className="flex-1" onClick={() => { onClose(); navigate(mode === "sales" ? "/app/test-drives" : "/app/bookings"); }}>
                <Calendar className="w-4 h-4 mr-2" />
                {terms.newBooking}
              </Button>

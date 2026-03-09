@@ -104,7 +104,7 @@ export function AppSidebar({
 
   // Build workspace items (capability-gated)
   const workspaceItems: NavItem[] = [];
-  if (caps.hasBooking) {
+  if (caps.hasBooking && !caps.hasTestDrives) {
     workspaceItems.push({ href: "/app/bookings", label: terms.bookingsPageTitle || "Bookings", icon: <Calendar className={iconClass} /> });
   }
   if (caps.hasDispatchQueue) {

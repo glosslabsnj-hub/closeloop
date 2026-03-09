@@ -44,6 +44,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { useServiceAgreements, ServiceAgreementWithCustomer } from "@/hooks/useServiceAgreements";
 import { AgreementBuilder } from "@/components/agreements/AgreementBuilder";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { useTenantConfig } from "@/hooks/useTenantConfig";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   active: { label: "Active", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
@@ -151,8 +152,11 @@ function AgreementListItem({
 }
 
 export default function AgreementsPage() {
+  const { businessMode } = useTenantConfig();
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking", "job_tracking"]);
   const { agreements, isLoading, error: agreementsError, refetch, stats, cancelAgreement, deleteAgreement } = useServiceAgreements();
+  const pageTitle = businessMode === "sales" ? "Purchase Agreements" : businessMode === "dispatch" ? "Service Agreements" : businessMode === "medical" ? "Patient Agreements" : "Service Agreements";
+  const pageDesc = businessMode === "sales" ? "Manage financing plans and purchase agreements" : businessMode === "medical" ? "Manage patient care plans and coverage agreements" : "Manage recurring maintenance plans and membership programs";
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -260,8 +264,8 @@ export default function AgreementsPage() {
       <PageContainer maxWidth="xl">
         <PageHeader
           icon={<FileCheck className="h-5 w-5" />}
-          title="Service Agreements"
-          description="Manage recurring maintenance plans and membership programs"
+          title={pageTitle}
+          description={pageDesc}
           action={
             <Button onClick={handleCreateNew}>
               <Plus className="h-4 w-4 mr-2" />

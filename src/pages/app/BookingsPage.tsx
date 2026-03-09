@@ -51,9 +51,12 @@ function groupBookingsByDate(bookings: BookingWithDetails[]) {
 }
 
 export default function BookingsPage() {
+  const { businessMode } = useTenantConfig();
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
   const { bookings, isLoading, error: bookingsError, refetch, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
+  // Sales mode uses Test Drives page as the primary scheduling interface
+  if (businessMode === "sales") return <Navigate to="/app/test-drives" replace />;
   const [searchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
