@@ -49,6 +49,16 @@ export interface CustomInventoryItem {
   description?: string;
 }
 
+export interface CustomCallSession {
+  caller_phone: string;
+  outcome: "booked" | "followup" | "lost" | "escalated" | "message";
+  summary: string;
+  lead_score?: "hot" | "warm" | "cool" | null;
+  followup_status?: "new" | "called_back" | "no_answer" | "completed" | "lost" | null;
+  hours_ago: number;
+  duration_seconds?: number;
+}
+
 export interface TestTenantConfig {
   slug: string;
   name: string;
@@ -88,6 +98,21 @@ export interface TestTenantConfig {
     customFaqs?: CustomFaq[];
     customObjections?: CustomObjection[];
     customInventory?: CustomInventoryItem[];
+    customCallSessions?: CustomCallSession[];
+    customSalesLeads?: {
+      status?: string;
+      priority?: string;
+      vehicle_interest?: string;
+      interest_type?: string;
+      budget_range?: string;
+      has_trade_in?: boolean;
+      trade_in_details?: string | null;
+      financing_preapproved?: boolean;
+      timeline?: string;
+      source?: string;
+      notes?: string;
+      lead_number?: string;
+    }[];
   };
 }
 
@@ -1398,10 +1423,22 @@ const salesTenants: TestTenantConfig[] = [
       unknownQuestionBehavior: "try_help",
     },
     seedData: {
-      callCount: 10,
+      callCount: 0, // overridden by customCallSessions (10 car-dealership-specific calls)
       bookingCount: 4,
       faqCount: 6,
       serviceCount: 5,
+      customCallSessions: [
+        { caller_phone: "+12145550001", outcome: "booked", summary: "Customer called about 2025 Toyota RAV4 XLE. Interested in AWD, has 2019 Honda CR-V trade-in. Scheduled test drive for Saturday 10am.", lead_score: "hot", followup_status: "completed", hours_ago: 2, duration_seconds: 210 },
+        { caller_phone: "+12145550002", outcome: "booked", summary: "Customer inquiring about financing options for Tacoma TRD. Pre-approved at credit union but wants to compare rates. Scheduled financing consultation.", lead_score: "hot", followup_status: "completed", hours_ago: 5, duration_seconds: 195 },
+        { caller_phone: "+12145550003", outcome: "followup", summary: "Customer asked about bZ4X electric SUV pricing and charging infrastructure. Interested but not ready to visit. Left info for follow-up. Timeline: this month.", lead_score: "warm", followup_status: "new", hours_ago: 8, duration_seconds: 165 },
+        { caller_phone: "+12145550004", outcome: "booked", summary: "Returning customer — purchased Tundra SR5 last year. Coming in for first scheduled service. Booked service department appointment next Tuesday 9am.", lead_score: "warm", followup_status: "completed", hours_ago: 12, duration_seconds: 120 },
+        { caller_phone: "+12145550005", outcome: "lost", summary: "Customer was shopping for a used Camry under $22k. Couldn't find a match in current inventory. Declined callback offer. Call ended.", lead_score: "cool", followup_status: "lost", hours_ago: 18, duration_seconds: 90 },
+        { caller_phone: "+12145550006", outcome: "followup", summary: "Customer asking about 4Runner TRD Pro availability. Interested in Lunar Rock color. Put on availability waitlist — stock number U2201 available.", lead_score: "hot", followup_status: "new", hours_ago: 24, duration_seconds: 180 },
+        { caller_phone: "+12145550007", outcome: "booked", summary: "Customer wants to trade in 2020 Nissan Altima and purchase 2025 Camry SE. Has trade-in appraisal scheduled. Timeline: immediate.", lead_score: "hot", followup_status: "completed", hours_ago: 30, duration_seconds: 225 },
+        { caller_phone: "+12145550008", outcome: "followup", summary: "Customer asked general questions about CPO vs new vehicle differences. Explained warranty coverage. Interested in visiting showroom next week.", lead_score: "warm", followup_status: "new", hours_ago: 36, duration_seconds: 150 },
+        { caller_phone: "+12145550009", outcome: "lost", summary: "Customer called to confirm weekend hours. When told we're closed weekends, they said they'd try another dealer. Call ended without scheduling.", lead_score: "cool", followup_status: "lost", hours_ago: 42, duration_seconds: 75 },
+        { caller_phone: "+12145550010", outcome: "booked", summary: "Customer inquired about Highlander Limited for family use. Wants 3rd row seating, AWD. Test drive scheduled for stock #U2301. Very excited about panoramic roof.", lead_score: "hot", followup_status: "completed", hours_ago: 48, duration_seconds: 240 },
+      ],
       customServices: [
         { name: "Test Drive", description: "Schedule a test drive for any vehicle in our inventory", duration_minutes: 30, price_amount: 0, price_type: "fixed", display_order: 0 },
         { name: "Financing Consultation", description: "Discuss financing options, rates, and monthly payment estimates", duration_minutes: 45, price_amount: 0, price_type: "quote_only", display_order: 1 },

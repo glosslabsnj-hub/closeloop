@@ -247,6 +247,37 @@ describe("testTenantMatrix: car dealership seed data correctness", () => {
   it("car dealership has acceptsTradeIns in capabilities_json", () => {
     expect(carDealerBlock).toContain("acceptsTradeIns");
   });
+
+  it("car dealership has 10 customCallSessions (realistic call history)", () => {
+    expect(carDealerBlock).toContain("customCallSessions");
+    const callPhoneMatches = (carDealerBlock.match(/\+121455500\d+/g) || []).length;
+    expect(callPhoneMatches).toBe(10); // 10 unique caller phones
+  });
+
+  it("car dealership call sessions have lead_score (hot/warm/cool)", () => {
+    expect(carDealerBlock).toContain('"hot"');
+    expect(carDealerBlock).toContain('"warm"');
+    expect(carDealerBlock).toContain('"cool"');
+  });
+
+  it("car dealership call sessions have car-specific summaries (not generic placeholder)", () => {
+    expect(carDealerBlock).not.toContain("Sample booked call from test data");
+    expect(carDealerBlock).toContain("Toyota"); // Real car references in summaries
+    expect(carDealerBlock).toContain("test drive"); // Dealership-specific actions
+  });
+
+  it("car dealership calls include multiple outcomes (booked/followup/lost)", () => {
+    expect(carDealerBlock).toContain('"booked"');
+    expect(carDealerBlock).toContain('"followup"');
+    expect(carDealerBlock).toContain('"lost"');
+  });
+
+  it("car dealership callCount is 0 (calls come from customCallSessions)", () => {
+    // When customCallSessions is provided, callCount should be 0 to avoid double-seeding
+    const callCountMatch = carDealerBlock.match(/callCount:\s*(\d+)/);
+    expect(callCountMatch).not.toBeNull();
+    expect(parseInt(callCountMatch![1])).toBe(0);
+  });
 });
 
 // ---------------------------------------------------------------------------

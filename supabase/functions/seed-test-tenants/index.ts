@@ -88,6 +88,15 @@ interface SeedRequest {
         notes?: string;
         lead_number?: string;
       }[];
+      customCallSessions?: {
+        caller_phone: string;
+        outcome: "booked" | "followup" | "lost" | "escalated" | "message";
+        summary: string;
+        lead_score?: "hot" | "warm" | "cool" | null;
+        followup_status?: "new" | "called_back" | "no_answer" | "completed" | "lost" | null;
+        hours_ago: number;
+        duration_seconds?: number;
+      }[];
     };
   };
 }
@@ -582,22 +591,42 @@ async function seedTenantData(
     await client.from("sales_leads").insert(leads);
   }
 
-  // Seed sample call sessions
-  const outcomes: ("booked" | "followup" | "lost" | "escalated" | "message")[] =
-    ["booked", "booked", "lost", "followup", "message"];
-  const calls = Array.from({ length: seedData.callCount }, (_, i) => {
-    const hoursAgo = i * 2 + 1;
-    const startedAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
-    return {
-      tenant_id: tenantId,
-      call_direction: "inbound" as const,
-      started_at: startedAt.toISOString(),
-      ended_at: new Date(startedAt.getTime() + (60 + i * 30) * 1000).toISOString(),
-      outcome: outcomes[i % outcomes.length],
-      caller_phone: `+1555000${String(i).padStart(4, "0")}`,
-      summary: `Sample ${outcomes[i % outcomes.length]} call from test data`,
-    };
-  });
+  // Seed sample call sessions — use custom if provided, otherwise generate generic
+  let calls;
+  if (seedData.customCallSessions && seedData.customCallSessions.length > 0) {
+    calls = seedData.customCallSessions.map((c) => {
+      const startedAt = new Date(Date.now() - c.hours_ago * 60 * 60 * 1000);
+      return {
+        tenant_id: tenantId,
+        call_direction: "inbound" as const,
+        started_at: startedAt.toISOString(),
+        ended_at: new Date(startedAt.getTime() + (c.duration_seconds ?? 180) * 1000).toISOString(),
+        outcome: c.outcome,
+        caller_phone: c.caller_phone,
+        summary: c.summary,
+        lead_score: c.lead_score ?? null,
+        followup_status: c.followup_status ?? null,
+      };
+    });
+  } else {
+    const outcomes: ("booked" | "followup" | "lost" | "escalated" | "message")[] =
+      ["booked", "booked", "lost", "followup", "message"];
+    calls = Array.from({ length: seedData.callCount }, (_, i) => {
+      const hoursAgo = i * 2 + 1;
+      const startedAt = new Date(Date.now() - hoursAgo * 60 * 60 * 1000);
+      return {
+        tenant_id: tenantId,
+        call_direction: "inbound" as const,
+        started_at: startedAt.toISOString(),
+        ended_at: new Date(startedAt.getTime() + (60 + i * 30) * 1000).toISOString(),
+        outcome: outcomes[i % outcomes.length],
+        caller_phone: `+1555000${String(i).padStart(4, "0")}`,
+        summary: `${outcomes[i % outcomes.length].charAt(0).toUpperCase() + outcomes[i % outcomes.length].slice(1)} call — customer inquired about services`,
+        lead_score: (["hot", "warm", "cool"] as const)[i % 3],
+        followup_status: (["new", "completed", "new", "completed", "new"] as const)[i % 5],
+      };
+    });
+  }
 
   if (calls.length > 0) {
     await client.from("ai_call_sessions").insert(calls);
