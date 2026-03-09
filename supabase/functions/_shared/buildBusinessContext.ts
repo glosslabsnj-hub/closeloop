@@ -3144,6 +3144,148 @@ export async function buildBusinessContext(
     }
   }
 
+  // ===== MODE-SPECIFIC WORKFLOW CONFIG LOADING =====
+  // Load workflow configs for ALL business modes so the AI actually uses
+  // the business owner's settings (vehicle timing, deposit rules, food ordering, etc.)
+  try {
+    if (!context.workflow_config) context.workflow_config = {};
+    const mode = context.tenant.business_mode;
+
+    if (mode === "dispatch" || caps.isDispatchBusiness) {
+      const { data: dispatchConfig } = await supabase
+        .from("dispatch_workflow_config")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (dispatchConfig) {
+        context.workflow_config.dispatch = {
+          vehicle_info_timing: dispatchConfig.vehicle_info_timing,
+          vehicle_affects_pricing: dispatchConfig.vehicle_affects_pricing,
+          required_vehicle_fields: dispatchConfig.required_vehicle_fields,
+          luxury_flatbed_recommendation: dispatchConfig.luxury_flatbed_recommendation,
+          luxury_brands: dispatchConfig.luxury_brands,
+          awd_detection_enabled: dispatchConfig.awd_detection_enabled,
+          motorcycle_special_handling: dispatchConfig.motorcycle_special_handling,
+          ask_payment_method: dispatchConfig.ask_payment_method,
+          payment_timing: dispatchConfig.payment_timing,
+          require_payment_confirmation: dispatchConfig.require_payment_confirmation,
+          accepted_methods: dispatchConfig.accepted_methods,
+          payment_due_message: dispatchConfig.payment_due_message,
+          confirm_geocoded_address: dispatchConfig.confirm_geocoded_address,
+          require_zip_code: dispatchConfig.require_zip_code,
+          address_confirmation_script: dispatchConfig.address_confirmation_script,
+          driver_callback_script: dispatchConfig.driver_callback_script,
+          include_direct_contact_info: dispatchConfig.include_direct_contact_info,
+          escalation_number: dispatchConfig.escalation_number,
+          service_dropoff_rules: dispatchConfig.service_dropoff_rules,
+        };
+        console.log(`[buildBusinessContext] Dispatch workflow config loaded`);
+      }
+    }
+
+    if (mode === "service" || caps.isServiceBusiness) {
+      const { data: serviceConfig } = await supabase
+        .from("service_workflow_config")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (serviceConfig) {
+        context.workflow_config.service = {
+          collect_deposit_upfront: serviceConfig.collect_deposit_upfront,
+          deposit_timing: serviceConfig.deposit_timing,
+          deposit_amount_behavior: serviceConfig.deposit_amount_behavior,
+          default_deposit_percentage: serviceConfig.default_deposit_percentage,
+          collect_service_duration: serviceConfig.collect_service_duration,
+          required_intake_questions: serviceConfig.required_intake_questions,
+          suggest_alternatives_when_unavailable: serviceConfig.suggest_alternatives_when_unavailable,
+          max_alternatives_to_suggest: serviceConfig.max_alternatives_to_suggest,
+          alternative_suggestion_window_days: serviceConfig.alternative_suggestion_window_days,
+          booking_confirmation_script: serviceConfig.booking_confirmation_script,
+          send_sms_confirmation: serviceConfig.send_sms_confirmation,
+          ask_for_email_confirmation: serviceConfig.ask_for_email_confirmation,
+          allow_ai_rescheduling: serviceConfig.allow_ai_rescheduling,
+          allow_ai_cancellation: serviceConfig.allow_ai_cancellation,
+          cancellation_requires_manager: serviceConfig.cancellation_requires_manager,
+        };
+        console.log(`[buildBusinessContext] Service workflow config loaded`);
+      }
+    }
+
+    if (mode === "food" || caps.isFoodBusiness) {
+      const { data: foodConfig } = await supabase
+        .from("food_workflow_config")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (foodConfig) {
+        context.workflow_config.food = {
+          ask_pickup_vs_delivery: foodConfig.ask_pickup_vs_delivery,
+          default_order_type: foodConfig.default_order_type,
+          allow_menu_customizations: foodConfig.allow_menu_customizations,
+          require_allergy_check: foodConfig.require_allergy_check,
+          ask_special_instructions: foodConfig.ask_special_instructions,
+          ask_asap_vs_scheduled: foodConfig.ask_asap_vs_scheduled,
+          min_advance_order_minutes: foodConfig.min_advance_order_minutes,
+          default_prep_time_minutes: foodConfig.default_prep_time_minutes,
+          collect_delivery_instructions: foodConfig.collect_delivery_instructions,
+          require_buzzer_code: foodConfig.require_buzzer_code,
+          order_confirmation_script: foodConfig.order_confirmation_script,
+          repeat_order_back: foodConfig.repeat_order_back,
+          confirm_total_before_submit: foodConfig.confirm_total_before_submit,
+        };
+        console.log(`[buildBusinessContext] Food workflow config loaded`);
+      }
+    }
+
+    if (mode === "medical" || caps.isMedicalBusiness) {
+      const { data: medicalConfig } = await supabase
+        .from("medical_workflow_config")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (medicalConfig) {
+        context.workflow_config.medical = {
+          consent_timing: medicalConfig.consent_timing,
+          consent_script: medicalConfig.consent_script,
+          require_explicit_consent: medicalConfig.require_explicit_consent,
+          collect_symptom_details: medicalConfig.collect_symptom_details,
+          symptom_severity_scale: medicalConfig.symptom_severity_scale,
+          ask_duration_of_symptoms: medicalConfig.ask_duration_of_symptoms,
+          required_intake_questions: medicalConfig.required_intake_questions,
+          detect_emergency_keywords: medicalConfig.detect_emergency_keywords,
+          emergency_escalation_script: medicalConfig.emergency_escalation_script,
+        };
+        console.log(`[buildBusinessContext] Medical workflow config loaded`);
+      }
+    }
+
+    if (mode === "general" || (!caps.isDispatchBusiness && !caps.isServiceBusiness && !caps.isFoodBusiness && !caps.isMedicalBusiness && !caps.isSalesBusiness)) {
+      const { data: generalConfig } = await supabase
+        .from("general_workflow_config")
+        .select("qualification_questions, callback_confirmation_script, ask_best_time_to_call, ask_callback_reason, escalate_unknown_questions, unknown_question_script")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (generalConfig) {
+        context.workflow_config.general = {
+          qualification_questions: generalConfig.qualification_questions,
+          callback_confirmation_script: generalConfig.callback_confirmation_script,
+          ask_best_time_to_call: generalConfig.ask_best_time_to_call,
+          ask_callback_reason: generalConfig.ask_callback_reason,
+          escalate_unknown_questions: generalConfig.escalate_unknown_questions,
+          unknown_question_script: generalConfig.unknown_question_script,
+        };
+        console.log(`[buildBusinessContext] General workflow config loaded`);
+      }
+    }
+  } catch (workflowError) {
+    console.error(`[buildBusinessContext] Failed to load workflow configs:`, workflowError);
+  }
+
   // ===== ACTIVE JOB LOOKUP (for WIP status over the phone) =====
   if (callerPhone && caps.hasJobTracking) {
     try {

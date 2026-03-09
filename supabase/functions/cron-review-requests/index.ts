@@ -3,6 +3,10 @@
  *
  * Called by pg_cron every 15 minutes. Uses shared sms-sender for
  * intelligent 10DLC/toll-free routing.
+ *
+ * MODE-AWARE: Uses different default templates per business mode so the
+ * message feels natural for each industry (plumber vs dentist vs restaurant).
+ * Business owners can override with their own custom template.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -11,7 +15,21 @@ import { sendTenantSms } from "../_shared/sms-sender.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const DEFAULT_REVIEW_TEMPLATE =
+// Mode-aware default templates — each business type gets a natural message
+const MODE_REVIEW_TEMPLATES: Record<string, string> = {
+  service:
+    "Hi {{customer_name}}, thanks for choosing {{business_name}} for your {{service_name}}! If you have a moment, we'd really appreciate a quick review: {{review_link}}. Reply STOP to opt out.",
+  dispatch:
+    "Hi {{customer_name}}, glad we could help you today! If {{business_name}} provided great service, we'd love a review: {{review_link}}. Reply STOP to opt out.",
+  food:
+    "Hi {{customer_name}}, thanks for your order from {{business_name}}! How was everything? Leave us a review: {{review_link}}. Reply STOP to opt out.",
+  medical:
+    "Hi {{customer_name}}, thank you for visiting {{business_name}}. We value your feedback and would appreciate a review of your experience: {{review_link}}. Reply STOP to opt out.",
+  general:
+    "Hi {{customer_name}}, thank you for choosing {{business_name}}! We'd love to hear about your experience: {{review_link}}. Reply STOP to opt out.",
+};
+
+const FALLBACK_TEMPLATE =
   "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.";
 
 function resolveTemplate(
@@ -47,9 +65,10 @@ serve(async (_req: Request) => {
 
     const tenantIds = enabledTenants.map((s: any) => s.tenant_id);
 
+    // Fetch tenants with business_mode for mode-aware templates
     const { data: tenants } = await supabase
       .from("tenants")
-      .select("id, name, review_link")
+      .select("id, name, review_link, business_mode")
       .in("id", tenantIds);
 
     const tenantMap = new Map((tenants || []).map((t: any) => [t.id, t]));
@@ -58,6 +77,7 @@ serve(async (_req: Request) => {
       const tenantId = setting.tenant_id;
       const tenant = tenantMap.get(tenantId);
       const reviewLink = tenant?.review_link;
+      const businessMode = tenant?.business_mode || "general";
 
       if (!reviewLink) {
         results.skipped_no_link++;
@@ -67,7 +87,9 @@ serve(async (_req: Request) => {
       const smsTemplates = (setting.settings_json as any)?.sms_templates || {};
       const reviewConfig = smsTemplates.review_request || {};
       const delayMinutes = reviewConfig.delayMinutes || 60;
-      const template = reviewConfig.message || DEFAULT_REVIEW_TEMPLATE;
+
+      // Use custom template if set, otherwise use mode-aware default
+      const template = reviewConfig.message || MODE_REVIEW_TEMPLATES[businessMode] || FALLBACK_TEMPLATE;
 
       const targetTime = new Date(now.getTime() - delayMinutes * 60 * 1000);
       const windowStart = new Date(targetTime.getTime() - 15 * 60 * 1000).toISOString();
@@ -91,9 +113,16 @@ serve(async (_req: Request) => {
           const phone = lead?.phone;
           if (!phone) continue;
 
+          // Mode-aware service name fallback
+          const serviceNameFallback =
+            businessMode === "food" ? "your order" :
+            businessMode === "dispatch" ? "your service" :
+            businessMode === "medical" ? "your appointment" :
+            "your visit";
+
           const message = resolveTemplate(template, {
             customer_name: lead?.full_name || "there",
-            service_name: (booking.services as any)?.name || "your visit",
+            service_name: (booking.services as any)?.name || serviceNameFallback,
             business_name: tenant?.name || "",
             review_link: reviewLink,
           });
@@ -111,20 +140,21 @@ serve(async (_req: Request) => {
               .eq("id", booking.id);
             results.sent++;
 
-            // 3.4: Also queue an outbound AI voice review request
+            // Queue outbound AI voice review request (30 min after SMS)
             try {
               await supabase.from("outbound_call_queue").insert({
                 tenant_id: tenantId,
                 customer_phone: phone,
                 call_purpose: "review",
-                scheduled_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+                scheduled_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
                 context_json: {
                   customer_name: lead?.full_name || "",
-                  service_name: (booking.services as any)?.name || "your visit",
+                  service_name: (booking.services as any)?.name || serviceNameFallback,
                   review_link: reviewLink,
                   booking_id: booking.id,
+                  business_mode: businessMode,
                 },
-                max_attempts: 1, // Only one attempt for review requests
+                max_attempts: 1,
               });
             } catch (queueErr) {
               console.warn(`[cron-review-requests] Failed to queue voice review request:`, queueErr);
