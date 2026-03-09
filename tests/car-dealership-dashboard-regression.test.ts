@@ -22,6 +22,8 @@ const callDetailPanelSrc = readFileSync(join(root, "src/components/calls/CallDet
 const sidebarSrc = readFileSync(join(root, "src/components/layouts/AppSidebar.tsx"), "utf-8");
 const bookingsPageSrc = readFileSync(join(root, "src/pages/app/BookingsPage.tsx"), "utf-8");
 const agreementsPageSrc = readFileSync(join(root, "src/pages/app/AgreementsPage.tsx"), "utf-8");
+const dashboardByModeSrc = readFileSync(join(root, "src/components/dashboard/DashboardByMode.tsx"), "utf-8");
+const testDrivesPageSrc = readFileSync(join(root, "src/pages/app/TestDrivesPage.tsx"), "utf-8");
 
 // ---------------------------------------------------------------------------
 // Bug 1: "New Test Drive" button navigates to /app/test-drives for sales mode
@@ -191,5 +193,66 @@ describe("AgreementsPage: uses useTenantConfig for mode detection (not hardcoded
   it("reads businessMode from useTenantConfig hook", () => {
     // The component must destructure businessMode from useTenantConfig()
     expect(agreementsPageSrc).toContain("const { businessMode } = useTenantConfig()");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UX commit 881d0b9: SalesTodayView stat card links to /app/test-drives for car dealers
+// ---------------------------------------------------------------------------
+describe("DashboardByMode: SalesTodayView bookingsHref — routes car dealers to /app/test-drives (commit 881d0b9)", () => {
+  // Extract the SalesTodayView function block
+  const salesTodayStart = dashboardByModeSrc.indexOf("function SalesTodayView");
+  const generalTodayStart = dashboardByModeSrc.indexOf("function GeneralTodayView");
+  const salesTodayBlock = dashboardByModeSrc.slice(salesTodayStart, generalTodayStart);
+
+  it("SalesTodayView imports useCapabilities for hasTestDrives check", () => {
+    expect(dashboardByModeSrc).toContain("useCapabilities");
+  });
+
+  it("SalesTodayView reads caps from useCapabilities()", () => {
+    expect(salesTodayBlock).toContain("useCapabilities()");
+  });
+
+  it("bookingsHref is /app/test-drives when hasTestDrives (car dealer)", () => {
+    expect(salesTodayBlock).toContain("caps.hasTestDrives ? \"/app/test-drives\" : \"/app/bookings\"");
+  });
+
+  it("stat card uses bookingsHref (not hardcoded /app/bookings)", () => {
+    // Must use the variable, not hardcoded path
+    expect(salesTodayBlock).toContain("href={bookingsHref}");
+    // Old bug: hardcoded href="/app/bookings" was the entire value
+    expect(salesTodayBlock).not.toContain('href="/app/bookings"');
+  });
+
+  it("bookingsLabel is dynamic from terms.bookings (car dealer sees 'Test Drives Today')", () => {
+    expect(salesTodayBlock).toContain("terms.bookings");
+    expect(salesTodayBlock).toContain("bookingsLabel");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UX commit 806fdd4: TestDrivesPage auto-opens create dialog via ?openNew=true
+// ---------------------------------------------------------------------------
+describe("TestDrivesPage: ?openNew=true auto-opens create dialog (commit 806fdd4)", () => {
+  it("imports useSearchParams from react-router-dom", () => {
+    expect(testDrivesPageSrc).toContain("useSearchParams");
+  });
+
+  it("reads openNew from searchParams", () => {
+    expect(testDrivesPageSrc).toContain('searchParams.get("openNew")');
+  });
+
+  it("opens create dialog when openNew=true", () => {
+    expect(testDrivesPageSrc).toContain('searchParams.get("openNew") === "true"');
+    expect(testDrivesPageSrc).toContain("setCreateOpen(true)");
+  });
+
+  it("useEffect depends on searchParams (re-runs if URL changes)", () => {
+    expect(testDrivesPageSrc).toContain("[searchParams]");
+  });
+
+  it("uses createOpen state to control dialog visibility", () => {
+    expect(testDrivesPageSrc).toContain("createOpen");
+    expect(testDrivesPageSrc).toContain("setCreateOpen");
   });
 });

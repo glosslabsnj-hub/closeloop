@@ -133,3 +133,59 @@ describe("AgreementsPage — mode-specific terminology regression", () => {
     expect(salesDescStart).toBeGreaterThan(-1);
   });
 });
+
+// ---------------------------------------------------------------------------
+// UX commit 881d0b9: AgreementBuilder template card display for sales mode
+// ---------------------------------------------------------------------------
+describe("AgreementBuilder: template cards — sales mode display (commit 881d0b9)", () => {
+  it("shows 'Custom pricing' instead of '$0.00/mo' for sales template cards", () => {
+    expect(builderSrc).toContain("Custom pricing");
+  });
+
+  it("shows 'appointment(s)' for sales mode, not 'visits/year'", () => {
+    // Template card visits/year is conditional: sales uses appointment(s)
+    expect(builderSrc).toContain('"appointment(s)"');
+    expect(builderSrc).toContain('"visits/year"');
+  });
+
+  it("isSales ternary controls visits vs appointment label", () => {
+    // Must branch on isSales, not hardcode one label
+    const visitsLine = builderSrc.includes('isSales ? "appointment(s)" : "visits/year"');
+    expect(visitsLine).toBe(true);
+  });
+
+  it("shows 'Prospect / Buyer *' customer label for sales mode", () => {
+    expect(builderSrc).toContain("Prospect / Buyer *");
+  });
+
+  it("isSales ternary controls customer label", () => {
+    const labelLine = builderSrc.includes('isSales ? "Prospect / Buyer *" : "Customer *"');
+    expect(labelLine).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// UX commit 881d0b9: AgreementsPage list item 'appointments used' for sales
+// ---------------------------------------------------------------------------
+describe("AgreementsPage: 'appointments used' for sales, 'visits used' for others (commit 881d0b9)", () => {
+  it("shows 'appointments' for sales mode in list item", () => {
+    expect(pageSrc).toContain('"appointments"');
+  });
+
+  it("shows 'visits' for non-sales modes in list item", () => {
+    expect(pageSrc).toContain('"visits"');
+  });
+
+  it("isSales ternary controls appointments vs visits label", () => {
+    const hasConditional = pageSrc.includes('isSales ? "appointments" : "visits"');
+    expect(hasConditional).toBe(true);
+  });
+
+  it("AgreementListItem receives isSales prop", () => {
+    expect(pageSrc).toContain("isSales");
+  });
+
+  it("AgreementListItem prop is set to businessMode === 'sales'", () => {
+    expect(pageSrc).toContain('isSales={businessMode === "sales"}');
+  });
+});
