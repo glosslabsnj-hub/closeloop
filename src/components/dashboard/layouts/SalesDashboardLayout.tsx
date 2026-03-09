@@ -50,7 +50,8 @@ export function SalesDashboardLayout() {
       {/* Stats Row — adapts to car dealership vs other sales industries */}
       {isCarDealership ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card>
+          <Link to="/app/test-drives">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
                 <Car className="h-5 w-5 text-primary" />
@@ -61,7 +62,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/test-drives">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
                 <CalendarCheck className="h-5 w-5 text-primary" />
@@ -72,7 +75,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/sales-pipeline">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-accent">
                 <Flame className="h-5 w-5 text-accent-foreground" />
@@ -83,7 +88,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/sales-inventory">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-secondary">
                 <Warehouse className="h-5 w-5 text-secondary-foreground" />
@@ -94,10 +101,12 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Card>
+          <Link to="/app/sales-pipeline">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
                 <PhoneCall className="h-5 w-5 text-primary" />
@@ -108,7 +117,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/sales-pipeline">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-accent">
                 <Flame className="h-5 w-5 text-accent-foreground" />
@@ -119,7 +130,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/sales-pipeline">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-primary/10">
                 <TrendingUp className="h-5 w-5 text-primary" />
@@ -130,7 +143,9 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          </Link>
+          <Link to="/app/leads">
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
             <CardContent className="p-4 flex items-center gap-3">
               <div className="p-2 rounded-full bg-secondary">
                 <Users className="h-5 w-5 text-secondary-foreground" />
@@ -141,6 +156,7 @@ export function SalesDashboardLayout() {
               </div>
             </CardContent>
           </Card>
+          </Link>
         </div>
       )}
 
