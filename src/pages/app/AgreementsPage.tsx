@@ -72,11 +72,13 @@ function AgreementListItem({
   onEdit,
   onCancel,
   onDelete,
+  isSales,
 }: {
   agreement: ServiceAgreementWithCustomer;
   onEdit: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  isSales?: boolean;
 }) {
   const status = statusConfig[agreement.status] || statusConfig.active;
   const StatusIcon = status.icon;
@@ -120,7 +122,7 @@ function AgreementListItem({
             </span>
           </p>
           <p className="text-xs text-muted-foreground">
-            {agreement.visits_used}/{agreement.visits_per_year} visits used
+            {agreement.visits_used}/{agreement.visits_per_year} {isSales ? "appointments" : "visits"} used
           </p>
         </div>
         <DropdownMenu>
@@ -399,6 +401,7 @@ export default function AgreementsPage() {
                     onEdit={() => handleEdit(agreement)}
                     onCancel={() => handleCancel(agreement.id)}
                     onDelete={() => handleDelete(agreement.id)}
+                    isSales={businessMode === "sales"}
                   />
                 ))}
               </div>

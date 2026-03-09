@@ -349,7 +349,10 @@ function MedicalTodayView({ stats, _hipaaMode }: { stats?: TodayStats; hipaaMode
 
 function SalesTodayView({ stats }: { stats?: TodayStats }) {
   const { terms } = useIndustryContext();
+  const caps = useCapabilities();
   const bookingsLabel = terms.bookings.charAt(0).toUpperCase() + terms.bookings.slice(1);
+  // Car dealerships use /app/test-drives; other sales businesses use /app/bookings
+  const bookingsHref = caps.hasTestDrives ? "/app/test-drives" : "/app/bookings";
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Today's Sales Activity</h3>
@@ -372,7 +375,7 @@ function SalesTodayView({ stats }: { stats?: TodayStats }) {
           value={stats?.completedItems || 0}
           icon={Calendar}
           variant="success"
-          href="/app/bookings"
+          href={bookingsHref}
         />
         <AutomationStatusCard />
         <QuickActionCard

@@ -227,12 +227,16 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
                     <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
                   )}
                 </div>
-                <p className="text-lg font-bold mt-1">
-                  {formatCurrency(template.price_cents)}
-                  <span className="text-xs font-normal text-muted-foreground">/mo</span>
-                </p>
+                {isSales ? (
+                  <p className="text-sm text-muted-foreground mt-1">Custom pricing</p>
+                ) : (
+                  <p className="text-lg font-bold mt-1">
+                    {formatCurrency(template.price_cents)}
+                    <span className="text-xs font-normal text-muted-foreground">/mo</span>
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground mt-1">
-                  {template.visits_per_year} visits/year
+                  {template.visits_per_year} {isSales ? "appointment(s)" : "visits/year"}
                 </p>
               </button>
             ))}
@@ -242,10 +246,10 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
 
       {/* Customer Selection */}
       <div className="space-y-2">
-        <Label htmlFor="customer">Customer *</Label>
+        <Label htmlFor="customer">{isSales ? "Prospect / Buyer *" : "Customer *"}</Label>
         <Select value={customerId} onValueChange={setCustomerId}>
           <SelectTrigger>
-            <SelectValue placeholder="Select a customer" />
+            <SelectValue placeholder={isSales ? "Select a prospect" : "Select a customer"} />
           </SelectTrigger>
           <SelectContent>
             {customers.map((customer) => (
@@ -380,7 +384,7 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
           <Input
             value={newService}
             onChange={(e) => setNewService(e.target.value)}
-            placeholder="Add a service..."
+            placeholder={isSales ? "Add an item or feature..." : isMedical ? "Add a service or benefit..." : "Add a service..."}
             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addService())}
           />
           <Button type="button" variant="outline" onClick={addService}>
