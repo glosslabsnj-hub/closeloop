@@ -447,9 +447,14 @@ serve(async (req: Request) => {
       .eq("is_active", true);
 
     // For sales mode: sync the linked test_drive record to new date/time
+    // Update ALL scheduling fields so dashboard filters (scheduled_date) stay in sync
     await supabase
       .from("test_drives")
-      .update({ scheduled_at: newStart.toISOString() })
+      .update({
+        scheduled_at: newStart.toISOString(),
+        scheduled_date: targetDate,  // YYYY-MM-DD — used by dashboard todayDrives filter
+        scheduled_time: targetTime,  // HH:MM — used by test-drive-handoff for notifications
+      })
       .eq("tenant_id", resolvedTenantId)
       .eq("booking_id", booking.id);
 

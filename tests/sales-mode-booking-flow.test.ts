@@ -192,8 +192,18 @@ describe("elevenlabs-reschedule-booking: reschedule flow — functional/reschedu
     expect(rescheduleBookingSource).toContain("scheduled_at");
     // Verify the test_drives update is linked by booking_id (not just tenant_id)
     const testDrivesUpdateIdx = rescheduleBookingSource.indexOf('"test_drives"');
-    const section = rescheduleBookingSource.slice(testDrivesUpdateIdx, testDrivesUpdateIdx + 300);
+    const section = rescheduleBookingSource.slice(testDrivesUpdateIdx, testDrivesUpdateIdx + 600);
     expect(section).toContain("booking_id");
+  });
+
+  it("syncs test_drives scheduled_date AND scheduled_time when rescheduling", () => {
+    // Bug fix: previously only scheduled_at was updated, leaving scheduled_date stale.
+    // The dashboard todayDrives filter uses scheduled_date (AI bookings path).
+    // After rescheduling, both must be in sync or the dashboard shows wrong data.
+    const testDrivesUpdateIdx = rescheduleBookingSource.indexOf('"test_drives"');
+    const section = rescheduleBookingSource.slice(testDrivesUpdateIdx, testDrivesUpdateIdx + 600);
+    expect(section).toContain("scheduled_date");
+    expect(section).toContain("scheduled_time");
   });
 
   it("test_drives sync runs AFTER booking update (order matters)", () => {
