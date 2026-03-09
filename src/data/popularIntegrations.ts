@@ -106,8 +106,7 @@ export const SELF_SETUP_INTEGRATIONS = [
     logo: "https://cdn.brandfetch.io/idH3E_aos0/w/400/h/400/theme/dark/icon.png",
     description: "Payments, POS & invoicing",
     modes: ["food", "service", "general"],
-    comingSoon: true,
-    whatWillSync: "Orders placed via phone will appear in your Square POS. Payments and refunds sync back to Flux.",
+    whatWillSync: "Bookings sync to Square Appointments. Customers sync both ways. Square availability blocks your Flux calendar automatically.",
   },
   {
     id: "stripe_connect",

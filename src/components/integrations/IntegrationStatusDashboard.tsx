@@ -103,6 +103,8 @@ function ConnectionCard({ name, icon, logo, status, lastActivity, activityLabel,
 const PROVIDER_DISPLAY: Record<string, { name: string; icon: string; logo?: string }> = {
   google_calendar: { name: "Google Calendar", icon: "📅", logo: "https://cdn.brandfetch.io/id7a3kYgzR/w/400/h/400/theme/dark/icon.png" },
   google_sheets: { name: "Google Sheets", icon: "📊", logo: "https://cdn.brandfetch.io/idUqhQzFtG/w/400/h/400/theme/dark/icon.png" },
+  square_pos: { name: "Square", icon: "⬛", logo: "https://cdn.brandfetch.io/idH3E_aos0/w/400/h/400/theme/dark/icon.png" },
+  fieldedge: { name: "FieldEdge", icon: "⚙️", logo: "https://cdn.brandfetch.io/idHKtLfVPo/w/400/h/400/theme/dark/icon.png" },
   webhook: { name: "Webhook", icon: "🔗" },
   printer: { name: "Printer", icon: "🖨️" },
   sms: { name: "SMS", icon: "💬" },

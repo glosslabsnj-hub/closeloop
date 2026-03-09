@@ -5,6 +5,7 @@ import {
   CheckCircle, AlertCircle, Play, Loader2, Check, ArrowRight, HelpCircle
 } from "lucide-react";
 import { FieldEdgeSetupCard } from "@/components/integrations/FieldEdgeSetupCard";
+import { SquareSetupCard } from "@/components/integrations/SquareSetupCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -589,6 +590,11 @@ export default function IntegrationsPage() {
               </p>
               <FieldEdgeSetupCard />
             </section>
+          )}
+
+          {/* Square Integration (for service/food/general businesses with Square connected) */}
+          {(businessMode === "service" || businessMode === "food" || businessMode === "general") && (
+            <SquareSetupCard />
           )}
 
           {/* Section A: Self-Setup Integrations */}

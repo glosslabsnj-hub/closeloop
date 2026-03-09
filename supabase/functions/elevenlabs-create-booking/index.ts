@@ -362,11 +362,12 @@ serve(async (req: Request) => {
     let resolvedServiceName: string | null = null;
     let resolvedPriceCents: number | null = null;
     let resolvedSquareVariationId: string | null = null;
+    let serviceConfirmationMode: string | null = null;
 
     if (serviceId) {
       const { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes, pricing_config_json, price_amount")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
         .eq("id", serviceId)
         .eq("tenant_id", tenantId)
         .single();
@@ -374,20 +375,36 @@ serve(async (req: Request) => {
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
+        serviceConfirmationMode = service.confirmation_mode || null;
         resolveVehiclePricing(service, vehicleType);
       }
     } else if (serviceName) {
-      const { data: service } = await supabase
+      // Try exact match first, then fuzzy match
+      let { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes, pricing_config_json, price_amount")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
         .eq("tenant_id", tenantId)
-        .ilike("name", `%${serviceName}%`)
+        .eq("is_active", true)
+        .ilike("name", serviceName)
         .limit(1)
         .maybeSingle();
+      if (!service) {
+        // Fuzzy: partial match
+        const { data: fuzzy } = await supabase
+          .from("services")
+          .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .ilike("name", `%${serviceName}%`)
+          .limit(1)
+          .maybeSingle();
+        service = fuzzy;
+      }
       if (service) {
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
+        serviceConfirmationMode = service.confirmation_mode || null;
         resolveVehiclePricing(service, vehicleType);
       }
     }
@@ -559,7 +576,9 @@ serve(async (req: Request) => {
     }
 
     // Determine initial booking status
-    const initialStatus = bookingMode === "auto_confirm" ? "confirmed" : "pending";
+    // Per-service confirmation_mode overrides global setting (e.g. mobile = pending, in-shop = auto_confirm)
+    const effectiveMode = serviceConfirmationMode || bookingMode;
+    const initialStatus = effectiveMode === "auto_confirm" ? "confirmed" : "pending";
     const confirmationNumber = generateConfirmationNumber();
 
     // Build notes with address and vehicle type if provided

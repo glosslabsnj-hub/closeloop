@@ -33,7 +33,7 @@ export function parseTime(input: string): string {
     return `${String(hour).padStart(2, "0")}:${minutes}`;
   }
 
-  // 2. 24-hour format — "14:30", "16:45" (hour >= 13 is unambiguous)
+  // 2. HH:MM format — "14:30", "03:00", "4:45"
   if (/^\d{1,2}:\d{2}$/.test(input)) {
     const [h, m] = input.split(":");
     const hour = parseInt(h, 10);
@@ -43,7 +43,12 @@ export function parseTime(input: string): string {
       return `${h.padStart(2, "0")}:${m}`;
     }
 
-    // Ambiguous HH:MM without AM/PM — apply business-hours heuristic:
+    // Leading zero means explicit 24-hour format — "03:00" = 3 AM, "07:30" = 7:30 AM
+    if (h.length === 2 && h.startsWith("0")) {
+      return `${h}:${m}`;
+    }
+
+    // Ambiguous H:MM without AM/PM — apply business-hours heuristic:
     // Hours 1-7 are almost certainly PM (no business books at 4:45 AM)
     // Hours 8-12 stay as-is (morning business hours)
     const adjusted = hour >= 1 && hour <= 7 ? hour + 12 : hour;
