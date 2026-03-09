@@ -8,6 +8,7 @@
  * Auth: x-closeloop-secret (internal) or service-role Bearer
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSquareConfig } from "../_shared/squareToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -183,29 +184,14 @@ Deno.serve(async (req) => {
 
     console.log(`[sync-square] Syncing booking ${booking_id} for tenant ${tenant_id.substring(0, 8)}...`);
 
-    // 1. Get the Square integration for this tenant
-    const { data: integration, error: intError } = await supabase
-      .from("integrations")
-      .select("id, config_json, status")
-      .eq("tenant_id", tenant_id)
-      .eq("provider", "square_pos")
-      .eq("status", "connected")
-      .maybeSingle();
-
-    if (intError || !integration) {
-      console.log("[sync-square] No connected Square integration for tenant");
-      return jsonResponse({ success: false, skipped: true, message: "No Square integration" });
+    // 1. Get valid Square config (auto-refreshes expired tokens)
+    const squareConfig = await getSquareConfig(tenant_id);
+    if (!squareConfig) {
+      console.log("[sync-square] No connected Square integration or token expired for tenant");
+      return jsonResponse({ success: false, skipped: true, message: "No Square integration or token expired" });
     }
 
-    const config = integration.config_json as Record<string, string>;
-    const accessToken = config.access_token;
-    const locationId = config.location_id;
-    const teamMemberId = config.team_member_id;
-
-    if (!accessToken || !locationId) {
-      console.error("[sync-square] Missing access_token or location_id in config");
-      return jsonResponse({ success: false, error: "Square config incomplete" }, 500);
-    }
+    const { accessToken, locationId, teamMemberId } = squareConfig;
 
     // 2. Get the booking with related data (include pricing_config_json for vehicle-specific variation)
     const { data: booking, error: bookingError } = await supabase

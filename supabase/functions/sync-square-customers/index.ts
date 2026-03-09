@@ -12,6 +12,7 @@
  * Works for ANY tenant with a connected square_pos integration.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSquareConfig } from "../_shared/squareToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -104,32 +105,28 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "tenant_id or integration_id required" }, 400);
     }
 
-    // Find the Square integration
-    let query = supabase
-      .from("integrations")
-      .select("id, tenant_id, config_json, status")
-      .eq("provider", "square_pos")
-      .eq("status", "connected");
-
-    if (integrationId) {
-      query = query.eq("id", integrationId);
-    } else {
-      query = query.eq("tenant_id", tenantId);
+    // Resolve tenant_id if called with integration_id
+    let effectiveTenantId = tenantId;
+    if (integrationId && !effectiveTenantId) {
+      const { data: intRow } = await supabase
+        .from("integrations")
+        .select("tenant_id")
+        .eq("id", integrationId)
+        .single();
+      effectiveTenantId = intRow?.tenant_id;
     }
 
-    const { data: integration, error: intError } = await query.maybeSingle();
-
-    if (intError || !integration) {
-      return jsonResponse({ success: false, skipped: true, message: "No connected Square integration" });
+    if (!effectiveTenantId) {
+      return jsonResponse({ success: false, error: "Could not resolve tenant_id" }, 400);
     }
 
-    const config = integration.config_json as Record<string, string>;
-    const accessToken = config.access_token;
-    const effectiveTenantId = integration.tenant_id;
-
-    if (!accessToken) {
-      return jsonResponse({ success: false, error: "Square access_token missing" }, 500);
+    // Get valid Square config (auto-refreshes expired tokens)
+    const squareConfig = await getSquareConfig(effectiveTenantId);
+    if (!squareConfig) {
+      return jsonResponse({ success: false, skipped: true, message: "No connected Square integration or token expired" });
     }
+
+    const { accessToken } = squareConfig;
 
     console.log(`[sync-square-customers] Starting ${direction} sync for tenant ${effectiveTenantId.substring(0, 8)}...`);
 

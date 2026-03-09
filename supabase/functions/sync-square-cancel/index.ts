@@ -7,6 +7,7 @@
  * POST body: { tenant_id, booking_id, square_booking_id }
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getSquareConfig } from "../_shared/squareToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -34,31 +35,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get Square integration credentials
-    const { data: integration } = await supabase
-      .from("integrations")
-      .select("config_json")
-      .eq("tenant_id", tenant_id)
-      .eq("provider", "square_pos")
-      .eq("status", "connected")
-      .maybeSingle();
-
-    if (!integration?.config_json) {
+    // Get valid Square config (auto-refreshes expired tokens)
+    const squareConfig = await getSquareConfig(tenant_id);
+    if (!squareConfig) {
       return new Response(
-        JSON.stringify({ success: false, message: "No connected Square integration" }),
+        JSON.stringify({ success: false, message: "No connected Square integration or token expired" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const config = integration.config_json as Record<string, string>;
-    const accessToken = config.access_token;
-
-    if (!accessToken) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Missing Square access token" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    const { accessToken } = squareConfig;
 
     // Get the Square booking to retrieve its version (required for cancellation)
     const getRes = await fetch(
