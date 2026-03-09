@@ -3500,16 +3500,16 @@ Do NOT claim you cannot take orders if menu IS available above.
 
   // Hours - ALWAYS include if available
   if (Object.keys(ctx.tenant.hours).length > 0) {
-    prompt += `BUSINESS HOURS (YOU KNOW THIS - ANSWER WHEN ASKED):\\n`;
+    prompt += `BUSINESS HOURS (YOU KNOW THIS - ANSWER WHEN ASKED):\n`;
     const dayNames = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
     for (const day of dayNames) {
       const dayHours = ctx.tenant.hours[day];
       if (dayHours) {
         const status = dayHours.is_open ? `${dayHours.open} - ${dayHours.close}` : "Closed";
-        prompt += `- ${day.charAt(0).toUpperCase() + day.slice(1)}: ${status}\\n`;
+        prompt += `- ${day.charAt(0).toUpperCase() + day.slice(1)}: ${status}\n`;
       }
     }
-    prompt += `\\nIMPORTANT: When customers ask about hours, you HAVE this information. Tell them the hours directly. Never say "I don't have access to hours" when hours are listed above.\\n\\n`;
+    prompt += `\nIMPORTANT: When customers ask about hours, you HAVE this information. Tell them the hours directly. Never say "I don't have access to hours" when hours are listed above.\n\n`;
   }
 
   // Policies (tenant-level + all policy-type knowledge base entries)

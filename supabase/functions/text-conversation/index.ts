@@ -755,8 +755,34 @@ SMS CONVERSATION RULES (you are texting with a real customer):
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("[text-conversation] Error:", err);
-    return new Response(JSON.stringify({ error: String(err) }), {
+    const errStr = String(err);
+    console.error("[text-conversation] Error:", errStr);
+
+    // Anthropic API credit/quota errors — return 200 with graceful message so QA can parse
+    if (errStr.includes("credit balance") || errStr.includes("quota") || errStr.includes("rate limit") || errStr.includes("overloaded")) {
+      return new Response(JSON.stringify({
+        reply: "I'm sorry, I'm having a brief technical issue. Please try again in a moment or call us directly.",
+        toolCalls: [],
+        sessionId: null,
+        conversationMessages: [],
+        bookingCreated: false,
+        bookingId: null,
+        bookingCancelled: false,
+        bookingRescheduled: false,
+        callbackCreated: false,
+        callbackId: null,
+        dispatchCreated: false,
+        dispatchId: null,
+        dispatchJobNumber: null,
+        dispatchCancelled: false,
+        error: "AI service temporarily unavailable: " + errStr.slice(0, 120),
+        debug: { error_type: "api_quota", retryable: true },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ error: errStr }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

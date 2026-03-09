@@ -444,12 +444,12 @@ Generate a helpful, accurate response. ${channel === 'sms' ? 'Keep it under 300 
     const data = await aiResponse.json();
     const reply = data.content?.[0]?.text?.trim() || '';
 
-    // Determine next action based on intent and reply
+    // Determine next action based on intent — do NOT infer escalation from reply text
+    // ("get back to you" is a normal fallback phrase, NOT an actual escalation action)
     let next_action = 'provide_info';
     if (intent === 'booking' && reply.toLowerCase().includes('time')) next_action = 'offer_slots';
     else if (intent === 'booking') next_action = 'request_details';
     else if (intent === 'urgent') next_action = 'callback';
-    else if (reply.toLowerCase().includes('call you back') || reply.toLowerCase().includes('get back to you')) next_action = 'escalate';
 
     return { reply, next_action };
   } catch (error) {
