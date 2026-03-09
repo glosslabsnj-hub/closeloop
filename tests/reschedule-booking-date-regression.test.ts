@@ -140,9 +140,14 @@ function getDayLabel(dateStr: string): string {
 function isOpenDay(dateStr: string, hoursJson: Record<string, unknown> | null | undefined): boolean {
   if (!hoursJson) return true;
   const dayLabel = getDayLabel(dateStr);
-  const dayHours = hoursJson[dayLabel] as { open?: string; close?: string; closed?: boolean } | undefined;
+  const dayHours = hoursJson[dayLabel] as {
+    open?: string; close?: string; closed?: boolean;
+    windows?: { open: string; close: string }[];
+  } | undefined;
   if (!dayHours) return false;
   if (dayHours.closed === true) return false;
+  // Support both {open, close} and {windows: [{open, close}]} formats
+  if (dayHours.windows) return dayHours.windows.length > 0;
   return !!(dayHours.open && dayHours.close);
 }
 
@@ -454,5 +459,74 @@ describe("check-availability source: weekdayMonthDay pattern also patched", () =
   // The same fix was applied to elevenlabs-check-availability (same parseDate gap)
   it("has the weekdayMonthDay regex pattern", () => {
     expect(availSource).toContain("weekdayMonthDay");
+  });
+});
+
+// ===== BUG FIX: windows format support =====
+// DB stores hours_json as {closed: bool, windows: [{open, close}]} format
+// isOpenDay was only checking .open/.close (flat format) and returning false for windows format
+// Fixed by adding: if (dayHours.windows) return dayHours.windows.length > 0;
+
+const POOL_HOURS_WINDOWS: Record<string, unknown> = {
+  monday:    { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+  tuesday:   { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+  wednesday: { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+  thursday:  { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+  friday:    { closed: false, windows: [{ open: "09:00", close: "17:00" }] },
+  saturday:  { closed: false, windows: [{ open: "08:00", close: "12:00" }] },
+  sunday:    { closed: true, windows: [] },
+};
+
+describe("isOpenDay: windows format support (DB format)", () => {
+  it("returns true for Monday with windows format", () => {
+    expect(isOpenDay("2026-03-09", POOL_HOURS_WINDOWS)).toBe(true); // Monday
+  });
+
+  it("returns true for Wednesday with windows format", () => {
+    expect(isOpenDay("2026-03-11", POOL_HOURS_WINDOWS)).toBe(true); // Wednesday
+  });
+
+  it("returns true for Saturday with windows format", () => {
+    expect(isOpenDay("2026-03-14", POOL_HOURS_WINDOWS)).toBe(true); // Saturday
+  });
+
+  it("returns false for Sunday with windows format (closed: true)", () => {
+    expect(isOpenDay("2026-03-15", POOL_HOURS_WINDOWS)).toBe(false); // Sunday
+  });
+
+  it("returns false for Sunday with empty windows array", () => {
+    expect(isOpenDay("2026-03-15", POOL_HOURS_WINDOWS)).toBe(false);
+  });
+
+  it("correctly rejects day with empty windows array", () => {
+    const emptySundayHours = { sunday: { closed: false, windows: [] } };
+    expect(isOpenDay("2026-03-15", emptySundayHours)).toBe(false);
+  });
+});
+
+describe("nextOpenDay: windows format support", () => {
+  it("skips Sunday (closed: true) and returns Monday", () => {
+    const result = nextOpenDay("2026-03-14", POOL_HOURS_WINDOWS); // Saturday → next: Monday
+    expect(result).toBe("2026-03-16"); // Monday March 16
+  });
+
+  it("from Sunday returns Monday", () => {
+    const result = nextOpenDay("2026-03-15", POOL_HOURS_WINDOWS); // Sunday → Monday
+    expect(result).toBe("2026-03-16");
+  });
+});
+
+describe("reschedule-booking source: windows format support", () => {
+  const reschedSource2 = readFileSync(
+    join(process.cwd(), "supabase/functions/elevenlabs-reschedule-booking/index.ts"),
+    "utf-8"
+  );
+
+  it("handles windows format in isOpenDay", () => {
+    expect(reschedSource2).toContain("dayHours.windows");
+  });
+
+  it("checks windows array length for open status", () => {
+    expect(reschedSource2).toContain("windows.length > 0");
   });
 });

@@ -166,9 +166,14 @@ function getDayLabel(dateStr: string): string {
 function isOpenDay(dateStr: string, hoursJson: Record<string, unknown> | null | undefined): boolean {
   if (!hoursJson) return true; // no hours config = always open
   const dayLabel = getDayLabel(dateStr);
-  const dayHours = hoursJson[dayLabel] as { open?: string; close?: string; closed?: boolean } | undefined;
+  const dayHours = hoursJson[dayLabel] as {
+    open?: string; close?: string; closed?: boolean;
+    windows?: { open: string; close: string }[];
+  } | undefined;
   if (!dayHours) return false; // day not configured = closed
   if (dayHours.closed === true) return false;
+  // Support both {open, close} and {windows: [{open, close}]} formats
+  if (dayHours.windows) return dayHours.windows.length > 0;
   return !!(dayHours.open && dayHours.close);
 }
 
