@@ -230,8 +230,9 @@ export function applyAppointmentLabel(
   const p = IRREGULAR_PLURALS[s] ?? (s.endsWith("s") ? s : s + "s"); // "jobs", "dispatches", "test drives"
   const cap = s.charAt(0).toUpperCase() + s.slice(1); // "Job", "Test drive" — sentence case for messages
   const capP = p.charAt(0).toUpperCase() + p.slice(1);
-  // Title case version for button labels like "New Test Drive" (each word capitalized)
+  // Title case version for button/page labels like "New Test Drive", "Service Visits" (each word capitalized)
   const titleCap = s.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  const titleCapP = p.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 
   return {
     ...base,
@@ -244,7 +245,7 @@ export function applyAppointmentLabel(
     pendingBooking: `pending ${s}`,
     pendingBookings: `pending ${p}`,
     bookingsMetricLabel: capP,
-    bookingsPageTitle: capP,
+    bookingsPageTitle: titleCapP,
     bookingsPageSubtitle: `Your calendar and upcoming ${p}`,
   };
 }
