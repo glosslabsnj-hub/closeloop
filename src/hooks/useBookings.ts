@@ -115,23 +115,22 @@ export function useBookings() {
     mutationFn: async (id: string) => {
       const { data, error } = await supabase
         .from("bookings")
-        .update({ status: "completed" })
+        .update({ status: "completed", completed_at: new Date().toISOString() })
         .eq("id", id)
         .select()
         .single();
 
       if (error) throw error;
 
-      // Fire booking.completed workflow trigger for automations (review requests, follow-ups)
+      // Trigger post-service automation chain (invoice, thank-you SMS, review request)
       if (tenant?.id) {
-        supabase.functions.invoke("trigger-workflow", {
+        supabase.functions.invoke("post-service-automation", {
           body: {
+            booking_id: id,
             tenant_id: tenant.id,
-            trigger: "booking.completed",
-            entity_type: "booking",
-            entity_id: id,
+            completed_by: "staff",
           },
-        }).catch(() => { /* best-effort automation trigger */ });
+        }).catch(() => { /* best-effort post-service trigger */ });
       }
 
       return data;
