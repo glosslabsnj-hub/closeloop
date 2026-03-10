@@ -101,7 +101,8 @@ export function BookingDetailsSheet({
         .maybeSingle();
       return data;
     },
-    // Poll every 3s while no invoice found (post-service automation is async ~2-5s)
+    // Poll every 3s while no invoice (post-service automation is async ~2-5s)
+    // Stops when sheet closes (component unmounts) or invoice is found
     refetchInterval: (query) => (query.state.data == null ? 3000 : false),
     refetchIntervalInBackground: false,
   });
