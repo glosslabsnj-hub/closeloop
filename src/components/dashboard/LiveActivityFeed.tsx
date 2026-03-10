@@ -138,7 +138,9 @@ export function LiveActivityFeed() {
 
       bookings?.forEach((booking) => {
         const leadName = (booking.leads as any)?.full_name || terms.customer;
-        const statusLabel = booking.status === 'confirmed' ? terms.bookingConfirmed : terms.bookingCreated;
+        const statusLabel = booking.status === 'confirmed' ? terms.bookingConfirmed
+          : booking.status === 'completed' ? terms.bookingCompleted
+          : terms.bookingCreated;
         results.push({
           id: `booking-${booking.id}`,
           type: "booking",
@@ -146,7 +148,7 @@ export function LiveActivityFeed() {
           subtitle: leadName,
           time: formatDistanceToNow(new Date(booking.created_at), { addSuffix: true }),
           timestamp: new Date(booking.created_at),
-          status: booking.status === 'confirmed' ? 'success' : 'info',
+          status: (booking.status === 'confirmed' || booking.status === 'completed') ? 'success' : 'info',
         });
       });
 

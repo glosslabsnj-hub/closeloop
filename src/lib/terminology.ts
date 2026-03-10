@@ -36,6 +36,7 @@ export interface IndustryTerms {
 
   // Activity feed
   bookingConfirmed: string;
+  bookingCompleted: string;
 
   // Metrics
   bookingsMetricLabel: string;
@@ -66,6 +67,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "pending booking",
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
+    bookingCompleted: "Job complete",
     bookingsMetricLabel: "Bookings",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every customer call and lead, organized.",
@@ -90,6 +92,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "pending job",
     pendingBookings: "pending jobs",
     bookingConfirmed: "Job assigned",
+    bookingCompleted: "Job complete",
     bookingsMetricLabel: "Jobs",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every call and dispatch request, organized.",
@@ -114,6 +117,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "new order",
     pendingBookings: "new orders",
     bookingConfirmed: "Order confirmed",
+    bookingCompleted: "Order complete",
     bookingsMetricLabel: "Orders",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every guest call and order, organized.",
@@ -138,6 +142,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "pending appointment",
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
+    bookingCompleted: "Visit complete",
     bookingsMetricLabel: "Appointments",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every patient call and inquiry, organized.",
@@ -162,6 +167,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "pending booking",
     pendingBookings: "pending bookings",
     bookingConfirmed: "Booking confirmed",
+    bookingCompleted: "Booking complete",
     bookingsMetricLabel: "Bookings",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every customer call and inquiry, organized.",
@@ -186,6 +192,7 @@ const TERMINOLOGY: Record<BusinessMode, IndustryTerms> = {
     pendingBooking: "pending appointment",
     pendingBookings: "pending appointments",
     bookingConfirmed: "Appointment confirmed",
+    bookingCompleted: "Appointment complete",
     bookingsMetricLabel: "Appointments",
     inboxPageTitle: "Inbox",
     inboxPageSubtitle: "Every prospect call and lead, organized.",
