@@ -90,10 +90,22 @@ export function BookingDetailsSheet({
   };
 
   // Fetch invoice for completed bookings — poll until found (post-service automation is async)
+  // Prefer the direct invoice_id FK on the booking (more reliable), fall back to booking_id lookup
+  const bookingInvoiceId = (booking as any)?.invoice_id as string | null | undefined;
   const { data: invoice, isLoading: invoiceLoading } = useQuery({
-    queryKey: ["invoice-by-booking", (booking as any)?.id],
+    queryKey: ["invoice-by-booking", (booking as any)?.id, bookingInvoiceId],
     enabled: !!booking && booking.status === "completed",
     queryFn: async () => {
+      if (bookingInvoiceId) {
+        // Direct lookup by invoice PK — fastest and most reliable
+        const { data } = await supabase
+          .from("invoices")
+          .select("id, invoice_number, status, balance_due_cents, total_cents, payment_url")
+          .eq("id", bookingInvoiceId)
+          .maybeSingle();
+        return data;
+      }
+      // Fall back to joining via invoices.booking_id (for older invoices)
       const { data } = await supabase
         .from("invoices")
         .select("id, invoice_number, status, balance_due_cents, total_cents, payment_url")
