@@ -132,9 +132,10 @@ export function useBookings() {
 
   const completeBooking = useMutation({
     mutationFn: async (id: string) => {
+      const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("bookings")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .update({ status: "completed", completed_at: now, end_at: now })
         .eq("id", id)
         .select()
         .single();

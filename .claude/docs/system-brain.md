@@ -1,12 +1,20 @@
 # Receptionist Dev - Cross-Session Brain
 
-## Last Session: 2026-03-09 (receptionist_eng R30 — GC estimate-first prompt regression tests)
+## Last Session: 2026-03-09 (receptionist_ux — invoice UX overhaul for post-service chain)
 
 ### What Was Done
-- **Regression tests: GC estimate-first AI prompt** (commit af70c69): +25 tests in `tests/gc-estimate-first-prompt-regression.test.ts`. Covers: (1) `buildBusinessContext` generates ESTIMATE-FIRST SERVICES prompt block when services have `booking_type=estimate_first`. (2) Correct instructions in prompt (no direct booking, explain free estimate process, "Free Estimate - [service name]" pattern). (3) booking_type normalization and `[ESTIMATE FIRST]` tag in services_for_prompt. (4) testTenantMatrix GC entry has correct booking_type values. (5) seed-test-tenants propagates booking_type to DB. (6) Conditional section only renders when estimate_first services exist. 3436/3436 tests passing (was 3411, +25).
-- **QA pipeline status**: Handoffs #782-#786 filed, awaiting QA. Blocked by Anthropic API credits (Jack task #20). GC onboarding retest (#786) and Pool Service dashboard (#802) both ready once QA agent runs.
+- **Invoice UX** (commits 407213b, 0e1c83f, d15f86c): BookingDetailsSheet now has a dedicated Invoice section for completed bookings. Shows invoice #, status badge (Paid/Amount Due/Overdue), total amount, "Copy Payment Link" button, "Send via SMS" button (pre-fills with payment link). Sheet no longer closes on Mark Complete — stays open so user sees invoice appear. Invoice query polls every 3s until found (post-service automation is async ~2-5s after mark complete). Contextual "no invoice" message.
+- **SendSmsDialog** (commit 407213b): Added `defaultMessage` prop with `useEffect` sync — pre-fills SMS when opened from "Send via SMS" invoice action.
+- **NeedsAttentionBanner** (commit 711fa79): Now queries and surfaces unpaid invoices for service/dispatch modes. Shows "X unpaid invoices" as Priority 1 item linking to /app/bookings. DollarSign icon.
+- **LiveActivityFeed + terminology** (commits e613660, 85149e6): Added `bookingCompleted` to `IndustryTerms` interface and all 6 mode configs. `applyAppointmentLabel` now overrides `bookingCompleted` for industry-specific labels (pool service → "Service visit complete"). LiveActivityFeed shows correct label for completed bookings + marks them green.
+- **QA handoff #806** filed: VERIFY service post_service/invoice_generated_on_complete gate.
+- **Tests**: 3506/3506 passing. Deployed to prod (200 verified).
 
-### Previous Session: 2026-03-09 R29 (receptionist_ux — sales UX terminology + test drive dialog + pool call history)
+### Previous Session: 2026-03-09 R31 (receptionist_eng — post-service automation chain)
+- **Post-service automation** (commits 313fbf8, 9654eaa): 5 new edge functions deployed (post-service-automation, generate-invoice-payment, invoice-payment-complete, cron-invoice-overdue, cron-review-followup). Invoices table created. Mark Complete triggers invoice creation + thank-you SMS + review request queuing. BookingDetailsSheet shows invoice status.
+- **7 post_service/* gates** set to in_progress, QA handoff #805 filed.
+
+### Previous Session: 2026-03-09 R30 (receptionist_eng — GC estimate-first regression tests)
 - **UX: Sales mode terminology fixes** (commit 881d0b9): SalesTodayView "Test Drives Today" stat now links to /app/test-drives (not /app/bookings) for car dealers. AgreementsPage AgreementListItem shows "appointments" not "visits" for sales mode. AgreementBuilder template cards show "Custom pricing" (not $0.00/mo) and "appointment(s)" for SALES_PLAN_TEMPLATES.
 - **UX: Test drive dialog auto-open** (commit 806fdd4): CallDetailPanel "New Test Drive" button navigates to /app/test-drives?openNew=true. TestDrivesPage reads ?openNew=true via useSearchParams and calls setCreateOpen(true) — no extra click needed. Regression test updated to match new URL.
 - **Data: Pool service call history** (commit 7a4fd8a): Crystal Clear Pool Service testTenantMatrix entry now has 10 pool-specific customCallSessions (algae emergency, monthly plan signup, equipment repair, seasonal open/close, HOA commercial inquiry, out-of-area lost call). Mirrors car dealership pattern for dashboard QA call_history_real_data gate.

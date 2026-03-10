@@ -332,12 +332,16 @@ serve(async (req) => {
     // Review requests are handled by cron-review-requests which checks
     // recently completed bookings. We just need to mark the booking
     // as eligible for review request.
+    // CRITICAL: set end_at so cron-review-requests and cron-review-followup can
+    // find this booking in their time-window queries (they filter by end_at, not completed_at).
     if (autoReview) {
+      const completedNow = new Date().toISOString();
       await supabase
         .from("bookings")
         .update({
           status: "completed",
-          completed_at: new Date().toISOString(),
+          completed_at: completedNow,
+          end_at: completedNow,
         })
         .eq("id", booking_id);
 
