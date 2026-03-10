@@ -14,7 +14,7 @@ interface BookingHandoffRequest {
   booking_id?: string;
   tenant_id?: string;
   tenantId?: string;
-  event?: "created" | "confirmed" | "cancelled";
+  event?: "created" | "confirmed" | "cancelled" | "completed";
   test?: boolean;
   method?: string;
   webhook_url?: string;
@@ -419,6 +419,40 @@ serve(async (req) => {
       }
     }
 
+    // For completions: delegate to post-service-automation which handles the entire chain
+    if (eventType === "completed") {
+      try {
+        const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const postServiceResponse = await fetch(
+          `${supabaseUrl}/functions/v1/post-service-automation`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              booking_id,
+              tenant_id: tenantId,
+              completed_by: isInternalCall ? "system" : "staff",
+            }),
+          }
+        );
+
+        const postServiceResult = await postServiceResponse.json();
+        return new Response(
+          JSON.stringify({ success: true, results: { ...results, post_service: postServiceResult } }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      } catch (e) {
+        console.error("[booking-handoff] Post-service automation error:", e);
+        return new Response(
+          JSON.stringify({ success: false, error: "Post-service automation failed" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // For cancellations: send customer SMS then return (skip calendar/Square — already handled by cancel flow)
     if (isCancellation) {
       try {
@@ -459,7 +493,7 @@ serve(async (req) => {
     }
 
     // Trigger workflow if any active workflow matches this event
-    const eventType = booking.status === "confirmed" ? "booking.confirmed" : "booking.created";
+    const workflowTrigger = booking.status === "confirmed" ? "booking.confirmed" : "booking.created";
     try {
       await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
         method: "POST",
@@ -469,12 +503,12 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           tenant_id: tenantId,
-          trigger: eventType,
+          trigger: workflowTrigger,
           entity_type: "booking",
           entity_id: booking_id,
         }),
       });
-      console.log(`Triggered workflow for ${eventType}:`, booking_id);
+      console.log(`Triggered workflow for ${workflowTrigger}:`, booking_id);
     } catch (e) {
       console.error("Failed to trigger workflow:", e);
     }
