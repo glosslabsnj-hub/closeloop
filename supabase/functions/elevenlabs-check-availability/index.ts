@@ -319,9 +319,32 @@ serve(async (req: Request) => {
       serviceName: serviceName || undefined,
       durationOverride: durationOverride,
     });
-    const finalDuration = resolved.duration;
     const resolvedServiceName = resolved.service?.name || null;
-    console.log(`[check-availability] Service resolved: ${resolvedServiceName || "none"}, duration: ${finalDuration}min`);
+    const finalDuration = resolved.duration;
+
+    // Safety: warn when using default duration (service not matched)
+    if (!resolved.service && serviceName) {
+      console.warn(`[check-availability] WARNING: Service "${serviceName}" not matched for tenant ${tenantId.substring(0, 8)}. Using default ${finalDuration}min duration. This may cause incorrect availability.`);
+    } else if (!resolved.service && !serviceName) {
+      console.warn(`[check-availability] WARNING: No service_name provided for tenant ${tenantId.substring(0, 8)}. Using default ${finalDuration}min duration.`);
+    }
+    console.log(`[check-availability] Service resolved: ${resolvedServiceName || "none"}, duration: ${finalDuration}min, addon: ${resolved.service?.is_addon || false}`);
+
+    // Add-on service enforcement: add-ons cannot be booked standalone
+    if (resolved.service?.is_addon) {
+      return new Response(
+        JSON.stringify({
+          available: false,
+          conflict_reason: "addon_service",
+          slot: null,
+          alternative_slots: [],
+          service_name: resolvedServiceName,
+          duration_minutes: finalDuration,
+          message: `${resolvedServiceName} is an add-on service and must be booked together with a main service. Please ask the customer which primary service they would like (such as a full detail, interior detail, exterior wash, paint correction, or ceramic coating) and then add ${resolvedServiceName} to that booking.`,
+        } as CheckAvailabilityResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Build timestamp in tenant timezone
     const tzOffset = getTimezoneOffset(timezone, new Date(`${targetDate}T12:00:00Z`));
