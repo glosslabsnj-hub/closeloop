@@ -5,8 +5,10 @@
  * and action buttons (confirm, reschedule, complete, no-show, cancel, message).
  */
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { formatBookingDateLong, formatBookingTime, formatBookingDatetime } from "@/lib/formatBookingTime";
 import {
   Sheet,
@@ -76,6 +78,20 @@ export function BookingDetailsSheet({
   const { assistantSettings } = useAuth();
   const tenantTz = (assistantSettings?.settings_json as any)?.timezone as string | undefined;
   const [smsOpen, setSmsOpen] = useState(false);
+
+  // Fetch invoice for completed bookings
+  const { data: invoice } = useQuery({
+    queryKey: ["invoice-by-booking", (booking as any)?.id],
+    enabled: !!booking && booking.status === "completed",
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, status, balance_due_cents, total_cents, payment_url")
+        .eq("booking_id", (booking as any).id)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   if (!booking) return null;
   const serviceName = booking.service?.name || (terms.service.charAt(0).toUpperCase() + terms.service.slice(1));
@@ -304,6 +320,26 @@ export function BookingDetailsSheet({
                     date={(booking as any).completed_at || (booking as any).updated_at}
                     timezone={tenantTz}
                   />
+                )}
+                {invoice && (
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      Invoice #{invoice.invoice_number}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-medium",
+                        invoice.status === "paid" ? "bg-green-50 text-green-700" :
+                        invoice.status === "overdue" ? "bg-red-50 text-red-700" :
+                        "bg-amber-50 text-amber-700"
+                      )}>
+                        {invoice.status === "paid" ? "Paid" :
+                         invoice.status === "overdue" ? "Overdue" :
+                         `$${((invoice.balance_due_cents || 0) / 100).toFixed(2)} due`}
+                      </span>
+                    </div>
+                  </div>
                 )}
                 {(booking.status === "canceled" || booking.status === "cancelled") && (
                   <TimelineItem

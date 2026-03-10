@@ -188,7 +188,7 @@ serve(async (req) => {
       const subtotalCents = lineItems.reduce((sum, item) => sum + item.total_cents, 0);
       const taxCents = Math.round(subtotalCents * taxRate);
       const depositApplied = booking.deposit_paid
-        ? (booking.service.deposit_amount ? Math.round(booking.service.deposit_amount * 100) : 0)
+        ? (booking.service.deposit_amount ? Math.round(parseFloat(booking.service.deposit_amount) * 100) : 0)
         : 0;
       const totalCents = subtotalCents + taxCents;
       const balanceDue = Math.max(0, totalCents - depositApplied);
