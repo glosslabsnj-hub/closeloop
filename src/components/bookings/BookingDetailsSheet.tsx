@@ -89,7 +89,7 @@ export function BookingDetailsSheet({
     setSmsOpen(true);
   };
 
-  // Fetch invoice for completed bookings
+  // Fetch invoice for completed bookings — poll until found (post-service automation is async)
   const { data: invoice, isLoading: invoiceLoading } = useQuery({
     queryKey: ["invoice-by-booking", (booking as any)?.id],
     enabled: !!booking && booking.status === "completed",
@@ -101,6 +101,9 @@ export function BookingDetailsSheet({
         .maybeSingle();
       return data;
     },
+    // Poll every 3s while no invoice found (post-service automation is async ~2-5s)
+    refetchInterval: (query) => (query.state.data == null ? 3000 : false),
+    refetchIntervalInBackground: false,
   });
 
   if (!booking) return null;
@@ -307,7 +310,7 @@ export function BookingDetailsSheet({
                     </div>
                   ) : (
                     <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
-                      No invoice yet
+                      {price ? "Invoice not generated yet" : "No price set — no invoice created"}
                     </div>
                   )}
                 </div>
