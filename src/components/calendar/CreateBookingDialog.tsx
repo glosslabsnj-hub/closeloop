@@ -99,12 +99,45 @@ export function CreateBookingDialog({
         throw new Error("No tenant found");
       }
 
-      // Create or find lead
+      // Normalize phone for consistent lookup
+      const normalizedPhone = customerPhone.trim();
+
+      // Find or create customer record
+      let customerId: string | null = null;
+      const { data: existingCustomer } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("tenant_id", effectiveTenantId)
+        .eq("phone_e164", normalizedPhone)
+        .maybeSingle();
+
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+        await supabase
+          .from("customers")
+          .update({ full_name: customerName.trim(), updated_at: new Date().toISOString() })
+          .eq("id", customerId);
+      } else {
+        const { data: newCustomer } = await supabase
+          .from("customers")
+          .insert({
+            tenant_id: effectiveTenantId,
+            full_name: customerName.trim(),
+            phone_e164: normalizedPhone,
+            phone_raw: customerPhone,
+            source: "manual",
+          })
+          .select("id")
+          .single();
+        customerId = newCustomer?.id ?? null;
+      }
+
+      // Create or find lead, ensuring customer_id is always set
       const { data: existingLead } = await supabase
         .from("leads")
         .select("id")
         .eq("tenant_id", effectiveTenantId)
-        .eq("phone", customerPhone)
+        .eq("phone", normalizedPhone)
         .maybeSingle();
 
       let leadId = existingLead?.id;
@@ -114,33 +147,72 @@ export function CreateBookingDialog({
           .from("leads")
           .insert({
             tenant_id: effectiveTenantId,
-            full_name: customerName,
-            phone: customerPhone,
+            full_name: customerName.trim(),
+            phone: normalizedPhone,
             source: "manual",
+            customer_id: customerId,
           })
           .select("id")
           .single();
 
         if (leadError) throw leadError;
         leadId = newLead.id;
+      } else if (customerId) {
+        // Ensure existing lead has customer_id set
+        await supabase
+          .from("leads")
+          .update({ customer_id: customerId })
+          .eq("id", leadId)
+          .is("customer_id", null);
+      }
+
+      // Check for booking conflicts (detect double-booking)
+      const { data: conflicts } = await supabase
+        .from("bookings")
+        .select("id")
+        .eq("tenant_id", effectiveTenantId)
+        .not("status", "in", "(canceled,cancelled,no_show)")
+        .lt("start_at", endTime.toISOString())
+        .gt("end_at", startTime.toISOString());
+
+      if (conflicts && conflicts.length > 0) {
+        toast.error("That time slot is already booked. Please choose a different time.");
+        return;
       }
 
       // Create booking
-      const { error: bookingError } = await supabase.from("bookings").insert({
-        tenant_id: effectiveTenantId,
-        lead_id: leadId,
-        service_id: serviceId || null,
-        start_at: startTime.toISOString(),
-        end_at: endTime.toISOString(),
-        status: "confirmed",
-        notes: notes || null,
-      });
+      const { data: newBooking, error: bookingError } = await supabase
+        .from("bookings")
+        .insert({
+          tenant_id: effectiveTenantId,
+          lead_id: leadId,
+          service_id: serviceId || null,
+          start_at: startTime.toISOString(),
+          end_at: endTime.toISOString(),
+          status: "confirmed",
+          notes: notes || null,
+        })
+        .select("id")
+        .single();
 
       if (bookingError) throw bookingError;
+
+      // Create busy_block to prevent AI from double-booking this slot
+      if (newBooking) {
+        await supabase.from("busy_blocks").insert({
+          tenant_id: effectiveTenantId,
+          booking_id: newBooking.id,
+          start_at: startTime.toISOString(),
+          end_at: endTime.toISOString(),
+          block_type: "confirmed_booking",
+          is_active: true,
+        });
+      }
 
       // Invalidate both list and calendar queries so UI updates immediately
       queryClient.invalidateQueries({ queryKey: ["bookings", effectiveTenantId] });
       queryClient.invalidateQueries({ queryKey: ["schedule-bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["customer-enrichment"] });
 
       toast.success(`${terms.booking.charAt(0).toUpperCase() + terms.booking.slice(1)} created successfully`);
       onOpenChange(false);
