@@ -362,7 +362,7 @@ export default function BookingsPage() {
           onOpenChange={setDetailsOpen}
           onEdit={(b) => { setDetailsOpen(false); handleEditBooking(b); }}
           onConfirm={(b) => { handleApproveBooking(b); setDetailsOpen(false); }}
-          onComplete={(b) => { handleCompleteBooking(b); setDetailsOpen(false); }}
+          onComplete={(b) => { handleCompleteBooking(b); /* keep sheet open so invoice is visible */ }}
           onNoShow={handleNoShowBooking}
           onCancel={(b) => {
             setDetailsOpen(false);

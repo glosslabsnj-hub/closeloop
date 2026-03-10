@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Send } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ interface SendSmsDialogProps {
   recipientName?: string;
   customerId?: string;
   conversationId?: string;
+  defaultMessage?: string;
 }
 
 const SMS_MAX_LENGTH = 1600;
@@ -32,10 +33,16 @@ export function SendSmsDialog({
   recipientName,
   customerId,
   conversationId,
+  defaultMessage,
 }: SendSmsDialogProps) {
   const { tenant } = useAuth();
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(defaultMessage ?? "");
   const [sending, setSending] = useState(false);
+
+  // Sync prefilled message when dialog opens
+  useEffect(() => {
+    if (open) setBody(defaultMessage ?? "");
+  }, [open, defaultMessage]);
 
   const charCount = body.length;
   const segments = Math.ceil(charCount / 160) || 1;

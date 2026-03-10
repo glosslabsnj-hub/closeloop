@@ -37,6 +37,10 @@ import {
   Briefcase,
   Globe,
   SquareIcon,
+  Link2,
+  Send,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -78,9 +82,15 @@ export function BookingDetailsSheet({
   const { assistantSettings } = useAuth();
   const tenantTz = (assistantSettings?.settings_json as any)?.timezone as string | undefined;
   const [smsOpen, setSmsOpen] = useState(false);
+  const [smsPrefill, setSmsPrefill] = useState<string | undefined>();
+
+  const openSmsWithPaymentLink = (paymentUrl: string) => {
+    setSmsPrefill(`Hi ${customerName.split(" ")[0]}, your invoice is ready. Pay here: ${paymentUrl}`);
+    setSmsOpen(true);
+  };
 
   // Fetch invoice for completed bookings
-  const { data: invoice } = useQuery({
+  const { data: invoice, isLoading: invoiceLoading } = useQuery({
     queryKey: ["invoice-by-booking", (booking as any)?.id],
     enabled: !!booking && booking.status === "completed",
     queryFn: async () => {
@@ -212,6 +222,98 @@ export function BookingDetailsSheet({
               </div>
             </div>
 
+            {/* Invoice — shown for completed bookings */}
+            {booking.status === "completed" && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    Invoice
+                  </div>
+                  {invoiceLoading ? (
+                    <div className="rounded-lg border p-3 flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Generating invoice…
+                    </div>
+                  ) : invoice ? (
+                    <div className="rounded-lg border p-3 space-y-3">
+                      {/* Invoice header row */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">#{invoice.invoice_number}</span>
+                        <span className={cn(
+                          "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                          invoice.status === "paid"
+                            ? "bg-green-50 text-green-700"
+                            : invoice.status === "overdue"
+                              ? "bg-red-50 text-red-700"
+                              : "bg-amber-50 text-amber-700"
+                        )}>
+                          {invoice.status === "paid" ? "Paid" :
+                           invoice.status === "overdue" ? "Overdue" :
+                           `$${((invoice.balance_due_cents || 0) / 100).toFixed(2)} due`}
+                        </span>
+                      </div>
+
+                      {/* Total */}
+                      {invoice.total_cents != null && (
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <DollarSign className="h-3.5 w-3.5" />
+                          Total: <span className="font-medium text-foreground">${(invoice.total_cents / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+
+                      {/* Payment link actions */}
+                      {invoice.payment_url && invoice.status !== "paid" && (
+                        <div className="flex gap-2 pt-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 gap-1.5"
+                            onClick={() => copyToClipboard(invoice.payment_url!, "Payment link")}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            Copy Link
+                          </Button>
+                          {phone && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 gap-1.5"
+                              onClick={() => openSmsWithPaymentLink(invoice.payment_url!)}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              Send via SMS
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Paid confirmation */}
+                      {invoice.status === "paid" && (
+                        <div className="flex items-center gap-1.5 text-sm text-green-700">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Payment received
+                        </div>
+                      )}
+
+                      {/* Overdue warning */}
+                      {invoice.status === "overdue" && (
+                        <div className="flex items-center gap-1.5 text-sm text-red-700">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          Overdue — reminder sent to customer
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      No invoice yet
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             <Separator />
 
             {/* Customer */}
@@ -321,26 +423,6 @@ export function BookingDetailsSheet({
                     timezone={tenantTz}
                   />
                 )}
-                {invoice && (
-                  <div className="flex items-center justify-between text-xs pt-1">
-                    <span className="text-muted-foreground flex items-center gap-1">
-                      <FileText className="h-3 w-3" />
-                      Invoice #{invoice.invoice_number}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "rounded px-1.5 py-0.5 text-[10px] font-medium",
-                        invoice.status === "paid" ? "bg-green-50 text-green-700" :
-                        invoice.status === "overdue" ? "bg-red-50 text-red-700" :
-                        "bg-amber-50 text-amber-700"
-                      )}>
-                        {invoice.status === "paid" ? "Paid" :
-                         invoice.status === "overdue" ? "Overdue" :
-                         `$${((invoice.balance_due_cents || 0) / 100).toFixed(2)} due`}
-                      </span>
-                    </div>
-                  </div>
-                )}
                 {(booking.status === "canceled" || booking.status === "cancelled") && (
                   <TimelineItem
                     label="Cancelled"
@@ -405,10 +487,11 @@ export function BookingDetailsSheet({
       {phone && (
         <SendSmsDialog
           open={smsOpen}
-          onOpenChange={setSmsOpen}
+          onOpenChange={(v) => { setSmsOpen(v); if (!v) setSmsPrefill(undefined); }}
           recipientPhone={phone}
           recipientName={customerName}
           customerId={booking.lead?.customer_id ?? undefined}
+          defaultMessage={smsPrefill}
         />
       )}
     </>

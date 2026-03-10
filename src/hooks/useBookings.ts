@@ -156,9 +156,14 @@ export function useBookings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings", tenant?.id] });
-      toast({ title: "Booking completed", description: "Service marked as finished." });
+      // Invalidate invoices so BookingDetailsSheet shows the new invoice immediately
+      queryClient.invalidateQueries({ queryKey: ["invoice-by-booking"] });
+      toast({
+        title: "Job complete!",
+        description: "Invoice and follow-up messages are being sent.",
+      });
     },
-    onError: (error) => {
+    onError: () => {
       toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
     },
   });
