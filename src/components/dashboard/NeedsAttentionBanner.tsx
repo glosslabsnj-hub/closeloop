@@ -1,18 +1,18 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { useCapabilities } from "@/hooks/useCapabilities";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
 import { useKnowledgeSuggestions } from "@/hooks/useKnowledgeSuggestions";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  AlertCircle, 
-  ChefHat, 
-  Brain, 
+import {
+  AlertCircle,
+  ChefHat,
+  Brain,
   Calendar,
   ArrowRight,
+  DollarSign,
 } from "lucide-react";
 
 interface AttentionItem {
@@ -26,7 +26,6 @@ interface AttentionItem {
 export function NeedsAttentionBanner() {
   const navigate = useNavigate();
   const { tenant } = useAuth();
-  const { _businessMode } = useTenantConfig();
   const caps = useCapabilities();
   const { terms } = useIndustryContext();
   const { pendingCount: knowledgeGaps } = useKnowledgeSuggestions();
@@ -44,6 +43,22 @@ export function NeedsAttentionBanner() {
       return count || 0;
     },
     enabled: !!tenant?.id && caps.hasFoodOrders,
+  });
+
+  // Fetch unpaid invoices (service + dispatch modes)
+  const { data: unpaidInvoices = 0 } = useQuery({
+    queryKey: ["attention-unpaid-invoices", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return 0;
+      const { count } = await supabase
+        .from("invoices")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .in("status", ["pending", "sent", "overdue"])
+        .gt("balance_due_cents", 0);
+      return count || 0;
+    },
+    enabled: !!tenant?.id && (caps.hasBooking || caps.hasDispatchQueue),
   });
 
   // Fetch pending bookings (pending or pending_deposit status)
@@ -64,13 +79,23 @@ export function NeedsAttentionBanner() {
   // Build attention items
   const items: AttentionItem[] = [];
 
+  if (unpaidInvoices > 0) {
+    items.push({
+      count: unpaidInvoices,
+      label: unpaidInvoices === 1 ? "unpaid invoice" : "unpaid invoices",
+      icon: DollarSign,
+      href: "/app/bookings",
+      priority: 1,
+    });
+  }
+
   if (pendingOrders > 0) {
     items.push({
       count: pendingOrders,
       label: pendingOrders === 1 ? "new order" : "new orders",
       icon: ChefHat,
       href: "/app/orders",
-      priority: 1,
+      priority: 2,
     });
   }
 
@@ -80,7 +105,7 @@ export function NeedsAttentionBanner() {
       label: pendingBookings === 1 ? terms.pendingBooking : terms.pendingBookings,
       icon: Calendar,
       href: "/app/bookings",
-      priority: 2,
+      priority: 3,
     });
   }
 
