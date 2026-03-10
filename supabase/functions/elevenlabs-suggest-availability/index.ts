@@ -62,7 +62,6 @@ interface SuggestAvailabilityResponse {
   waitlist_available?: boolean;
   callback_available?: boolean;
   next_available_date?: string | null;
-  next_available_slots?: Array<{ start: string; end: string; display: string; local_date: string }>;
 }
 
 const MONTH_NAMES: Record<string, number> = {
@@ -260,9 +259,27 @@ serve(async (req: Request) => {
       serviceName: serviceName || undefined,
       durationOverride: durationOverride,
     });
-    const finalDuration = resolved.duration;
     const resolvedServiceName = resolved.service?.name || null;
-    console.log(`[suggest-availability] Service resolved: ${resolvedServiceName || "none"}, duration: ${finalDuration}min`);
+    console.log(`[suggest-availability] Service resolved: ${resolvedServiceName || "none"}, duration: ${resolved.duration}min, addon: ${resolved.service?.is_addon || false}`);
+
+    const finalDuration = resolved.duration;
+
+    // Add-on service enforcement: add-ons cannot be booked standalone
+    if (resolved.service?.is_addon) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          slots: [],
+          count: 0,
+          date: targetDate,
+          service_name: resolvedServiceName,
+          duration_minutes: finalDuration,
+          message: `${resolvedServiceName} is an add-on service and must be booked together with a main service. Please ask the customer which primary service they would like (such as a full detail, interior detail, exterior wash, paint correction, or ceramic coating) and then add ${resolvedServiceName} to that booking.`,
+          no_availability_reason: "addon_service",
+        } as SuggestAvailabilityResponse),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Call the database function for slot computation
     // Fetch tenant capacity for multi-technician support
@@ -369,14 +386,19 @@ serve(async (req: Request) => {
 
           if (futureSlots && futureSlots.length > 0) {
             nextAvailableDate = futureDateStr;
-            nextAvailableSlots = futureSlots.slice(0, 3).map((s: Record<string, string>) => ({
+            // CRITICAL: Put alternative slots in the MAIN slots array so the AI
+            // sees them as real results. Previously these were in next_available_slots
+            // which the AI ignored, causing it to fall back to "team will call you."
+            formattedSlots.length = 0; // clear (already empty but be explicit)
+            const altSlots = futureSlots.slice(0, 3).map((s: Record<string, string>) => ({
               start: s.slot_start,
               end: s.slot_end,
               display: s.slot_time_local,
               local_date: s.slot_date,
             }));
-            const nextTimes = nextAvailableSlots.map(s => s.display).join(", ");
-            message = `Nothing available on ${targetDate}, but I have openings on ${futureDateStr} at ${nextTimes}. Would any of those work?`;
+            formattedSlots.push(...altSlots);
+            const nextTimes = altSlots.map(s => s.display).join(", ");
+            message = `That date is fully booked. The next available opening is ${futureDateStr} at ${nextTimes}. Would any of those work for you?`;
             noAvailabilityReason = "requested_date_full";
             foundFutureSlots = true;
             break;
@@ -399,15 +421,24 @@ serve(async (req: Request) => {
     } else if (formattedSlots.length === 1) {
       message = `I have ${formattedSlots[0].display} available.`;
     } else {
-      const displayTimes = formattedSlots.slice(0, 3).map(s => s.display).join(", ");
-      message = `Available times include ${displayTimes}.`;
+      // For single-operator shops (capacity=1), emphasize the earliest/morning slot
+      const firstSlot = formattedSlots[0];
+      const firstHour = parseInt(firstSlot.display.split(":")[0] || firstSlot.display, 10);
+      if (capacity <= 1 && firstHour < 12 && formattedSlots.length > 1) {
+        message = `Our earliest available is ${firstSlot.display}. We recommend morning drop-offs so we can dedicate the full day to your vehicle.`;
+      } else {
+        const displayTimes = formattedSlots.slice(0, 3).map(s => s.display).join(", ");
+        message = `Available times include ${displayTimes}.`;
+      }
     }
 
+    // success = true whenever we have ANY slots to offer (same-date or alternative-date)
+    // success = false ONLY when there is truly NO availability anywhere
     const response: SuggestAvailabilityResponse = {
       success: formattedSlots.length > 0,
       slots: formattedSlots,
       count: formattedSlots.length,
-      date: targetDate,
+      date: nextAvailableDate || targetDate,
       service_name: resolvedServiceName,
       duration_minutes: finalDuration,
       message,
@@ -415,7 +446,6 @@ serve(async (req: Request) => {
       waitlist_available: waitlistAvailable,
       callback_available: callbackAvailable,
       next_available_date: nextAvailableDate,
-      next_available_slots: nextAvailableSlots,
     };
 
     console.log(`[suggest-availability] Returning ${formattedSlots.length} slots`);

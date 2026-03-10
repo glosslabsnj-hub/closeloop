@@ -14,6 +14,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { refreshOAuthToken } from "../_shared/oauthHelpers.ts";
 import { OAUTH_PROVIDERS } from "../_shared/oauthProviders.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -142,6 +143,46 @@ serve(async (_req: Request) => {
       }
     } catch {
       // calendar_tokens may not exist in all deployments
+    }
+
+    // Notify business owners about token failures that need reconnection
+    if (results.error_details.length > 0) {
+      // Group errors by tenant
+      const errorsByTenant = new Map<string, string[]>();
+      for (const err of results.error_details) {
+        const existing = errorsByTenant.get(err.tenant_id) || [];
+        const providerName = OAUTH_PROVIDERS[err.provider]?.displayName || err.provider;
+        existing.push(providerName);
+        errorsByTenant.set(err.tenant_id, existing);
+      }
+
+      for (const [tenantId, providers] of errorsByTenant) {
+        try {
+          // Get owner notification phone
+          const { data: deliverySettings } = await supabase
+            .from("booking_delivery_settings")
+            .select("notify_phone")
+            .eq("tenant_id", tenantId)
+            .maybeSingle();
+
+          if (deliverySettings?.notify_phone) {
+            const { data: tenant } = await supabase
+              .from("tenants")
+              .select("name")
+              .eq("id", tenantId)
+              .single();
+
+            const providerList = providers.join(", ");
+            await sendTenantSms({
+              tenantId,
+              to: deliverySettings.notify_phone,
+              body: `Action needed for ${tenant?.name || "your business"}: Your ${providerList} connection needs to be reconnected. Log into your dashboard to fix it. Reply STOP to opt out.`,
+            });
+          }
+        } catch (notifyErr) {
+          console.error(`[cron-token-refresh] Failed to notify tenant ${tenantId}:`, notifyErr);
+        }
+      }
     }
 
     console.log(`[cron-token-refresh] Done:`, results);

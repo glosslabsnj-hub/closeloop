@@ -83,6 +83,16 @@ Deno.serve(async (req) => {
 
     const { accessToken, locationId } = squareConfig;
 
+    // Get integration ID for status updates
+    const { data: integrationRow } = await supabase
+      .from("integrations")
+      .select("id")
+      .eq("tenant_id", effectiveTenantId)
+      .eq("provider", "square_pos")
+      .eq("status", "connected")
+      .maybeSingle();
+    const integrationId_ = integrationRow?.id;
+
     console.log(`[sync-square-avail] Syncing Square bookings for tenant ${effectiveTenantId.substring(0, 8)}...`);
 
     // Fetch Square bookings for the next 30 days
@@ -453,13 +463,15 @@ Deno.serve(async (req) => {
     }
 
     // Update integration last_tested_at as a sync timestamp
-    await supabase
-      .from("integrations")
-      .update({
-        last_tested_at: new Date().toISOString(),
-        error_message: null,
-      })
-      .eq("id", integration.id);
+    if (integrationId_) {
+      await supabase
+        .from("integrations")
+        .update({
+          last_tested_at: new Date().toISOString(),
+          error_message: null,
+        })
+        .eq("id", integrationId_);
+    }
 
     console.log(
       `[sync-square-avail] Done: ${syncedCount} busy_blocks, ${bookingsCreated} bookings created, ${deactivatedCount} deactivated`,

@@ -80,7 +80,22 @@ Target businesses: HVAC, plumbing, electrical, auto repair, hair salons, barbers
 - [ ] Verify email notifications reach business owner
 - [ ] Test voicemail and missed call handling
 
-#### 1.5 End-to-End Testing
+#### 1.5 Post-Service Automation Chain (DEPLOYED Mar 9)
+The complete booking lifecycle is now automated:
+- **Booking marked complete** → triggers `post-service-automation` edge function
+- **Auto-invoice generation**: Creates invoice with line items from booking service, calculates tax, applies deposits
+- **Payment link**: `generate-invoice-payment` creates Stripe Connect or Square payment links
+- **Thank-you SMS**: Mode-aware templates sent to customer
+- **Review request**: Queued for `cron-review-requests` (60-min delay default, mode-configurable)
+- **Review follow-up**: `cron-review-followup` sends second nudge after 3-7 days (mode-dependent, dispatch skipped)
+- **Invoice overdue**: `cron-invoice-overdue` marks overdue, sends reminder, notifies owner
+- **Owner notifications**: Business owner gets SMS on completion + invoice details
+- **Per-mode config**: workflow config tables have auto_invoice, auto_review_request, invoice_due_days, tax_rate, require_completion_confirmation columns
+- **Edge functions**: post-service-automation, generate-invoice-payment, invoice-payment-complete, cron-review-followup, cron-invoice-overdue
+- **Tables**: invoices (with auto-incrementing invoice_number per tenant), bookings.invoice_id, bookings.completed_at, bookings.review_followup_sent
+- **QA gates**: 7 new post_service/* gates added to both service and dispatch mode
+
+#### 1.6 End-to-End Testing
 - [ ] Sign up as a fake plumbing company (full onboarding)
 - [ ] Sign up as a fake hair salon (full onboarding)
 - [ ] Sign up as a fake dental office (full onboarding)

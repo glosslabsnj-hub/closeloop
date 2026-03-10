@@ -192,3 +192,20 @@ verify_jwt = false
 # Admin functions — do their own auth internally (JWT or admin secret)
 [functions.seed-test-tenants]
 verify_jwt = false
+
+# Post-service automation chain (called internally by booking-handoff and useBookings)
+[functions.post-service-automation]
+verify_jwt = false
+
+[functions.generate-invoice-payment]
+verify_jwt = false
+
+[functions.invoice-payment-complete]
+verify_jwt = false
+
+# Cron jobs (called by pg_cron using service role bearer token)
+[functions.cron-invoice-overdue]
+verify_jwt = false
+
+[functions.cron-review-followup]
+verify_jwt = false

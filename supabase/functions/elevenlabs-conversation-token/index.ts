@@ -348,6 +348,40 @@ serve(async (req) => {
     // Log deployment version for verification
     console.log(`✅ ELEV_TOKEN_VERSION=${DEPLOYED_VERSION} | MODE=${connectionType} | VARS=${Object.keys(dynamicVariables).length} | AGENT_SOURCE=${agentSource}`);
 
+    // Resolve tenant's selected voice for per-tenant voice override
+    let tenantVoiceProviderId: string | null = null;
+    if (tenantId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabaseForVoice = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: aiAssistant } = await supabaseForVoice
+          .from("ai_assistants")
+          .select("voice_id")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+
+        if (aiAssistant?.voice_id) {
+          const { data: voiceOption } = await supabaseForVoice
+            .from("voice_options")
+            .select("provider_voice_id")
+            .eq("id", aiAssistant.voice_id)
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (voiceOption?.provider_voice_id) {
+            tenantVoiceProviderId = voiceOption.provider_voice_id;
+            console.log(`[elevenlabs-token] Tenant voice override: ${aiAssistant.voice_id} -> ${tenantVoiceProviderId.slice(0, 12)}...`);
+          }
+        }
+      } catch (voiceError) {
+        console.warn("[elevenlabs-token] Voice lookup failed (non-fatal):", voiceError);
+      }
+    }
+
+    // Build conversation_config_override for voice
+    const conversationConfigOverride = tenantVoiceProviderId
+      ? { tts: { voice_id: tenantVoiceProviderId } }
+      : undefined;
+
     // DUAL PATH: WebRTC (default) or WebSocket
     if (connectionType === "webrtc") {
       // WebRTC PATH: fetch a short-lived conversation token.
@@ -399,6 +433,7 @@ serve(async (req) => {
         JSON.stringify({
           token,
           dynamicVariables: stringOnlyVars,
+          conversationConfigOverride,
           precomputedSlots: precomputedSlots,
           deployedVersion: DEPLOYED_VERSION,
           connectionType: "webrtc",
@@ -412,6 +447,7 @@ serve(async (req) => {
             denoStdVersion: "0.191.0",
             dynamicVarsCount: Object.keys(stringOnlyVars).length,
             hasContractFields: Boolean(stringOnlyVars.dynamic_variables_keys && stringOnlyVars.business_brain_json_hash),
+            hasVoiceOverride: Boolean(tenantVoiceProviderId),
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -454,6 +490,7 @@ serve(async (req) => {
         JSON.stringify({
           signedUrl: signedUrlData.signed_url,
           dynamicVariables: stringOnlyVarsWs,
+          conversationConfigOverride,
           precomputedSlots: precomputedSlots,
           deployedVersion: DEPLOYED_VERSION,
           connectionType: "websocket",
@@ -466,6 +503,7 @@ serve(async (req) => {
             denoStdVersion: "0.191.0",
             dynamicVarsCount: Object.keys(stringOnlyVarsWs).length,
             hasContractFields: Boolean(stringOnlyVarsWs.dynamic_variables_keys && stringOnlyVarsWs.business_brain_json_hash),
+            hasVoiceOverride: Boolean(tenantVoiceProviderId),
           },
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

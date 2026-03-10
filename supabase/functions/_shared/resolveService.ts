@@ -1,12 +1,15 @@
 /**
  * Shared service resolver for availability tools.
  * Handles fuzzy matching of service names (& vs and, slashes, partial matches).
+ * Supports add-on/secondary service detection.
  */
 
 interface ResolvedService {
   id: string;
   name: string;
   duration_minutes: number;
+  is_addon: boolean;
+  service_category: string | null;
 }
 
 /**
@@ -27,7 +30,11 @@ function normalizeServiceName(name: string): string {
 
 /**
  * Resolve a service by name or ID, with fuzzy matching.
- * Returns the service with its duration, or null if not found.
+ * Returns the service with its duration and add-on status.
+ *
+ * When multiple services match via fuzzy search, prefers:
+ * 1. Primary services over add-ons
+ * 2. Shorter names (more specific matches) over longer names
  */
 export async function resolveService(
   supabase: any,
@@ -40,17 +47,25 @@ export async function resolveService(
 ): Promise<{ service: ResolvedService | null; duration: number }> {
   const defaultDuration = opts.durationOverride || 60;
 
+  const toResolved = (s: any): ResolvedService => ({
+    id: s.id,
+    name: s.name,
+    duration_minutes: s.duration_minutes,
+    is_addon: s.service_type === "secondary",
+    service_category: s.service_category || null,
+  });
+
   // Direct ID lookup
   if (opts.serviceId) {
     const { data: service } = await supabase
       .from("services")
-      .select("id, name, duration_minutes")
+      .select("id, name, duration_minutes, service_type, service_category")
       .eq("id", opts.serviceId)
       .eq("tenant_id", tenantId)
       .single();
     if (service) {
       return {
-        service: { id: service.id, name: service.name, duration_minutes: service.duration_minutes },
+        service: toResolved(service),
         duration: service.duration_minutes || defaultDuration,
       };
     }
@@ -61,7 +76,7 @@ export async function resolveService(
     // Get all active services for this tenant
     const { data: services } = await supabase
       .from("services")
-      .select("id, name, duration_minutes")
+      .select("id, name, duration_minutes, service_type, service_category")
       .eq("tenant_id", tenantId)
       .eq("is_active", true);
 
@@ -74,18 +89,37 @@ export async function resolveService(
         (s: any) => normalizeServiceName(s.name) === normalizedSearch
       );
 
-      // Strategy 2: Normalized contains
+      // Strategy 2: Normalized contains — prefer shortest match (most specific)
       if (!match) {
-        match = services.find(
+        const candidates = services.filter(
           (s: any) => normalizeServiceName(s.name).includes(normalizedSearch)
         );
+        if (candidates.length > 0) {
+          // Prefer primary services, then shortest name
+          candidates.sort((a: any, b: any) => {
+            const aAddon = a.service_type === "secondary" ? 1 : 0;
+            const bAddon = b.service_type === "secondary" ? 1 : 0;
+            if (aAddon !== bAddon) return aAddon - bAddon;
+            return a.name.length - b.name.length;
+          });
+          match = candidates[0];
+        }
       }
 
       // Strategy 3: Search term contained in service name
       if (!match) {
-        match = services.find(
+        const candidates = services.filter(
           (s: any) => normalizedSearch.includes(normalizeServiceName(s.name))
         );
+        if (candidates.length > 0) {
+          candidates.sort((a: any, b: any) => {
+            const aAddon = a.service_type === "secondary" ? 1 : 0;
+            const bAddon = b.service_type === "secondary" ? 1 : 0;
+            if (aAddon !== bAddon) return aAddon - bAddon;
+            return b.name.length - a.name.length; // prefer longer (more specific) match
+          });
+          match = candidates[0];
+        }
       }
 
       // Strategy 4: All significant words match
@@ -113,7 +147,7 @@ export async function resolveService(
 
       if (match) {
         return {
-          service: { id: match.id, name: match.name, duration_minutes: match.duration_minutes },
+          service: toResolved(match),
           duration: match.duration_minutes || defaultDuration,
         };
       }

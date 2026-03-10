@@ -43,6 +43,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Select core fields + optional metadata columns (gender/accent/category may not exist yet)
     const { data: voices, error: voicesError } = await serviceClient
       .from("voice_options")
       .select("id, name, description")

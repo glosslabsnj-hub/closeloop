@@ -71,7 +71,7 @@ export function useBookings() {
   const createBooking = useMutation({
     mutationFn: async (booking: Omit<BookingInsert, "tenant_id">) => {
       if (!tenant?.id) throw new Error("No tenant");
-      
+
       const { data, error } = await supabase
         .from("bookings")
         .insert({ ...booking, tenant_id: tenant.id })
@@ -79,6 +79,25 @@ export function useBookings() {
         .single();
 
       if (error) throw error;
+
+      // Create a busy_block so AI won't double-book this slot
+      if (data.start_at) {
+        supabase
+          .from("busy_blocks")
+          .insert({
+            tenant_id: tenant.id,
+            booking_id: data.id,
+            start_at: data.start_at,
+            end_at: data.end_at || new Date(
+              new Date(data.start_at).getTime() + (data.duration_minutes || 60) * 60000
+            ).toISOString(),
+            block_type: "confirmed_booking",
+            is_active: true,
+          })
+          .then(() => {})
+          .catch(() => { /* best-effort — booking already created */ });
+      }
+
       return data;
     },
     onSuccess: () => {

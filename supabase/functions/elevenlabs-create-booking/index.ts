@@ -235,6 +235,11 @@ function formatDateDisplay(dateStr: string): string {
 }
 
 // Generate confirmation number
+function timeToMinutes(timeStr: string): number {
+  const [h, m] = (timeStr || "00:00").split(":").map(Number);
+  return (isNaN(h) ? 0 : h) * 60 + (isNaN(m) ? 0 : m);
+}
+
 function generateConfirmationNumber(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let result = "";
@@ -367,11 +372,24 @@ serve(async (req: Request) => {
     if (serviceId) {
       const { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode, service_type")
         .eq("id", serviceId)
         .eq("tenant_id", tenantId)
         .single();
       if (service) {
+        // Block standalone booking of add-on/secondary services (by ID path)
+        if (service.service_type === "secondary") {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              status: "failed",
+              appointment: null,
+              message: `${service.name} is an add-on service that must be booked with a main service. Please ask the customer which primary service they'd like and then add ${service.name} to that booking.`,
+              error: "addon_service_standalone",
+            } as CreateBookingResponse),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
@@ -379,28 +397,44 @@ serve(async (req: Request) => {
         resolveVehiclePricing(service, vehicleType);
       }
     } else if (serviceName) {
-      // Try exact match first, then fuzzy match
+      // Try exact match first, then fuzzy match with shortest-name preference
       let { data: service } = await supabase
         .from("services")
-        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
+        .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode, service_type")
         .eq("tenant_id", tenantId)
         .eq("is_active", true)
         .ilike("name", serviceName)
         .limit(1)
         .maybeSingle();
       if (!service) {
-        // Fuzzy: partial match
-        const { data: fuzzy } = await supabase
+        // Fuzzy: partial match — fetch ALL matches and pick the shortest name
+        // (most specific match). E.g., "ceramic coating" should match "Ceramic Coating"
+        // over "Windshield Ceramic Coating".
+        const { data: fuzzyMatches } = await supabase
           .from("services")
           .select("id, name, duration_minutes, pricing_config_json, price_amount, confirmation_mode")
           .eq("tenant_id", tenantId)
           .eq("is_active", true)
-          .ilike("name", `%${serviceName}%`)
-          .limit(1)
-          .maybeSingle();
-        service = fuzzy;
+          .ilike("name", `%${serviceName}%`);
+        if (fuzzyMatches && fuzzyMatches.length > 0) {
+          // Prefer shortest name (closest to the search term)
+          service = fuzzyMatches.sort((a: any, b: any) => a.name.length - b.name.length)[0];
+        }
       }
       if (service) {
+        // Block standalone booking of add-on/secondary services
+        if (service.service_type === "secondary") {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              status: "failed",
+              appointment: null,
+              message: `${service.name} is an add-on service that must be booked with a main service. Please ask the customer which primary service they'd like, such as a full detail, interior detail, or ceramic coating, and then add ${service.name} to that booking.`,
+              error: "addon_service_standalone",
+            } as CreateBookingResponse),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
         resolvedServiceId = service.id;
         resolvedServiceName = service.name;
         finalDuration = service.duration_minutes || finalDuration;
@@ -724,11 +758,16 @@ serve(async (req: Request) => {
     const displayDate = formatDateDisplay(targetDate);
     const displayTime = formatTimeDisplay(targetTime);
     
+    // Build blocked time range for AI context (prevents double-booking in same call)
+    const endTimeDisplay = formatTimeDisplay(
+      `${String(Math.floor((timeToMinutes(targetTime) + finalDuration) / 60) % 24).padStart(2, "0")}:${String((timeToMinutes(targetTime) + finalDuration) % 60).padStart(2, "0")}`
+    );
+
     let message: string;
     if (initialStatus === "confirmed") {
-      message = `You're all set for ${displayTime} on ${displayDate}. Your confirmation number is ${confirmationNumber}.`;
+      message = `You're all set for ${displayTime} on ${displayDate}. Your confirmation number is ${confirmationNumber}. IMPORTANT: ${displayDate} is now blocked from ${displayTime} to ${endTimeDisplay} for this appointment. If the caller wants to book another appointment, you MUST call suggest_availability or check_availability again to get updated times.`;
     } else {
-      message = `I've submitted your request for ${displayTime} on ${displayDate}. Someone will confirm shortly. Your reference is ${confirmationNumber}.`;
+      message = `I've submitted your request for ${displayTime} on ${displayDate}. Someone will confirm shortly. Your reference is ${confirmationNumber}. IMPORTANT: ${displayDate} is now blocked from ${displayTime} to ${endTimeDisplay} for this appointment. If the caller wants to book another appointment, you MUST call suggest_availability or check_availability again to get updated times.`;
     }
 
     const response: CreateBookingResponse = {
@@ -741,6 +780,7 @@ serve(async (req: Request) => {
         time: targetTime,
         service: resolvedServiceName,
         duration_minutes: finalDuration,
+        blocked_until: endTimeDisplay,
       },
       message,
     };

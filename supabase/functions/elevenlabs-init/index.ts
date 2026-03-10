@@ -619,12 +619,41 @@ serve(async (req) => {
 
   const isCallbackOnly = context?.ai_settings?.ai_behavior_mode === "callback_only";
   const greetingScript = dynamicVariables.greeting_script;
-  
-  // Build conversation_config_override when we need to set first_message or prompt
+
+  // Build conversation_config_override when we need to set first_message, prompt, or voice
   let conversationConfigOverride: Record<string, unknown> | undefined;
   const needsPromptOverride = (context?.tenant.business_mode === "dispatch" || isCallbackOnly) && systemPrompt;
-  
-  if (greetingScript || needsPromptOverride) {
+
+  // Resolve tenant's selected voice to provider_voice_id for per-tenant voice override
+  let tenantVoiceId: string | null = null;
+  if (tenantId) {
+    try {
+      const { data: aiAssistant } = await supabase
+        .from("ai_assistants")
+        .select("voice_id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (aiAssistant?.voice_id) {
+        const { data: voiceOption } = await supabase
+          .from("voice_options")
+          .select("provider_voice_id")
+          .eq("id", aiAssistant.voice_id)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (voiceOption?.provider_voice_id) {
+          tenantVoiceId = voiceOption.provider_voice_id;
+          console.log(`[elevenlabs-init] Tenant voice override: ${aiAssistant.voice_id} -> ${tenantVoiceId.substring(0, 12)}...`);
+        }
+      }
+    } catch (voiceError) {
+      console.warn("[elevenlabs-init] Voice lookup failed (non-fatal):", voiceError);
+    }
+  }
+
+  const hasOverrides = greetingScript || needsPromptOverride || tenantVoiceId;
+  if (hasOverrides) {
     const agentOverride: Record<string, unknown> = {};
     if (greetingScript) {
       agentOverride.first_message = greetingScript;
@@ -633,6 +662,11 @@ serve(async (req) => {
       agentOverride.prompt = { prompt: systemPrompt };
     }
     conversationConfigOverride = { agent: agentOverride };
+
+    // Add TTS voice override if tenant has a custom voice selection
+    if (tenantVoiceId) {
+      conversationConfigOverride.tts = { voice_id: tenantVoiceId };
+    }
   }
 
   const responsePayload: Record<string, unknown> = {

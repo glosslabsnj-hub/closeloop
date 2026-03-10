@@ -73,7 +73,7 @@ function createCheckAvailabilityTool(modeSpecificDescription?: string): AgentToo
   return {
     name: "check_availability",
     description: modeSpecificDescription ||
-      `MANDATORY: Check if a specific appointment time is available. You MUST call this BEFORE create_booking. NEVER confirm or book any time without calling this first. If you skip this, the customer may be double-booked. Use when customer requests any specific time slot.`,
+      `MANDATORY: Check if a specific appointment time is available. You MUST call this BEFORE create_booking. NEVER confirm or book any time without calling this first. If you skip this, the customer may be double-booked. IMPORTANT: You MUST ask the caller what service they need BEFORE calling this tool. Different services have different durations (e.g., a full detail takes much longer than a basic wash), so passing the correct service_name is critical to avoid scheduling conflicts.`,
     url: `${BASE_URL}/elevenlabs-check-availability`,
     method: "POST",
     parameters: [
@@ -92,8 +92,8 @@ function createCheckAvailabilityTool(modeSpecificDescription?: string): AgentToo
       {
         name: "service_name",
         type: "string",
-        required: false,
-        description: "Service being booked (e.g., 'haircut', 'AC repair', 'full detail'). Helps determine duration.",
+        required: true,
+        description: "REQUIRED: The service being booked (e.g., 'haircut', 'AC repair', 'ceramic coating', 'full detail'). This determines appointment duration. You MUST ask the caller what service they want before checking availability.",
       },
       {
         name: "tenant_id",
@@ -120,7 +120,7 @@ function createSuggestAvailabilityTool(modeSpecificDescription?: string): AgentT
   return {
     name: "suggest_availability",
     description: modeSpecificDescription ||
-      `Get available appointment times. Call when customer asks "What times do you have?", "When can I come in?", or "What's available this week?". Returns up to 5 open slots.`,
+      `Get available appointment times. Call when customer asks "What times do you have?", "When can I come in?", or "What's available this week?". Returns up to 5 open slots. IMPORTANT: Ask the caller what service they need first so you can pass service_name. Different services have different durations, which affects which slots are actually available.`,
     url: `${BASE_URL}/elevenlabs-suggest-availability`,
     method: "POST",
     parameters: [
@@ -133,8 +133,8 @@ function createSuggestAvailabilityTool(modeSpecificDescription?: string): AgentT
       {
         name: "service_name",
         type: "string",
-        required: false,
-        description: "Service name to determine duration needed",
+        required: true,
+        description: "REQUIRED: The service being booked (e.g., 'haircut', 'ceramic coating', 'AC repair'). Determines how long the appointment needs to be, which affects available slots. Ask the caller what service they want first.",
       },
       {
         name: "preference",
