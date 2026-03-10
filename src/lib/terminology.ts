@@ -247,6 +247,7 @@ export function applyAppointmentLabel(
     bookings: p,
     bookingCreated: `${cap} scheduled`,
     bookingConfirmed: `${cap} confirmed`,
+    bookingCompleted: `${cap} complete`,
     newBooking: `New ${titleCap}`,
     viewBookings: `View ${capP}`,
     pendingBooking: `pending ${s}`,
