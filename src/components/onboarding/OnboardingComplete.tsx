@@ -66,13 +66,7 @@ export function OnboardingComplete({ businessName, phoneNumber, businessMode, sc
   const navigate = useNavigate();
   const nextSteps = getNextSteps(businessMode, scenarioAnswers, industrySlug);
 
-  // Auto-redirect to guided setup after 5 seconds so user doesn't get stuck
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      navigate("/app/business-brain?mode=setup");
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [navigate]);
+  // No auto-redirect — let users read the next steps at their own pace
 
   return (
     <div className="text-center space-y-6">

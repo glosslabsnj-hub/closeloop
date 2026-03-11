@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,11 +120,18 @@ export default function CateringPage() {
   };
 
   // Show loading while checking module access
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Catering Not Available"
+        description="The Catering Not Available page requires Catering to be enabled for your account."
+        moduleName="Catering"
+      />
     );
   }
 

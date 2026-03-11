@@ -45,6 +45,7 @@ import { useServiceAgreements, ServiceAgreementWithCustomer } from "@/hooks/useS
 import { AgreementBuilder } from "@/components/agreements/AgreementBuilder";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
   active: { label: "Active", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400", icon: CheckCircle2 },
@@ -223,11 +224,18 @@ export default function AgreementsPage() {
     }
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Agreements Not Available"
+        description="The Agreements Not Available page requires Agreements to be enabled for your account."
+        moduleName="Agreements"
+      />
     );
   }
 

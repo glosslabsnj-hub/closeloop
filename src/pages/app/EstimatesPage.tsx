@@ -45,6 +45,7 @@ import { EstimateBuilder } from "@/components/estimates/EstimateBuilder";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { Label } from "@/components/ui/label";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
@@ -294,11 +295,18 @@ export default function EstimatesPage() {
     }
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Estimates Not Available"
+        description="The Estimates Not Available page requires Estimates to be enabled for your account."
+        moduleName="Estimates"
+      />
     );
   }
 

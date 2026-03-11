@@ -21,6 +21,7 @@ import { differenceInMinutes } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 interface KitchenOrder {
   id: string;
@@ -299,11 +300,18 @@ export default function KitchenDisplayPage() {
   const preparingOrders = orders.filter((o) => o.status === "preparing");
   const readyOrders = orders.filter((o) => o.status === "ready");
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900">
-        <Loader2 className="h-12 w-12 animate-spin text-white" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Kitchen Display Not Available"
+        description="The Kitchen Display Not Available page requires Kitchen Display to be enabled for your account."
+        moduleName="Kitchen Display"
+      />
     );
   }
 

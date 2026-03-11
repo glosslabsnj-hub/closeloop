@@ -416,11 +416,10 @@ export default function OnboardingPage() {
                   <Button
                     variant="outline"
                     onClick={() => {
-                      toast({ title: "Progress saved", description: "You can resume anytime." });
-                      navigate("/app/dashboard");
+                      toast({ title: "Progress saved", description: "You can pick up right where you left off next time you log in." });
                     }}
                   >
-                    Save & Exit
+                    Save for Later
                   </Button>
                   <Button
                     onClick={goNext}

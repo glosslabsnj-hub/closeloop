@@ -22,6 +22,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ClipboardCheck, Plus, Upload, Loader2, ChevronDown, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 function JobsPageContent() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["job_tracking"]);
@@ -38,13 +39,18 @@ function JobsPageContent() {
     setDetailOpen(true);
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <PageContainer padTop>
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </PageContainer>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Job Tracking Not Available"
+        description="The Job Tracking Not Available page requires Job Tracking to be enabled for your account."
+        moduleName="Job Tracking"
+      />
     );
   }
 

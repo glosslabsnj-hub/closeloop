@@ -25,6 +25,7 @@ import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { DispatchMapView } from "@/components/dispatch/DispatchMapView";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 function formatCoordinate(value: number, isLat: boolean): string {
   const direction = isLat ? (value >= 0 ? "N" : "S") : (value >= 0 ? "E" : "W");
@@ -66,11 +67,18 @@ export default function DispatchMapPage() {
     return () => clearInterval(interval);
   }, [refetch]);
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Dispatch Map Not Available"
+        description="The Dispatch Map Not Available page requires Dispatch Map to be enabled for your account."
+        moduleName="Dispatch Map"
+      />
     );
   }
 
