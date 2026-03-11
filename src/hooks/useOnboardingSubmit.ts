@@ -343,6 +343,38 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
+      // 8d. Medical settings for medical mode (idempotent: upsert)
+      // Without this, medical tenants fail readiness (P0: missing intake_fields, scheduling_rules, HIPAA config)
+      if (businessMode === "medical") {
+        await runStep("medical settings", async () => {
+          const defaultIntakeFields = [
+            { key: "is_new_patient", label: "New Patient?", type: "select", options: ["Yes", "No"], required: true },
+            { key: "reason_for_visit", label: "Reason for Visit", type: "text", required: true },
+            { key: "insurance_provider", label: "Insurance Provider", type: "text", required: false },
+            { key: "date_of_birth", label: "Date of Birth", type: "date", required: false },
+            { key: "current_medications", label: "Current Medications", type: "text", required: false },
+            { key: "allergies", label: "Allergies", type: "text", required: false },
+          ];
+          const defaultSchedulingRules = {
+            min_notice_hours: 24,
+            max_advance_days: 90,
+            default_duration_minutes: 30,
+            buffer_minutes: 15,
+            allow_same_day: false,
+          };
+          const { error } = await supabase.from("medical_settings").upsert({
+            tenant_id: tenantId!,
+            store_transcripts: false,
+            store_recordings: false,
+            retention_days: 30,
+            require_verbal_consent: true,
+            intake_fields_json: defaultIntakeFields,
+            scheduling_rules_json: defaultSchedulingRules,
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        });
+      }
+
       // 9. Automations (idempotent: clear + insert)
       await runStep("automations", async () => {
         await supabase.from("automations").delete().eq("tenant_id", tenantId!);

@@ -144,6 +144,21 @@ function computeReadinessScore(
       if (services.length >= 1) score += 10; else missing.push("Appointment types");
       break;
 
+    case "sales":
+      // Services/inventory types (20 points)
+      if (services.length >= 1) score += 10; else missing.push("At least 1 service/product type");
+      if (services.length >= 3) score += 10;
+      // Intake context fields (15 points) — interest type, timeline, budget
+      if (tenant.context_fields_json?.length > 0) score += 15; else missing.push("Sales intake questions");
+      // FAQs (10 points) — financing, trade-in, test drive info
+      if (faqs.length >= 3) score += 10; else missing.push("At least 3 FAQs");
+      // Policies (10 points)
+      if (tenant.cancellation_policy) score += 5;
+      if (tenant.payment_methods?.length > 0) score += 5; else missing.push("Payment methods");
+      // Delivery settings assumed configured (15 points)
+      score += 15;
+      break;
+
     default: // general
       if (services.length >= 1) score += 20;
       if (faqs.length >= 3) score += 15;

@@ -188,7 +188,7 @@ serve(async (req) => {
           const customerName = lead.customer?.full_name || "Unknown";
           const vehicleInterest = lead.vehicle_interest || lead.interest_type || "General inquiry";
           const emailResult = await sendEmail({
-            to: settings.notify_email,
+            to: notifyEmail!,
             subject: `New Sales Lead: ${customerName} - ${vehicleInterest}`,
             businessName: tenant?.name || "Your Business",
             html: `

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,7 +107,59 @@ serve(async (req) => {
       );
     }
 
-    // TODO: Send notification to business owner about acceptance/decline
+    // Notify business owner about acceptance/decline
+    try {
+      const { data: fullEstimate } = await supabase
+        .from("estimates")
+        .select("tenant_id, estimate_number, customer:customers(full_name, phone_e164, email), line_items_json, total_cents")
+        .eq("id", estimate_id)
+        .single();
+
+      if (fullEstimate?.tenant_id) {
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("name")
+          .eq("id", fullEstimate.tenant_id)
+          .single();
+
+        const { data: deliverySettings } = await supabase
+          .from("booking_delivery_settings")
+          .select("notify_email, notify_phone")
+          .eq("tenant_id", fullEstimate.tenant_id)
+          .maybeSingle();
+
+        const customerName = fullEstimate.customer?.full_name || "A customer";
+        const estNum = fullEstimate.estimate_number || estimate_id.slice(0, 8);
+        const total = fullEstimate.total_cents ? `$${(fullEstimate.total_cents / 100).toFixed(2)}` : "";
+        const actionLabel = action === "accept" ? "ACCEPTED" : "DECLINED";
+
+        // Email notification
+        if (deliverySettings?.notify_email) {
+          await sendEmail({
+            to: deliverySettings.notify_email,
+            subject: `Estimate #${estNum} ${actionLabel} by ${customerName}`,
+            businessName: tenant?.name || "Your Business",
+            html: `<div style="font-family:sans-serif;max-width:600px;">
+              <h2 style="color:${action === "accept" ? "#16a34a" : "#dc2626"};">Estimate ${actionLabel}</h2>
+              <p><strong>${customerName}</strong> has ${action === "accept" ? "accepted" : "declined"} estimate #${estNum}${total ? ` (${total})` : ""}.</p>
+              ${action === "accept" ? "<p>The customer has signed. You can now schedule the work.</p>" : "<p>Consider following up to address any concerns.</p>"}
+              <p style="color:#666;font-size:13px;">Via Flux Receptionist</p>
+            </div>`,
+          });
+        }
+
+        // SMS notification
+        if (deliverySettings?.notify_phone) {
+          await sendTenantSms({
+            tenantId: fullEstimate.tenant_id,
+            to: deliverySettings.notify_phone,
+            body: `Estimate #${estNum} ${actionLabel} by ${customerName}${total ? ` (${total})` : ""}. ${action === "accept" ? "Customer signed - ready to schedule." : "Follow up recommended."}`,
+          });
+        }
+      }
+    } catch (notifyErr) {
+      console.error("[estimate-public-action] Notification error (non-fatal):", notifyErr);
+    }
 
     return new Response(
       JSON.stringify({

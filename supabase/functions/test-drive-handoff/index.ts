@@ -207,7 +207,7 @@ serve(async (req) => {
         if (method === "email" && notifyEmail) {
           const customerName = testDrive.customer?.full_name || "A customer";
           const emailResult = await sendEmail({
-            to: settings.notify_email,
+            to: notifyEmail!,
             subject: `Test Drive Scheduled: ${customerName} - ${vehicleDesc}`,
             businessName: tenant?.name || "Your Business",
             html: `
