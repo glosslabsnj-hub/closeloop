@@ -21,6 +21,34 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// --- Real-time Telegram alerts to Jack ---
+const _telegramAlertTimestamps: number[] = [];
+const TELEGRAM_MAX_ALERTS_PER_HOUR = 10;
+
+async function sendAdminTelegram(message: string) {
+  try {
+    // Rate limit: max 10 alerts per hour
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+    while (_telegramAlertTimestamps.length > 0 && _telegramAlertTimestamps[0] < oneHourAgo) {
+      _telegramAlertTimestamps.shift();
+    }
+    if (_telegramAlertTimestamps.length >= TELEGRAM_MAX_ALERTS_PER_HOUR) {
+      console.log("Telegram alert rate limit reached, skipping");
+      return;
+    }
+    _telegramAlertTimestamps.push(now);
+
+    const botToken = Deno.env.get("LENARD_TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+    const chatId = Deno.env.get("LENARD_TELEGRAM_CHAT_ID") || "6841391368";
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "HTML" }),
+    });
+  } catch { /* alerting must never block main flow */ }
+}
+
 // Thresholds
 const TENANT_ALERT_THRESHOLD = 2; // Failures per tenant before alerting
 const GLOBAL_ALERT_THRESHOLD = 5; // Global failures before ops alert
@@ -43,7 +71,7 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const OPS_ALERT_EMAIL = Deno.env.get("OPS_ALERT_EMAIL") || "support@getfluxdata.com";
+  const OPS_ALERT_EMAIL = Deno.env.get("OPS_ALERT_EMAIL") || "jack@getfluxdata.com";
   const SLACK_WEBHOOK_URL = Deno.env.get("SLACK_OPS_WEBHOOK_URL");
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -296,6 +324,11 @@ Please check the dashboard for details.
     }
   }
 
+   // Send Telegram alert to Jack
+   await sendAdminTelegram(
+     `<b>HANDOFF ALERT</b>\n${totalFailures} failures in the last hour.\n\n${tenantSummaries}`
+   );
+
    // Log the ops alert
    try {
      await supabase.from("audit_events").insert({
@@ -353,6 +386,11 @@ Please check the dashboard for details.
    } catch {
      // notifications table might not exist, ignore
    }
+
+  // Telegram alert to Jack
+  await sendAdminTelegram(
+    `<b>TENANT FAILURES</b>: ${tenant_name}\n${failure_count} handoff failures in the last hour.\nTypes: ${entity_types.join(", ")}${latest_error ? `\nError: ${latest_error.slice(0, 120)}` : ""}`
+  );
 
   // Trigger notification workflow if email is available
   if (owner_email) {

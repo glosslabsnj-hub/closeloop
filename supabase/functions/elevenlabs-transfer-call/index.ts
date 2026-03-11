@@ -7,14 +7,13 @@
  * 2. Looks up owner_forward_number from assistant_settings
  * 3. Updates the live Twilio call with <Dial> TwiML to forward
  * 4. Marks the session outcome as "escalated"
- * 5. Sends Telegram notification to Jack
- *
- * Also handles the Twilio <Dial> action callback (dial_complete event)
- * to notify Jack whether the transfer succeeded or the caller hung up.
+ * 5. Sends tenant-aware notifications (SMS + email via delivery settings)
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,26 +42,83 @@ interface TransferResponse {
   error?: string;
 }
 
-/** Send a Telegram message to Jack via the Lenard bot */
-async function notifyJack(message: string): Promise<void> {
-  const botToken = Deno.env.get("LENARD_TELEGRAM_BOT_TOKEN");
-  const chatId = Deno.env.get("LENARD_TELEGRAM_CHAT_ID");
-  if (!botToken || !chatId) {
-    console.warn("[transfer-call] Telegram credentials not configured, skipping notification");
-    return;
+/** Notify the tenant owner about transfer events via SMS + email.
+ *  Now writes to delivery_attempts for monitoring by check-handoff-failures and retry-failed-deliveries. */
+async function notifyOwner(
+  supabase: SupabaseClient,
+  tenantId: string,
+  subject: string,
+  message: string,
+  htmlMessage: string,
+  entityId?: string | null,
+): Promise<void> {
+  // Look up owner notification preferences from universal_delivery_settings
+  const { data: deliverySettings } = await supabase
+    .from("universal_delivery_settings")
+    .select("notify_email, notify_phone, email_enabled, sms_enabled")
+    .eq("tenant_id", tenantId)
+    .maybeSingle();
+
+  // Helper to log delivery attempts for monitoring
+  const logDeliveryAttempt = async (method: string, status: string, errorMessage?: string) => {
+    try {
+      await supabase.from("delivery_attempts").insert({
+        tenant_id: tenantId,
+        entity_type: "transfer",
+        entity_id: entityId || crypto.randomUUID(),
+        method,
+        status,
+        error_message: errorMessage || null,
+        request_payload: { subject, message_preview: message.slice(0, 200) },
+      });
+    } catch (e) {
+      console.error("[transfer-call] Failed to log delivery attempt:", e);
+    }
+  };
+
+  // Send SMS if configured
+  if (deliverySettings?.sms_enabled && deliverySettings?.notify_phone) {
+    try {
+      const smsResult = await sendTenantSms({
+        tenantId,
+        to: deliverySettings.notify_phone,
+        body: message,
+      });
+      if (smsResult.success) {
+        await logDeliveryAttempt("sms", "success");
+      } else if (smsResult.skipped) {
+        await logDeliveryAttempt("sms", "skipped", smsResult.reason || "no_verified_channel");
+      } else {
+        await logDeliveryAttempt("sms", "failed", smsResult.error || "unknown");
+      }
+    } catch (err) {
+      console.error("[transfer-call] SMS notification failed:", err);
+      await logDeliveryAttempt("sms", "failed", String(err));
+    }
   }
-  try {
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: message,
-        parse_mode: "HTML",
-      }),
-    });
-  } catch (err) {
-    console.error("[transfer-call] Telegram notification failed:", err);
+
+  // Send email if configured
+  if (deliverySettings?.email_enabled && deliverySettings?.notify_email) {
+    try {
+      const emailResult = await sendEmail({
+        to: deliverySettings.notify_email,
+        subject,
+        html: htmlMessage,
+      });
+      if (emailResult.success) {
+        await logDeliveryAttempt("email", "success");
+      } else {
+        await logDeliveryAttempt("email", "failed", emailResult.error || "unknown");
+      }
+    } catch (err) {
+      console.error("[transfer-call] Email notification failed:", err);
+      await logDeliveryAttempt("email", "failed", String(err));
+    }
+  }
+
+  if (!deliverySettings?.sms_enabled && !deliverySettings?.email_enabled) {
+    console.warn("[transfer-call] No notification channels configured for tenant", tenantId.slice(0, 8));
+    await logDeliveryAttempt("sms", "skipped", "no_channels_configured");
   }
 }
 
@@ -77,12 +133,13 @@ serve(async (req) => {
     return handleDialComplete(req, url);
   }
 
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
     const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body: TransferRequest = await req.json();
 
@@ -96,7 +153,6 @@ serve(async (req) => {
     console.log(`[transfer-call] tenant=${tenantId.slice(0, 8)}, conv=${conversationId}, callSid=${directCallSid}, reason=${reason}`);
 
     if (!tenantId) {
-      await notifyJack(`<b>TRANSFER FAILED</b>\nNo tenant ID provided. A caller tried to reach you but the system couldn't process the transfer.`);
       return new Response(
         JSON.stringify({
           success: false,
@@ -108,7 +164,12 @@ serve(async (req) => {
 
     if (!twilioAccountSid || !twilioAuthToken) {
       console.error("[transfer-call] Missing Twilio credentials");
-      await notifyJack(`<b>TRANSFER FAILED</b>\nMissing Twilio credentials. A caller tried to reach you but the system couldn't process it.`);
+      await notifyOwner(supabase, tenantId,
+        "Transfer Failed - Missing Configuration",
+        "A caller tried to transfer but Twilio is not configured. Please contact support.",
+        `<h3>Transfer Failed</h3><p>A caller tried to reach you but the phone system is not configured. Please contact support.</p>`,
+        conversationId || null,
+      );
       return new Response(
         JSON.stringify({
           success: false,
@@ -120,10 +181,6 @@ serve(async (req) => {
     }
 
     // Step 1: Resolve the twilio_call_sid from the session
-    // Three lookup strategies, in order of specificity:
-    //   A. Direct callSid from ElevenLabs dynamic variable (most reliable)
-    //   B. Lookup by conversation_id in ai_call_sessions
-    //   C. Fallback: most recent active session for this tenant (last 5 min)
     let callSid = directCallSid;
     let sessionId: string | null = null;
 
@@ -174,11 +231,11 @@ serve(async (req) => {
 
     if (!callSid || callSid.startsWith("missing_") || callSid === "undefined" || callSid === "null" || callSid.length < 20) {
       console.error(`[transfer-call] No valid twilio_call_sid found (got: ${callSid})`);
-      await notifyJack(
-        `<b>TRANSFER FAILED</b>\n` +
-        `${customerName ? `Caller: ${customerName}\n` : ""}` +
-        `Reason: ${reason}\n` +
-        `Error: No valid call SID found. The caller was asked to leave their info.`
+      await notifyOwner(supabase, tenantId,
+        "Missed Transfer - Call Back Needed",
+        `Transfer failed: ${customerName ? `${customerName} ` : "A caller "}tried to reach you. Reason: ${reason}. They were asked to leave their info.`,
+        `<h3>Transfer Failed</h3>${customerName ? `<p><strong>Caller:</strong> ${customerName}</p>` : ""}<p><strong>Reason:</strong> ${reason}</p><p>The caller was asked to leave their info for a callback.</p>`,
+        sessionId || conversationId || null,
       );
       return new Response(
         JSON.stringify({
@@ -207,12 +264,11 @@ serve(async (req) => {
 
     if (!forwardNumber) {
       console.error("[transfer-call] No owner_forward_number configured");
-      await notifyJack(
-        `<b>TRANSFER FAILED</b>\n` +
-        `Business: ${businessName}\n` +
-        `${customerName ? `Caller: ${customerName}\n` : ""}` +
-        `Reason: ${reason}\n` +
-        `Error: No forward number configured for this business. Set it in the dashboard.`
+      await notifyOwner(supabase, tenantId,
+        "Transfer Failed - No Forward Number",
+        `Transfer failed for ${businessName}: ${customerName ? `${customerName} ` : "A caller "}tried to reach you but no forward number is set. Configure it in Settings > AI Assistant.`,
+        `<h3>Transfer Failed</h3><p><strong>Business:</strong> ${businessName}</p>${customerName ? `<p><strong>Caller:</strong> ${customerName}</p>` : ""}<p><strong>Reason:</strong> ${reason}</p><p>No forward number is configured. Set it in Settings &gt; AI Assistant.</p>`,
+        sessionId || conversationId || null,
       );
       return new Response(
         JSON.stringify({
@@ -224,7 +280,6 @@ serve(async (req) => {
     }
 
     // Step 3: Build TwiML for the transfer
-    // Short delay to let ElevenLabs finish speaking the farewell message
     const twiml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       "<Response>",
@@ -258,12 +313,11 @@ serve(async (req) => {
     if (!twilioRes.ok) {
       const errText = await twilioRes.text();
       console.error(`[transfer-call] Twilio update failed [${twilioRes.status}]: ${errText}`);
-      await notifyJack(
-        `<b>TRANSFER FAILED</b>\n` +
-        `Business: ${businessName}\n` +
-        `${customerName ? `Caller: ${customerName}\n` : ""}` +
-        `Reason: ${reason}\n` +
-        `Error: Twilio API returned ${twilioRes.status}. The caller was asked to leave their info.`
+      await notifyOwner(supabase, tenantId,
+        "Transfer Failed - Phone System Error",
+        `Transfer failed for ${businessName}: ${customerName ? `${customerName} ` : "A caller "}tried to reach you. Phone system error (${twilioRes.status}). They were asked to leave their info.`,
+        `<h3>Transfer Failed</h3><p><strong>Business:</strong> ${businessName}</p>${customerName ? `<p><strong>Caller:</strong> ${customerName}</p>` : ""}<p><strong>Error:</strong> Twilio API returned ${twilioRes.status}</p>`,
+        sessionId || conversationId || null,
       );
       return new Response(
         JSON.stringify({
@@ -288,9 +342,6 @@ serve(async (req) => {
 
     console.log(`[transfer-call] Successfully transferring call ${callSid} to ${forwardNumber}`);
 
-    // No "incoming" notification needed — Jack's phone rings directly.
-    // If he misses it, the dial_complete handler sends a MISSED TRANSFER alert.
-
     return new Response(
       JSON.stringify({
         success: true,
@@ -302,9 +353,6 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("[transfer-call] Error:", error);
-    await notifyJack(
-      `<b>TRANSFER ERROR</b>\nA caller tried to transfer but the system hit an error: ${error instanceof Error ? error.message : "Unknown"}`
-    );
     return new Response(
       JSON.stringify({
         success: false,
@@ -319,11 +367,10 @@ serve(async (req) => {
 /**
  * Handle the Twilio <Dial> action callback (dial_complete event).
  * Called after the dial attempt finishes (answered, no-answer, busy, failed).
- * Notifies Jack of the outcome.
+ * Notifies the business owner of the outcome via their configured channels.
  */
 async function handleDialComplete(req: Request, url: URL): Promise<Response> {
   try {
-    // Twilio sends form-encoded data for action callbacks
     const formData = await req.text();
     const params = new URLSearchParams(formData);
 
@@ -336,12 +383,12 @@ async function handleDialComplete(req: Request, url: URL): Promise<Response> {
 
     console.log(`[transfer-call] dial_complete: status=${dialCallStatus}, duration=${dialCallDuration}s, tenant=${tenantId.slice(0, 8)}`);
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     // Update session with transfer result
     if (sessionId) {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
       const summaryText = dialCallStatus === "completed"
         ? `Transfer successful. Owner spoke with caller for ${dialCallDuration}s.`
         : `Transfer attempted but owner didn't answer (${dialCallStatus}).`;
@@ -352,23 +399,16 @@ async function handleDialComplete(req: Request, url: URL): Promise<Response> {
         .eq("id", sessionId);
     }
 
-    // Notify Jack based on outcome
-    if (dialCallStatus === "completed") {
-      // Owner answered. No need to alert since they just had the conversation.
-      console.log("[transfer-call] Transfer completed successfully");
-    } else {
-      // Owner didn't answer (no-answer, busy, failed, canceled)
-      await notifyJack(
-        `<b>MISSED TRANSFER</b>\n` +
-        `${businessName ? `Business: ${businessName}\n` : ""}` +
-        `${customerName ? `Caller: ${customerName}\n` : ""}` +
-        `Status: ${dialCallStatus}\n` +
-        `The caller heard "someone will call you back shortly." Call them back ASAP.`
+    // Notify owner if they missed the transfer
+    if (dialCallStatus !== "completed" && tenantId) {
+      await notifyOwner(supabase, tenantId,
+        "Missed Transfer - Call Back Needed",
+        `MISSED TRANSFER${businessName ? ` (${businessName})` : ""}${customerName ? `: ${customerName}` : ""} - Status: ${dialCallStatus}. The caller was told someone would call back. Please call them back ASAP.`,
+        `<h3>Missed Transfer</h3>${businessName ? `<p><strong>Business:</strong> ${businessName}</p>` : ""}${customerName ? `<p><strong>Caller:</strong> ${customerName}</p>` : ""}<p><strong>Status:</strong> ${dialCallStatus}</p><p>The caller heard "someone will call you back shortly." Please call them back ASAP.</p>`,
+        sessionId || null,
       );
     }
 
-    // Return empty TwiML (Twilio needs a valid response)
-    // The <Say> and <Hangup> in the original TwiML handle the caller-side fallback
     return new Response(
       '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
       { status: 200, headers: { ...corsHeaders, "Content-Type": "text/xml" } }

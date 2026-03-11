@@ -60,6 +60,7 @@ serve(async (req: Request) => {
         "https://www.googleapis.com/auth/calendar.readonly",
         "https://www.googleapis.com/auth/calendar.events",
         "https://www.googleapis.com/auth/calendar.freebusy",
+        "https://www.googleapis.com/auth/spreadsheets",
       ];
 
       const params = new URLSearchParams({

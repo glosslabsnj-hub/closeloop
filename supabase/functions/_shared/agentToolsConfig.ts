@@ -5,11 +5,12 @@
  * These configurations are used to programmatically register tools with ElevenLabs agents.
  *
  * Each agent type has a specific set of tools based on its industry needs:
- * - Service (10 tools): Salons, HVAC, plumbers, contractors
- * - Dispatch (6 tools): Towing, roadside, couriers, locksmiths
- * - Food (6 tools): Restaurants, pizza, catering, bakeries
- * - Medical (5 tools): Doctors, dentists, clinics, veterinary
- * - General (3 tools): Any business, lead capture, basic info
+ * - Service (12 tools): Salons, HVAC, plumbers, contractors
+ * - Dispatch (8 tools): Towing, roadside, couriers, locksmiths
+ * - Food (10 tools): Restaurants, pizza, catering, bakeries
+ * - Medical (9 tools): Doctors, dentists, clinics, veterinary
+ * - Sales (10 tools): Car dealerships, real estate, solar, insurance
+ * - General (4 tools): Any business, lead capture, basic info
  */
 
 import type { BusinessMode } from "./agentResolver.ts";
@@ -435,6 +436,12 @@ function createCallbackTool(modeSpecificDescription?: string): AgentTool {
         description: "When to call: 'morning', 'afternoon', 'ASAP'",
       },
       {
+        name: "urgency",
+        type: "string",
+        required: false,
+        description: "How urgent: 'normal' (default), 'high' (same-day needed), 'urgent' (emergency or on-site customer waiting)",
+      },
+      {
         name: "notes",
         type: "string",
         required: false,
@@ -682,7 +689,18 @@ function createLookupActiveJobTool(): AgentTool {
 function createTransferToOwnerTool(): AgentTool {
   return {
     name: "transfer_to_owner",
-    description: `Transfer the caller to the business owner or manager. Use IMMEDIATELY when caller says: "Let me talk to someone", "Can I speak to the owner?", "Transfer me", "I want to talk to a person", "Get me your manager". Do NOT try to talk them out of it — just transfer.`,
+    description: `Transfer the caller to the business owner or manager.
+
+TRANSFER IMMEDIATELY when:
+- Caller explicitly asks: "Let me talk to someone", "Can I speak to the owner?", "Transfer me", "I want to talk to a person", "Get me your manager" — do NOT try to talk them out of it.
+- Caller describes a HIGH-VALUE or COMPLEX job AND is ON-SITE or nearby (e.g., "I'm outside your shop", "I'm in the area", "I drove here"). Offer: "This sounds like something [owner name] would want to discuss with you personally. Let me connect you right now."
+- Caller is upset, frustrated, or making a complaint about prior work.
+- Caller mentions an EMERGENCY or URGENT situation.
+
+USE create_callback INSTEAD when:
+- Caller is casually inquiring about pricing or availability.
+- Caller is scheduling a routine appointment.
+- The call is outside business hours (transfer likely won't be answered).`,
     url: `${BASE_URL}/elevenlabs-transfer-call`,
     method: "POST",
     parameters: [
@@ -725,14 +743,14 @@ function createTransferToOwnerTool(): AgentTool {
 // ============= AGENT CONFIGURATIONS =============
 
 /**
- * SERVICE AGENT (10 Tools)
+ * SERVICE AGENT (12 Tools)
  * Industries: Salons, spas, HVAC, plumbers, electricians, auto detailing, cleaning services, contractors
  */
 export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
   mode: "service",
   agentName: "Service Agent",
   industries: ["Salons", "spas", "HVAC", "plumbers", "electricians", "auto detailing", "cleaning services", "contractors"],
-  toolCount: 10,
+  toolCount: 12,
   tools: [
     createCheckAvailabilityTool(
       `Check if a specific appointment time is available. Call this BEFORE confirming any appointment. Use when customer says "Do you have 2pm tomorrow?" or requests a specific time slot.`
@@ -763,7 +781,7 @@ export const SERVICE_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * DISPATCH AGENT (7 Tools)
+ * DISPATCH AGENT (8 Tools)
  * Industries: Towing, roadside assistance, courier/delivery, mobile mechanics, locksmith
  */
 export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
@@ -895,14 +913,14 @@ export const DISPATCH_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * FOOD AGENT (6 Tools)
+ * FOOD AGENT (10 Tools)
  * Industries: Restaurants, pizza, Chinese food, catering, bakeries, food trucks
  */
 export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
   mode: "food",
   agentName: "Food Agent",
   industries: ["Restaurants", "pizza", "Chinese food", "catering", "bakeries", "food trucks"],
-  toolCount: 8,
+  toolCount: 10,
   tools: [
     createCheckAvailabilityTool(
       `Check if a reservation time is available. Use when customer asks for a specific time: "Do you have a table at 7pm Friday?" or "Is 6:30 available for Saturday?"`
@@ -1088,7 +1106,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * MEDICAL AGENT (7 Tools)
+ * MEDICAL AGENT (9 Tools)
  * Industries: Doctor's offices, dental practices, clinics, physical therapy, chiropractic,
  *   optometry, dermatology, mental health, pediatrics, orthodontics, med spas
  * Note: No create_dispatch_job - medical doesn't do emergency dispatch via AI
@@ -1097,7 +1115,7 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
   mode: "medical",
   agentName: "Medical Agent",
   industries: ["Doctor's offices", "dental practices", "clinics", "physical therapy", "chiropractic", "optometry", "dermatology", "mental health", "pediatrics", "orthodontics", "med spas"],
-  toolCount: 7,
+  toolCount: 9,
   tools: [
     createCheckAvailabilityTool(
       `Check if an appointment time is available. Use when patient requests a specific time: "Do you have anything at 2pm Tuesday?" or "Is Dr. Smith available Friday morning?"`
@@ -1183,15 +1201,15 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * GENERAL AGENT (3 Tools)
+ * GENERAL AGENT (4 Tools)
  * Industries: Any business without specific mode, lead capture, basic information
- * Note: Only 3 tools - this agent is for simple inquiries and lead capture
+ * Note: 4 tools - this agent handles simple inquiries, lead capture, and call transfers
  */
 export const GENERAL_AGENT_CONFIG: AgentToolsConfig = {
   mode: "general",
   agentName: "General Agent",
   industries: ["Any business", "lead capture", "basic information"],
-  toolCount: 3,
+  toolCount: 4,
   tools: [
     createSuggestAvailabilityTool(
       `Get available times when scheduling a callback. Use if customer asks "When can someone call me?" or wants to schedule a specific callback time.`
@@ -1257,6 +1275,7 @@ export const GENERAL_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createTransferToOwnerTool(),
   ],
 };
 
@@ -1355,7 +1374,7 @@ function createSearchInventoryTool(): AgentTool {
 }
 
 /**
- * SALES AGENT (7 Tools)
+ * SALES AGENT (10 Tools)
  * Industries: Car dealerships, RV/boat dealers, real estate, solar, insurance, equipment sales
  * Note: Reuses scheduling tools + callback + inventory search; no dispatch or food tools
  */
@@ -1363,7 +1382,7 @@ export const SALES_AGENT_CONFIG: AgentToolsConfig = {
   mode: "sales",
   agentName: "Sales Agent",
   industries: ["Car dealership", "RV dealer", "Real estate", "Solar", "Insurance", "Equipment sales", "Luxury retail"],
-  toolCount: 7,
+  toolCount: 10,
   tools: [
     createCheckAvailabilityTool(
       `Check if a specific test drive or appointment time is available. Use when customer says "Can I come in Tuesday at 2?" or "Is Saturday morning open?"`

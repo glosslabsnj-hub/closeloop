@@ -16,6 +16,9 @@ export interface SendSmsRequest {
   tenantId: string;
   to: string;
   body: string;
+  /** Optional context for delivery_attempts logging when SMS is skipped */
+  entityType?: "order" | "booking" | "dispatch" | "reservation" | "catering" | "intake" | "callback" | "job_update" | "transfer";
+  entityId?: string;
 }
 
 export interface SendSmsResult {
@@ -91,6 +94,22 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
         console.log(`[sms-sender] Using global TWILIO_FROM_NUMBER fallback for tenant ${tenantId} (no A2P)`);
       } else {
         console.log(`[sms-sender] No verified SMS channel for tenant ${tenantId} (need A2P approval or toll-free verification)`);
+
+        // Log the skip to delivery_attempts so owners can see SMS isn't going out
+        try {
+          await supabase.from("delivery_attempts").insert({
+            tenant_id: tenantId,
+            entity_type: req.entityType ?? "booking",
+            entity_id: req.entityId ?? crypto.randomUUID(),
+            method: "sms",
+            status: "skipped",
+            error_message: "no_verified_channel",
+            request_payload: { to, body_length: body.length },
+          });
+        } catch (e) {
+          console.error(`[sms-sender] Failed to log skipped SMS to delivery_attempts:`, e);
+        }
+
         return { success: false, skipped: true, reason: "no_verified_channel" };
       }
     }

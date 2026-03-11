@@ -10,6 +10,33 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// --- Real-time Telegram alerts to Jack ---
+const _telegramAlertTimestamps: number[] = [];
+const TELEGRAM_MAX_ALERTS_PER_HOUR = 10;
+
+async function sendAdminTelegram(message: string) {
+  try {
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+    while (_telegramAlertTimestamps.length > 0 && _telegramAlertTimestamps[0] < oneHourAgo) {
+      _telegramAlertTimestamps.shift();
+    }
+    if (_telegramAlertTimestamps.length >= TELEGRAM_MAX_ALERTS_PER_HOUR) {
+      console.log("Telegram alert rate limit reached, skipping");
+      return;
+    }
+    _telegramAlertTimestamps.push(now);
+
+    const botToken = Deno.env.get("LENARD_TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+    const chatId = Deno.env.get("LENARD_TELEGRAM_CHAT_ID") || "6841391368";
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "HTML" }),
+    });
+  } catch { /* alerting must never block main flow */ }
+}
+
 serve(async (_req: Request) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -83,10 +110,81 @@ serve(async (_req: Request) => {
             `[cron-tenant-health] REGRESSION: ${tenant.name} score dropped from ${prevSnapshot.overall_score} to ${health.overall_score}`
           );
         }
+
+        // Telegram alert: score below 70 or critical status
+        const p0Issues = (health.issues || []).filter((i: { severity?: string }) => i.severity === "critical" || i.severity === "p0");
+        if (health.overall_score < 70 || p0Issues.length > 0) {
+          const issueList = (health.issues || [])
+            .slice(0, 5)
+            .map((i: { message?: string; severity?: string }) => `- ${i.message || "Unknown"} (${i.severity || "?"})`)
+            .join("\n");
+          await sendAdminTelegram(
+            `<b>HEALTH ALERT</b>: ${tenant.name}\nScore: ${health.overall_score} (${health.overall_status})\n${issueList ? `Issues:\n${issueList}` : "No details"}`
+          );
+        }
       } catch (err) {
         console.error(`[cron-tenant-health] Error for ${tenant.name}:`, err);
         results.errors++;
       }
+    }
+
+    // D5: Onboarding completion tracking — detect stalled signups
+    try {
+      const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Find tenants created >48h ago that haven't completed setup
+      const { data: stalledTenants } = await supabase
+        .from("tenants")
+        .select("id, name, created_at")
+        .eq("is_active", true)
+        .lt("created_at", twoDaysAgo)
+        .not("id", "in", `(${
+          // Subquery: tenants with setup completed
+          (await supabase
+            .from("assistant_settings")
+            .select("tenant_id")
+            .not("setup_completed_at", "is", null)
+          ).data?.map(r => `'${r.tenant_id}'`).join(",") || "'00000000-0000-0000-0000-000000000000'"
+        })`);
+
+      if (stalledTenants?.length) {
+        await sendAdminTelegram(
+          `<b>ONBOARDING STALLS</b>: ${stalledTenants.length} tenant(s) signed up >48h ago but haven't completed setup:\n${
+            stalledTenants.slice(0, 5).map(t => `- ${t.name} (${new Date(t.created_at).toLocaleDateString()})`).join("\n")
+          }`
+        );
+      }
+
+      // Find tenants that completed setup but haven't received calls in 7+ days
+      const { data: inactiveTenants } = await supabase
+        .from("tenants")
+        .select("id, name")
+        .eq("is_active", true)
+        .not("id", "in", `(${
+          (await supabase
+            .from("ai_call_sessions")
+            .select("tenant_id")
+            .gte("created_at", sevenDaysAgo)
+          ).data?.map(r => `'${r.tenant_id}'`).join(",") || "'00000000-0000-0000-0000-000000000000'"
+        })`);
+
+      // Only alert for tenants that HAVE had calls before (not brand new)
+      if (inactiveTenants?.length) {
+        for (const t of inactiveTenants) {
+          const { count } = await supabase
+            .from("ai_call_sessions")
+            .select("id", { count: "exact", head: true })
+            .eq("tenant_id", t.id);
+          if ((count || 0) > 0) {
+            await sendAdminTelegram(
+              `<b>INACTIVE TENANT</b>: ${t.name} hasn't received calls in 7+ days (had ${count} total calls)`
+            );
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[cron-tenant-health] Onboarding tracking error:", e);
     }
 
     console.log(`[cron-tenant-health] Done:`, results);

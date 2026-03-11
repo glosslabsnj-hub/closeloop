@@ -197,7 +197,7 @@ serve(async (req) => {
     // Fetch tenant info (including mode + industry for terminology)
     const { data: tenantData } = await supabase
       .from("tenants")
-      .select("name, business_mode, industry")
+      .select("name, business_mode, industry, phone_public, address")
       .eq("id", tenantId)
       .single();
 
@@ -294,6 +294,32 @@ serve(async (req) => {
       } catch (e) {
         console.error("Failed to record booking observation:", e);
       }
+    }
+
+    // Helper: compute notification status from results for owner methods only
+    function computeNotificationStatus(
+      ownerMethods: string[],
+      results: Record<string, { success: boolean; error?: string }>
+    ): { notification_status: "delivered" | "partial" | "failed" | "none"; warnings: string[] } {
+      if (ownerMethods.length === 0) {
+        return { notification_status: "none", warnings: [] };
+      }
+      const ownerResults = ownerMethods
+        .filter((m) => results[m] !== undefined)
+        .map((m) => ({ method: m, ...results[m] }));
+
+      const succeeded = ownerResults.filter((r) => r.success).length;
+      const failed = ownerResults.filter((r) => !r.success);
+      const warnings = failed.map((r) => `${r.method}_failed: ${r.error || "unknown"}`);
+
+      if (succeeded === 0 && ownerResults.length > 0) {
+        warnings.unshift("booking_created_but_owner_not_notified");
+        return { notification_status: "failed", warnings };
+      }
+      if (failed.length > 0) {
+        return { notification_status: "partial", warnings };
+      }
+      return { notification_status: "delivered", warnings: [] };
     }
 
     // Execute owner notification methods (gated by delivery settings)
@@ -440,8 +466,28 @@ serve(async (req) => {
         );
 
         const postServiceResult = await postServiceResponse.json();
+        const { notification_status, warnings } = computeNotificationStatus(ownerMethods, results);
+        const responseBody: Record<string, unknown> = {
+          success: true,
+          notification_status,
+          results: { ...results, post_service: postServiceResult },
+        };
+        if (warnings.length > 0) responseBody.warnings = warnings;
+
+        // Log to delivery_attempts if all owner notifications failed
+        if (notification_status === "failed") {
+          await supabase.from("delivery_attempts").insert({
+            tenant_id: tenantId,
+            entity_type: "booking",
+            entity_id: booking_id,
+            method: "all",
+            status: "failed",
+            error_message: "all_owner_notifications_failed",
+          }).then(() => {}, () => {});
+        }
+
         return new Response(
-          JSON.stringify({ success: true, results: { ...results, post_service: postServiceResult } }),
+          JSON.stringify(responseBody),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } catch (e) {
@@ -453,8 +499,21 @@ serve(async (req) => {
       }
     }
 
-    // For cancellations: send customer SMS then return (skip calendar/Square — already handled by cancel flow)
+    // For cancellations: update booking status, send customer SMS, then return
     if (isCancellation) {
+      // Update booking status to canceled
+      const { error: cancelUpdateError } = await supabase
+        .from("bookings")
+        .update({ status: "canceled", canceled_at: new Date().toISOString() })
+        .eq("id", booking_id)
+        .eq("tenant_id", tenantId);
+
+      if (cancelUpdateError) {
+        console.error(`[booking-handoff] Failed to update booking status to canceled:`, cancelUpdateError);
+      } else {
+        console.log(`[booking-handoff] Booking ${booking_id} status updated to canceled`);
+      }
+
       try {
         const customerPhone = booking.lead?.phone;
         if (customerPhone) {
@@ -487,7 +546,26 @@ serve(async (req) => {
         console.error("[booking-handoff] Customer cancellation SMS error:", e);
       }
 
-      return new Response(JSON.stringify({ success: true, results }), {
+      const cancelNotif = computeNotificationStatus(ownerMethods, results);
+      const cancelResponseBody: Record<string, unknown> = {
+        success: true,
+        notification_status: cancelNotif.notification_status,
+        results,
+      };
+      if (cancelNotif.warnings.length > 0) cancelResponseBody.warnings = cancelNotif.warnings;
+
+      if (cancelNotif.notification_status === "failed") {
+        await supabase.from("delivery_attempts").insert({
+          tenant_id: tenantId,
+          entity_type: "booking",
+          entity_id: booking_id,
+          method: "all",
+          status: "failed",
+          error_message: "all_owner_notifications_failed",
+        }).then(() => {}, () => {});
+      }
+
+      return new Response(JSON.stringify(cancelResponseBody), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -541,10 +619,30 @@ serve(async (req) => {
         } else {
           console.error(`Failed to create calendar event:`, calendarResult.error);
           results.google_calendar = { success: false, error: calendarResult.error };
+          // Record for retry
+          await supabase.from("handoff_attempts").insert({
+            tenant_id: tenantId,
+            entity_type: "booking",
+            entity_id: booking_id,
+            method: "google_calendar",
+            status: "failed",
+            error_message: calendarResult.error || "Calendar sync failed",
+            request_payload: { booking_id, tenant_id: tenantId },
+          });
         }
       } catch (e) {
         console.error("Failed to create Google Calendar event:", e);
         results.google_calendar = { success: false, error: String(e) };
+        // Record for retry
+        await supabase.from("handoff_attempts").insert({
+          tenant_id: tenantId,
+          entity_type: "booking",
+          entity_id: booking_id,
+          method: "google_calendar",
+          status: "failed",
+          error_message: String(e),
+          request_payload: { booking_id, tenant_id: tenantId },
+        });
       }
     }
 
@@ -573,10 +671,30 @@ serve(async (req) => {
         } else {
           console.error(`Failed to sync to Square:`, squareResult.error);
           results.square = { success: false, error: squareResult.error };
+          // Record for retry
+          await supabase.from("handoff_attempts").insert({
+            tenant_id: tenantId,
+            entity_type: "booking",
+            entity_id: booking_id,
+            method: "square",
+            status: "failed",
+            error_message: squareResult.error || "Square sync failed",
+            request_payload: { booking_id, tenant_id: tenantId },
+          });
         }
       } catch (e) {
         console.error("Failed to sync Square booking:", e);
         results.square = { success: false, error: String(e) };
+        // Record for retry
+        await supabase.from("handoff_attempts").insert({
+          tenant_id: tenantId,
+          entity_type: "booking",
+          entity_id: booking_id,
+          method: "square",
+          status: "failed",
+          error_message: String(e),
+          request_payload: { booking_id, tenant_id: tenantId },
+        });
       }
     }
 
@@ -642,7 +760,94 @@ serve(async (req) => {
       results.customer_confirmation = { success: false, error: String(e) };
     }
 
-    return new Response(JSON.stringify({ success: true, results }), {
+    // ─── CUSTOMER CONFIRMATION EMAIL ──────────────────────────────────
+    // Send confirmation email to the CUSTOMER if they have an email address.
+    // Runs alongside SMS — if SMS failed/skipped, email becomes the primary confirmation.
+    try {
+      const customerEmail = booking.lead?.email;
+      if (customerEmail) {
+        const customerName = booking.lead?.full_name || "there";
+        const serviceName = booking.service?.name || "your appointment";
+        const businessName = tenantData?.name || "Our Team";
+        const businessPhone = tenantData?.phone_public || null;
+        const businessAddress = tenantData?.address || null;
+
+        const startTime = new Date(booking.start_at).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          timeZone: tenantTimezone,
+        });
+        const startDate = new Date(booking.start_at).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          timeZone: tenantTimezone,
+        });
+
+        const emailSubject = `Your appointment with ${businessName} is confirmed`;
+        const emailHtml = `
+          <p>Hi ${customerName},</p>
+          <p>Your appointment is confirmed:</p>
+          <ul>
+            <li><strong>Date:</strong> ${startDate}</li>
+            <li><strong>Time:</strong> ${startTime}</li>
+            <li><strong>Service:</strong> ${serviceName}</li>
+            ${businessAddress ? `<li><strong>Location:</strong> ${businessAddress}</li>` : ""}
+          </ul>
+          ${businessPhone ? `<p>If you need to make changes, call <a href="tel:${businessPhone}">${businessPhone}</a>.</p>` : ""}
+          <p>${businessName}</p>
+        `.trim();
+
+        const emailResult = await sendEmail({
+          to: customerEmail,
+          subject: emailSubject,
+          businessName,
+          html: emailHtml,
+        });
+
+        if (emailResult.success) {
+          results.customer_confirmation_email = { success: true };
+          console.log(`[booking-handoff] Confirmation email sent to ${customerEmail} for ${booking_id}`);
+        } else {
+          results.customer_confirmation_email = { success: false, error: emailResult.error };
+          console.error(`[booking-handoff] Customer confirmation email failed:`, emailResult.error);
+        }
+
+        // Log to delivery_attempts
+        await supabase.from("delivery_attempts").insert({
+          tenant_id: tenantId,
+          entity_type: "booking",
+          entity_id: booking_id,
+          method: "email",
+          status: emailResult.success ? "success" : "failed",
+          error_message: emailResult.error || null,
+        }).then(() => {}, () => {});
+      }
+    } catch (e) {
+      console.error("[booking-handoff] Customer confirmation email error:", e);
+      results.customer_confirmation_email = { success: false, error: String(e) };
+    }
+
+    const finalNotif = computeNotificationStatus(ownerMethods, results);
+    const finalResponseBody: Record<string, unknown> = {
+      success: true,
+      notification_status: finalNotif.notification_status,
+      results,
+    };
+    if (finalNotif.warnings.length > 0) finalResponseBody.warnings = finalNotif.warnings;
+
+    if (finalNotif.notification_status === "failed") {
+      await supabase.from("delivery_attempts").insert({
+        tenant_id: tenantId,
+        entity_type: "booking",
+        entity_id: booking_id,
+        method: "all",
+        status: "failed",
+        error_message: "all_owner_notifications_failed",
+      }).then(() => {}, () => {});
+    }
+
+    return new Response(JSON.stringify(finalResponseBody), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

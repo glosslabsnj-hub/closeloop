@@ -29,6 +29,33 @@ const MAX_RETRIES = 3;
 const BASE_DELAY_MINUTES = 5;
 const BACKOFF_MULTIPLIER = 2;
 
+// --- Real-time Telegram alerts to Jack ---
+const _telegramAlertTimestamps: number[] = [];
+const TELEGRAM_MAX_ALERTS_PER_HOUR = 10;
+
+async function sendAdminTelegram(message: string) {
+  try {
+    const now = Date.now();
+    const oneHourAgo = now - 60 * 60 * 1000;
+    while (_telegramAlertTimestamps.length > 0 && _telegramAlertTimestamps[0] < oneHourAgo) {
+      _telegramAlertTimestamps.shift();
+    }
+    if (_telegramAlertTimestamps.length >= TELEGRAM_MAX_ALERTS_PER_HOUR) {
+      console.log("Telegram alert rate limit reached, skipping");
+      return;
+    }
+    _telegramAlertTimestamps.push(now);
+
+    const botToken = Deno.env.get("LENARD_TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+    const chatId = Deno.env.get("LENARD_TELEGRAM_CHAT_ID") || "6841391368";
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: "HTML" }),
+    });
+  } catch { /* alerting must never block main flow */ }
+}
+
 interface FailedDelivery {
   id: string;
   tenant_id: string;
@@ -126,6 +153,7 @@ serve(async (req) => {
       retry_count: (h.retry_count as number) || 0,
       last_retry_at: h.last_retry_at as string | null,
       next_retry_at: h.next_retry_at as string | null,
+      request_payload: (h.request_payload as Record<string, unknown>) || null,
       _table: "handoff_attempts" as const,
     }));
 
@@ -153,23 +181,36 @@ serve(async (req) => {
       let retryBody: Record<string, unknown>;
 
       if (_table === "handoff_attempts") {
-        // Route to correct handoff function
-        const handoffMap: Record<string, string> = {
-          booking: "booking-handoff",
-          dispatch: "dispatch-handoff",
-          order: "order-handoff",
-        };
-        const handoffFn = handoffMap[entity_type] || "universal-delivery";
-        retryEndpoint = `${SUPABASE_URL}/functions/v1/${handoffFn}`;
+        const method = delivery.method;
+        const requestPayload = (delivery as typeof handoffItems[number]).request_payload;
 
-        if (entity_type === "booking") {
-          retryBody = { booking_id: entity_id, tenant_id };
-        } else if (entity_type === "dispatch") {
-          retryBody = { dispatch_id: entity_id, tenant_id };
-        } else if (entity_type === "order") {
-          retryBody = { order_id: entity_id, tenant_id };
+        if (method === "google_calendar" && requestPayload) {
+          // Retry Google Calendar sync directly via the edge function
+          retryEndpoint = `${SUPABASE_URL}/functions/v1/create-calendar-event`;
+          retryBody = { ...requestPayload };
+        } else if (method === "square" && requestPayload) {
+          // Retry Square sync directly via the edge function
+          retryEndpoint = `${SUPABASE_URL}/functions/v1/sync-square-booking`;
+          retryBody = { ...requestPayload };
         } else {
-          retryBody = { tenant_id, entity_type, entity_id, retry_attempt: retry_count + 1 };
+          // Route to correct handoff function by entity type
+          const handoffMap: Record<string, string> = {
+            booking: "booking-handoff",
+            dispatch: "dispatch-handoff",
+            order: "order-handoff",
+          };
+          const handoffFn = handoffMap[entity_type] || "universal-delivery";
+          retryEndpoint = `${SUPABASE_URL}/functions/v1/${handoffFn}`;
+
+          if (entity_type === "booking") {
+            retryBody = { booking_id: entity_id, tenant_id };
+          } else if (entity_type === "dispatch") {
+            retryBody = { dispatch_id: entity_id, tenant_id };
+          } else if (entity_type === "order") {
+            retryBody = { order_id: entity_id, tenant_id };
+          } else {
+            retryBody = { tenant_id, entity_type, entity_id, retry_attempt: retry_count + 1 };
+          }
         }
       } else {
         retryEndpoint = `${SUPABASE_URL}/functions/v1/universal-delivery`;
@@ -177,12 +218,20 @@ serve(async (req) => {
       }
 
       try {
+        // google_calendar and square edge functions use x-closeloop-secret for auth
+        const useInternalSecret = delivery.method === "google_calendar" || delivery.method === "square";
+        const retryHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        };
+        if (useInternalSecret) {
+          const internalSecret = Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || SUPABASE_SERVICE_ROLE_KEY;
+          retryHeaders["x-closeloop-secret"] = internalSecret;
+        }
+
         const response = await fetch(retryEndpoint, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          },
+          headers: retryHeaders,
           body: JSON.stringify(retryBody),
         });
 
@@ -334,6 +383,11 @@ serve(async (req) => {
     .single();
    
    const tenantData = tenant as { business_name: string; owner_email: string | null } | null;
+
+  // Telegram alert to Jack
+  await sendAdminTelegram(
+    `<b>PERMANENT FAILURE</b>: ${entity_type} notification for ${tenantData?.business_name || tenant_id} failed after ${MAX_RETRIES} retries.${error_message ? `\nError: ${error_message.slice(0, 120)}` : ""}`
+  );
 
   // Trigger notification workflow
   try {

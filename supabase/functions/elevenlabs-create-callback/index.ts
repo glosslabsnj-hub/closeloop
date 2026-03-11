@@ -12,7 +12,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +25,7 @@ interface ElevenLabsCallbackRequest {
   customer_phone?: string;
   department?: string;
   preferred_time?: string;
+  urgency?: string;
   notes?: string;
   tenant_id?: string;
   tenantId?: string;
@@ -36,6 +37,7 @@ interface ElevenLabsCallbackRequest {
     customer_phone?: string;
     department?: string;
     preferred_time?: string;
+    urgency?: string;
     notes?: string;
     tenant_id?: string;
   };
@@ -73,6 +75,8 @@ serve(async (req: Request) => {
     const department = body.department || body.params?.department || "general";
     const preferredTime = body.preferred_time || body.params?.preferred_time || "ASAP";
     const notes = body.notes || body.params?.notes || "";
+    const rawUrgency = body.urgency || body.params?.urgency || "normal";
+    const urgency = ["urgent", "high", "normal"].includes(rawUrgency) ? rawUrgency : "normal";
     const directTenantId = body.tenant_id || body.tenantId || body.params?.tenant_id || "";
     const conversationId = body.conversation_id || body.call_id || "";
 
@@ -156,10 +160,11 @@ serve(async (req: Request) => {
 
     // Create opportunity for callback (only if we have a customer_id — NOT NULL in schema)
     let opportunity: { id: string } | null = null;
+    let phonelessCallbackId: string | null = null;
     if (!customerId) {
-      // No phone/customer resolved (e.g. text simulator without caller phone).
-      // Log to session only — can't create opportunity without customer_id.
-      console.log("[create-callback] No customer_id resolved — logging to session only");
+      // No phone/customer resolved — still create callback_requests row so
+      // the dashboard NeedsAttentionBanner picks it up and owner gets notified.
+      console.log("[create-callback] No customer_id resolved — creating phone-less callback_request");
       if (sessionId) {
         await supabase
           .from("ai_call_sessions")
@@ -172,9 +177,61 @@ serve(async (req: Request) => {
               department: department,
               preferred_time: preferredTime,
               notes: notes,
+              phone_missing: true,
             },
           })
           .eq("id", sessionId);
+      }
+
+      // Always create a callback_requests row, even without a customer
+      const { data: cbRow, error: cbError } = await supabase
+        .from("callback_requests")
+        .insert({
+          tenant_id: tenantId,
+          session_id: sessionId,
+          customer_id: null,
+          customer_name: customerName || null,
+          customer_phone: null,
+          best_time: preferredTime || null,
+          message: `[PHONE MISSING] ${reason} — Check call transcript for caller details.`,
+          reason: reason,
+          urgency: urgency,
+          status: "pending",
+        })
+        .select("id")
+        .single();
+
+      if (cbError) {
+        console.error("[create-callback] callback_requests insert failed (phone-less):", cbError.message);
+      } else {
+        phonelessCallbackId = cbRow?.id || null;
+        console.log(`[create-callback] Phone-less callback_request created: ${phonelessCallbackId}`);
+      }
+
+      // Notify owner even without an opportunity — use callback_requests entity
+      if (phonelessCallbackId) {
+        try {
+          const deliveryRes = await fetch(`${supabaseUrl}/functions/v1/universal-delivery`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${serviceKey}`,
+            },
+            body: JSON.stringify({
+              tenant_id: tenantId,
+              entity_type: "callback",
+              entity_id: phonelessCallbackId,
+            }),
+          });
+          if (deliveryRes.ok) {
+            console.log(`[create-callback] Triggered universal-delivery for phone-less callback ${phonelessCallbackId}`);
+          } else {
+            const errText = await deliveryRes.text();
+            console.error(`[create-callback] Delivery failed (phone-less): ${errText}`);
+          }
+        } catch (notifyErr) {
+          console.error("[create-callback] Notification error (phone-less):", notifyErr);
+        }
       }
     } else {
       const { data: opp, error: opportunityError } = await supabase
@@ -190,6 +247,7 @@ serve(async (req: Request) => {
             reason: reason,
             department: department,
             preferred_time: preferredTime,
+            urgency: urgency,
             caller_phone: phoneE164,
             customer_name: customerName,
             session_id: sessionId,
@@ -233,6 +291,27 @@ serve(async (req: Request) => {
         );
       }
       opportunity = opp;
+
+      // Also write to callback_requests for unified dashboard view
+      if (opportunity?.id) {
+        const { error: cbError } = await supabase
+          .from("callback_requests")
+          .insert({
+            tenant_id: tenantId,
+            session_id: sessionId,
+            customer_id: customerId,
+            customer_name: customerName || null,
+            customer_phone: phoneE164 || null,
+            best_time: preferredTime || null,
+            message: reason,
+            reason: reason,
+            urgency: urgency,
+            status: "pending",
+          });
+        if (cbError) {
+          console.warn("[create-callback] callback_requests insert failed (non-fatal):", cbError.message);
+        }
+      }
     }
 
     // Update session with callback outcome (only when we created an opportunity)
@@ -294,12 +373,12 @@ serve(async (req: Request) => {
       responseMessage = `Got it! Someone will call you back ${preferredTime}`;
     }
 
-    console.log(`[create-callback] Success - Opportunity: ${opportunity?.id || 'none'}`);
+    console.log(`[create-callback] Success - Opportunity: ${opportunity?.id || 'none'}, PhonelessCB: ${phonelessCallbackId || 'none'}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        callback_id: opportunity?.id || sessionId,
+        callback_id: opportunity?.id || phonelessCallbackId || sessionId,
         message: responseMessage,
         preferred_time: preferredTime,
         department: department,
