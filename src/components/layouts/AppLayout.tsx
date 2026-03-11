@@ -43,6 +43,7 @@ import { AdminTenantSwitcher } from "@/components/admin/AdminTenantSwitcher";
 import { AdminModeSelector } from "@/components/admin/AdminModeSelector";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { DispatchJobListener } from "@/components/notifications/DispatchJobListener";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
@@ -406,6 +407,7 @@ export function AppLayout() {
       <DispatchJobListener />
       <CommandPalette />
       <AppLayoutContent />
+      <FeedbackButton />
     </>
   );
 }
