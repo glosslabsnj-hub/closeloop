@@ -6,6 +6,7 @@ import { NeedsAttentionBanner } from "./NeedsAttentionBanner";
 import { CompleteProfileBanner } from "./CompleteProfileBanner";
 import { LiveActivityFeed } from "./LiveActivityFeed";
 import { UnifiedAlertBanner } from "./UnifiedAlertBanner";
+import { SystemHealthBanner } from "./SystemHealthBanner";
 import { ModeContentArea } from "./ModeContentArea";
 import { MetricsGrid } from "./MetricsGrid";
 import { SoundManager } from "@/components/notifications/SoundManager";
@@ -42,6 +43,11 @@ export function LiveDashboard() {
       {/* Agent Status */}
       <ErrorBoundary context="loading agent status">
         <AgentControlPanel />
+      </ErrorBoundary>
+
+      {/* System Health */}
+      <ErrorBoundary context="loading system health">
+        <SystemHealthBanner />
       </ErrorBoundary>
 
       {/* Alerts (only when present) */}
