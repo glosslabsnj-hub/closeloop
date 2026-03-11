@@ -59,16 +59,73 @@ serve(async (req) => {
       .eq("id", tenant_id)
       .single();
 
-    // Fetch delivery settings
-    const { data: settings } = await supabase
+    // Fetch delivery settings — prefer booking_delivery_settings (has handoff_methods schema),
+    // fall back to callback_delivery_settings (different column names)
+    const { data: bookingSettings } = await supabase
+      .from("booking_delivery_settings")
+      .select("*")
+      .eq("tenant_id", tenant_id)
+      .maybeSingle();
+
+    const { data: callbackSettings } = !bookingSettings ? await supabase
       .from("callback_delivery_settings")
       .select("*")
       .eq("tenant_id", tenant_id)
-      .single();
+      .maybeSingle() : { data: null };
 
-    const methods = settings?.enabled && Array.isArray(settings.handoff_methods)
-      ? settings.handoff_methods
-      : ["internal"];
+    // Normalize settings from whichever table we found
+    const settings = bookingSettings ? {
+      enabled: bookingSettings.enabled,
+      handoff_methods: bookingSettings.handoff_methods,
+      webhook_url: bookingSettings.webhook_url,
+      webhook_secret: bookingSettings.webhook_secret,
+      notify_email: bookingSettings.notify_email,
+      notify_phone: bookingSettings.notify_phone,
+    } : callbackSettings ? {
+      enabled: callbackSettings.sms_enabled || callbackSettings.email_enabled,
+      handoff_methods: [
+        "internal",
+        ...(callbackSettings.email_enabled ? ["email"] : []),
+        ...(callbackSettings.sms_enabled ? ["sms"] : []),
+        ...(callbackSettings.webhook_url ? ["webhook"] : []),
+      ],
+      webhook_url: callbackSettings.webhook_url,
+      webhook_secret: callbackSettings.webhook_secret,
+      notify_email: callbackSettings.email_recipient,
+      notify_phone: callbackSettings.sms_recipient_phone,
+    } : null;
+
+    // Resolve methods — handoff_methods can be array ["sms","email"] or object {"sms":true,"email":true}
+    function resolveHandoffMethods(hm: unknown): string[] {
+      if (Array.isArray(hm)) return hm;
+      if (hm && typeof hm === "object") return Object.entries(hm).filter(([, v]) => v).map(([k]) => k);
+      return ["internal"];
+    }
+    const methods = settings?.enabled ? resolveHandoffMethods(settings.handoff_methods) : ["internal"];
+    if (!methods.includes("internal")) methods.unshift("internal");
+
+    // Fallback: if no notify_email, look up tenant owner's email
+    let notifyEmail = settings?.notify_email || null;
+    let notifyPhone = settings?.notify_phone || null;
+    if (!notifyEmail || !notifyPhone) {
+      const { data: ownerUser } = await supabase
+        .from("tenant_users")
+        .select("user_id")
+        .eq("tenant_id", tenant_id)
+        .limit(1)
+        .maybeSingle();
+      if (ownerUser?.user_id) {
+        const { data: authData } = await supabase.auth.admin.getUserById(ownerUser.user_id);
+        if (authData?.user?.email && !notifyEmail) {
+          notifyEmail = authData.user.email;
+          if (!methods.includes("email")) methods.push("email");
+        }
+        if (authData?.user?.phone && !notifyPhone) {
+          notifyPhone = authData.user.phone;
+          if (!methods.includes("sms")) methods.push("sms");
+        }
+      }
+    }
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Build vehicle description
@@ -129,12 +186,12 @@ serve(async (req) => {
           results.webhook = { success: resp.ok, error: resp.ok ? undefined : `HTTP ${resp.status}` };
         }
 
-        if (method === "sms" && settings?.notify_phone) {
+        if (method === "sms" && notifyPhone) {
           const customerName = testDrive.customer?.full_name || "A customer";
           const smsBody = `Test drive scheduled: ${customerName} - ${vehicleDesc}, ${scheduledStr} at ${tenant?.name || "your business"}.${testDrive.trade_in_interest ? " Has trade-in." : ""}`;
           const smsResult = await sendTenantSms({
             tenantId: tenant_id,
-            to: settings.notify_phone,
+            to: notifyPhone,
             body: smsBody,
           });
           if (smsResult.success) {
@@ -147,7 +204,7 @@ serve(async (req) => {
           }
         }
 
-        if (method === "email" && settings?.notify_email) {
+        if (method === "email" && notifyEmail) {
           const customerName = testDrive.customer?.full_name || "A customer";
           const emailResult = await sendEmail({
             to: settings.notify_email,

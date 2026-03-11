@@ -341,12 +341,12 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
-      // 9d. Callback delivery settings (upsert — ensures test-drive-handoff + sales-lead-handoff run for sales tenants)
-      // Without this row, test-drive-handoff defaults to internal-only (no SMS/email to owner).
+      // 9d. Booking delivery settings for sales tenants (ensures test-drive-handoff + sales-lead-handoff can notify owners)
+      // Handoff functions read from booking_delivery_settings first (has correct schema with handoff_methods).
       if (businessMode === "sales" || enabledModules.includes("sales_leads")) {
-        await runStep("callback delivery settings", async () => {
+        await runStep("sales delivery settings", async () => {
           const notifyEmail = user?.email || null;
-          const { error } = await supabase.from("callback_delivery_settings").upsert({
+          const { error } = await supabase.from("booking_delivery_settings").upsert({
             tenant_id: tenantId!,
             enabled: true,
             handoff_methods: (() => {
