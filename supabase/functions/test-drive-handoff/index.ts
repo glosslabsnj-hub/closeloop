@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { requireInternalSecret, serviceClient } from "../_shared/tenant.ts";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { sendEmail } from "../_shared/sendEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,8 +148,32 @@ serve(async (req) => {
         }
 
         if (method === "email" && settings?.notify_email) {
-          console.log(`[test-drive-handoff] Email delivery placeholder for ${settings.notify_email}`);
-          results.email = { success: true };
+          const customerName = testDrive.customer?.full_name || "A customer";
+          const emailResult = await sendEmail({
+            to: settings.notify_email,
+            subject: `Test Drive Scheduled: ${customerName} - ${vehicleDesc}`,
+            businessName: tenant?.name || "Your Business",
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px;">
+                <h2 style="color: #1a1a1a;">Test Drive Scheduled</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                  <tr><td style="padding: 8px; color: #666;">Customer</td><td style="padding: 8px; font-weight: bold;">${customerName}</td></tr>
+                  ${testDrive.customer?.phone_e164 ? `<tr><td style="padding: 8px; color: #666;">Phone</td><td style="padding: 8px;"><a href="tel:${testDrive.customer.phone_e164}">${testDrive.customer.phone_e164}</a></td></tr>` : ""}
+                  ${testDrive.customer?.email ? `<tr><td style="padding: 8px; color: #666;">Email</td><td style="padding: 8px;">${testDrive.customer.email}</td></tr>` : ""}
+                  <tr><td style="padding: 8px; color: #666;">Vehicle</td><td style="padding: 8px; font-weight: bold;">${vehicleDesc}</td></tr>
+                  <tr><td style="padding: 8px; color: #666;">Scheduled</td><td style="padding: 8px;">${scheduledStr}</td></tr>
+                  <tr><td style="padding: 8px; color: #666;">Duration</td><td style="padding: 8px;">${testDrive.duration_minutes || 30} minutes</td></tr>
+                  ${testDrive.trade_in_interest ? `<tr><td style="padding: 8px; color: #666;">Trade-In</td><td style="padding: 8px;">Interested${testDrive.trade_in_vehicle_info ? ` - ${testDrive.trade_in_vehicle_info}` : ""}</td></tr>` : ""}
+                  ${testDrive.financing_interest ? `<tr><td style="padding: 8px; color: #666;">Financing</td><td style="padding: 8px;">Interested</td></tr>` : ""}
+                  ${testDrive.budget_range ? `<tr><td style="padding: 8px; color: #666;">Budget</td><td style="padding: 8px;">${testDrive.budget_range}</td></tr>` : ""}
+                  ${testDrive.sales_rep_requested ? `<tr><td style="padding: 8px; color: #666;">Rep Requested</td><td style="padding: 8px;">${testDrive.sales_rep_requested}</td></tr>` : ""}
+                  ${testDrive.notes ? `<tr><td style="padding: 8px; color: #666;">Notes</td><td style="padding: 8px;">${testDrive.notes}</td></tr>` : ""}
+                </table>
+                <p style="margin-top: 16px; color: #666; font-size: 13px;">Via Flux Receptionist</p>
+              </div>
+            `,
+          });
+          results.email = { success: emailResult.success, error: emailResult.error };
         }
       } catch (e) {
         const errMsg = e instanceof Error ? e.message : String(e);

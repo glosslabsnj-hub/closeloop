@@ -349,7 +349,12 @@ export function useOnboardingSubmit(userId?: string) {
           const { error } = await supabase.from("callback_delivery_settings").upsert({
             tenant_id: tenantId!,
             enabled: true,
-            handoff_methods: notifyEmail ? ["internal", "email"] : ["internal"],
+            handoff_methods: (() => {
+              const methods = ["internal"];
+              if (notifyEmail) methods.push("email");
+              if (notificationPhone) methods.push("sms");
+              return methods;
+            })(),
             notify_email: notifyEmail,
             notify_phone: notificationPhone || null,
           }, { onConflict: "tenant_id" });

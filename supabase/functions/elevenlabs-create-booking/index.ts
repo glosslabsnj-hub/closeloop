@@ -712,7 +712,7 @@ serve(async (req: Request) => {
         if (isTestDrive || tenantFull.business_mode === "sales") {
           // Extract scheduled_date from startAt (YYYY-MM-DD format)
           const scheduledDateStr = targetDate || startAt.toISOString().slice(0, 10);
-          const { error: tdInsertErr } = await supabase.from("test_drives").insert({
+          const { data: tdRow, error: tdInsertErr } = await supabase.from("test_drives").insert({
             tenant_id: tenantId,
             customer_id: customerId,
             scheduled_at: startAt.toISOString(),
@@ -724,12 +724,29 @@ serve(async (req: Request) => {
             notes: notes || null,
             booking_id: booking.id,
             session_id: sessionId,
-            vehicle_description: resolvedServiceName || null,
-          });
+            vehicle_description: vehicleType ? `${vehicleType}${resolvedServiceName ? ` - ${resolvedServiceName}` : ""}` : (resolvedServiceName || null),
+          }).select("id").single();
           if (tdInsertErr) {
             console.error("[create-booking] test_drive insert failed:", tdInsertErr.message);
           } else {
             console.log(`[create-booking] Created test_drive for sales tenant`);
+            // Trigger test-drive-handoff to notify owner
+            try {
+              await fetch(`${supabaseUrl}/functions/v1/test-drive-handoff`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || serviceKey,
+                },
+                body: JSON.stringify({
+                  tenant_id: tenantId,
+                  test_drive_id: tdRow.id,
+                  session_id: sessionId,
+                }),
+              });
+            } catch (e) {
+              console.error("[create-booking] test-drive-handoff trigger failed:", e);
+            }
           }
         }
       }

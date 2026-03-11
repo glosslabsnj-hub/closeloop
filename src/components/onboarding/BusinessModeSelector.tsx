@@ -61,7 +61,7 @@ const businessModes: BusinessModeOption[] = [
     description: "Lead qualification, appointments, and sales management",
     icon: DollarSign,
     examples: ["Car Dealership", "Real Estate", "RV/Boat", "Solar", "Insurance"],
-    defaultModules: ["ai_voice", "instant_text_back", "sales_leads", "booking"],
+    defaultModules: ["ai_voice", "instant_text_back", "sales_leads", "test_drives", "booking", "sales_inventory", "lead_recovery"],
   },
   {
     value: "general",
