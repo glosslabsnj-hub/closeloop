@@ -13,6 +13,7 @@ import {
   Calendar,
   ArrowRight,
   DollarSign,
+  PhoneIncoming,
 } from "lucide-react";
 
 interface AttentionItem {
@@ -76,8 +77,41 @@ export function NeedsAttentionBanner() {
     enabled: !!tenant?.id,
   });
 
+  // Fetch pending callbacks (urgent first)
+  const { data: callbackCounts } = useQuery({
+    queryKey: ["attention-pending-callbacks", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return { total: 0, urgent: 0 };
+      const { count: total } = await supabase
+        .from("callback_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .eq("status", "pending");
+      const { count: urgent } = await supabase
+        .from("callback_requests")
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", tenant.id)
+        .eq("status", "pending")
+        .in("urgency", ["urgent", "high"]);
+      return { total: total || 0, urgent: urgent || 0 };
+    },
+    enabled: !!tenant?.id,
+    refetchInterval: 30_000, // Refresh every 30s for real-time feel
+  });
+
   // Build attention items
   const items: AttentionItem[] = [];
+
+  if ((callbackCounts?.total || 0) > 0) {
+    const urgentLabel = callbackCounts!.urgent > 0 ? ` (${callbackCounts!.urgent} urgent)` : "";
+    items.push({
+      count: callbackCounts!.total,
+      label: callbackCounts!.total === 1 ? `callback waiting${urgentLabel}` : `callbacks waiting${urgentLabel}`,
+      icon: PhoneIncoming,
+      href: "/app/calls",
+      priority: callbackCounts!.urgent > 0 ? 0 : 2, // Urgent callbacks = highest priority
+    });
+  }
 
   if (unpaidInvoices > 0) {
     items.push({
@@ -127,16 +161,27 @@ export function NeedsAttentionBanner() {
 
   // Get highest priority item for main action
   const primaryItem = items[0];
+  const hasUrgent = (callbackCounts?.urgent || 0) > 0;
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl bg-warning/[0.06] backdrop-blur-sm border border-warning/20 animate-fade-in card-interactive">
+    <div className={`flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl backdrop-blur-sm animate-fade-in card-interactive ${
+      hasUrgent
+        ? "bg-destructive/[0.08] border border-destructive/25"
+        : "bg-warning/[0.06] border border-warning/20"
+    }`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className="h-10 w-10 rounded-xl bg-warning/15 border border-warning/20 flex items-center justify-center shrink-0 shadow-[0_0_16px_-4px_hsl(38_90%_50%/0.25)]">
-          <AlertCircle className="h-4 w-4 text-warning" />
+        <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${
+          hasUrgent
+            ? "bg-destructive/15 border border-destructive/25 shadow-[0_0_16px_-4px_hsl(0_90%_50%/0.3)]"
+            : "bg-warning/15 border border-warning/20 shadow-[0_0_16px_-4px_hsl(38_90%_50%/0.25)]"
+        }`}>
+          <AlertCircle className={`h-4 w-4 ${hasUrgent ? "text-destructive" : "text-warning"}`} />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight text-warning truncate">Needs Your Attention</p>
-          <p className="text-xs text-warning/70 truncate">
+          <p className={`text-sm font-semibold tracking-tight truncate ${hasUrgent ? "text-destructive" : "text-warning"}`}>
+            {hasUrgent ? "Urgent - Action Required" : "Needs Your Attention"}
+          </p>
+          <p className={`text-xs truncate ${hasUrgent ? "text-destructive/70" : "text-warning/70"}`}>
             {items.map((item, i) => (
               <span key={item.href}>
                 {item.count} {item.label}
@@ -146,9 +191,13 @@ export function NeedsAttentionBanner() {
           </p>
         </div>
       </div>
-      <Button 
+      <Button
         size="sm"
-        className="bg-warning hover:bg-warning/90 text-warning-foreground shrink-0 h-9 text-xs font-semibold shadow-sm"
+        className={`shrink-0 h-9 text-xs font-semibold shadow-sm ${
+          hasUrgent
+            ? "bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+            : "bg-warning hover:bg-warning/90 text-warning-foreground"
+        }`}
         onClick={() => navigate(primaryItem.href)}
       >
         Review

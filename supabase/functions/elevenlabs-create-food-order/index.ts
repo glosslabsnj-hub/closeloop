@@ -145,6 +145,40 @@ serve(async (req: Request) => {
       );
     }
 
+    // Validate delivery orders against food_order_settings
+    let deliveryMinimumCents = 0;
+    if (orderType === "delivery") {
+      const { data: foodSettings } = await supabase
+        .from("food_order_settings")
+        .select("accepts_delivery, delivery_radius_miles, delivery_minimum_cents")
+        .eq("tenant_id", resolvedTenantId)
+        .maybeSingle();
+
+      if (foodSettings && !foodSettings.accepts_delivery) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "I'm sorry, we only offer pickup right now. Would you like to place a pickup order instead?",
+            error: "delivery_not_available",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (!deliveryAddress) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "I need a delivery address for delivery orders. What's the address?",
+            error: "delivery_address_required",
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      deliveryMinimumCents = foodSettings?.delivery_minimum_cents || 0;
+    }
+
     // Match items to menu_items for pricing
     const itemsJson: Array<{
       name: string;
@@ -153,21 +187,25 @@ serve(async (req: Request) => {
       special_instructions?: string;
     }> = [];
     let subtotalCents = 0;
+    let maxPrepMinutes = 0;
 
     for (const item of items) {
       let priceCents = item.price_cents || 0;
 
       if (!priceCents) {
-        // Look up in menu_items
+        // Look up in menu_items (include prep time for ETA)
         const { data: menuItem } = await supabase
           .from("menu_items")
-          .select("price_cents, name")
+          .select("price_cents, name, prep_time_minutes")
           .eq("tenant_id", resolvedTenantId)
           .ilike("name", `%${item.name}%`)
           .limit(1)
           .maybeSingle();
 
         priceCents = menuItem?.price_cents || 0;
+        if (menuItem?.prep_time_minutes && menuItem.prep_time_minutes > maxPrepMinutes) {
+          maxPrepMinutes = menuItem.prep_time_minutes;
+        }
       }
 
       const lineTotal = priceCents * (item.quantity || 1);
@@ -184,6 +222,20 @@ serve(async (req: Request) => {
     // Calculate tax (estimate ~8%)
     const taxCents = Math.round(subtotalCents * 0.08);
     const totalCents = subtotalCents + taxCents;
+
+    // Check delivery minimum after pricing
+    if (orderType === "delivery" && deliveryMinimumCents > 0 && subtotalCents < deliveryMinimumCents) {
+      const minDollars = (deliveryMinimumCents / 100).toFixed(2);
+      const currentDollars = (subtotalCents / 100).toFixed(2);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `Our delivery minimum is $${minDollars}. Your current order is $${currentDollars}. Would you like to add anything else, or switch to pickup?`,
+          error: "below_delivery_minimum",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Find or create customer
     const phoneE164 = normalizePhoneE164(customerPhone);
@@ -297,10 +349,15 @@ serve(async (req: Request) => {
       .map((i) => `${i.quantity}x ${i.name}`)
       .join(", ");
 
+    // Build ETA string from max prep time
+    const etaStr = maxPrepMinutes > 0
+      ? ` Estimated ready time: about ${maxPrepMinutes} minutes.`
+      : "";
+
     const message =
       orderType === "delivery"
-        ? `Your order has been placed! That's ${itemSummary} for ${totalDisplay}. Your order number is ${orderNumber}. We'll deliver to ${deliveryAddress || "your address"}.`
-        : `Your order has been placed! That's ${itemSummary} for ${totalDisplay}. Your order number is ${orderNumber}. It will be ready for pickup shortly.`;
+        ? `Your order has been placed! That's ${itemSummary} for ${totalDisplay}. Your order number is ${orderNumber}.${etaStr} We'll deliver to ${deliveryAddress || "your address"}.`
+        : `Your order has been placed! That's ${itemSummary} for ${totalDisplay}. Your order number is ${orderNumber}.${etaStr} It will be ready for pickup shortly.`;
 
     console.log(
       `[create-food-order] Created order ${order.id} (${orderNumber})`
@@ -312,6 +369,7 @@ serve(async (req: Request) => {
         order_id: order.id,
         order_number: orderNumber,
         total: totalDisplay,
+        estimated_prep_minutes: maxPrepMinutes || null,
         message,
       }),
       {

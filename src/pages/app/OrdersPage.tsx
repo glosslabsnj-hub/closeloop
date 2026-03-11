@@ -95,6 +95,13 @@ import ErrorBoundary from "@/components/ErrorBoundary";
          .update({ status: status as Database["public"]["Enums"]["order_status"] })
          .eq("id", orderId);
        if (error) throw error;
+
+       // Trigger order-handoff for customer status SMS
+       if (tenant?.id) {
+         await supabase.functions.invoke("order-handoff", {
+           body: { order_id: orderId, tenant_id: tenant.id, event: status },
+         }).catch(() => {});
+       }
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ["food-orders", tenant?.id] });

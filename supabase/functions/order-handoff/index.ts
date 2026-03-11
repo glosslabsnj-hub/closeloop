@@ -76,7 +76,9 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { order_id, methods, test, method, webhook_url, webhook_secret, notify_email, notify_phone } = body;
+    const reqEvent: string | undefined = body.event;
     const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
+    const isStatusUpdate = reqEvent && reqEvent !== "created";
 
     // SECURITY: Validate access (user JWT or internal secret)
     const { tenantId: tenant_id } = await validateAccess(req, requestedTenantId);
@@ -157,8 +159,8 @@ serve(async (req) => {
       console.error("Failed to record order time observation:", e);
     }
 
-    // Run each enabled method
-    for (const handoffMethod of methodsToRun) {
+    // Run each enabled method (owner notifications — skip for status updates)
+    for (const handoffMethod of (isStatusUpdate ? [] : methodsToRun)) {
       if (handoffMethod === "internal") {
         // Internal queue is just the database - always succeeds
         results.internal = { success: true };
@@ -271,9 +273,9 @@ serve(async (req) => {
       if (cust?.full_name && !order.customer_name) order.customer_name = cust.full_name;
     }
 
-    // === CUSTOMER CONFIRMATION ===
+    // === CUSTOMER CONFIRMATION (new orders only) ===
     // Send order confirmation to the customer (separate from owner notifications)
-    if (order.customer_phone || order.customer_name) {
+    if (!isStatusUpdate && (order.customer_phone || order.customer_name)) {
       try {
         const items = Array.isArray(order.items_json)
           ? (order.items_json as OrderItem[]).map((i) => `${i.qty}x ${i.name}`).join(", ")
@@ -314,6 +316,48 @@ serve(async (req) => {
       }
     }
 
+    // === CUSTOMER STATUS UPDATE SMS ===
+    // When event is a status change (not "created"), send the customer a status-specific message
+    if (isStatusUpdate && order.customer_phone) {
+      try {
+        const orderNum = order.order_number || "unknown";
+        const statusMessages: Record<string, string> = {
+          preparing: businessName + ": Your order #" + orderNum + " is being prepared! Estimated ready time: 15-20 minutes.",
+          ready: businessName + ": Your order #" + orderNum + " is ready for pickup!",
+          out_for_delivery: businessName + ": Your order #" + orderNum + " is out for delivery!",
+          delivered: businessName + ": Your order #" + orderNum + " has been delivered. Thank you for your order!",
+          completed: businessName + ": Your order #" + orderNum + " has been delivered. Thank you for your order!",
+          cancelled: businessName + ": Your order #" + orderNum + " has been cancelled. Please call us if you have questions.",
+        };
+        const statusMsg = statusMessages[reqEvent!];
+        if (statusMsg) {
+          const statusSmsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: order.customer_phone,
+            body: statusMsg + " Reply STOP to opt out.",
+            entityType: "order",
+            entityId: order_id,
+          });
+          if (statusSmsResult.success) {
+            results.customer_status_sms = { success: true };
+            await logHandoffAttempt(supabase, tenant_id, order_id, "customer_status_sms", "success");
+          } else if (statusSmsResult.skipped) {
+            console.log("[order-handoff] No verified SMS channel for tenant " + tenant_id);
+            results.customer_status_sms = { success: false, error: "No verified SMS channel" };
+            await logHandoffAttempt(supabase, tenant_id, order_id, "customer_status_sms", "skipped", "No verified SMS channel");
+          } else {
+            results.customer_status_sms = { success: false, error: statusSmsResult.error };
+            await logHandoffAttempt(supabase, tenant_id, order_id, "customer_status_sms", "failed", statusSmsResult.error);
+          }
+        }
+      } catch (e) {
+        console.error("[order-handoff] Status update SMS error:", e);
+        const error = e instanceof Error ? e.message : "Unknown error";
+        results.customer_status_sms = { success: false, error };
+        await logHandoffAttempt(supabase, tenant_id, order_id, "customer_status_sms", "failed", error);
+      }
+    }
+
     // Update order handoff_state
     await supabase
       .from("food_orders")
@@ -326,7 +370,7 @@ serve(async (req) => {
       .eq("id", order_id);
 
     // Trigger workflow if any active workflow matches this event
-    const eventType = order.status === "confirmed" ? "order.confirmed" : "order.created";
+    const eventType = isStatusUpdate ? ("order." + reqEvent) : (order.status === "confirmed" ? "order.confirmed" : "order.created");
     try {
       await fetch(`${supabaseUrl}/functions/v1/trigger-workflow`, {
         method: "POST",

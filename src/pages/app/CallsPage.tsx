@@ -19,7 +19,7 @@ import {
   TableRow
 } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle, Flame, Thermometer, Snowflake, Clock } from "lucide-react";
+import { Phone, Search, Pencil, Loader2, ExternalLink, AlertTriangle, Flame, Thermometer, Snowflake, Clock, PhoneIncoming, PhoneForwarded, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { CallEditDialog } from "@/components/calls/CallEditDialog";
 import { CallCard } from "@/components/calls/CallCard";
@@ -34,7 +34,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Json } from "@/integrations/supabase/types";
+
+interface CallbackRequest {
+  id: string;
+  customer_name: string | null;
+  customer_phone: string | null;
+  reason: string | null;
+  message: string | null;
+  urgency: string;
+  status: string;
+  best_time: string | null;
+  contact_attempts: number;
+  escalation_level: number;
+  created_at: string;
+  updated_at: string;
+}
 
 interface CallSession {
   id: string;
@@ -136,6 +152,71 @@ export default function CallsPage() {
     enabled: !!tenant?.id,
   });
 
+  // Fetch pending callback requests
+  const { data: callbacks } = useQuery({
+    queryKey: ["callback_requests", tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from("callback_requests")
+        .select("*")
+        .eq("tenant_id", tenant.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data || []) as CallbackRequest[];
+    },
+    enabled: !!tenant?.id,
+    refetchInterval: 30_000,
+  });
+
+  // Realtime for callbacks
+  useEffect(() => {
+    if (!tenant?.id) return;
+    const channel = supabase
+      .channel('callbacks-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'callback_requests', filter: `tenant_id=eq.${tenant.id}` },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['callback_requests', tenant.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [tenant?.id, queryClient]);
+
+  const [callbacksExpanded, setCallbacksExpanded] = useState(true);
+
+  const updateCallbackMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const updates: Record<string, unknown> = { status };
+      if (status === "called_back" || status === "completed") {
+        updates.last_contacted_at = new Date().toISOString();
+      }
+      if (status === "called_back") {
+        // Increment contact_attempts
+        const cb = callbacks?.find(c => c.id === id);
+        if (cb) updates.contact_attempts = cb.contact_attempts + 1;
+      }
+      const { error } = await supabase
+        .from("callback_requests")
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["callback_requests", tenant?.id] });
+      toast({ title: "Callback updated" });
+    },
+    onError: () => {
+      toast({ title: "Couldn't update callback", variant: "destructive" });
+    },
+  });
+
+  const pendingCallbacks = callbacks?.filter(c => c.status === "pending") || [];
+  const activeCallbacks = callbacks?.filter(c => c.status !== "completed" && c.status !== "cancelled") || [];
+
   const updateCallMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: { outcome: string | null; summary: string | null; context_json: Record<string, unknown> } }) => {
       const { error } = await supabase
@@ -220,6 +301,8 @@ export default function CallsPage() {
         return "order";
       case "dispatch":
         return "dispatch";
+      case "callback":
+        return "thinking";
       case "followup":
       case "lead_captured":
       case "info_provided":
@@ -256,7 +339,7 @@ export default function CallsPage() {
       case "thinking":
         return (
           <Badge variant="warning">
-            {outcome === "message" ? "Message" : outcome === "lead_captured" ? "Lead" : "Thinking"}
+            {outcome === "callback" ? "Callback" : outcome === "message" ? "Message" : outcome === "lead_captured" ? "Lead" : "Thinking"}
           </Badge>
         );
       case "no_book":
@@ -314,6 +397,122 @@ export default function CallsPage() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* Pending Callbacks Section */}
+      {activeCallbacks.length > 0 && (
+        <Card className={pendingCallbacks.length > 0
+          ? "border-warning/30 bg-warning/[0.04]"
+          : ""
+        }>
+          <button
+            className="w-full flex items-center justify-between px-4 py-3 text-left"
+            onClick={() => setCallbacksExpanded(!callbacksExpanded)}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`h-9 w-9 rounded-lg flex items-center justify-center shrink-0 ${
+                pendingCallbacks.length > 0
+                  ? "bg-warning/15 border border-warning/20"
+                  : "bg-muted"
+              }`}>
+                <PhoneIncoming className={`h-4 w-4 ${pendingCallbacks.length > 0 ? "text-warning" : "text-muted-foreground"}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">
+                  Callback Requests
+                  {pendingCallbacks.length > 0 && (
+                    <Badge variant="warning" className="ml-2 text-xs">
+                      {pendingCallbacks.length} pending
+                    </Badge>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Callers who requested a callback from your team
+                </p>
+              </div>
+            </div>
+            {callbacksExpanded
+              ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            }
+          </button>
+          {callbacksExpanded && (
+            <CardContent className="pt-0 pb-4">
+              <div className="space-y-2">
+                {activeCallbacks.map((cb) => (
+                  <div
+                    key={cb.id}
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg border ${
+                      cb.urgency === "urgent" || cb.urgency === "high"
+                        ? "border-destructive/25 bg-destructive/[0.04]"
+                        : "border-border bg-background"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="mt-0.5">
+                        {cb.status === "pending" ? (
+                          <Phone className={`h-4 w-4 ${cb.urgency === "urgent" || cb.urgency === "high" ? "text-destructive" : "text-warning"}`} />
+                        ) : cb.status === "called_back" ? (
+                          <PhoneForwarded className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm">{cb.customer_name || "Unknown"}</span>
+                          <span className="text-xs text-muted-foreground font-mono">{formatPhone(cb.customer_phone)}</span>
+                          {(cb.urgency === "urgent" || cb.urgency === "high") && (
+                            <Badge variant="destructive" className="text-[10px] h-4 px-1.5">Urgent</Badge>
+                          )}
+                          {cb.contact_attempts > 0 && (
+                            <Badge variant="outline" className="text-[10px] h-4 px-1.5">{cb.contact_attempts} attempt{cb.contact_attempts !== 1 ? "s" : ""}</Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {cb.reason || cb.message || "No reason provided"}
+                          {cb.best_time && ` · Best time: ${cb.best_time}`}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                          {getTimeSince(cb.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 sm:ml-4">
+                      {cb.customer_phone && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          asChild
+                        >
+                          <a href={`tel:${cb.customer_phone}`}>
+                            <Phone className="h-3 w-3 mr-1" />
+                            Call
+                          </a>
+                        </Button>
+                      )}
+                      <Select
+                        value={cb.status}
+                        onValueChange={(status) => updateCallbackMutation.mutate({ id: cb.id, status })}
+                      >
+                        <SelectTrigger className="h-8 w-[130px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="called_back">Called Back</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
       )}
 
       {/* Filter tabs + search */}

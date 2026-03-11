@@ -15,6 +15,7 @@ interface DispatchHandoffRequest {
   dispatch_id?: string;
   tenant_id?: string;
   tenantId?: string;
+  event?: "created" | "assigned" | "en_route" | "on_site" | "completed" | "cancelled";
   test?: boolean;
   method?: string;
   webhook_url?: string;
@@ -78,8 +79,9 @@ serve(async (req) => {
 
   try {
     const body: DispatchHandoffRequest = await req.json();
-    const { dispatch_id, test, method, webhook_url, webhook_secret, notify_email, notify_phone, urgent_sms_phone } = body;
+    const { dispatch_id, event: reqEvent, test, method, webhook_url, webhook_secret, notify_email, notify_phone, urgent_sms_phone } = body;
     const requestedTenantId = body.tenant_id ?? body.tenantId ?? null;
+    const isStatusUpdate = reqEvent && reqEvent !== "created";
 
     // SECURITY: Validate access (user JWT or internal secret)
     const { tenantId: tenant_id, isInternalCall } = await validateAccess(req, requestedTenantId);
@@ -502,6 +504,39 @@ serve(async (req) => {
       console.log(`Triggered workflow for ${eventType}:`, dispatch_id);
     } catch (e) {
       console.error("Failed to trigger workflow:", e);
+    }
+
+    // ── STATUS CHANGE CUSTOMER SMS ──────────────────────────────────
+    if (isStatusUpdate && customerPhone) {
+      try {
+        const bName = tenantData?.name || "us";
+        const jType = dispatch.job_type || "service";
+        const statusMessages: Record<string, string> = {
+          assigned: bName + ": A driver has been assigned to your " + jType + " request and will be heading your way shortly.",
+          en_route: bName + ": Your driver is on the way! They should be arriving soon for your " + jType + " request.",
+          on_site: bName + ": Your driver has arrived at your location for your " + jType + " request.",
+          completed: bName + ": Your " + jType + " has been completed. Thank you for choosing " + bName + "!",
+          cancelled: bName + ": Your " + jType + " request has been cancelled. If this was a mistake, please call us back.",
+        };
+        const statusMsg = statusMessages[reqEvent!];
+        if (statusMsg) {
+          const statusSmsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: customerPhone,
+            body: statusMsg + " Reply STOP to opt out.",
+            entityType: "dispatch",
+            entityId: dispatch_id,
+          });
+          if (statusSmsResult.success) {
+            results.customer_status_sms = { success: true };
+          } else if (!statusSmsResult.skipped) {
+            results.customer_status_sms = { success: false, error: statusSmsResult.error };
+          }
+        }
+      } catch (e) {
+        console.error("[dispatch-handoff] Status update SMS error:", e);
+        results.customer_status_sms = { success: false, error: e instanceof Error ? e.message : "Unknown" };
+      }
     }
 
     return jsonResponse({ success: true, results });

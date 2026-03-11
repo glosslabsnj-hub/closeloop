@@ -67,6 +67,13 @@ export default function MedicalIntakePage() {
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      // Trigger patient notification on status change
+      if (tenant?.id) {
+        await supabase.functions.invoke("universal-delivery", {
+          body: { tenant_id: tenant.id, entity_type: "intake", entity_id: id, event: status },
+        }).catch(() => {});
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["medical-intakes"] });

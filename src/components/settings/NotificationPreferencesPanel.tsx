@@ -1,12 +1,18 @@
+import { useState, useEffect, useCallback } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { SettingsCard } from "@/components/settings/SettingsSection";
 import {
   useNotificationPreferences,
   type NotificationEvent,
 } from "@/hooks/useNotificationPreferences";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const BASE_CATEGORY_LABELS: Record<string, string> = {
   calls: "Calls & Leads",
@@ -60,6 +66,126 @@ function resolveEventLabel(event: NotificationEvent, apptLabel: string): { label
   }
 }
 
+function NotificationContactSection() {
+  const { tenant } = useAuth();
+  const { toast } = useToast();
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!tenant?.id || loaded) return;
+    (async () => {
+      const { data } = await supabase
+        .from("universal_delivery_settings")
+        .select("notify_phone, notify_email")
+        .eq("tenant_id", tenant.id)
+        .maybeSingle();
+      if (data) {
+        setPhone(data.notify_phone || "");
+        setEmail(data.notify_email || "");
+      }
+      setLoaded(true);
+    })();
+  }, [tenant?.id, loaded]);
+
+  const save = useCallback(async () => {
+    if (!tenant?.id) return;
+    setSaving(true);
+    try {
+      const digits = phone.replace(/\D/g, "");
+      const normalizedPhone = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : phone;
+
+      // Update universal delivery settings
+      await supabase.from("universal_delivery_settings").upsert({
+        tenant_id: tenant.id,
+        notify_phone: normalizedPhone || null,
+        notify_email: email || null,
+        sms_enabled: !!normalizedPhone,
+        email_enabled: !!email,
+      }, { onConflict: "tenant_id" });
+
+      // Update ALL delivery settings tables so every mode gets the right contacts
+      // Most tables use notify_phone/notify_email columns
+      for (const table of [
+        "booking_delivery_settings",
+        "dispatch_delivery_settings",
+        "order_delivery_settings",
+      ] as const) {
+        await supabase.from(table).upsert({
+          tenant_id: tenant.id,
+          notify_phone: normalizedPhone || null,
+          notify_email: email || null,
+        }, { onConflict: "tenant_id" });
+      }
+
+      // callback_delivery_settings uses different column names
+      await supabase.from("callback_delivery_settings").upsert({
+        tenant_id: tenant.id,
+        sms_recipient_phone: normalizedPhone || null,
+        email_recipient: email || null,
+      }, { onConflict: "tenant_id" });
+
+      // medical_intake_delivery_settings also uses different column names
+      await supabase.from("medical_intake_delivery_settings").upsert({
+        tenant_id: tenant.id,
+        sms_recipient_phone: normalizedPhone || null,
+        email_recipient: email || null,
+        sms_enabled: !!normalizedPhone,
+        email_enabled: !!email,
+      }, { onConflict: "tenant_id" });
+
+      // Update owner forward number for call transfers
+      if (normalizedPhone) {
+        await supabase.from("assistant_settings").update({
+          owner_forward_number: normalizedPhone,
+        }).eq("tenant_id", tenant.id);
+      }
+
+      toast({ title: "Notification contacts saved" });
+    } catch {
+      toast({ title: "Failed to save", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  }, [tenant?.id, phone, email, toast]);
+
+  if (!loaded) return <Skeleton className="h-24 w-full" />;
+
+  return (
+    <SettingsCard
+      title="Notification Contacts"
+      description="Where you receive alerts for calls, callbacks, and transfers."
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Phone number</label>
+          <p className="text-xs text-muted-foreground mb-1.5">Receives SMS alerts and call transfers</p>
+          <Input
+            placeholder="(555) 123-4567"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">Email address</label>
+          <p className="text-xs text-muted-foreground mb-1.5">Receives email notifications for callbacks and leads</p>
+          <Input
+            type="email"
+            placeholder="you@yourbusiness.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <Button onClick={save} disabled={saving} size="sm">
+          {saving ? "Saving..." : "Save contacts"}
+        </Button>
+      </div>
+    </SettingsCard>
+  );
+}
+
 export function NotificationPreferencesPanel() {
   const { visibleEvents, isLoading, getPreference, togglePreference } = useNotificationPreferences();
   const { terminology } = useIndustryContext();
@@ -93,6 +219,8 @@ export function NotificationPreferencesPanel() {
   const grouped = groupByCategory(visibleEvents);
 
   return (
+    <>
+    <NotificationContactSection />
     <SettingsCard
       title="Notification Preferences"
       description="Choose which events trigger alerts to you."
@@ -131,14 +259,8 @@ export function NotificationPreferencesPanel() {
           </div>
         ))}
 
-        {/* SMS/Push coming soon note */}
-        <div className="border-t pt-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline" className="text-xs">Coming soon</Badge>
-            SMS and push notification channels
-          </div>
-        </div>
       </div>
     </SettingsCard>
+    </>
   );
 }

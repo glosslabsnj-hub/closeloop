@@ -269,6 +269,13 @@ export default function KitchenDisplayPage() {
       .from("food_orders")
       .update({ status: newStatus as any })
       .eq("id", order.id);
+
+    // Trigger order-handoff for customer status SMS
+    if (newStatus && tenant?.id) {
+      supabase.functions.invoke("order-handoff", {
+        body: { order_id: order.id, tenant_id: tenant.id, event: newStatus },
+      }).catch(() => {});
+    }
   };
 
   const handleRecall = async (order: KitchenOrder) => {
