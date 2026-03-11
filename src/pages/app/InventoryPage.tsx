@@ -37,6 +37,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useInventory, InventoryItem } from "@/hooks/useInventory";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 function formatCurrency(cents: number | null): string {
   if (cents === null) return "—";
@@ -153,11 +154,18 @@ export default function InventoryPage() {
       .reduce((sum, s) => sum + s.quantity, 0);
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Parts Inventory Not Available"
+        description="The Parts Inventory Not Available page requires Parts Inventory to be enabled for your account."
+        moduleName="Parts Inventory"
+      />
     );
   }
 

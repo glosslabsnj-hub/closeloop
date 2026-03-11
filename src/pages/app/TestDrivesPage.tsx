@@ -28,6 +28,7 @@ import { Car, Search, Loader2, Calendar, User, Clock, Plus } from "lucide-react"
 import { useTestDrives } from "@/hooks/useTestDrives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
@@ -73,11 +74,23 @@ export default function TestDrivesPage() {
     });
   }, [testDrives, statusFilter, searchQuery]);
 
-  if (moduleLoading || !isAllowed || isLoading) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Test Drives Not Available"
+        description="The Test Drives Not Available page requires Test Drives to be enabled for your account."
+        moduleName="Test Drives"
+      />
+    );
+  }
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
     );
   }
 

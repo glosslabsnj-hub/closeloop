@@ -37,6 +37,7 @@ import {
 import { useLoyalty, LoyaltyBalance } from "@/hooks/useLoyalty";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 function formatPoints(points: number): string {
   return points.toLocaleString();
@@ -143,11 +144,18 @@ export default function LoyaltyPage() {
     setRedeemOpen(true);
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Loyalty Program Not Available"
+        description="The Loyalty Program Not Available page requires Loyalty Program to be enabled for your account."
+        moduleName="Loyalty Program"
+      />
     );
   }
 

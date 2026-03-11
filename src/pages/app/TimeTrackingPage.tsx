@@ -45,6 +45,7 @@ import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useTimeTracking, TimeEntry } from "@/hooks/useTimeTracking";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 const entryTypeConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   work: { label: "Work", color: "bg-green-100 text-green-700", icon: Briefcase },
@@ -210,11 +211,18 @@ export default function TimeTrackingPage() {
     URL.revokeObjectURL(url);
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+      <div className="p-6 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+    );
+  }
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Time Tracking Not Available"
+        description="The Time Tracking Not Available page requires Time Tracking to be enabled for your account."
+        moduleName="Time Tracking"
+      />
     );
   }
 
