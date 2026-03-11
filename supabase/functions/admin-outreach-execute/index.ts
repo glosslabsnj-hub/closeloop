@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
     // Resolve tokens with real lead data
     const fromName = settings?.outreach_from_name || "Flux Receptionist";
-    const fromEmail = settings?.outreach_from_email || "jack@getfluxdata.com";
+    const fromEmail = settings?.outreach_from_email || "jack@send.getfluxdata.com";
     const demoLink = settings?.demo_link || "https://getfluxdata.com";
     const trialLink = settings?.trial_link || "https://getfluxdata.com/signup";
     let message = resolveTokens(step.message_template || "", enrollment, fromName, reasonSnippet, demoLink, trialLink);

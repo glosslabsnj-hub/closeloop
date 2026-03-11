@@ -3467,6 +3467,19 @@ async function persistCallback(
 ): Promise<{ id: string } | null> {
   console.log(`[persistCallback] Creating callback request for ${customerName || callerPhoneE164}`);
 
+  // Server-side urgency detection from callback message/reason
+  const msgLower = (payload.callback.message || "").toLowerCase();
+  const reasonLower = (payload.callback.reason || "").toLowerCase();
+  const combined = `${msgLower} ${reasonLower}`;
+  const URGENT_KEYWORDS = ["emergency", "urgent", "asap", "right away", "immediately", "flooding", "fire", "gas leak", "no heat", "no ac", "no water", "broken pipe", "sewage", "overflow"];
+  const HIGH_KEYWORDS = ["on-site", "onsite", "outside", "at your", "drove here", "in the area", "nearby", "waiting", "same day", "today", "complex", "high value", "expensive"];
+  let urgency = "normal";
+  if (URGENT_KEYWORDS.some(kw => combined.includes(kw))) {
+    urgency = "urgent";
+  } else if (HIGH_KEYWORDS.some(kw => combined.includes(kw))) {
+    urgency = "high";
+  }
+
   const { data: callback, error } = await supabase
     .from("callback_requests")
     .insert({
@@ -3477,6 +3490,8 @@ async function persistCallback(
       customer_phone: callerPhoneE164 || null,
       best_time: payload.callback.best_time,
       message: payload.callback.message,
+      reason: payload.callback.reason || payload.callback.message,
+      urgency: urgency,
       status: "pending",
     })
     .select("id")

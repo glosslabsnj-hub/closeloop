@@ -209,3 +209,5 @@ verify_jwt = false
 
 [functions.cron-review-followup]
 verify_jwt = false
+[functions.elevenlabs-create-medical-intake]
+verify_jwt = false

@@ -179,7 +179,7 @@ serve(async (req) => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: `${tenant.business_name || "Flux Receptionist"} <reviews@getfluxdata.com>`,
+              from: `${tenant.business_name || "Flux Receptionist"} <reviews@send.getfluxdata.com>`,
               to: customer.email,
               subject: emailSubject,
               html: emailHtml,

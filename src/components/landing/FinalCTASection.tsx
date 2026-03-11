@@ -58,8 +58,8 @@ export function FinalCTASection() {
           className="text-sm text-muted-foreground/60 mb-14"
         >
           Or call us:{" "}
-          <a href="tel:+18005551234" className="font-semibold text-primary hover:text-primary/80 transition-colors">
-            (800) 555-1234
+          <a href="tel:+18553297357" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+            (855) 329-7357
           </a>
         </motion.p>
 

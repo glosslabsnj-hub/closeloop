@@ -395,23 +395,25 @@ const onboardingSubmitSource = readFileSync(
   "utf-8"
 );
 
-describe("useOnboardingSubmit: callback_delivery_settings for sales mode — functional/booking_sms_confirmation", () => {
-  it("creates callback_delivery_settings for sales mode (test-drive notification delivery)", () => {
-    expect(onboardingSubmitSource).toContain("callback_delivery_settings");
+describe("useOnboardingSubmit: delivery settings for sales mode — functional/booking_sms_confirmation", () => {
+  // test-drive-handoff and sales-lead-handoff both prefer booking_delivery_settings.
+  // Onboarding creates booking_delivery_settings for sales mode (step: "sales delivery settings").
+  it("creates booking_delivery_settings for sales mode (test-drive notification delivery)", () => {
+    expect(onboardingSubmitSource).toContain("booking_delivery_settings");
   });
 
-  it("creates callback_delivery_settings when businessMode is 'sales'", () => {
+  it("creates delivery settings when businessMode is 'sales'", () => {
     expect(onboardingSubmitSource).toContain("businessMode === \"sales\"");
-    // The condition gate for callback settings
-    const callbackSettingsIdx = onboardingSubmitSource.indexOf("callback delivery settings");
+    // The condition gate for sales delivery settings
+    const salesDeliveryIdx = onboardingSubmitSource.indexOf("sales delivery settings");
     const salesConditionIdx = onboardingSubmitSource.lastIndexOf(
       "businessMode === \"sales\"",
-      callbackSettingsIdx + 500
+      salesDeliveryIdx + 500
     );
     expect(salesConditionIdx).toBeGreaterThan(-1);
   });
 
-  it("creates callback_delivery_settings when tenant has sales_leads module", () => {
+  it("creates delivery settings when tenant has sales_leads module", () => {
     // The condition: businessMode === "sales" || enabledModules.includes("sales_leads")
     const callbackGuardIdx = onboardingSubmitSource.indexOf(
       'businessMode === "sales" || enabledModules.includes("sales_leads")'
@@ -419,17 +421,17 @@ describe("useOnboardingSubmit: callback_delivery_settings for sales mode — fun
     expect(callbackGuardIdx).toBeGreaterThan(-1);
   });
 
-  it("callback_delivery_settings sets enabled=true by default", () => {
-    const callbackRunStepIdx = onboardingSubmitSource.indexOf("callback delivery settings");
-    const callbackBlock = onboardingSubmitSource.slice(callbackRunStepIdx, callbackRunStepIdx + 600);
-    expect(callbackBlock).toContain("enabled: true");
+  it("sales delivery settings sets enabled=true by default", () => {
+    const salesDeliveryIdx = onboardingSubmitSource.indexOf("sales delivery settings");
+    const salesBlock = onboardingSubmitSource.slice(salesDeliveryIdx, salesDeliveryIdx + 600);
+    expect(salesBlock).toContain("enabled: true");
   });
 
-  it("callback_delivery_settings uses upsert (idempotent — safe to re-run onboarding)", () => {
-    const callbackRunStepIdx = onboardingSubmitSource.indexOf("callback delivery settings");
-    const callbackBlock = onboardingSubmitSource.slice(callbackRunStepIdx, callbackRunStepIdx + 600);
-    expect(callbackBlock).toContain("upsert");
-    expect(callbackBlock).toContain("onConflict");
+  it("sales delivery settings uses upsert (idempotent — safe to re-run onboarding)", () => {
+    const salesDeliveryIdx = onboardingSubmitSource.indexOf("sales delivery settings");
+    const salesBlock = onboardingSubmitSource.slice(salesDeliveryIdx, salesDeliveryIdx + 600);
+    expect(salesBlock).toContain("upsert");
+    expect(salesBlock).toContain("onConflict");
   });
 
   it("non-regression: booking_delivery_settings still created for all modes", () => {

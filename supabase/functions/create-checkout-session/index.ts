@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
     }
 
     // Determine origin for redirect URLs
-    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || "https://app.voxly.ai";
+    const origin = req.headers.get("origin") || req.headers.get("referer")?.replace(/\/[^/]*$/, "") || "https://app.getfluxdata.com";
 
     // Create Checkout Session with trial
     // IMPORTANT: metadata on BOTH session AND subscription_data

@@ -1475,6 +1475,8 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
       if (rules.transferOnPriceObjection) triggers.push("caller objects to pricing");
       if (rules.transferOnComplexQuestion) triggers.push("you cannot answer the question");
       if (rules.transferOnComplaint) triggers.push("caller has a complaint");
+      if (rules.transferOnSiteVisit) triggers.push("caller is on-site or nearby");
+      if (rules.transferOnEmergency) triggers.push("emergency or urgent situation");
       if (triggers.length === 0) return "Do not transfer calls unless absolutely necessary.";
       const fallbackMap: Record<string, string> = {
         callback: "promise a callback",
@@ -1488,6 +1490,70 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     category: "ai_settings",
     includeInCompactJson: true,
     speechReady: true,
+  },
+  {
+    key: "escalation_transferOnRequest",
+    description: "Whether AI should transfer when caller explicitly asks to speak to someone",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnRequest",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnSiteVisit",
+    description: "Whether AI should proactively transfer when caller is on-site or nearby",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnSiteVisit",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnEmergency",
+    description: "Whether AI should proactively transfer for emergency/urgent situations",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnEmergency",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnAnger",
+    description: "Whether AI should proactively transfer when caller is upset or frustrated",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnAnger",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnComplexQuestion",
+    description: "Whether AI should transfer for questions it cannot answer",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnComplexQuestion",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnComplaint",
+    description: "Whether AI should transfer when caller has a complaint",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnComplaint",
+    defaultValue: true,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_transferOnPriceObjection",
+    description: "Whether AI should transfer when caller pushes back on pricing",
+    type: "boolean",
+    source: "ai_settings.escalation_rules.transferOnPriceObjection",
+    defaultValue: false,
+    category: "ai_settings",
+  },
+  {
+    key: "escalation_fallbackAction",
+    description: "What to do when transfer is unavailable: callback, voicemail, or text_owner",
+    type: "string",
+    source: "ai_settings.escalation_rules.fallbackAction",
+    defaultValue: "callback",
+    category: "ai_settings",
   },
 
   {

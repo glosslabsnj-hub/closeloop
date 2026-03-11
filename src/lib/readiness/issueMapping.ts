@@ -295,6 +295,34 @@ export const READINESS_ISSUE_MAP: Record<string, Omit<ReadinessIssue, "code">> =
   },
 
   // ============================================================================
+  // NOTIFICATION ISSUES
+  // ============================================================================
+  missing_notification_phone: {
+    title: "Add your notification phone",
+    reason: "Without a phone number, you won't receive SMS alerts for calls, callbacks, or emergencies",
+    fixLink: "/app/settings?tab=notifications",
+    fixType: "settings",
+    fixLabel: "Add Phone",
+    priority: "p0",
+  },
+  missing_notification_email: {
+    title: "Add your notification email",
+    reason: "Without an email, you won't receive booking confirmations, callback details, or daily summaries",
+    fixLink: "/app/settings?tab=notifications",
+    fixType: "settings",
+    fixLabel: "Add Email",
+    priority: "p1",
+  },
+  missing_transfer_number: {
+    title: "Set up call transfers",
+    reason: "Without a transfer number, your AI can't connect callers to you when needed",
+    fixLink: "/app/settings?tab=notifications",
+    fixType: "settings",
+    fixLabel: "Add Number",
+    priority: "p0",
+  },
+
+  // ============================================================================
   // PLAN-GATED ISSUES (only these should show plan upgrade)
   // ============================================================================
   voice_feature_locked: {

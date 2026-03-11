@@ -104,12 +104,14 @@ export function serviceClient() {
  * Throws if secret is missing or invalid.
  */
 export function requireInternalSecret(req: Request): void {
-  const CLOSELOOP_INTERNAL_SECRET = Deno.env.get("CLOSELOOP_INTERNAL_SECRET");
+  const CLOSELOOP_INTERNAL_SECRET = Deno.env.get("CLOSELOOP_INTERNAL_SECRET")?.trim();
+  const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")?.trim();
   if (!CLOSELOOP_INTERNAL_SECRET) {
     throw new Error("CLOSELOOP_INTERNAL_SECRET not configured");
   }
-  const provided = req.headers.get("x-closeloop-secret");
-  if (!provided || !timingSafeEqual(provided, CLOSELOOP_INTERNAL_SECRET)) {
+  const provided = req.headers.get("x-closeloop-secret")?.trim();
+  // Accept either the internal secret OR the service role key (for internal function-to-function calls)
+  if (!provided || (!timingSafeEqual(provided, CLOSELOOP_INTERNAL_SECRET) && !timingSafeEqual(provided, SERVICE_ROLE_KEY ?? ""))) {
     throw new Error("Forbidden: invalid internal secret");
   }
 }

@@ -11,6 +11,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const VERSION = "1.2.0";
 
@@ -196,7 +197,7 @@ serve(async (req: Request) => {
           message: `[PHONE MISSING] ${reason} — Check call transcript for caller details.`,
           reason: reason,
           urgency: urgency,
-          status: "pending",
+          status: "new",
         })
         .select("id")
         .single();
@@ -306,7 +307,7 @@ serve(async (req: Request) => {
             message: reason,
             reason: reason,
             urgency: urgency,
-            status: "pending",
+            status: "new",
           });
         if (cbError) {
           console.warn("[create-callback] callback_requests insert failed (non-fatal):", cbError.message);
@@ -358,6 +359,41 @@ serve(async (req: Request) => {
       } catch (notifyErr) {
         console.error("[create-callback] Notification error:", notifyErr);
         // Non-fatal
+      }
+    }
+
+    // Send customer confirmation SMS (if we have their phone)
+    if (phoneE164 && customerId) {
+      try {
+        const { data: tenantData } = await supabase
+          .from("tenants")
+          .select("name")
+          .eq("id", tenantId)
+          .single();
+
+        const businessName = tenantData?.name || "us";
+        const timePhrase = preferredTime?.toLowerCase() === "asap" || preferredTime?.toLowerCase() === "now"
+          ? "as soon as possible"
+          : preferredTime || "shortly";
+
+        const customerSmsBody = `Thanks for calling ${businessName}! We've noted your request and someone will get back to you ${timePhrase}. Reply STOP to opt out.`;
+
+        const smsResult = await sendTenantSms({
+          tenantId,
+          to: phoneE164,
+          body: customerSmsBody,
+          entityType: "callback",
+          entityId: opportunity?.id || phonelessCallbackId || undefined,
+        });
+
+        if (smsResult.success) {
+          console.log(`[create-callback] Customer confirmation SMS sent to ${phoneE164}`);
+        } else if (!smsResult.skipped) {
+          console.error(`[create-callback] Customer SMS failed: ${smsResult.error}`);
+        }
+      } catch (smsErr) {
+        console.error("[create-callback] Customer SMS error:", smsErr);
+        // Non-fatal — callback was still created
       }
     }
 

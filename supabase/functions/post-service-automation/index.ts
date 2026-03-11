@@ -27,6 +27,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 interface PostServiceRequest {
   booking_id: string;
   tenant_id: string;
+  event?: "completed" | "cancelled" | "no_show"; // defaults to "completed" if omitted
   completed_by?: string;        // "staff" | "system" | "integration"
   completion_notes?: string;
   actual_duration_minutes?: number;
@@ -36,13 +37,24 @@ interface PostServiceRequest {
   }>;
 }
 
-// Mode-specific post-service templates
+// Mode-specific post-service completion templates
 const MODE_THANKYOU_TEMPLATES: Record<string, string> = {
   service: "Hi {{customer_name}}, your {{service_name}} with {{business_name}} is complete! {{invoice_line}}We appreciate your business. {{review_line}}Reply STOP to opt out.",
   dispatch: "Hi {{customer_name}}, your service with {{business_name}} is complete. {{invoice_line}}Thanks for choosing us! Reply STOP to opt out.",
   food: "Thanks for your order, {{customer_name}}! We hope you enjoyed everything from {{business_name}}. {{review_line}}Reply STOP to opt out.",
   medical: "Hi {{customer_name}}, thank you for visiting {{business_name}} today. {{invoice_line}}We hope you had a great experience. Reply STOP to opt out.",
+  sales: "Hi {{customer_name}}, thank you for coming in to {{business_name}}! We appreciate your visit. {{review_line}}Feel free to reach out any time. Reply STOP to opt out.",
   general: "Hi {{customer_name}}, your {{service_name}} with {{business_name}} is complete! {{invoice_line}}Thank you for your business. {{review_line}}Reply STOP to opt out.",
+};
+
+// Mode-specific cancellation templates
+const MODE_CANCEL_TEMPLATES: Record<string, string> = {
+  service: "Hi {{customer_name}}, your {{service_name}} appointment with {{business_name}} has been cancelled. To reschedule, give us a call. Reply STOP to opt out.",
+  dispatch: "Hi {{customer_name}}, your service request with {{business_name}} has been cancelled. Call us if you need help. Reply STOP to opt out.",
+  food: "Hi {{customer_name}}, your order with {{business_name}} has been cancelled. Reply STOP to opt out.",
+  medical: "Hi {{customer_name}}, your appointment with {{business_name}} has been cancelled. Please call us to reschedule. Reply STOP to opt out.",
+  sales: "Hi {{customer_name}}, your appointment with {{business_name}} has been cancelled. We'd love to reschedule — give us a call! Reply STOP to opt out.",
+  general: "Hi {{customer_name}}, your appointment with {{business_name}} has been cancelled. Reply STOP to opt out.",
 };
 
 // Which modes auto-generate invoices by default
@@ -51,6 +63,7 @@ const MODE_AUTO_INVOICE_DEFAULTS: Record<string, boolean> = {
   dispatch: true,   // Towing invoices after delivery
   food: false,      // Usually pre-paid at POS
   medical: false,   // Complex billing, handled externally
+  sales: false,     // Dealerships invoice separately via DMS
   general: true,    // Default to invoicing
 };
 
@@ -60,6 +73,7 @@ const MODE_REVIEW_REQUEST_DEFAULTS: Record<string, boolean> = {
   dispatch: false,  // Roadside assist - not ideal for reviews
   food: true,
   medical: true,
+  sales: true,      // Dealership reviews are critical for reputation
   general: true,
 };
 
@@ -73,10 +87,52 @@ serve(async (req) => {
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const body: PostServiceRequest = await req.json();
-    const { booking_id, tenant_id, completed_by, completion_notes, actual_duration_minutes, additional_charges } = body;
+    const { booking_id, tenant_id, event: eventType = "completed", completed_by, completion_notes, actual_duration_minutes, additional_charges } = body;
 
     if (!booking_id || !tenant_id) {
       return errorResponse("Missing required fields: booking_id, tenant_id");
+    }
+
+    // Handle cancellation event — minimal processing, different SMS, skip invoice/review
+    if (eventType === "cancelled" || eventType === "no_show") {
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("*, lead:leads(*), service:services(*)")
+        .eq("id", booking_id)
+        .eq("tenant_id", tenant_id)
+        .single();
+
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("name, business_mode")
+        .eq("id", tenant_id)
+        .single();
+
+      const mode = tenant?.business_mode || "general";
+      const newStatus = eventType === "no_show" ? "no_show" : "canceled";
+
+      // Update booking status
+      await supabase
+        .from("bookings")
+        .update({ status: newStatus })
+        .eq("id", booking_id);
+
+      // Send cancellation SMS if customer has phone
+      const customerPhone = booking?.lead?.phone;
+      let smsSent = false;
+      if (customerPhone) {
+        const template = MODE_CANCEL_TEMPLATES[mode] || MODE_CANCEL_TEMPLATES.general;
+        const message = resolveTemplate(template, {
+          customer_name: booking?.lead?.full_name || "there",
+          service_name: booking?.service?.name || "appointment",
+          business_name: tenant?.name || "us",
+        });
+        const smsResult = await sendTenantSms({ tenantId: tenant_id, to: customerPhone, body: message });
+        smsSent = smsResult.success;
+      }
+
+      console.log(`[post-service] ${eventType} for booking ${booking_id} (${mode} mode)`);
+      return jsonResponse({ success: true, event: eventType, status: newStatus, cancellation_sms_sent: smsSent });
     }
 
     const results: Record<string, any> = {

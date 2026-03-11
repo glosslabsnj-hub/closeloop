@@ -368,6 +368,8 @@ export interface BusinessContext {
       transferOnPriceObjection: boolean;
       transferOnComplexQuestion: boolean;
       transferOnComplaint: boolean;
+      transferOnSiteVisit: boolean;
+      transferOnEmergency: boolean;
       fallbackAction: string;
     };
   };
@@ -2916,6 +2918,8 @@ export async function buildBusinessContext(
         transferOnPriceObjection: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnPriceObjection ?? false,
         transferOnComplexQuestion: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnComplexQuestion ?? true,
         transferOnComplaint: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnComplaint ?? true,
+        transferOnSiteVisit: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnSiteVisit ?? true,
+        transferOnEmergency: (assistantSettings?.settings_json as any)?.escalation_rules?.transferOnEmergency ?? true,
         fallbackAction: (assistantSettings?.settings_json as any)?.escalation_rules?.fallbackAction || "callback",
       },
     },

@@ -187,6 +187,46 @@ serve(async (req) => {
       throw new Error(`Booking not found or access denied`);
     }
 
+    // Ensure lead has a linked customer record (AI-created leads may skip customer creation)
+    if (booking.lead && !booking.lead.customer_id && booking.lead.phone) {
+      try {
+        const phoneE164 = booking.lead.phone.startsWith("+") ? booking.lead.phone : `+1${booking.lead.phone.replace(/\D/g, "")}`;
+        // Try to find existing customer by phone
+        const { data: existingCustomer } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("tenant_id", tenantId)
+          .eq("phone_e164", phoneE164)
+          .maybeSingle();
+
+        const customerId = existingCustomer?.id ?? await (async () => {
+          const { data: newCustomer } = await supabase
+            .from("customers")
+            .insert({
+              tenant_id: tenantId,
+              full_name: booking.lead.full_name || "Customer",
+              phone_e164: phoneE164,
+              phone_raw: booking.lead.phone,
+              email: booking.lead.email || null,
+              source: "ai_call",
+            })
+            .select("id")
+            .single();
+          return newCustomer?.id ?? null;
+        })();
+
+        if (customerId) {
+          await supabase
+            .from("leads")
+            .update({ customer_id: customerId })
+            .eq("id", booking.lead.id);
+          booking.lead.customer_id = customerId;
+        }
+      } catch (e) {
+        console.error("[booking-handoff] Failed to create customer for lead:", e);
+      }
+    }
+
     // Fetch delivery settings scoped to tenant (for owner notifications only)
     const { data: settings } = await supabase
       .from("booking_delivery_settings")

@@ -291,6 +291,27 @@ async function updateSupabase(
 }
 
 
+// Fire-and-forget Telegram alert for critical failures (phone fallback, system errors)
+async function sendTelegramAlert(message: string): Promise<void> {
+  try {
+    const botToken = Deno.env.get("LENARD_TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+    const chatId = Deno.env.get("LENARD_TELEGRAM_CHAT_ID") || "6841391368";
+    await fetchWithTimeout(
+      `https://api.telegram.org/bot${botToken}/sendMessage`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: `🚨 [PHONE FALLBACK] ${message}`,
+          parse_mode: "HTML",
+        }),
+      },
+      3000
+    );
+  } catch { /* alerting must never block call routing */ }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -324,10 +345,7 @@ Deno.serve(async (req) => {
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
   }
 
-  if (!ELEVENLABS_API_KEY) {
-    console.error("[twilio-inbound] Missing ElevenLabs API key");
-    return twimlResponse(hangupTwiml("Our voice assistant is currently unavailable. Please try again later."));
-  }
+  // NOTE: ElevenLabs API key check moved AFTER tenant/settings load so we can use handleOffBehavior fallback
 
   // Hard deadline to avoid Twilio timeouts ("application error")
   const startedMs = Date.now();
@@ -639,6 +657,21 @@ Deno.serve(async (req) => {
       }
     };
 
+    // Check ElevenLabs API key AFTER tenant load so we can use handleOffBehavior for graceful fallback
+    if (!ELEVENLABS_API_KEY) {
+      console.error("[twilio-inbound] Missing ElevenLabs API key — routing to off-behavior");
+      void sendTelegramAlert(`ElevenLabs API key MISSING. ${businessName} (${tenantId}) caller ${callerPhoneE164} routed to ${offBehavior}.`);
+      void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        tenant_id: tenantId,
+        twilio_call_sid: callSidSafe,
+        to_number: toPhoneE164,
+        from_number: callerPhoneE164,
+        stage: "elevenlabs_fallback",
+        error_message: "ELEVENLABS_API_KEY missing",
+      });
+      return handleOffBehavior("elevenlabs_api_key_missing");
+    }
+
     // 1. If voice AI is fully disabled → off-behavior
     if (settings.voice_ai_enabled === false || voiceMode === "off") {
       console.log(`[twilio-inbound] Voice AI disabled for tenant ${tenantId}`);
@@ -839,23 +872,48 @@ Deno.serve(async (req) => {
       },
     };
 
-    const registerResponse = await fetchWithTimeout(
-      "https://api.elevenlabs.io/v1/convai/twilio/register-call",
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
+    let registerResponse: Response;
+    try {
+      registerResponse = await fetchWithTimeout(
+        "https://api.elevenlabs.io/v1/convai/twilio/register-call",
+        {
+          method: "POST",
+          headers: {
+            "xi-api-key": ELEVENLABS_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(registerPayload),
         },
-        body: JSON.stringify(registerPayload),
-      },
-      Math.min(7000, timeLeft())
-    );
+        Math.min(7000, timeLeft())
+      );
 
-    if (!registerResponse.ok) {
-      const errorText = await registerResponse.text();
-      console.error(`[twilio-inbound] ElevenLabs error [${registerResponse.status}]:`, errorText);
-      return twimlResponse(hangupTwiml("Our voice assistant is temporarily unavailable. Please try again later."));
+      if (!registerResponse.ok) {
+        const errorText = await registerResponse.text();
+        console.error(`[twilio-inbound] ElevenLabs error [${registerResponse.status}]:`, errorText);
+        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          tenant_id: tenantId,
+          twilio_call_sid: callSidSafe,
+          to_number: toPhoneE164,
+          from_number: callerPhoneE164,
+          stage: "elevenlabs_fallback",
+          http_status: registerResponse.status,
+          error_message: errorText.slice(0, 500),
+        });
+        void sendTelegramAlert(`ElevenLabs DOWN for ${businessName} (HTTP ${registerResponse.status}). Caller ${callerPhoneE164} routed to ${offBehavior}.`);
+        return handleOffBehavior("elevenlabs_unavailable");
+      }
+    } catch (elevenLabsError) {
+      console.error("[twilio-inbound] ElevenLabs connection failed:", elevenLabsError);
+      void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+        tenant_id: tenantId,
+        twilio_call_sid: callSidSafe,
+        to_number: toPhoneE164,
+        from_number: callerPhoneE164,
+        stage: "elevenlabs_fallback",
+        error_message: String(elevenLabsError).slice(0, 500),
+      });
+      void sendTelegramAlert(`ElevenLabs TIMEOUT/ERROR for ${businessName}. Caller ${callerPhoneE164} routed to ${offBehavior}.`);
+      return handleOffBehavior("elevenlabs_unavailable");
     }
 
     const twiml = await registerResponse.text();
@@ -970,7 +1028,11 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("[twilio-inbound] Error:", error);
-    return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
+    console.error("[twilio-inbound] Critical error:", error);
+    void sendTelegramAlert(`twilio-inbound CRITICAL ERROR: ${String(error).slice(0, 300)}`);
+    // If we loaded tenant settings, use graceful fallback. Otherwise, last-resort hangup.
+    // handleOffBehavior is scoped inside the try block, so we can't access it here.
+    // Use forwardTwiml/voicemailTwiml directly if we have basic info from the parsed request.
+    return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later or call back shortly."));
   }
 });

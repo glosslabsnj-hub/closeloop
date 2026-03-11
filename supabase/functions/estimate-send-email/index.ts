@@ -221,7 +221,7 @@ serve(async (req) => {
     }
 
     // Send via Resend
-    const fromEmail = tenantData?.email || "noreply@getfluxdata.com";
+    const fromEmail = tenantData?.email || "noreply@send.getfluxdata.com";
     const fromName = tenantData?.business_name || "Flux Receptionist";
 
     const emailResponse = await fetch("https://api.resend.com/emails", {
