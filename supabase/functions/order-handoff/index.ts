@@ -120,13 +120,12 @@ serve(async (req) => {
       .eq("tenant_id", tenant_id)
       .single();
 
-    if (!settings?.enabled) {
-      console.log("Order handoff disabled for tenant");
-      return jsonResponse({ status: "skipped", reason: "handoff disabled" });
-    }
-
-    // Determine which methods to run
-    const methodsToRun = methods || settings.handoff_methods || ["internal"];
+    // Determine which methods to run for OWNER notifications
+    // Even if delivery settings are disabled/missing, customer confirmation still runs below
+    const ownerHandoffEnabled = settings?.enabled ?? false;
+    const methodsToRun = ownerHandoffEnabled
+      ? (methods || settings!.handoff_methods || ["internal"])
+      : ["internal"];
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Fetch tenant name for display
@@ -258,6 +257,60 @@ serve(async (req) => {
         // Print is handled client-side - just mark as pending
         results.print = { success: true };
         await logHandoffAttempt(supabase, tenant_id, order_id, "print", "pending");
+      }
+    }
+
+    // === RESOLVE CUSTOMER PHONE (fallback from customers table) ===
+    if (!order.customer_phone && order.customer_id) {
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("phone_e164, full_name")
+        .eq("id", order.customer_id)
+        .maybeSingle();
+      if (cust?.phone_e164) order.customer_phone = cust.phone_e164;
+      if (cust?.full_name && !order.customer_name) order.customer_name = cust.full_name;
+    }
+
+    // === CUSTOMER CONFIRMATION ===
+    // Send order confirmation to the customer (separate from owner notifications)
+    if (order.customer_phone || order.customer_name) {
+      try {
+        const items = Array.isArray(order.items_json)
+          ? (order.items_json as OrderItem[]).map((i) => `${i.qty}x ${i.name}`).join(", ")
+          : "your items";
+        const totalStr = order.total_cents ? `$${(order.total_cents / 100).toFixed(2)}` : "";
+        const orderType = (order.order_type || "pickup").toLowerCase();
+
+        // SMS to customer
+        if (order.customer_phone) {
+          let message = `${businessName}: Order #${order.order_number} confirmed! `;
+          message += `${items}`;
+          if (totalStr) message += ` — ${totalStr}`;
+          if (orderType === "delivery") {
+            message += `. We'll deliver to your address.`;
+          } else if (orderType === "pickup") {
+            message += `. Ready for pickup shortly.`;
+          } else {
+            message += `. Thank you!`;
+          }
+
+          const customerSmsResult = await sendTenantSms({
+            tenantId: tenant_id,
+            to: order.customer_phone,
+            body: message.substring(0, 300),
+          });
+          results.customer_sms = {
+            success: customerSmsResult.success || false,
+            error: customerSmsResult.skipped ? "No verified SMS channel" : customerSmsResult.error,
+          };
+          await logHandoffAttempt(supabase, tenant_id, order_id, "customer_sms",
+            customerSmsResult.success ? "success" : (customerSmsResult.skipped ? "skipped" : "failed"),
+            customerSmsResult.error);
+        }
+      } catch (e) {
+        const error = e instanceof Error ? e.message : "Unknown error";
+        results.customer_sms = { success: false, error };
+        await logHandoffAttempt(supabase, tenant_id, order_id, "customer_sms", "failed", error);
       }
     }
 

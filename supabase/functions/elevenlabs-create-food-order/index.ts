@@ -223,6 +223,8 @@ serve(async (req: Request) => {
       .insert({
         tenant_id: resolvedTenantId,
         customer_id: customerId,
+        customer_name: customerName || null,
+        customer_phone: phoneE164 || null,
         order_number: orderNumber,
         order_type: orderType === "delivery" ? "delivery" : "pickup",
         items_json: itemsJson,
