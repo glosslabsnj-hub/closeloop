@@ -657,7 +657,7 @@ export default function CallsPage() {
                             ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
                               <span className="inline-flex items-center gap-1 text-warning text-sm">
                                 <AlertTriangle className="h-3 w-3" />
-                                <span>Processing delayed - check back soon</span>
+                                <a href={`/debug/ai-context?session=${call.elevenlabs_conversation_id || call.id}`} className="hover:underline">Processing delayed - check back soon</a>
                               </span>
                             ) : call.ended_at ? (
                               <span className="text-muted-foreground italic text-sm flex items-center gap-1">

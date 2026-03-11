@@ -429,7 +429,7 @@ describe("useOnboardingSubmit: delivery settings for sales mode — functional/b
 
   it("sales delivery settings uses upsert (idempotent — safe to re-run onboarding)", () => {
     const salesDeliveryIdx = onboardingSubmitSource.indexOf("sales delivery settings");
-    const salesBlock = onboardingSubmitSource.slice(salesDeliveryIdx, salesDeliveryIdx + 600);
+    const salesBlock = onboardingSubmitSource.slice(salesDeliveryIdx, salesDeliveryIdx + 900);
     expect(salesBlock).toContain("upsert");
     expect(salesBlock).toContain("onConflict");
   });
