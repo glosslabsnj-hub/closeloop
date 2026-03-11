@@ -373,6 +373,19 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
+      // 9f. Universal delivery settings (callbacks, intakes, etc. — works for ALL modes)
+      await runStep("universal delivery settings", async () => {
+        const notifyEmail = user?.email || null;
+        const { error } = await supabase.from("universal_delivery_settings").upsert({
+          tenant_id: tenantId!,
+          email_enabled: !!notifyEmail,
+          notify_email: notifyEmail,
+          sms_enabled: !!notificationPhone,
+          notify_phone: notificationPhone || null,
+        }, { onConflict: "tenant_id" });
+        if (error) throw error;
+      });
+
       // 10. Communication / AI settings (update — naturally idempotent)
       await runStep("AI settings", async () => {
         const mappedAfterHours = afterHours === "ai_24_7" ? undefined : afterHours === "voicemail" ? "voicemail" : "text_back";
@@ -382,6 +395,11 @@ export function useOnboardingSubmit(userId?: string) {
           service_default_flow: getServiceDefaultFlow(industrySlug),
         };
         if (mappedAfterHours) commUpdate.off_behavior = mappedAfterHours;
+        // Save notification phone as owner forward number for call transfers
+        if (notificationPhone) {
+          const digits = notificationPhone.replace(/\D/g, "");
+          commUpdate.owner_forward_number = digits.length === 10 ? `+1${digits}` : digits.length === 11 && digits.startsWith("1") ? `+${digits}` : notificationPhone;
+        }
 
         const settingsJson: Record<string, unknown> = {};
         settingsJson.ai_tone = aiTone;
@@ -394,6 +412,11 @@ export function useOnboardingSubmit(userId?: string) {
 
         const { error } = await supabase.from("assistant_settings").update(commUpdate).eq("tenant_id", tenantId!);
         if (error) throw error;
+
+        // Ensure voice AI is enabled — the initialize_assistant_settings RPC may have
+        // set voice_ai_enabled=false because plan_code 'voice' gets mapped to 'base-200'
+        // which doesn't match the RPC's 'voice%' pattern check.
+        await supabase.from("assistant_settings").update({ voice_ai_enabled: true }).eq("tenant_id", tenantId!);
 
         // AI assistant tone & greeting (upsert pattern)
         const assistantData: Record<string, unknown> = { tone: aiTone };
@@ -504,6 +527,20 @@ export function useOnboardingSubmit(userId?: string) {
       clearOnboardingData(userId);
       clearProgress();
       setIsComplete(true);
+
+      // Fire Google Ads + GA4 conversion for completed onboarding (real signup, not just account creation)
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "conversion", {
+          send_to: "AW-17970313271/onboarding_complete",
+          value: 249.0,
+          currency: "USD",
+        });
+        window.gtag("event", "onboarding_complete", {
+          event_category: "signup",
+          event_label: industrySlug,
+          value: 249.0,
+        });
+      }
 
       // Surface any partial failures so the user knows what to check in the Brain
       if (stepFailures.length > 0) {

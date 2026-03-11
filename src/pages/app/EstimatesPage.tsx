@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,16 +160,30 @@ export default function EstimatesPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["estimates", "phone_quotes"]);
   const { estimates, isLoading, stats, createEstimate, sendEstimate, deleteEstimate } = useEstimates();
   const { toast } = useToast();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingEstimate, setEditingEstimate] = useState<EstimateWithCustomer | null>(null);
+  const [prefillCustomerId, setPrefillCustomerId] = useState<string | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [estimateToDelete, setEstimateToDelete] = useState<string | null>(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [emailDialogEstimate, setEmailDialogEstimate] = useState<EstimateWithCustomer | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [emailSending, setEmailSending] = useState(false);
+
+  // Auto-open builder when navigated from Leads with "Send Quote"
+  useEffect(() => {
+    const state = location.state as { openBuilder?: boolean; customerId?: string } | null;
+    if (state?.openBuilder) {
+      setEditingEstimate(null);
+      setPrefillCustomerId(state.customerId);
+      setBuilderOpen(true);
+      // Clear the state so it doesn't re-trigger on re-renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Filter estimates
   const filteredEstimates = estimates.filter((estimate) => {
@@ -185,6 +200,7 @@ export default function EstimatesPage() {
 
   const handleCreateNew = () => {
     setEditingEstimate(null);
+    setPrefillCustomerId(undefined);
     setBuilderOpen(true);
   };
 
@@ -463,8 +479,9 @@ export default function EstimatesPage() {
           </DialogHeader>
           <EstimateBuilder
             estimate={editingEstimate}
-            onSave={() => setBuilderOpen(false)}
-            onCancel={() => setBuilderOpen(false)}
+            initialCustomerId={prefillCustomerId}
+            onSave={() => { setBuilderOpen(false); setPrefillCustomerId(undefined); }}
+            onCancel={() => { setBuilderOpen(false); setPrefillCustomerId(undefined); }}
           />
         </DialogContent>
       </Dialog>

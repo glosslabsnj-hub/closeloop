@@ -150,8 +150,8 @@ serve(async (req) => {
       hipaa_mode: body.hipaa_mode ?? (body.business_mode === "medical"),
       capabilities_json: body.capabilities_json ?? null,
       default_capacity: body.default_capacity ?? 1,
-      // System defaults
-      ai_enabled: false,
+      // System defaults — AI should be ON after onboarding completes
+      ai_enabled: true,
       custom_industry: null,
       website_url: null,
       years_in_business: null,

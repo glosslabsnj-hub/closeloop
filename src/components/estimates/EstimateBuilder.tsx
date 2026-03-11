@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface EstimateBuilderProps {
   estimate?: EstimateWithCustomer | null;
+  initialCustomerId?: string;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -156,7 +157,7 @@ function LineItemsEditor({
   );
 }
 
-export function EstimateBuilder({ estimate, onSave, onCancel }: EstimateBuilderProps) {
+export function EstimateBuilder({ estimate, initialCustomerId, onSave, onCancel }: EstimateBuilderProps) {
   const { createEstimate, updateEstimate, sendEstimate } = useEstimates();
   const { customers = [] } = useCustomers();
   const { slug } = useIndustryContext();
@@ -177,7 +178,7 @@ export function EstimateBuilder({ estimate, onSave, onCancel }: EstimateBuilderP
 
   // Form state
   const [title, setTitle] = useState(estimate?.title || "");
-  const [customerId, setCustomerId] = useState(estimate?.customer_id || "");
+  const [customerId, setCustomerId] = useState(estimate?.customer_id || initialCustomerId || "");
   const [usePricingOptions, setUsePricingOptions] = useState(!!estimate?.pricing_options?.length);
   const [lineItems, setLineItems] = useState<EstimateLineItem[]>(
     estimate?.line_items || [

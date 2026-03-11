@@ -372,7 +372,16 @@ export default function LeadsPage() {
                           {modeLabels.bookingLabel}
                         </DropdownMenuItem>
                         {caps.hasEstimates && (
-                          <DropdownMenuItem onClick={() => navigate("/app/estimates")}>
+                          <DropdownMenuItem onClick={() => navigate("/app/estimates", {
+                            state: {
+                              openBuilder: true,
+                              leadId: lead.id,
+                              customerId: lead.customer_id ?? undefined,
+                              customerName: lead.full_name,
+                              customerPhone: lead.phone ?? undefined,
+                              customerEmail: lead.email ?? undefined,
+                            },
+                          })}>
                             <Mail className="mr-2 h-4 w-4" />
                             Send Quote
                           </DropdownMenuItem>

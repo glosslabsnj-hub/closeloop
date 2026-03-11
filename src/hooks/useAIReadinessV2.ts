@@ -154,6 +154,9 @@ export function useAIReadinessV2(): UseAIReadinessV2 {
  */
 export function formatReadinessFlag(flag: string): string {
   const flagLabels: Record<string, string> = {
+    // AI enablement
+    ai_not_enabled: "Turn on AI for your business",
+    voice_ai_disabled: "Enable voice AI so your phone line answers calls",
     // Global
     missing_business_name: "Add your business name",
     missing_timezone: "Set your timezone",
@@ -189,6 +192,11 @@ export function formatReadinessFlag(flag: string): string {
     missing_data_retention: "Set data retention rules",
     hipaa_storage_warning: "Review HIPAA storage",
     no_medical_services: "Add appointment types",
+
+    // Notification channels
+    missing_notification_phone: "Add your notification phone for SMS alerts",
+    missing_notification_email: "Add your email for notifications",
+    missing_transfer_number: "Set up a phone number for call transfers",
   };
   
   return flagLabels[flag] || flag.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
