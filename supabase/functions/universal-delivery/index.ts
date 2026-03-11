@@ -609,22 +609,35 @@ serve(async (req) => {
       );
     }
 
-    // Get delivery settings
-    const { data: settingsData } = await supabaseAdmin
-      .from("universal_delivery_settings")
-      .select("*")
-      .eq("tenant_id", tenant_id)
-      .single();
+    // Get delivery settings — entity-specific tables take priority over universal
+    let settings: Record<string, unknown> | null = null;
 
-    let settings = settingsData as Record<string, unknown> | null;
+    // Medical intakes have their own delivery settings table (with HIPAA redaction)
+    if (entity_type === "intake") {
+      const { data: medSettings } = await supabaseAdmin
+        .from("medical_intake_delivery_settings")
+        .select("*")
+        .eq("tenant_id", tenant_id)
+        .maybeSingle();
+      if (medSettings) settings = medSettings as Record<string, unknown>;
+    }
 
+    // Fall back to universal delivery settings
     if (!settings) {
-      // Initialize default settings
-      await supabaseAdmin
+      const { data: settingsData } = await supabaseAdmin
         .from("universal_delivery_settings")
-        .insert({ tenant_id });
+        .select("*")
+        .eq("tenant_id", tenant_id)
+        .single();
 
-      settings = {} as Record<string, unknown>;
+      settings = settingsData as Record<string, unknown> | null;
+
+      if (!settings) {
+        await supabaseAdmin
+          .from("universal_delivery_settings")
+          .insert({ tenant_id });
+        settings = {} as Record<string, unknown>;
+      }
     }
 
     // Determine if any notification channel is configured

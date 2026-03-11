@@ -1106,7 +1106,7 @@ export const FOOD_AGENT_CONFIG: AgentToolsConfig = {
 };
 
 /**
- * MEDICAL AGENT (9 Tools)
+ * MEDICAL AGENT (10 Tools)
  * Industries: Doctor's offices, dental practices, clinics, physical therapy, chiropractic,
  *   optometry, dermatology, mental health, pediatrics, orthodontics, med spas
  * Note: No create_dispatch_job - medical doesn't do emergency dispatch via AI
@@ -1115,7 +1115,7 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
   mode: "medical",
   agentName: "Medical Agent",
   industries: ["Doctor's offices", "dental practices", "clinics", "physical therapy", "chiropractic", "optometry", "dermatology", "mental health", "pediatrics", "orthodontics", "med spas"],
-  toolCount: 9,
+  toolCount: 10,
   tools: [
     createCheckAvailabilityTool(
       `Check if an appointment time is available. Use when patient requests a specific time: "Do you have anything at 2pm Tuesday?" or "Is Dr. Smith available Friday morning?"`
@@ -1193,6 +1193,7 @@ export const MEDICAL_AGENT_CONFIG: AgentToolsConfig = {
         },
       ],
     },
+    createMedicalIntakeTool(),
     createRescheduleBookingTool(),
     createLookupBookingTool(),
     createTransferToOwnerTool(),
@@ -1517,6 +1518,95 @@ export function getElevenLabsToolsForMode(mode: BusinessMode): ReturnType<typeof
 }
 
 // ============= NEW TOOLS (P0-7) =============
+
+/**
+ * create_medical_intake - Create a medical intake record during the call
+ * Used by: Medical (capability: medical_intake)
+ */
+function createMedicalIntakeTool(): AgentTool {
+  return {
+    name: "create_medical_intake",
+    description: `Create a patient intake record. Use for new patients, follow-up requests, or prescription refills. ALWAYS get verbal consent before collecting information. Collect: patient name, reason for visit, preferred date/time, insurance provider (if known). HIPAA: Do NOT include symptoms, diagnoses, or detailed medical info in notes — keep it general.`,
+    url: `${BASE_URL}/elevenlabs-create-medical-intake`,
+    method: "POST",
+    parameters: [
+      {
+        name: "customer_name",
+        type: "string",
+        required: true,
+        description: "Patient's full name",
+      },
+      {
+        name: "customer_phone",
+        type: "string",
+        required: false,
+        description: "Patient phone number",
+        dynamicValue: "{{caller_phone}}",
+      },
+      {
+        name: "intake_type",
+        type: "string",
+        required: true,
+        description: "'new_patient', 'follow_up', 'prescription_refill', or 'appointment_request'",
+      },
+      {
+        name: "urgency_level",
+        type: "string",
+        required: false,
+        description: "'routine' (default), 'soon' (within a few days), or 'urgent' (needs immediate attention but not 911-level)",
+      },
+      {
+        name: "reason_for_visit",
+        type: "string",
+        required: false,
+        description: "General reason — keep it brief and non-clinical: 'annual checkup', 'follow-up visit', 'not feeling well', 'prescription refill'",
+      },
+      {
+        name: "preferred_date",
+        type: "string",
+        required: false,
+        description: "Patient's preferred appointment date",
+      },
+      {
+        name: "preferred_time_range",
+        type: "string",
+        required: false,
+        description: "Preferred time: 'morning', 'afternoon', 'evening', or specific time",
+      },
+      {
+        name: "insurance_provider",
+        type: "string",
+        required: false,
+        description: "Insurance company name if provided",
+      },
+      {
+        name: "verbal_consent_given",
+        type: "boolean",
+        required: false,
+        description: "Whether patient gave verbal consent to collect information. Must be true before submitting.",
+      },
+      {
+        name: "notes",
+        type: "string",
+        required: false,
+        description: "General notes — NO symptoms, diagnoses, or PHI",
+      },
+      {
+        name: "tenant_id",
+        type: "string",
+        required: true,
+        description: "Tenant identifier",
+        dynamicValue: "{{tenant_id}}",
+      },
+      {
+        name: "conversation_id",
+        type: "string",
+        required: false,
+        description: "Conversation tracking",
+      },
+    ],
+  };
+}
 
 /**
  * create_food_order - Place a food order during the call
@@ -2003,6 +2093,7 @@ export function buildToolsForCapabilities(
     initiate_referral_transfer: () => createInitiateReferralTransferTool(),
     search_inventory: () => createSearchInventoryTool(),
     create_food_order: () => createFoodOrderTool(),
+    create_medical_intake: () => createMedicalIntakeTool(),
     reschedule_booking: () => createRescheduleBookingTool(),
     cancel_dispatch_job: () => createCancelDispatchJobTool(),
     lookup_booking: () => createLookupBookingTool(),

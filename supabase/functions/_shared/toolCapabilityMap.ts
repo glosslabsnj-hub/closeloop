@@ -87,6 +87,13 @@ export const TOOL_CAPABILITY_MAP: ToolCapabilityMapping[] = [
     priority: 80,
   },
 
+  // ===== MEDICAL TOOLS =====
+  {
+    toolName: "create_medical_intake",
+    requiredCapabilities: ["medical_intake"],
+    priority: 95,
+  },
+
   // ===== BOOKING MANAGEMENT TOOLS =====
   {
     toolName: "reschedule_booking",
