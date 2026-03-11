@@ -1,5 +1,7 @@
 import { useState } from "react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -25,6 +27,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 
 const urgencyColors: Record<string, string> = {
   routine: "bg-muted text-muted-foreground",
@@ -98,11 +101,21 @@ export default function MedicalIntakePage() {
   ) || [];
 
   // Show loading while checking module access
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
       <div className="p-6 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Medical Intake Not Available"
+        description="The Medical Intake page requires the Medical Intake module to be enabled for your account."
+        moduleName="Medical Intake"
+      />
     );
   }
 
@@ -116,17 +129,18 @@ export default function MedicalIntakePage() {
 
   return (
     <ErrorBoundary context="loading medical intakes">
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Medical Intake</h1>
-          <p className="text-muted-foreground">Review patient intake requests from AI calls</p>
-        </div>
-        <Badge variant="outline" className="gap-1">
-          <Shield className="h-3 w-3" />
-          Patient Privacy
-        </Badge>
-      </div>
+    <PageContainer maxWidth="xl">
+      <PageHeader
+        icon={<Stethoscope className="h-5 w-5" />}
+        title="Medical Intake"
+        description="Review patient intake requests from AI calls"
+        badge={
+          <Badge variant="outline" className="gap-1">
+            <Shield className="h-3 w-3" />
+            Patient Privacy
+          </Badge>
+        }
+      />
 
       {/* Urgent Alert */}
       {urgentIntakes.length > 0 && (
@@ -221,6 +235,7 @@ export default function MedicalIntakePage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
+                <TableHead>Patient</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Urgency</TableHead>
                 <TableHead>Reason</TableHead>
@@ -233,7 +248,7 @@ export default function MedicalIntakePage() {
             <TableBody>
               {filteredIntakes.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24">
+                  <TableCell colSpan={9} className="h-24">
                     <div className="flex flex-col items-center justify-center text-center">
                       <Stethoscope className="h-8 w-8 text-muted-foreground/40 mb-2" />
                       <p className="text-sm font-medium">No patient intakes yet</p>
@@ -250,6 +265,9 @@ export default function MedicalIntakePage() {
                   <TableRow key={intake.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedIntake(intake)}>
                     <TableCell>
                       {format(new Date(intake.created_at), "MMM d, h:mm a")}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {intake.customers?.full_name || "Unknown"}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
@@ -490,7 +508,7 @@ export default function MedicalIntakePage() {
           )}
         </SheetContent>
       </Sheet>
-    </div>
+    </PageContainer>
     </ErrorBoundary>
   );
 }

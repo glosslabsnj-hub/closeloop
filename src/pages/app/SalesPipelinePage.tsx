@@ -20,6 +20,7 @@ import {
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DollarSign, Search, Loader2, User, Phone, Clock, Mail, Car, Calendar, Tag, PhoneCall, ArrowRight } from "lucide-react";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { useNavigate } from "react-router-dom";
 import { useSalesLeads } from "@/hooks/useSalesLeads";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
@@ -100,11 +101,21 @@ export default function SalesPipelinePage() {
     return grouped;
   }, [filteredLeads]);
 
-  if (moduleLoading || !isAllowed || isLoading) {
+  if (moduleLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Sales Pipeline Not Available"
+        description="The Sales Pipeline page requires the Sales Leads module to be enabled for your account."
+        moduleName="Sales Pipeline"
+      />
     );
   }
 

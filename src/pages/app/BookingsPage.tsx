@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, Navigate } from "react-router-dom";
 import { useModuleRequired } from "@/hooks/useModuleRequired";
 import { useTenantConfig } from "@/hooks/useTenantConfig";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Calendar as CalendarIcon, Plus, Loader2, List, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { CreateBookingDialog } from "@/components/calendar/CreateBookingDialog";
 import { EditBookingDialog } from "@/components/bookings/EditBookingDialog";
@@ -56,8 +57,6 @@ export default function BookingsPage() {
   const { isAllowed, isLoading: moduleLoading } = useModuleRequired(["booking"]);
   const { bookings, isLoading, error: bookingsError, refetch, confirmBooking, completeBooking, noShowBooking, cancelBooking } = useBookings();
   const { terms } = useIndustryContext();
-  // Sales mode uses Test Drives page as the primary scheduling interface
-  if (businessMode === "sales") return <Navigate to="/app/test-drives" replace />;
   const [searchParams] = useSearchParams();
 
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -76,6 +75,9 @@ export default function BookingsPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+
+  // Sales mode uses Test Drives page as the primary scheduling interface
+  if (businessMode === "sales") return <Navigate to="/app/test-drives" replace />;
 
   // Pending bookings needing approval
   const pendingBookings = useMemo(
@@ -143,11 +145,21 @@ export default function BookingsPage() {
     }
   };
 
-  if (moduleLoading || !isAllowed || isLoading) {
+  if (moduleLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Scheduling Not Available"
+        description="The Bookings page requires the Booking module to be enabled for your account."
+        moduleName="Booking"
+      />
     );
   }
 

@@ -24,6 +24,7 @@ import type { Database } from "@/integrations/supabase/types";
    AlertTriangle,
  } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
  import { useToast } from "@/hooks/use-toast";
  import { OrderDetailsDrawer } from "@/components/orders/OrderDetailsDrawer";
  import { OrderCard } from "@/components/orders/OrderCard";
@@ -185,14 +186,24 @@ import ErrorBoundary from "@/components/ErrorBoundary";
    const preparingCount = orders?.filter(o => o.status === "preparing").length || 0;
    const readyCount = orders?.filter(o => ["ready", "out_for_delivery"].includes(o.status)).length || 0;
  
-   if (moduleLoading || !isAllowed) {
+   if (moduleLoading) {
      return (
        <div className="p-6 flex items-center justify-center">
          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
        </div>
      );
    }
- 
+
+   if (!isAllowed) {
+     return (
+       <ModuleUnavailablePage
+         title="Food Orders Not Available"
+         description="The Orders page requires the Food Orders module to be enabled for your account."
+         moduleName="Food Orders"
+       />
+     );
+   }
+
    if (isLoading) {
      return (
        <div className="p-6 flex items-center justify-center">

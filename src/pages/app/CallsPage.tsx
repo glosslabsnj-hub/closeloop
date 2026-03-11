@@ -345,7 +345,7 @@ export default function CallsPage() {
       case "no_book":
         return (
           <Badge variant="destructive">
-            No Book
+            {outcome === "abandoned" ? "Abandoned" : outcome === "escalated" ? "Escalated" : "No Action"}
           </Badge>
         );
     }
@@ -655,13 +655,10 @@ export default function CallsPage() {
                             {call.summary ? (
                               <span className="line-clamp-2 text-sm">{call.summary}</span>
                             ) : call.ended_at && isWebhookMissing(call.ended_at) ? (
-                              <Link 
-                                to={`/debug/ai-context?session=${call.id}`}
-                                className="inline-flex items-center gap-1 text-warning hover:underline text-sm"
-                              >
+                              <span className="inline-flex items-center gap-1 text-warning text-sm">
                                 <AlertTriangle className="h-3 w-3" />
-                                <span>Processing delayed</span>
-                              </Link>
+                                <span>Processing delayed - check back soon</span>
+                              </span>
                             ) : call.ended_at ? (
                               <span className="text-muted-foreground italic text-sm flex items-center gap-1">
                                 <Loader2 className="h-3 w-3 animate-spin" />
@@ -672,17 +669,21 @@ export default function CallsPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-center">
-                            <select
+                            <Select
                               value={call.followup_status || "new"}
-                              onChange={(e) => updateFollowupMutation.mutate({ id: call.id, followup_status: e.target.value })}
-                              className="text-xs border rounded px-2 py-1 bg-background text-foreground"
+                              onValueChange={(val) => updateFollowupMutation.mutate({ id: call.id, followup_status: val })}
                             >
-                              <option value="new">🆕 New</option>
-                              <option value="called_back">📞 Called Back</option>
-                              <option value="no_answer">📵 No Answer</option>
-                              <option value="completed">✅ Completed</option>
-                              <option value="lost">❌ Lost</option>
-                            </select>
+                              <SelectTrigger className="h-7 w-[120px] text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="new">New</SelectItem>
+                                <SelectItem value="called_back">Called Back</SelectItem>
+                                <SelectItem value="no_answer">No Answer</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="lost">Lost</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <Button

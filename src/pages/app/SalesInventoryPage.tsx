@@ -14,6 +14,7 @@ import {
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Warehouse, Search, Loader2 } from "lucide-react";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { useSalesInventory } from "@/hooks/useSalesInventory";
 import { EmptyState } from "@/components/ui/empty-state";
 import { VehicleDetailDialog } from "@/components/inventory/VehicleDetailDialog";
@@ -59,11 +60,21 @@ export default function SalesInventoryPage() {
     });
   }, [inventory, statusFilter, conditionFilter, searchQuery]);
 
-  if (moduleLoading || !isAllowed || isLoading) {
+  if (moduleLoading || isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Inventory Not Available"
+        description="The Inventory page requires the Sales Inventory module to be enabled for your account."
+        moduleName="Sales Inventory"
+      />
     );
   }
 

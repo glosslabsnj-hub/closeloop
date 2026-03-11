@@ -377,7 +377,7 @@ export default function KitchenDisplayPage() {
         </div>
 
         {/* Order Columns */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Pending Column */}
           <div>
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">

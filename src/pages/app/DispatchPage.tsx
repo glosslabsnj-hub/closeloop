@@ -14,6 +14,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Truck, Plus, Loader2, Map, AlertTriangle } from "lucide-react";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { ModuleUnavailablePage } from "@/components/shared/ModuleUnavailablePage";
 import { Card, CardContent } from "@/components/ui/card";
 import { DispatchJobCard } from "@/components/dispatch/DispatchJobCard";
 import { DispatchCommandTable } from "@/components/dispatch/DispatchCommandTable";
@@ -186,12 +187,24 @@ export default function DispatchPage() {
   }, [tenant?.id, refetch]);
 
   const updateJobMutation = useMutation({
-    mutationFn: async ({ jobId, updates }: { jobId: string; updates: Record<string, unknown> }) => {
+    mutationFn: async ({ jobId, updates, event }: { jobId: string; updates: Record<string, unknown>; event?: string }) => {
       const { error } = await supabase
         .from("dispatch_jobs")
         .update(updates)
         .eq("id", jobId);
       if (error) throw error;
+
+      // Trigger dispatch-handoff for status changes to send customer SMS
+      if (event && tenant?.id) {
+        try {
+          await supabase.functions.invoke("dispatch-handoff", {
+            body: { dispatch_id: jobId, tenant_id: tenant.id, event },
+          });
+        } catch (e) {
+          console.error("Dispatch handoff trigger failed:", e);
+          // Non-fatal — DB update already succeeded
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dispatch-jobs", tenant?.id] });
@@ -264,7 +277,7 @@ export default function DispatchPage() {
       vehicle_id: vehicleId || null,
       dispatched_at: new Date().toISOString(),
     };
-    updateJobMutation.mutate({ jobId, updates });
+    updateJobMutation.mutate({ jobId, updates, event: "assigned" });
   };
 
   const handleUpdateStatus = (job: DispatchJob, newStatus: string) => {
@@ -275,7 +288,7 @@ export default function DispatchPage() {
     if (newStatus === "on_site") {
       updates.arrived_at = new Date().toISOString();
     }
-    updateJobMutation.mutate({ jobId: job.id, updates });
+    updateJobMutation.mutate({ jobId: job.id, updates, event: newStatus });
   };
 
   const handleCall = (job: DispatchJob) => {
@@ -318,11 +331,21 @@ export default function DispatchPage() {
     }
   };
 
-  if (moduleLoading || !isAllowed) {
+  if (moduleLoading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (!isAllowed) {
+    return (
+      <ModuleUnavailablePage
+        title="Dispatch Queue Not Available"
+        description="The Dispatch page requires the Dispatch Queue module to be enabled for your account."
+        moduleName="Dispatch Queue"
+      />
     );
   }
 
