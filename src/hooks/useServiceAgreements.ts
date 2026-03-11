@@ -207,7 +207,7 @@ export function useServiceAgreements() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service_agreements", tenantId] });
-      toast({ title: "Agreement created", description: "Service agreement has been created successfully." });
+      toast({ title: "Agreement created", description: "Agreement has been created successfully." });
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

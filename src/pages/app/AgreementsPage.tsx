@@ -59,6 +59,7 @@ const frequencyLabels: Record<string, string> = {
   monthly: "/mo",
   quarterly: "/qtr",
   annually: "/yr",
+  one_time: " (one-time)",
 };
 
 function formatCurrency(cents: number): string {
@@ -108,7 +109,7 @@ function AgreementListItem({
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Started {format(new Date(agreement.start_date), "MMM d, yyyy")}
-            {agreement.renewal_date && (
+            {agreement.renewal_date && agreement.billing_frequency !== "one_time" && (
               <> • Renews {formatDistanceToNow(new Date(agreement.renewal_date), { addSuffix: true })}</>
             )}
           </p>
@@ -306,13 +307,15 @@ export default function AgreementsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Recurring</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {businessMode === "sales" ? "Total Deal Value" : "Monthly Recurring"}
+              </CardTitle>
               <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(stats.monthlyRecurringRevenue)}</div>
               <p className="text-xs text-muted-foreground">
-                MRR from active agreements
+                {businessMode === "sales" ? "from active agreements" : "MRR from active agreements"}
               </p>
             </CardContent>
           </Card>

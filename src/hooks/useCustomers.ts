@@ -91,7 +91,7 @@ export interface CreateCustomerInput {
      },
      onSuccess: () => {
        queryClient.invalidateQueries({ queryKey: ["customers", tenantId] });
-       toast({ title: "Customer created" });
+       toast({ title: "Contact added" });
      },
      onError: (error) => {
        toast({ title: "Error", description: error.message, variant: "destructive" });

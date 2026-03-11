@@ -61,7 +61,7 @@ const SALES_PLAN_TEMPLATES = [
     name: "Standard Purchase",
     type: "standard",
     price_cents: 0,
-    billing_frequency: "annually",
+    billing_frequency: "one_time",
     visits_per_year: 1,
     services: ["Vehicle purchase", "Standard warranty", "Title transfer"],
     discount_percent: 0,
@@ -81,7 +81,7 @@ const SALES_PLAN_TEMPLATES = [
     name: "Premium Deal",
     type: "premium",
     price_cents: 0,
-    billing_frequency: "monthly",
+    billing_frequency: "one_time",
     visits_per_year: 1,
     services: ["Vehicle purchase", "Financing arranged", "Extended warranty included", "GAP coverage included", "Free first service"],
     discount_percent: 5,
@@ -317,12 +317,13 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="frequency">Billing Frequency</Label>
+          <Label htmlFor="frequency">{isSales ? "Payment Type" : "Billing Frequency"}</Label>
           <Select value={billingFrequency} onValueChange={setBillingFrequency}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              {isSales && <SelectItem value="one_time">One-time payment</SelectItem>}
               <SelectItem value="monthly">Monthly</SelectItem>
               <SelectItem value="quarterly">Quarterly</SelectItem>
               <SelectItem value="annually">Annually</SelectItem>
@@ -367,10 +368,12 @@ export function AgreementBuilder({ agreement, onSave, onCancel }: AgreementBuild
 
       {/* Toggles */}
       <div className="flex items-center gap-6">
-        <div className="flex items-center gap-2">
-          <Switch id="autoRenew" checked={autoRenew} onCheckedChange={setAutoRenew} />
-          <Label htmlFor="autoRenew">Auto-renew</Label>
-        </div>
+        {(!isSales || billingFrequency !== "one_time") && (
+          <div className="flex items-center gap-2">
+            <Switch id="autoRenew" checked={autoRenew} onCheckedChange={setAutoRenew} />
+            <Label htmlFor="autoRenew">Auto-renew</Label>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Switch id="priority" checked={priorityService} onCheckedChange={setPriorityService} />
           <Label htmlFor="priority">Priority scheduling</Label>
