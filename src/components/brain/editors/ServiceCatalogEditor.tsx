@@ -605,12 +605,12 @@ export function ServiceCatalogEditor() {
         payment_timing: formData.payment_timing,
         confirmation_mode: formData.confirmation_mode === "global" ? null : formData.confirmation_mode,
       } as any);
-      toast.success("Service updated");
+      toast.success(`${terms.service.charAt(0).toUpperCase() + terms.service.slice(1)} updated`);
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
       setExpandedServiceId(null);
     } catch (error: any) {
-      toast.error(error.message || "Failed to save service");
+      toast.error(error.message || `Failed to save ${terms.service}`);
     } finally {
       setSavingServiceId(null);
     }
@@ -698,7 +698,7 @@ export function ServiceCatalogEditor() {
           payment_timing: newServiceData.payment_timing,
           confirmation_mode: newServiceData.confirmation_mode === "global" ? null : newServiceData.confirmation_mode,
         } as any);
-        toast.success("Service created");
+        toast.success(`${terms.service.charAt(0).toUpperCase() + terms.service.slice(1)} created`);
       }
 
       queryClient.invalidateQueries({ queryKey: ["services"] });
@@ -706,7 +706,7 @@ export function ServiceCatalogEditor() {
       setIsCreatingNew(false);
       setNewServiceData(defaultFormData);
     } catch (error: any) {
-      toast.error(error.message || "Failed to create service");
+      toast.error(error.message || `Failed to create ${terms.service}`);
     } finally {
       setSavingServiceId(null);
     }
@@ -717,7 +717,7 @@ export function ServiceCatalogEditor() {
 
     try {
       await deleteService(deletingService.id, tenant.id);
-      toast.success("Service deleted");
+      toast.success(`${terms.service.charAt(0).toUpperCase() + terms.service.slice(1)} deleted`);
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
       setDeleteDialogOpen(false);
@@ -750,7 +750,7 @@ export function ServiceCatalogEditor() {
       await updateService(service.id, tenant.id, {
         is_active: !service.is_active,
       });
-      toast.success(service.is_active ? "Service deactivated" : "Service activated");
+      toast.success(service.is_active ? `${terms.service.charAt(0).toUpperCase() + terms.service.slice(1)} deactivated` : `${terms.service.charAt(0).toUpperCase() + terms.service.slice(1)} activated`);
       queryClient.invalidateQueries({ queryKey: ["services"] });
       invalidateBrainQueries(queryClient, tenant?.id);
     } catch (error: any) {
