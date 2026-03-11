@@ -301,6 +301,48 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
+      // 8b. Menu items for food mode (idempotent: clear + insert)
+      // Without menu items, food tenants cannot pass readiness (P0 blocker)
+      if (isFoodMode && industryEntry?.menuItems && industryEntry.menuItems.length > 0) {
+        await runStep("menu items", async () => {
+          const menuItemsToInsert = industryEntry!.menuItems!.map(item => ({
+            tenant_id: tenantId!,
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            price_cents: item.price_cents,
+            dietary_tags: item.dietary_tags || [],
+            prep_time_minutes: item.prep_time_minutes || 10,
+            is_available: true,
+            modifiers: [],
+          }));
+          await supabase.from("menu_items").delete().eq("tenant_id", tenantId!);
+          const { error } = await supabase.from("menu_items").insert(menuItemsToInsert);
+          if (error) throw error;
+        });
+      }
+
+      // 8c. Data retention settings for medical mode (idempotent: upsert)
+      // Without this, medical tenants cannot pass readiness (P0 blocker: missing_data_retention)
+      if (businessMode === "medical") {
+        await runStep("data retention", async () => {
+          const { error } = await supabase.from("data_retention_settings").upsert({
+            tenant_id: tenantId!,
+            store_recordings: true,
+            store_transcripts: true,
+            store_caller_phone: true,
+            recording_retention_days: 90,
+            transcript_retention_days: 90,
+            call_summary_retention_days: 365,
+            audit_log_retention_days: 730,
+            require_verbal_consent: false,
+            phi_minimization_enabled: true,
+            allow_customer_memory: false,
+          }, { onConflict: "tenant_id" });
+          if (error) throw error;
+        });
+      }
+
       // 9. Automations (idempotent: clear + insert)
       await runStep("automations", async () => {
         await supabase.from("automations").delete().eq("tenant_id", tenantId!);

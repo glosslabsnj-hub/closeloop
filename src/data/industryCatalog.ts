@@ -53,6 +53,17 @@ export interface IndustryCatalogEntry {
   };
   hipaaMode?: boolean; // Auto-enable for medical
   defaultCapabilities?: Record<string, boolean>;
+  /** Pre-populated menu items for food mode businesses. Seeded into menu_items table during onboarding. */
+  menuItems?: MenuItemTemplate[];
+}
+
+export interface MenuItemTemplate {
+  name: string;
+  description: string;
+  category: string;
+  price_cents: number;
+  dietary_tags?: string[];
+  prep_time_minutes?: number;
 }
 
 export type IndustryCategory = 
@@ -1652,6 +1663,19 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Reservation', duration: 60, price: 0, priceType: 'fixed' },
       { name: 'Private Event', duration: 180, price: 0, priceType: 'quote_only' },
     ],
+    menuItems: [
+      { name: 'Grilled Chicken Breast', description: 'Seasoned and grilled, served with your choice of two sides', category: 'Entrees', price_cents: 1699, prep_time_minutes: 20 },
+      { name: 'Pasta Primavera', description: 'Fresh seasonal vegetables tossed with penne in a light garlic olive oil sauce', category: 'Entrees', price_cents: 1499, dietary_tags: ['vegetarian'], prep_time_minutes: 18 },
+      { name: 'Classic Burger', description: 'Half-pound beef patty with lettuce, tomato, and pickles on a brioche bun', category: 'Entrees', price_cents: 1399, prep_time_minutes: 15 },
+      { name: 'Grilled Salmon', description: 'Atlantic salmon fillet with lemon herb butter, served with rice and vegetables', category: 'Entrees', price_cents: 2199, prep_time_minutes: 22 },
+      { name: 'Caesar Salad', description: 'Crisp romaine, parmesan, croutons, and house-made Caesar dressing', category: 'Salads', price_cents: 1099, dietary_tags: ['vegetarian'], prep_time_minutes: 8 },
+      { name: 'Mozzarella Sticks', description: 'Six golden-fried mozzarella sticks with marinara sauce', category: 'Appetizers', price_cents: 999, dietary_tags: ['vegetarian'], prep_time_minutes: 10 },
+      { name: 'Chicken Wings (10pc)', description: 'Crispy wings tossed in your choice of buffalo, BBQ, or garlic parmesan', category: 'Appetizers', price_cents: 1399, prep_time_minutes: 15 },
+      { name: 'French Fries', description: 'Crispy golden fries with your choice of dipping sauce', category: 'Sides', price_cents: 499, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 8 },
+      { name: 'Soup of the Day', description: 'Ask about our fresh-made selection', category: 'Sides', price_cents: 599, prep_time_minutes: 5 },
+      { name: 'Chocolate Cake', description: 'Rich chocolate layer cake with ganache frosting', category: 'Desserts', price_cents: 899, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+      { name: 'Soft Drink', description: 'Coke, Diet Coke, Sprite, or Lemonade', category: 'Beverages', price_cents: 299, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
+    ],
   },
   {
     ...foodBase as IndustryCatalogEntry,
@@ -1663,6 +1687,19 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Pickup Order', duration: 20, price: 0, priceType: 'quote_only' },
       { name: 'Delivery Order', duration: 45, price: 0, priceType: 'quote_only' },
       { name: 'Catering Order', duration: 60, price: 0, priceType: 'quote_only' },
+    ],
+    menuItems: [
+      { name: 'Cheese Pizza (Large)', description: 'Classic hand-tossed pizza with mozzarella and our house tomato sauce', category: 'Pizza', price_cents: 1499, dietary_tags: ['vegetarian'], prep_time_minutes: 15 },
+      { name: 'Pepperoni Pizza (Large)', description: 'Loaded with premium pepperoni and melted mozzarella', category: 'Pizza', price_cents: 1799, prep_time_minutes: 15 },
+      { name: 'Margherita Pizza (Large)', description: 'Fresh mozzarella, San Marzano tomato sauce, and basil', category: 'Pizza', price_cents: 1699, dietary_tags: ['vegetarian'], prep_time_minutes: 15 },
+      { name: 'Meat Lovers Pizza (Large)', description: 'Pepperoni, sausage, bacon, and ham', category: 'Pizza', price_cents: 1999, prep_time_minutes: 18 },
+      { name: 'Garlic Knots (6)', description: 'House-made garlic knots with marinara dipping sauce', category: 'Appetizers', price_cents: 599, dietary_tags: ['vegetarian'], prep_time_minutes: 10 },
+      { name: 'Buffalo Wings (10pc)', description: 'Crispy wings tossed in buffalo sauce with blue cheese', category: 'Appetizers', price_cents: 1299, prep_time_minutes: 15 },
+      { name: 'Caesar Salad', description: 'Crisp romaine, parmesan, croutons, and Caesar dressing', category: 'Salads', price_cents: 999, dietary_tags: ['vegetarian'], prep_time_minutes: 8 },
+      { name: 'Chicken Parmigiana', description: 'Breaded chicken with marinara and mozzarella, served with spaghetti', category: 'Entrees', price_cents: 1899, prep_time_minutes: 20 },
+      { name: 'Baked Ziti', description: 'Ziti pasta baked with ricotta, mozzarella, and meat sauce', category: 'Entrees', price_cents: 1599, prep_time_minutes: 18 },
+      { name: 'Cannoli (2)', description: 'Crispy shells filled with sweet ricotta cream', category: 'Desserts', price_cents: 699, dietary_tags: ['vegetarian'], prep_time_minutes: 3 },
+      { name: '2-Liter Soda', description: 'Coke, Diet Coke, Sprite, or Fanta', category: 'Beverages', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
     ],
   },
   {
@@ -1677,6 +1714,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Delivery Order', duration: 30, price: 0, priceType: 'quote_only' },
       { name: 'Catering', duration: 60, price: 0, priceType: 'quote_only' },
     ],
+    menuItems: [
+      { name: 'Build Your Own Bowl', description: 'Choose your base, protein, toppings, and sauce', category: 'Bowls', price_cents: 1199, prep_time_minutes: 5 },
+      { name: 'Chicken Bowl', description: 'Grilled chicken over rice with fresh vegetables and house sauce', category: 'Bowls', price_cents: 1299, prep_time_minutes: 5 },
+      { name: 'Veggie Wrap', description: 'Grilled vegetables, hummus, and greens in a flour tortilla', category: 'Wraps', price_cents: 1099, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+      { name: 'Steak Burrito', description: 'Seasoned steak with rice, beans, cheese, and salsa', category: 'Wraps', price_cents: 1399, prep_time_minutes: 7 },
+      { name: 'House Salad', description: 'Mixed greens with seasonal toppings and house dressing', category: 'Salads', price_cents: 999, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 4 },
+      { name: 'Chips & Guacamole', description: 'Fresh-made guacamole with tortilla chips', category: 'Sides', price_cents: 499, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 3 },
+      { name: 'Chicken Quesadilla', description: 'Grilled chicken and melted cheese in a crispy tortilla', category: 'Wraps', price_cents: 1099, prep_time_minutes: 6 },
+      { name: 'Black Bean Soup', description: 'Hearty black bean soup with cilantro and lime', category: 'Sides', price_cents: 499, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 3 },
+      { name: 'Brownie', description: 'Fresh-baked chocolate brownie', category: 'Desserts', price_cents: 399, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Fountain Drink', description: 'Your choice of soft drink', category: 'Beverages', price_cents: 249, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
+    ],
   },
   {
     ...foodBase as IndustryCatalogEntry,
@@ -1690,6 +1739,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Catering Order', duration: 30, price: 0, priceType: 'quote_only' },
       { name: 'Wedding Cake Consultation', duration: 60, price: 50, priceType: 'fixed' },
     ],
+    menuItems: [
+      { name: 'Croissant', description: 'Buttery, flaky French-style croissant', category: 'Pastries', price_cents: 399, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Chocolate Croissant', description: 'Flaky croissant filled with rich dark chocolate', category: 'Pastries', price_cents: 449, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Blueberry Muffin', description: 'Fresh-baked muffin loaded with blueberries', category: 'Pastries', price_cents: 375, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Sourdough Loaf', description: 'Artisan sourdough bread, baked fresh daily', category: 'Bread', price_cents: 799, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 2 },
+      { name: 'Baguette', description: 'Traditional French baguette with crispy crust', category: 'Bread', price_cents: 499, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 2 },
+      { name: 'Chocolate Chip Cookie', description: 'Large cookie with semi-sweet chocolate chips', category: 'Cookies', price_cents: 299, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Custom Birthday Cake (8")', description: 'Custom decorated cake, serves 10-12', category: 'Cakes', price_cents: 4500, dietary_tags: ['vegetarian'], prep_time_minutes: 1440 },
+      { name: 'Cupcakes (Dozen)', description: 'Assorted flavors with buttercream frosting', category: 'Cakes', price_cents: 3600, dietary_tags: ['vegetarian'], prep_time_minutes: 120 },
+      { name: 'Brownie', description: 'Rich fudge brownie with walnuts', category: 'Cookies', price_cents: 375, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+      { name: 'Cinnamon Roll', description: 'Warm cinnamon roll with cream cheese glaze', category: 'Pastries', price_cents: 499, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+    ],
   },
   {
     ...foodBase as IndustryCatalogEntry,
@@ -1702,6 +1763,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Mobile Order Pickup', duration: 5, price: 0, priceType: 'quote_only' },
       { name: 'Catering (Coffee Service)', duration: 60, price: 100, priceType: 'starting_at' },
     ],
+    menuItems: [
+      { name: 'Drip Coffee (Medium)', description: 'Fresh-brewed house blend', category: 'Coffee', price_cents: 299, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 2 },
+      { name: 'Latte (Medium)', description: 'Espresso with steamed milk', category: 'Coffee', price_cents: 499, dietary_tags: ['vegetarian'], prep_time_minutes: 4 },
+      { name: 'Cappuccino (Medium)', description: 'Espresso with steamed milk and thick foam', category: 'Coffee', price_cents: 499, dietary_tags: ['vegetarian'], prep_time_minutes: 4 },
+      { name: 'Iced Coffee (Large)', description: 'Cold-brewed coffee served over ice', category: 'Coffee', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 2 },
+      { name: 'Mocha (Medium)', description: 'Espresso with chocolate and steamed milk, topped with whipped cream', category: 'Coffee', price_cents: 549, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+      { name: 'Chai Latte (Medium)', description: 'Spiced chai tea with steamed milk', category: 'Tea', price_cents: 499, dietary_tags: ['vegetarian'], prep_time_minutes: 4 },
+      { name: 'Hot Tea', description: 'Selection of black, green, and herbal teas', category: 'Tea', price_cents: 299, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 3 },
+      { name: 'Bagel with Cream Cheese', description: 'Toasted bagel with whipped cream cheese', category: 'Food', price_cents: 449, dietary_tags: ['vegetarian'], prep_time_minutes: 3 },
+      { name: 'Breakfast Sandwich', description: 'Egg, cheese, and bacon on a croissant', category: 'Food', price_cents: 649, prep_time_minutes: 5 },
+      { name: 'Muffin', description: 'Blueberry, chocolate chip, or banana nut', category: 'Food', price_cents: 375, dietary_tags: ['vegetarian'], prep_time_minutes: 2 },
+    ],
   },
   {
     ...foodBase as IndustryCatalogEntry,
@@ -1713,6 +1786,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Walk-Up Order', duration: 10, price: 0, priceType: 'quote_only' },
       { name: 'Event Booking', duration: 240, price: 500, priceType: 'starting_at' },
       { name: 'Private Party', duration: 180, price: 750, priceType: 'starting_at' },
+    ],
+    menuItems: [
+      { name: 'Signature Taco (3)', description: 'Three tacos with your choice of protein, cilantro, and onion', category: 'Tacos', price_cents: 1199, prep_time_minutes: 8 },
+      { name: 'Loaded Nachos', description: 'Tortilla chips with cheese, beans, jalape\u00f1os, sour cream, and guac', category: 'Sides', price_cents: 999, dietary_tags: ['vegetarian'], prep_time_minutes: 7 },
+      { name: 'Burrito Bowl', description: 'Rice, beans, protein, and all the fixings', category: 'Bowls', price_cents: 1299, prep_time_minutes: 6 },
+      { name: 'Elote (Street Corn)', description: 'Grilled corn with mayo, cotija cheese, and chili powder', category: 'Sides', price_cents: 499, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+      { name: 'Quesadilla', description: 'Melted cheese and your choice of filling in a grilled tortilla', category: 'Tacos', price_cents: 999, prep_time_minutes: 6 },
+      { name: 'Churros (3)', description: 'Crispy cinnamon sugar churros with chocolate dipping sauce', category: 'Desserts', price_cents: 599, dietary_tags: ['vegetarian'], prep_time_minutes: 5 },
+      { name: 'Horchata', description: 'Traditional rice milk drink with cinnamon', category: 'Beverages', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
+      { name: 'Mexican Coke', description: 'Glass bottle Coca-Cola made with cane sugar', category: 'Beverages', price_cents: 349, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
+      { name: 'Chips & Salsa', description: 'Fresh tortilla chips with house-made salsa', category: 'Sides', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 2 },
+      { name: 'Agua Fresca', description: 'Fresh fruit water - watermelon, mango, or lime', category: 'Beverages', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
     ],
   },
   {
@@ -1735,6 +1820,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { key: 'event_date', label: 'Event Date', type: 'text', required: true },
       { key: 'dietary_restrictions', label: 'Dietary Restrictions', type: 'text', required: false },
     ],
+    menuItems: [
+      { name: 'Chicken Alfredo Tray (serves 10)', description: 'Grilled chicken over fettuccine in creamy alfredo', category: 'Hot Entrees', price_cents: 8999, prep_time_minutes: 60 },
+      { name: 'BBQ Pulled Pork Tray (serves 10)', description: 'Slow-smoked pulled pork with house BBQ sauce', category: 'Hot Entrees', price_cents: 7999, prep_time_minutes: 60 },
+      { name: 'Garden Salad Tray (serves 10)', description: 'Mixed greens with assorted toppings and dressings', category: 'Salads', price_cents: 4999, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 30 },
+      { name: 'Sandwich Platter (12 halves)', description: 'Assorted deli sandwiches on artisan bread', category: 'Platters', price_cents: 5999, prep_time_minutes: 45 },
+      { name: 'Fruit Platter (serves 15)', description: 'Seasonal fresh fruit, beautifully arranged', category: 'Platters', price_cents: 4999, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 30 },
+      { name: 'Cookie Platter (24 cookies)', description: 'Assorted fresh-baked cookies', category: 'Desserts', price_cents: 3999, dietary_tags: ['vegetarian'], prep_time_minutes: 60 },
+      { name: 'Beverage Package (per person)', description: 'Coffee, tea, water, and juice', category: 'Beverages', price_cents: 599, dietary_tags: ['vegetarian'], prep_time_minutes: 15 },
+      { name: 'Veggie Tray with Dip (serves 12)', description: 'Fresh cut vegetables with ranch and hummus', category: 'Platters', price_cents: 3999, dietary_tags: ['vegetarian'], prep_time_minutes: 20 },
+      { name: 'Pasta Marinara Tray (serves 10)', description: 'Penne pasta with house marinara sauce', category: 'Hot Entrees', price_cents: 5999, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 45 },
+      { name: 'Breakfast Box (per person)', description: 'Bagel, cream cheese, fruit, yogurt, and pastry', category: 'Breakfast', price_cents: 1299, dietary_tags: ['vegetarian'], prep_time_minutes: 20 },
+    ],
   },
   {
     ...foodBase as IndustryCatalogEntry,
@@ -1746,6 +1843,18 @@ export const industryCatalog: IndustryCatalogEntry[] = [
       { name: 'Table Reservation', duration: 120, price: 0, priceType: 'fixed' },
       { name: 'VIP Booth', duration: 180, price: 100, priceType: 'starting_at' },
       { name: 'Private Event', duration: 240, price: 0, priceType: 'quote_only' },
+    ],
+    menuItems: [
+      { name: 'Classic Margarita', description: 'Tequila, lime, triple sec, served on the rocks or frozen', category: 'Cocktails', price_cents: 1299, prep_time_minutes: 4 },
+      { name: 'Old Fashioned', description: 'Bourbon, bitters, sugar, orange peel', category: 'Cocktails', price_cents: 1399, prep_time_minutes: 3 },
+      { name: 'Craft Beer (Draft)', description: 'Ask about our rotating selection of local craft beers', category: 'Beer', price_cents: 799, prep_time_minutes: 1 },
+      { name: 'House Wine (Glass)', description: 'Red or white, ask your server for current selection', category: 'Wine', price_cents: 999, prep_time_minutes: 1 },
+      { name: 'Nachos', description: 'Loaded nachos with cheese, pico, sour cream, and guacamole', category: 'Food', price_cents: 1299, dietary_tags: ['vegetarian'], prep_time_minutes: 10 },
+      { name: 'Wings (10pc)', description: 'Crispy wings with your choice of sauce', category: 'Food', price_cents: 1399, prep_time_minutes: 15 },
+      { name: 'Slider Trio', description: 'Three mini burgers with fries', category: 'Food', price_cents: 1499, prep_time_minutes: 12 },
+      { name: 'Soft Drink', description: 'Coke, Sprite, ginger ale, or tonic', category: 'Non-Alcoholic', price_cents: 399, dietary_tags: ['vegetarian', 'vegan'], prep_time_minutes: 1 },
+      { name: 'Espresso Martini', description: 'Vodka, espresso, coffee liqueur', category: 'Cocktails', price_cents: 1499, prep_time_minutes: 4 },
+      { name: 'Bottle Service (Vodka)', description: 'Premium vodka bottle with mixers for your table', category: 'Bottle Service', price_cents: 29999, prep_time_minutes: 5 },
     ],
   },
 
