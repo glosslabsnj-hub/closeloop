@@ -1526,7 +1526,7 @@ export function getElevenLabsToolsForMode(mode: BusinessMode): ReturnType<typeof
 function createMedicalIntakeTool(): AgentTool {
   return {
     name: "create_medical_intake",
-    description: `Create a patient intake record. Use for new patients, follow-up requests, or prescription refills. ALWAYS get verbal consent before collecting information. Collect: patient name, reason for visit, preferred date/time, insurance provider (if known). HIPAA: Do NOT include symptoms, diagnoses, or detailed medical info in notes — keep it general.`,
+    description: `Create a patient intake record. Use for new patients, follow-up requests, or prescription refills. ALWAYS get verbal consent before collecting information. Collect: patient name, reason for visit, preferred date/time, date of birth, insurance provider and member ID (if known), allergies, current medications, and preferred pharmacy. HIPAA: Do NOT include symptoms, diagnoses, or detailed medical info in notes — keep it general.`,
     url: `${BASE_URL}/elevenlabs-create-medical-intake`,
     method: "POST",
     parameters: [
@@ -1578,6 +1578,48 @@ function createMedicalIntakeTool(): AgentTool {
         type: "string",
         required: false,
         description: "Insurance company name if provided",
+      },
+      {
+        name: "insurance_member_id",
+        type: "string",
+        required: false,
+        description: "Insurance member/subscriber ID if provided",
+      },
+      {
+        name: "date_of_birth",
+        type: "string",
+        required: false,
+        description: "Patient date of birth (any format: 'March 5 1990', '03/05/1990', etc.)",
+      },
+      {
+        name: "allergies",
+        type: "string",
+        required: false,
+        description: "Known allergies (drug or other). Keep general: 'penicillin', 'shellfish', 'none'",
+      },
+      {
+        name: "current_medications",
+        type: "string",
+        required: false,
+        description: "Current medications if patient volunteers. Keep general names only.",
+      },
+      {
+        name: "pharmacy_name",
+        type: "string",
+        required: false,
+        description: "Preferred pharmacy name if provided",
+      },
+      {
+        name: "pharmacy_phone",
+        type: "string",
+        required: false,
+        description: "Preferred pharmacy phone number if provided",
+      },
+      {
+        name: "patient_address",
+        type: "string",
+        required: false,
+        description: "Patient home address if provided",
       },
       {
         name: "verbal_consent_given",

@@ -8,17 +8,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  Stethoscope, 
-  Phone, 
-  Clock, 
+import {
+  Stethoscope,
+  Phone,
+  Clock,
   Calendar,
   AlertTriangle,
   CheckCircle2,
   Shield,
-  FileText,
-  Loader2
+  Loader2,
+  Pill,
+  User,
+  MapPin,
+  CreditCard,
 } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -43,6 +47,7 @@ export default function MedicalIntakePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [selectedIntake, setSelectedIntake] = useState<any | null>(null);
 
   const { data: intakes, isLoading } = useQuery({
     queryKey: ["medical-intakes", tenant?.id],
@@ -242,7 +247,7 @@ export default function MedicalIntakePage() {
                 </TableRow>
               ) : (
                 filteredIntakes.map((intake) => (
-                  <TableRow key={intake.id}>
+                  <TableRow key={intake.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedIntake(intake)}>
                     <TableCell>
                       {format(new Date(intake.created_at), "MMM d, h:mm a")}
                     </TableCell>
@@ -318,6 +323,173 @@ export default function MedicalIntakePage() {
           </div>
         </CardContent>
       </Card>
+      {/* Intake Detail Sheet */}
+      <Sheet open={!!selectedIntake} onOpenChange={(open) => !open && setSelectedIntake(null)}>
+        <SheetContent className="overflow-y-auto">
+          {selectedIntake && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="flex items-center gap-2">
+                  <Stethoscope className="h-5 w-5" />
+                  Intake Details
+                </SheetTitle>
+              </SheetHeader>
+              <div className="space-y-6 mt-6">
+                {/* Status & Urgency */}
+                <div className="flex items-center gap-2">
+                  <Badge className={statusColors[selectedIntake.status] || ""}>{selectedIntake.status}</Badge>
+                  <Badge className={urgencyColors[selectedIntake.urgency_level || "routine"] || ""}>{selectedIntake.urgency_level || "routine"}</Badge>
+                  <Badge variant="outline" className="capitalize">{(selectedIntake.intake_type || "unknown").replace(/_/g, " ")}</Badge>
+                </div>
+
+                {/* Patient Info */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2"><User className="h-4 w-4" /> Patient Information</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Name</p>
+                      <p className="font-medium">{selectedIntake.customers?.full_name || "Unknown"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Phone</p>
+                      <p className="font-medium font-mono">{selectedIntake.customers?.phone_e164 || "-"}</p>
+                    </div>
+                    {selectedIntake.date_of_birth && (
+                      <div>
+                        <p className="text-muted-foreground text-xs">Date of Birth</p>
+                        <p className="font-medium">{format(new Date(selectedIntake.date_of_birth), "MMM d, yyyy")}</p>
+                      </div>
+                    )}
+                    {selectedIntake.patient_address && (
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground text-xs flex items-center gap-1"><MapPin className="h-3 w-3" /> Address</p>
+                        <p className="font-medium">{selectedIntake.patient_address}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Visit Details */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium flex items-center gap-2"><Calendar className="h-4 w-4" /> Visit Details</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="col-span-2">
+                      <p className="text-muted-foreground text-xs">Reason for Visit</p>
+                      <p className="font-medium">{selectedIntake.reason_for_visit || "-"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Preferred Date</p>
+                      <p className="font-medium">
+                        {selectedIntake.preferred_date ? format(new Date(selectedIntake.preferred_date), "MMM d, yyyy") : "-"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Consent Given</p>
+                      <p className="font-medium">{selectedIntake.verbal_consent_given ? "Yes" : "No"}</p>
+                    </div>
+                    {selectedIntake.referring_provider && (
+                      <div className="col-span-2">
+                        <p className="text-muted-foreground text-xs">Referring Provider</p>
+                        <p className="font-medium">{selectedIntake.referring_provider}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Insurance */}
+                {selectedIntake.insurance_member_id && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2"><CreditCard className="h-4 w-4" /> Insurance</h4>
+                    <div className="text-sm">
+                      <p className="text-muted-foreground text-xs">Member ID</p>
+                      <p className="font-medium font-mono">{selectedIntake.insurance_member_id}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Medical Info */}
+                {(selectedIntake.allergies || selectedIntake.current_medications) && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2"><Pill className="h-4 w-4" /> Medical Info</h4>
+                    <div className="grid gap-3 text-sm">
+                      {selectedIntake.allergies && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Allergies</p>
+                          <p className="font-medium">{selectedIntake.allergies}</p>
+                        </div>
+                      )}
+                      {selectedIntake.current_medications && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Current Medications</p>
+                          <p className="font-medium">{selectedIntake.current_medications}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pharmacy */}
+                {selectedIntake.pharmacy_name && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Pharmacy</h4>
+                    <div className="text-sm">
+                      <p className="font-medium">{selectedIntake.pharmacy_name}</p>
+                      {selectedIntake.pharmacy_phone && <p className="text-muted-foreground font-mono">{selectedIntake.pharmacy_phone}</p>}
+                    </div>
+                  </div>
+                )}
+
+                {/* Call Info */}
+                <div className="space-y-3 pt-2 border-t">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground text-xs">Submitted</p>
+                      <p className="font-medium">{format(new Date(selectedIntake.created_at), "MMM d, yyyy h:mm a")}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground text-xs">Call Time</p>
+                      <p className="font-medium">
+                        {selectedIntake.ai_call_sessions?.started_at
+                          ? format(new Date(selectedIntake.ai_call_sessions.started_at), "h:mm a")
+                          : "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  {selectedIntake.customers?.phone_e164 && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={`tel:${selectedIntake.customers.phone_e164}`}>
+                        <Phone className="h-3 w-3 mr-1" />
+                        Call Patient
+                      </a>
+                    </Button>
+                  )}
+                  <Select
+                    value={selectedIntake.status}
+                    onValueChange={(status) => {
+                      updateStatusMutation.mutate({ id: selectedIntake.id, status });
+                      setSelectedIntake({ ...selectedIntake, status });
+                    }}
+                  >
+                    <SelectTrigger className="w-[140px] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
     </ErrorBoundary>
   );

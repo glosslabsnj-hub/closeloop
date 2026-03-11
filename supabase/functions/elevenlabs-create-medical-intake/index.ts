@@ -14,6 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -32,6 +33,14 @@ interface CreateMedicalIntakeRequest {
   preferred_date?: string;
   preferred_time_range?: string;
   insurance_provider?: string;
+  date_of_birth?: string;
+  patient_address?: string;
+  insurance_member_id?: string;
+  pharmacy_name?: string;
+  pharmacy_phone?: string;
+  allergies?: string;
+  current_medications?: string;
+  referring_provider?: string;
   verbal_consent_given?: boolean;
   notes?: string;
   params?: Record<string, unknown>;
@@ -59,6 +68,14 @@ serve(async (req: Request) => {
     const insuranceProvider = body.insurance_provider || (p.insurance_provider as string) || "";
     const verbalConsent = body.verbal_consent_given ?? (p.verbal_consent_given as boolean) ?? false;
     const notes = body.notes || (p.notes as string) || "";
+    const dateOfBirth = body.date_of_birth || (p.date_of_birth as string) || "";
+    const patientAddress = body.patient_address || (p.patient_address as string) || "";
+    const insuranceMemberId = body.insurance_member_id || (p.insurance_member_id as string) || "";
+    const pharmacyName = body.pharmacy_name || (p.pharmacy_name as string) || "";
+    const pharmacyPhone = body.pharmacy_phone || (p.pharmacy_phone as string) || "";
+    const allergies = body.allergies || (p.allergies as string) || "";
+    const currentMedications = body.current_medications || (p.current_medications as string) || "";
+    const referringProvider = body.referring_provider || (p.referring_provider as string) || "";
 
     if (!customerName) {
       return new Response(
@@ -136,6 +153,62 @@ serve(async (req: Request) => {
     const validUrgency = ["routine", "soon", "urgent"];
     const safeUrgency = validUrgency.includes(urgencyLevel) ? urgencyLevel : "routine";
 
+    // Parse preferred_date — AI may send natural language ("next Monday", "tomorrow")
+    // The DB column is `date` type, so we need YYYY-MM-DD format
+    let parsedPreferredDate: string | null = null;
+    if (preferredDate) {
+      const lower = preferredDate.toLowerCase().trim();
+      const now = new Date();
+
+      // ISO date already?
+      if (/^\d{4}-\d{2}-\d{2}$/.test(preferredDate)) {
+        parsedPreferredDate = preferredDate;
+      } else if (lower === "today" || lower === "now") {
+        parsedPreferredDate = now.toISOString().slice(0, 10);
+      } else if (lower === "tomorrow") {
+        const d = new Date(now);
+        d.setDate(d.getDate() + 1);
+        parsedPreferredDate = d.toISOString().slice(0, 10);
+      } else if (lower.startsWith("next ")) {
+        // "next Monday", "next Tuesday", etc.
+        const dayNames: Record<string, number> = {
+          sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+          thursday: 4, friday: 5, saturday: 6,
+        };
+        const dayName = lower.replace("next ", "").trim();
+        const targetDay = dayNames[dayName];
+        if (targetDay !== undefined) {
+          const d = new Date(now);
+          d.setDate(d.getDate() + 1);
+          while (d.getDay() !== targetDay) d.setDate(d.getDate() + 1);
+          parsedPreferredDate = d.toISOString().slice(0, 10);
+        } else {
+          // Unknown day name — store as text in notes instead
+          parsedPreferredDate = null;
+        }
+      } else {
+        // Try native Date parsing as fallback
+        const parsed = new Date(preferredDate);
+        if (!isNaN(parsed.getTime())) {
+          parsedPreferredDate = parsed.toISOString().slice(0, 10);
+        }
+        // If all parsing fails, leave null (avoid DB error)
+      }
+    }
+
+    // Parse date_of_birth — AI may send various date formats
+    let parsedDateOfBirth: string | null = null;
+    if (dateOfBirth) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+        parsedDateOfBirth = dateOfBirth;
+      } else {
+        const parsed = new Date(dateOfBirth);
+        if (!isNaN(parsed.getTime())) {
+          parsedDateOfBirth = parsed.toISOString().slice(0, 10);
+        }
+      }
+    }
+
     // Create medical intake record
     const { data: intake, error: intakeError } = await supabase
       .from("medical_intakes")
@@ -146,9 +219,17 @@ serve(async (req: Request) => {
         intake_type: safeIntakeType,
         urgency_level: safeUrgency,
         reason_for_visit: reasonForVisit || null,
-        preferred_date: preferredDate || null,
+        preferred_date: parsedPreferredDate,
         preferred_time_range: preferredTimeRange || null,
         insurance_provider: insuranceProvider || null,
+        date_of_birth: parsedDateOfBirth,
+        patient_address: patientAddress || null,
+        insurance_member_id: insuranceMemberId || null,
+        pharmacy_name: pharmacyName || null,
+        pharmacy_phone: pharmacyPhone || null,
+        allergies: allergies || null,
+        current_medications: currentMedications || null,
+        referring_provider: referringProvider || null,
         verbal_consent_given: verbalConsent,
         consent_timestamp: verbalConsent ? new Date().toISOString() : null,
         status: "pending",
@@ -204,19 +285,46 @@ serve(async (req: Request) => {
       console.error("[create-medical-intake] Delivery trigger failed:", e);
     }
 
+    // Send patient confirmation SMS
+    if (phoneE164) {
+      try {
+        const { data: tenantRow } = await supabase
+          .from("tenants")
+          .select("name")
+          .eq("id", resolvedTenantId)
+          .maybeSingle();
+
+        const bizName = (tenantRow && tenantRow.name) ? tenantRow.name : "Our office";
+        const smsBody = bizName + ": Thank you for calling! We've received your intake information and our office will follow up to confirm your appointment. Reply STOP to opt out.";
+
+        const smsResult = await sendTenantSms({
+          tenantId: resolvedTenantId,
+          to: phoneE164,
+          body: smsBody,
+          entityType: "intake",
+          entityId: intake.id,
+        });
+        console.log("[create-medical-intake] Patient SMS result:", JSON.stringify(smsResult));
+      } catch (smsErr) {
+        console.error("[create-medical-intake] Patient SMS failed:", smsErr);
+      }
+    }
+
     console.log(`[create-medical-intake] Created intake ${intake.id} for tenant ${resolvedTenantId}`);
 
     // Build response message based on intake type
+    // Use the original human-readable date for the spoken response
+    const displayDate = preferredDate || "";
     let message = "";
     if (safeIntakeType === "new_patient") {
       message = `Thank you ${customerName}. I've started your new patient intake. `;
-      if (preferredDate) message += `We'll look at getting you in on ${preferredDate}. `;
+      if (displayDate) message += `We'll look at getting you in on ${displayDate}. `;
       message += "Our office will follow up with you to confirm your appointment and any additional forms needed.";
     } else if (safeIntakeType === "prescription_refill") {
       message = `I've submitted your refill request, ${customerName}. Our office will review it and get back to you.`;
     } else if (safeIntakeType === "follow_up") {
       message = `I've noted your follow-up request, ${customerName}. `;
-      if (preferredDate) message += `We'll try to schedule you for ${preferredDate}. `;
+      if (displayDate) message += `We'll try to schedule you for ${displayDate}. `;
       message += "Someone from our office will reach out to confirm.";
     } else {
       message = `Thank you ${customerName}. I've submitted your request and our office will follow up with you shortly.`;
