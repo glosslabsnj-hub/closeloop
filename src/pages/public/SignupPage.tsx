@@ -125,10 +125,16 @@ export default function SignupPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-3">{BRAND.name}</h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">{BRAND.tagline}</p>
+            <p className="text-muted-foreground text-lg leading-relaxed">Your AI receptionist that answers calls, books jobs, and handles emergencies 24/7.</p>
           </div>
           <div className="pt-4 flex flex-col gap-3.5">
-            {["Answer calls 24/7", "Book appointments automatically", "Capture every lead"].map((text) => (
+            {[
+              "24/7 call answering, booking, and dispatch",
+              "AI that learns your services, pricing, and FAQs",
+              "20+ integrations (Google Calendar, Square, and more)",
+              "SMS confirmations and customer CRM built in",
+              "Emergency detection and instant routing",
+            ].map((text) => (
               <div key={text} className="flex items-center gap-3 text-muted-foreground/80 text-sm">
                 <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
                   <div className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -137,7 +143,9 @@ export default function SignupPage() {
               </div>
             ))}
           </div>
-          <p className="text-muted-foreground/40 text-xs pt-6">Built for local businesses that never miss a call</p>
+          <div className="pt-4 px-6 py-3 rounded-lg bg-primary/5 border border-primary/10">
+            <p className="text-muted-foreground/60 text-xs">7-day free trial. No credit card required. Setup in under 10 minutes.</p>
+          </div>
         </div>
       </div>
 
@@ -156,9 +164,9 @@ export default function SignupPage() {
 
           <div className="text-center mb-8">
             <h1 className="text-2xl font-semibold mb-1.5">
-              Create your account
+              Start your free trial
             </h1>
-            <p className="text-sm text-muted-foreground">Get started with your AI receptionist</p>
+            <p className="text-sm text-muted-foreground">7 days free. No credit card required. Live in under 10 minutes.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -225,7 +233,7 @@ export default function SignupPage() {
                   Creating account...
                 </>
               ) : (
-                "Create Account"
+                "Start Free Trial"
               )}
             </Button>
           </form>

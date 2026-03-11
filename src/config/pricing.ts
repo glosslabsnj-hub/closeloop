@@ -85,7 +85,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
     includedSmsSegments: null,
     overageMinuteRate: 0.55,
     overageSmsRate: 0,
-    stripePriceId: "price_1T2NqQDb4MCv003YApJCRdiM",
+    stripePriceId: "price_1T9KNDDb4MCv003YDLUDHbBT",
     isDefault: true,
   },
   {
@@ -294,8 +294,8 @@ export function requiresSalesContact(sku: PlanSku): boolean {
 // Trial configuration
 export const TRIAL_CONFIG = {
   duration_days: 7,
-  included_minutes: 30,
-  card_required: true,
+  included_minutes: 200,
+  card_required: false,
 } as const;
 
 // Export the complete pricing config object
