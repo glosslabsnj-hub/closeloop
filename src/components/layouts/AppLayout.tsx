@@ -48,6 +48,7 @@ import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { AppSidebar } from "@/components/layouts/AppSidebar";
 import { SlimTopBar } from "@/components/layouts/SlimTopBar";
 import { TrialBanner } from "@/components/dashboard/TrialBanner";
+import { SubscriptionStatusBanner } from "@/components/dashboard/SubscriptionStatusBanner";
 import { CommandPalette } from "@/components/CommandPalette";
 import { BRAND } from "@/config/brand";
 import { useIsAgencyUser } from "@/hooks/useAgencyData";
@@ -259,8 +260,9 @@ function AppLayoutContent() {
             isSuperAdmin={isSuperAdmin}
           />
 
-          {/* Trial banner — shown when subscription is trialing */}
+          {/* Subscription status banners */}
           <TrialBanner />
+          <SubscriptionStatusBanner />
 
           <MobileHeader
             displayTenant={displayTenant}

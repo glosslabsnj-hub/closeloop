@@ -54,7 +54,11 @@ export function TrialBanner() {
       <div className="flex items-center gap-3 min-w-0">
         <Clock className={cn("h-4 w-4 shrink-0", isUrgent ? "text-amber-600" : "text-primary")} />
         <span className={cn("font-medium", isUrgent ? "text-amber-800 dark:text-amber-200" : "text-foreground")}>
-          Free trial — {daysRemaining} day{daysRemaining !== 1 ? "s" : ""} remaining
+          {daysRemaining === 0
+            ? "Your free trial ends today"
+            : daysRemaining <= 2
+              ? `Free trial ends in ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""}`
+              : `Free trial — ${daysRemaining} day${daysRemaining !== 1 ? "s" : ""} remaining`}
         </span>
         <div className="hidden sm:flex items-center gap-2 text-muted-foreground">
           <Progress value={minutePercent} className="w-20 h-1.5" />
@@ -63,7 +67,7 @@ export function TrialBanner() {
       </div>
       <Link to="/app/go-live">
         <Button size="sm" variant={isUrgent ? "default" : "outline"} className="h-7 text-xs gap-1">
-          Upgrade Now
+          {isUrgent ? "Activate Now" : "Choose a Plan"}
           <ArrowRight className="h-3 w-3" />
         </Button>
       </Link>
