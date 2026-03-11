@@ -611,6 +611,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "Business Rules",
     order: 3,
     tab: "training",
+    isVisible: () => false, // Hidden until createRequiredQuestionRule is implemented
   },
   {
     id: "custom-policies",
@@ -640,7 +641,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "Knowledge Base",
     order: 1,
     tab: "training",
-    isVisible: (_mode, _caps, flags) => flags.reviewCount > 0,
+    isVisible: () => false, // Hidden until approveKnowledgeSuggestion/rejectKnowledgeSuggestion are implemented
   },
   {
     id: "faqs",
@@ -778,6 +779,7 @@ const TRAINING_ITEMS: BrainSectionItem[] = [
     groupLabel: "Additional Knowledge",
     order: 5,
     tab: "training",
+    isVisible: () => false, // Hidden until uploadKnowledgeSource/deleteKnowledgeSource are implemented
   },
 ];
 
