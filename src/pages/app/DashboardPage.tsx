@@ -12,17 +12,21 @@ export default function DashboardPage() {
   const { _canGoLive, _p0Flags, loading: _readinessLoading } = useAIReadinessV2();
   const [searchParams] = useSearchParams();
 
-  // Fire Google Ads conversion when user returns from Stripe Checkout
+  // Fire conversion events when user returns from Stripe Checkout
   useEffect(() => {
     if (searchParams.get("activated") === "true") {
       if (typeof window !== "undefined" && typeof window.gtag === "function") {
-        window.gtag("event", "conversion", {
-          send_to: "AW-17970313271",
+        // GA4 event for analytics tracking
+        window.gtag("event", "trial_activated", {
+          send_to: "G-FS9HB4ZQKB",
           value: 249.0,
           currency: "USD",
         });
-        window.gtag("event", "trial_activated", {
-          send_to: "G-FS9HB4ZQKB",
+        // Google Ads conversion - uses signup conversion action label
+        // TODO: Create dedicated "Paid Activation" conversion action in Google Ads
+        // and replace this label with the new one
+        window.gtag("event", "conversion", {
+          send_to: "AW-17970313271/tRXaCOK_5v4bELfw9PhC",
           value: 249.0,
           currency: "USD",
         });

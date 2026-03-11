@@ -36,13 +36,18 @@ export default function SignupPage() {
     if (step) selectedSku = step.sku;
   }
 
-  // Store plan on mount
+  // Store plan and capture Google Ads click ID on mount
   useEffect(() => {
     sessionStorage.setItem("selectedPlan", selectedSku);
     if (industryParam) {
       sessionStorage.setItem("selectedIndustry", industryParam);
     }
-  }, [selectedSku, industryParam]);
+    // Capture GCLID from URL for offline conversion tracking
+    const gclid = searchParams.get("gclid");
+    if (gclid) {
+      sessionStorage.setItem("gclid", gclid);
+    }
+  }, [selectedSku, industryParam, searchParams]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};

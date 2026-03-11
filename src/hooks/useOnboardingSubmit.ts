@@ -547,6 +547,14 @@ export function useOnboardingSubmit(userId?: string) {
         });
       }
 
+      // Store GCLID with tenant for offline conversion tracking
+      const storedGclid = sessionStorage.getItem("gclid");
+      if (storedGclid && tenantId) {
+        supabase.from("tenants").update({ metadata: { gclid: storedGclid } }).eq("id", tenantId).then(() => {
+          sessionStorage.removeItem("gclid");
+        });
+      }
+
       // Surface any partial failures so the user knows what to check in the Brain
       if (stepFailures.length > 0) {
         toast({
