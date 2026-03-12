@@ -129,7 +129,7 @@ export default function ReservationsPage() {
     return (
       <ModuleUnavailablePage
         title="Reservations Not Available"
-        description="The Reservations Not Available page requires Reservations to be enabled for your account."
+        description="Reservation management requires the Reservations module to be enabled for your account."
         moduleName="Reservations"
       />
     );

@@ -309,7 +309,7 @@ export default function KitchenDisplayPage() {
     return (
       <ModuleUnavailablePage
         title="Kitchen Display Not Available"
-        description="The Kitchen Display Not Available page requires Kitchen Display to be enabled for your account."
+        description="The kitchen display system requires the Kitchen Display module. Enable it to show live orders to your kitchen staff."
         moduleName="Kitchen Display"
       />
     );

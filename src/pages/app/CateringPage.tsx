@@ -129,7 +129,7 @@ export default function CateringPage() {
     return (
       <ModuleUnavailablePage
         title="Catering Not Available"
-        description="The Catering Not Available page requires Catering to be enabled for your account."
+        description="Catering order management requires the Catering module to be enabled for your account."
         moduleName="Catering"
       />
     );

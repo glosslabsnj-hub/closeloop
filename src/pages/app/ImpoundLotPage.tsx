@@ -183,7 +183,7 @@ export default function ImpoundLotPage() {
     return (
       <ModuleUnavailablePage
         title="Impound Lot Not Available"
-        description="The Impound Lot Not Available page requires Impound Lot to be enabled for your account."
+        description="Impound lot management requires the Impound Lot module to be enabled for your account."
         moduleName="Impound Lot"
       />
     );

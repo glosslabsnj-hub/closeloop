@@ -234,7 +234,7 @@ export default function AgreementsPage() {
     return (
       <ModuleUnavailablePage
         title="Agreements Not Available"
-        description="The Agreements Not Available page requires Agreements to be enabled for your account."
+        description="Service agreements and maintenance plans require the Agreements module. Contact your administrator to get access."
         moduleName="Agreements"
       />
     );
@@ -286,7 +286,7 @@ export default function AgreementsPage() {
           action={
             <Button onClick={handleCreateNew}>
               <Plus className="h-4 w-4 mr-2" />
-              New Agreement
+              {businessMode === "sales" ? "New Purchase Agreement" : businessMode === "medical" ? "New Patient Agreement" : "New Agreement"}
             </Button>
           }
         />
@@ -321,25 +321,31 @@ export default function AgreementsPage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Upcoming Renewals</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {businessMode === "sales" ? "Pending Agreements" : "Upcoming Renewals"}
+              </CardTitle>
               <Calendar className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.upcomingRenewals}</div>
+              <div className="text-2xl font-bold">
+                {businessMode === "sales" ? stats.active : stats.upcomingRenewals}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Renewing in next 30 days
+                {businessMode === "sales" ? "Active purchase agreements" : "Renewing in next 30 days"}
               </p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Expired/Cancelled</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {businessMode === "sales" ? "Cancelled Deals" : "Expired/Cancelled"}
+              </CardTitle>
               <XCircle className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.expired + stats.cancelled}</div>
               <p className="text-xs text-muted-foreground">
-                {stats.pendingRenewal} pending renewal
+                {businessMode === "sales" ? "Deals that didn't close" : `${stats.pendingRenewal} pending renewal`}
               </p>
             </CardContent>
           </Card>

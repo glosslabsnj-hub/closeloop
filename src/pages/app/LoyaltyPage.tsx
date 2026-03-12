@@ -153,7 +153,7 @@ export default function LoyaltyPage() {
     return (
       <ModuleUnavailablePage
         title="Loyalty Program Not Available"
-        description="The Loyalty Program Not Available page requires Loyalty Program to be enabled for your account."
+        description="Customer loyalty programs require the Loyalty Program module. Upgrade your plan to reward repeat customers."
         moduleName="Loyalty Program"
       />
     );

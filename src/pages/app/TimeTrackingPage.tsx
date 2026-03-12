@@ -220,7 +220,7 @@ export default function TimeTrackingPage() {
     return (
       <ModuleUnavailablePage
         title="Time Tracking Not Available"
-        description="The Time Tracking Not Available page requires Time Tracking to be enabled for your account."
+        description="Time tracking for your team requires the Time Tracking module to be enabled for your account."
         moduleName="Time Tracking"
       />
     );

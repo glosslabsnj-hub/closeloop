@@ -163,7 +163,7 @@ export default function InventoryPage() {
     return (
       <ModuleUnavailablePage
         title="Parts Inventory Not Available"
-        description="The Parts Inventory Not Available page requires Parts Inventory to be enabled for your account."
+        description="Parts inventory tracking requires the Parts Inventory module to be enabled for your account."
         moduleName="Parts Inventory"
       />
     );

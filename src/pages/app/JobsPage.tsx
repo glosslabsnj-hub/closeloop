@@ -48,7 +48,7 @@ function JobsPageContent() {
     return (
       <ModuleUnavailablePage
         title="Job Tracking Not Available"
-        description="The Job Tracking Not Available page requires Job Tracking to be enabled for your account."
+        description="Job tracking requires the Job Tracking module to be enabled for your account."
         moduleName="Job Tracking"
       />
     );

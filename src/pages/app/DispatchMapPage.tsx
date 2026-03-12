@@ -76,7 +76,7 @@ export default function DispatchMapPage() {
     return (
       <ModuleUnavailablePage
         title="Dispatch Map Not Available"
-        description="The Dispatch Map Not Available page requires Dispatch Map to be enabled for your account."
+        description="The live dispatch map requires the Dispatch Map module. Upgrade your plan to track drivers in real time."
         moduleName="Dispatch Map"
       />
     );

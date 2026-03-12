@@ -83,7 +83,7 @@ export default function TestDrivesPage() {
     return (
       <ModuleUnavailablePage
         title="Test Drives Not Available"
-        description="The Test Drives Not Available page requires Test Drives to be enabled for your account."
+        description="Test drive scheduling requires the Test Drives module. Contact your administrator or upgrade your plan to manage test drive appointments."
         moduleName="Test Drives"
       />
     );
@@ -298,7 +298,9 @@ export default function TestDrivesPage() {
                 await createTestDrive.mutateAsync({
                   customer_id: null,
                   session_id: null,
+                  booking_id: null,
                   vehicle_stock_number: null,
+                  vehicle_description: [newDrive.vehicleYear, newDrive.vehicleMake, newDrive.vehicleModel].filter(Boolean).join(" ") || null,
                   vehicle_year: newDrive.vehicleYear || null,
                   vehicle_make: newDrive.vehicleMake || null,
                   vehicle_model: newDrive.vehicleModel || null,
@@ -310,6 +312,7 @@ export default function TestDrivesPage() {
                   scheduled_date: newDrive.scheduledDate || null,
                   scheduled_time: newDrive.scheduledTime || null,
                   duration_minutes: 30,
+                  salesperson: null,
                   sales_rep_requested: null,
                   trade_in_interest: false,
                   trade_in_vehicle_info: null,
