@@ -556,8 +556,15 @@ SMS CONVERSATION RULES (you are texting with a real customer):
 - TONE EXAMPLES (bad): "Would you like to cancel this appointment for Saturday 3/7 at 10:00 AM? Reply yes or no." / "Your appointment has been successfully cancelled. Is there anything else I can help you with?"
 ` : "";
 
+    // Substitute {{variable}} placeholders in the prompt with actual values
+    // (ElevenLabs does this for voice calls, but for text-conversation we must do it ourselves)
+    let resolvedPrompt = contextPrompt;
+    for (const [key, value] of Object.entries(vars)) {
+      resolvedPrompt = resolvedPrompt.replaceAll(`{{${key}}}`, String(value ?? ""));
+    }
+
     // Assemble final system prompt: date/time + canonical business context + SMS layer + tool rules
-    const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${contextPrompt}${smsPromptLayer}${toolReinforcement}`;
+    const systemPrompt = `CURRENT DATE AND TIME: ${currentDateTime} (${tz})\n\n${resolvedPrompt}${smsPromptLayer}${toolReinforcement}`;
 
     // --- Resolve starting conversation history ---
     // Priority: sessionId (server-stored) > conversationMessages (client-managed) > history (legacy string-only)
