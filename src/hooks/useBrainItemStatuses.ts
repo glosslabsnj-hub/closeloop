@@ -56,6 +56,20 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       status: "optional",
       statusText: "Pre-built setups for common business types",
     };
+    s["team"] = {
+      status: capabilities.service.hasMultipleStaff ? "complete" : "optional",
+      statusText: capabilities.service.hasMultipleStaff
+        ? "Team members configured"
+        : "Add your staff members so your AI knows who works at your business",
+    };
+    s["callback-delivery"] = {
+      status: "optional",
+      statusText: "How callback requests are handled",
+    };
+    s["tekmetric"] = {
+      status: "optional",
+      statusText: "Connect to Tekmetric for shop management",
+    };
 
     // ── Services tab ──
     s["food-service-types"] = {
@@ -158,7 +172,7 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       statusText: summaries.guardrails,
     };
     s["required-questions"] = {
-      status: summaries.requiredQuestions !== "Not set up yet" && summaries.requiredQuestions !== "No required fields set" ? "complete" : "incomplete",
+      status: summaries.requiredQuestions !== "Not set up yet" && summaries.requiredQuestions !== "No required fields set" ? "complete" : "optional",
       statusText: summaries.requiredQuestions,
     };
     s["custom-policies"] = {
@@ -206,6 +220,22 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
     s["hipaa"] = {
       status: "warning",
       statusText: summaries.hipaa,
+    };
+
+    // ── AI Behavior tab ──
+    s["ai-behavior-mode"] = {
+      status: "complete",
+      statusText: summaries.scripts !== "Using the default — customize to match your style"
+        ? "AI behavior configured"
+        : "Default behavior mode active",
+    };
+    s["call-flow"] = {
+      status: "complete",
+      statusText: "Call flow configured",
+    };
+    s["booking-behavior"] = {
+      status: "complete",
+      statusText: "Booking behavior configured",
     };
 
     // ── AI Voice tab ──
@@ -265,6 +295,20 @@ export function useBrainItemStatuses(): Record<string, ItemStatusInfo> {
       status: capabilities.hasAftercare ? "complete" : "optional",
       statusText: capabilities.hasAftercare ? "Aftercare instructions configured" : "Post-service care instructions",
     };
+    // ── Sales mode items ──
+    s["lead-pipeline"] = {
+      status: "optional",
+      statusText: "Lead scoring and pipeline stages",
+    };
+    s["follow-up-sequences"] = {
+      status: "optional",
+      statusText: "Automated follow-up sequences",
+    };
+    s["sales-scripts"] = {
+      status: "optional",
+      statusText: "Sales conversation scripts and talk tracks",
+    };
+
     s["competitors"] = { status: "optional", statusText: "How to respond when competitors are mentioned" };
     s["seasonal"] = { status: "optional", statusText: "Holiday and event-specific info" };
     s["custom"] = {
