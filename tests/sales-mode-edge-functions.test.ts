@@ -364,3 +364,49 @@ describe("text-conversation: INVENTORY anti-fabrication rules for sales mode", (
     expect(salesRulesBlock).toContain("SALES APPROACH");
   });
 });
+
+// ─── search-inventory: category="used" regression ────────────────────────────
+
+describe("elevenlabs-search-inventory: category='used' should filter condition NOT body_style", () => {
+  it("separates condition keywords from body style keywords", () => {
+    // BUG FIXED (commit a95c017): category="used" was being passed as body_style
+    // causing .ilike("body_style", "%used%") — matched nothing, returned 0 results.
+    // Fix: CONDITION_KEYWORDS set identifies condition-type categories and routes
+    // them to the condition filter, not the body_style filter.
+    expect(searchInventorySource).toContain("CONDITION_KEYWORDS");
+    expect(searchInventorySource).toContain("categoryIsCondition");
+  });
+
+  it("'used' is a CONDITION_KEYWORDS member (routes to condition filter)", () => {
+    // The CONDITION_KEYWORDS set must contain 'used', 'new', 'certified'/'cpo'/'pre-owned'
+    const keywordsBlock = searchInventorySource.match(
+      /CONDITION_KEYWORDS[^;]{0,400}/
+    );
+    expect(keywordsBlock).toBeTruthy();
+    if (keywordsBlock) {
+      expect(keywordsBlock[0]).toContain('"used"');
+    }
+  });
+
+  it("bodyStyle is only set when category is NOT a condition keyword", () => {
+    // The body_style filter should use: body_style || (category if not condition) || ""
+    // NOT: body_style || category (which would treat 'used' as a body style)
+    expect(searchInventorySource).toContain("!categoryIsCondition");
+    expect(searchInventorySource).toContain("conditionFromCategory");
+  });
+
+  it("condition filter uses conditionFromCategory (not raw category)", () => {
+    // Also handles normalization: 'pre-owned' → 'certified', 'cpo' → 'certified'
+    expect(searchInventorySource).toContain("conditionFromCategory");
+    expect(searchInventorySource).toContain("pre-owned");
+  });
+
+  it("does NOT use category directly as body_style", () => {
+    // Regression guard: category should never directly feed body_style filter
+    // The dangerous pattern: body_style = params.body_style || params.category
+    // The safe pattern: body_style = params.body_style || (!categoryIsCondition ? params.category : "")
+    expect(searchInventorySource).not.toMatch(
+      /body_style.*=.*params\.body_style.*\|\|.*params\.category[^?]/
+    );
+  });
+});
