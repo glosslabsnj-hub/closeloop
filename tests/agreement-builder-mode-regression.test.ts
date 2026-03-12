@@ -165,6 +165,39 @@ describe("AgreementBuilder: template cards — sales mode display (commit 881d0b
 });
 
 // ---------------------------------------------------------------------------
+// Billing frequency / payment type — sales mode one-time payment option
+// ---------------------------------------------------------------------------
+describe("AgreementBuilder: billing frequency / payment type (sales mode)", () => {
+  it("label is 'Payment Type' for sales mode", () => {
+    expect(builderSrc).toContain('isSales ? "Payment Type" : "Billing Frequency"');
+  });
+
+  it("label is 'Billing Frequency' for non-sales modes", () => {
+    // Same ternary — verifying the false branch is present
+    expect(builderSrc).toContain('"Billing Frequency"');
+  });
+
+  it("'one_time' SelectItem only rendered for sales mode", () => {
+    // Guard: isSales && <SelectItem value="one_time">
+    expect(builderSrc).toContain('isSales && <SelectItem value="one_time">');
+  });
+
+  it("one_time option label is 'One-time payment'", () => {
+    expect(builderSrc).toContain("One-time payment");
+  });
+
+  it("auto-renew toggle is hidden when billingFrequency is 'one_time'", () => {
+    // Auto-renew makes no sense for one-time purchase agreements
+    expect(builderSrc).toContain('billingFrequency !== "one_time"');
+  });
+
+  it("SALES_PLAN_TEMPLATES default billing_frequency is 'one_time'", () => {
+    // Sales templates default to one-time, not monthly
+    expect(builderSrc).toContain('billing_frequency: "one_time"');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // UX commit 881d0b9: AgreementsPage list item 'appointments used' for sales
 // ---------------------------------------------------------------------------
 describe("AgreementsPage: 'appointments used' for sales, 'visits used' for others (commit 881d0b9)", () => {
