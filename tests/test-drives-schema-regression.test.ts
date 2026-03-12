@@ -103,7 +103,7 @@ describe("elevenlabs-create-booking: test_drive links to booking", () => {
 
   it("includes vehicle_description (service name as vehicle context)", () => {
     const insertStart = createBookingSrc.lastIndexOf('"test_drives"');
-    const insertBlock = createBookingSrc.slice(insertStart, insertStart + 600);
+    const insertBlock = createBookingSrc.slice(insertStart, insertStart + 900);
     expect(insertBlock).toContain("vehicle_description");
   });
 });

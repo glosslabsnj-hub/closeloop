@@ -89,7 +89,7 @@ describe("elevenlabs-create-booking: sales mode creates test_drives — function
   it("test_drives record links to booking via booking_id", () => {
     const testDriveInsert = createBookingSource.slice(
       createBookingSource.indexOf('"test_drives"'),
-      createBookingSource.indexOf('"test_drives"') + 500
+      createBookingSource.indexOf('"test_drives"') + 800
     );
     expect(testDriveInsert).toContain("booking_id");
   });

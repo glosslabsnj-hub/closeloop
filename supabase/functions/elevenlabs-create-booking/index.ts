@@ -719,7 +719,7 @@ serve(async (req: Request) => {
             scheduled_date: scheduledDateStr,
             scheduled_time: targetTime || null,
             duration_minutes: finalDuration,
-            // status enum: pending|confirmed|completed|cancelled|no_show
+            // booking_status enum: pending|confirmed|completed|canceled|no_show (1 'l' in 'canceled')
             status: initialStatus === "confirmed" ? "confirmed" : "pending",
             notes: notes || null,
             booking_id: booking.id,
