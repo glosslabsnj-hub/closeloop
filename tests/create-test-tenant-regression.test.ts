@@ -189,3 +189,66 @@ describe("CreateTestTenantDialog: user feedback", () => {
     expect(source).toContain("industrySlug ?");
   });
 });
+
+// ---------------------------------------------------------------------------
+// seed-test-tenants: sales leads must have customer records (regression #826)
+// ---------------------------------------------------------------------------
+
+import { getTestTenantBySlug } from "../src/data/testTenantMatrix";
+
+describe("testTenantMatrix: Prestige Auto Group customSalesLeads have customer data", () => {
+  const prestige = getTestTenantBySlug("test-car-dealership");
+
+  it("Prestige Auto Group tenant exists in test matrix", () => {
+    expect(prestige).toBeDefined();
+  });
+
+  it("has customSalesLeads", () => {
+    expect(prestige?.seedData?.customSalesLeads?.length).toBeGreaterThan(0);
+  });
+
+  it("every sales lead has customer_name and customer_phone (needed to create customer records)", () => {
+    const leads = prestige?.seedData?.customSalesLeads ?? [];
+    for (let i = 0; i < leads.length; i++) {
+      const lead = leads[i];
+      expect(lead.customer_name, `Lead #${i + 1} missing customer_name`).toBeTruthy();
+      expect(lead.customer_phone, `Lead #${i + 1} missing customer_phone`).toBeTruthy();
+    }
+  });
+
+  it("customer phone numbers are E.164 format (+1...)", () => {
+    const leads = prestige?.seedData?.customSalesLeads ?? [];
+    for (let i = 0; i < leads.length; i++) {
+      const lead = leads[i];
+      if (lead.customer_phone) {
+        expect(lead.customer_phone, `Lead #${i + 1} phone not E.164`).toMatch(/^\+1\d{10}$/);
+      }
+    }
+  });
+});
+
+const seedFnSource = (() => {
+  const { readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  return readFileSync(join(process.cwd(), "supabase/functions/seed-test-tenants/index.ts"), "utf-8");
+})();
+
+describe("seed-test-tenants: creates customer records for sales leads (regression #826)", () => {
+  it("customSalesLeads type includes customer_name and customer_phone fields", () => {
+    expect(seedFnSource).toContain("customer_name?");
+    expect(seedFnSource).toContain("customer_phone?");
+  });
+
+  it("seed function creates customer records when name+phone present", () => {
+    expect(seedFnSource).toContain("l.customer_name && l.customer_phone");
+  });
+
+  it("seed function links leads to customers via customer_id", () => {
+    expect(seedFnSource).toContain("customer_id");
+    expect(seedFnSource).toContain("customers");
+  });
+
+  it("seed function handles existing customers (upsert via phone lookup)", () => {
+    expect(seedFnSource).toContain("maybeSingle");
+  });
+});

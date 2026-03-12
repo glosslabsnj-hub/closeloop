@@ -211,3 +211,38 @@ describe("cancel/reschedule: error handling", () => {
     expect(reschedSource).toMatch(/available|conflict|isn.t available/i);
   });
 });
+
+// ─── booking-handoff cancel regression ───────────────────────────────────────
+
+const bookingHandoffSource = readEdgeFn(
+  "supabase/functions/booking-handoff/index.ts"
+);
+
+describe("booking-handoff: cancel status update (regression)", () => {
+  it("does NOT include canceled_at in booking update — column does not exist", () => {
+    // booking-handoff was broken: .update({ status: "canceled", canceled_at: ... })
+    // The bookings table has NO canceled_at column. This caused silent UPDATE failure.
+    // Fix: only update status, never reference canceled_at.
+    const updateMatch = bookingHandoffSource.match(
+      /\.update\(\{[^}]*status:\s*["']canceled["'][^}]*\}\)/s
+    );
+    if (updateMatch) {
+      expect(updateMatch[0]).not.toContain("canceled_at");
+    }
+    // Also verify canceled_at does not appear anywhere in booking updates
+    expect(bookingHandoffSource).not.toContain("canceled_at");
+  });
+
+  it("updates booking status to 'canceled' in cancellation branch", () => {
+    expect(bookingHandoffSource).toContain('status: "canceled"');
+  });
+
+  it("cancellation branch triggers before main handoff logic", () => {
+    const cancelIndex = bookingHandoffSource.indexOf("isCancellation");
+    const mainFlowIndex = bookingHandoffSource.indexOf("booking_delivery_settings");
+    expect(cancelIndex).toBeGreaterThan(-1);
+    expect(mainFlowIndex).toBeGreaterThan(-1);
+    // Cancellation check must appear before main delivery settings query
+    expect(cancelIndex).toBeLessThan(mainFlowIndex);
+  });
+});
