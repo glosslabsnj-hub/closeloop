@@ -119,13 +119,13 @@ serve(async (_req: Request) => {
 
         if (!oldBookings?.length) continue; // Never had a completed booking, or too recent
 
-        // Check they don't have a recent booking (any status except cancelled)
+        // Check they don't have a recent booking (any status except canceled)
         const { data: recentBookings } = await supabase
           .from("bookings")
           .select("id")
           .eq("tenant_id", tenantId)
           .eq("lead_id", lead.id)
-          .neq("status", "cancelled")
+          .neq("status", "canceled")
           .gte("start_at", inactiveCutoff)
           .limit(1);
 

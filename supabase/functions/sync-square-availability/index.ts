@@ -452,13 +452,13 @@ Deno.serve(async (req) => {
       }
 
       // Also cancel the Flux booking if one was created from this Square booking
+      // bookings table uses booking_status enum: 'canceled' (1 'l')
       await supabase
         .from("bookings")
-        .update({ status: "cancelled" })
+        .update({ status: "canceled" })
         .eq("tenant_id", effectiveTenantId)
         .eq("external_event_id", cancelled.id)
         .eq("external_provider", "square")
-        .neq("status", "cancelled")
         .neq("status", "canceled");
     }
 

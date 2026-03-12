@@ -55,9 +55,10 @@ describe("elevenlabs-cancel-booking: parameter handling", () => {
 });
 
 describe("elevenlabs-cancel-booking: status enum safety", () => {
-  it("sets booking status to cancelled (not 'canceled')", () => {
-    // Must use a valid status from the booking_status enum
-    expect(cancelSource).toMatch(/status.*cancelled|cancelled.*status/);
+  it("sets booking status to 'canceled' — matches booking_status DB enum (1 'l')", () => {
+    // booking_status enum: 'pending_deposit','confirmed','completed','canceled','no_show','pending'
+    // IMPORTANT: bookings uses 'canceled' (1 'l'), test_drives uses 'cancelled' (2 'l')
+    expect(cancelSource).toContain('status: "canceled"');
   });
 
   it("does not use invalid status values", () => {
@@ -244,5 +245,79 @@ describe("booking-handoff: cancel status update (regression)", () => {
     expect(mainFlowIndex).toBeGreaterThan(-1);
     // Cancellation check must appear before main delivery settings query
     expect(cancelIndex).toBeLessThan(mainFlowIndex);
+  });
+});
+
+// ─── Cross-function booking_status enum consistency ───────────────────────────
+// booking_status DB enum: 'pending_deposit','confirmed','completed','canceled','no_show','pending'
+// CRITICAL: bookings table uses 'canceled' (1 'l'), test_drives uses 'cancelled' (2 'l')
+
+const integrationWebhookSrc = readEdgeFn(
+  "supabase/functions/integration-webhook-receiver/index.ts"
+);
+const cronReactivationSrc = readEdgeFn(
+  "supabase/functions/cron-customer-reactivation/index.ts"
+);
+const syncSquareSrc = readEdgeFn(
+  "supabase/functions/sync-square-availability/index.ts"
+);
+
+describe("booking_status enum consistency: 'canceled' (1 'l') across all edge functions", () => {
+  it("integration-webhook-receiver: Square cancel writes 'canceled' to bookings table", () => {
+    // Was: { status: "cancelled" } — caused DB error (enum value not found)
+    // Fix: { status: "canceled" } matches booking_status enum
+    const updateBlock = integrationWebhookSrc.match(
+      /from\("bookings"\)[^;]+update\(\{[^}]+\}\)/s
+    );
+    if (updateBlock) {
+      expect(updateBlock[0]).not.toContain('"cancelled"');
+    }
+    expect(integrationWebhookSrc).toContain('status: "canceled"');
+  });
+
+  it("cron-customer-reactivation: queries bookings with 'canceled' (1 'l')", () => {
+    // Was: .neq("status", "cancelled") — never matched any rows (enum mismatch)
+    // Leads who cancelled their last booking were incorrectly being reactivated
+    expect(cronReactivationSrc).toContain('.neq("status", "canceled")');
+    expect(cronReactivationSrc).not.toContain('.neq("status", "cancelled")');
+  });
+
+  it("sync-square-availability: cancellation writes 'canceled' to bookings table", () => {
+    // Was: { status: "cancelled" } — caused DB enum error
+    // Fix: { status: "canceled" } matches booking_status enum
+    // The cancellation block sets status directly (not via variable)
+    // Look for the "Also cancel the Flux booking" comment + update block
+    const cancelBlock = syncSquareSrc.match(
+      /Also cancel the Flux booking[\s\S]{1,300}\.update\(\{[^}]+\}\)/
+    );
+    if (cancelBlock) {
+      expect(cancelBlock[0]).toContain('"canceled"');
+      expect(cancelBlock[0]).not.toContain('"cancelled"');
+    } else {
+      // Fallback: verify the literal string exists
+      expect(syncSquareSrc).toContain('update({ status: "canceled" })');
+    }
+  });
+
+  it("elevenlabs-cancel-booking: bookings update uses 'canceled' (DB enum)", () => {
+    // test_drives uses 'cancelled' (2 'l') — different table, different constraint
+    // bookings table booking_status enum requires 'canceled' (1 'l')
+    const bookingsUpdateBlock = cancelSource.match(
+      /from\("bookings"\)[^;]+update\(\{[^}]+\}\)/s
+    );
+    if (bookingsUpdateBlock) {
+      expect(bookingsUpdateBlock[0]).toContain('"canceled"');
+      expect(bookingsUpdateBlock[0]).not.toContain('"cancelled"');
+    }
+  });
+
+  it("elevenlabs-cancel-booking: test_drives update uses 'cancelled' (test_drives constraint)", () => {
+    // test_drives CHECK constraint: ('scheduled','confirmed','completed','cancelled','no_show')
+    const testDrivesUpdateBlock = cancelSource.match(
+      /from\("test_drives"\)[^;]+update\(\{[^}]+\}\)/s
+    );
+    if (testDrivesUpdateBlock) {
+      expect(testDrivesUpdateBlock[0]).toContain('"cancelled"');
+    }
   });
 });

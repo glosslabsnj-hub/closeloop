@@ -501,7 +501,7 @@ async function handleSquareWebhook(
         if (fluxBooking) {
           await supabase
             .from("bookings")
-            .update({ status: "cancelled" })
+            .update({ status: "canceled" })
             .eq("id", fluxBooking.id);
 
           // ALWAYS notify owner on cancellations, regardless of booking source

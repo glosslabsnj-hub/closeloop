@@ -248,12 +248,12 @@ serve(async (req: Request) => {
     const isWithinPolicy = hoursUntilAppointment < cancellationNoticeHours;
     const wasUpcoming = bookingStart > now;
 
-    // Cancel the booking
+    // Cancel the booking — bookings table uses booking_status enum: 'canceled' (1 'l')
     const { error: updateError } = await supabase
       .from("bookings")
-      .update({ 
-        status: "cancelled",
-        notes: booking.notes ? `${booking.notes}\n\nCancelled via voice AI: ${reason}` : `Cancelled via voice AI: ${reason}`
+      .update({
+        status: "canceled",
+        notes: booking.notes ? `${booking.notes}\n\nCanceled via voice AI: ${reason}` : `Canceled via voice AI: ${reason}`
       })
       .eq("id", booking.id);
 
