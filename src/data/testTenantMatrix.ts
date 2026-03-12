@@ -112,6 +112,8 @@ export interface TestTenantConfig {
       timeline?: string;
       source?: string;
       notes?: string;
+      customer_name?: string;
+      customer_phone?: string;
       lead_number?: string;
     }[];
   };
@@ -1558,11 +1560,11 @@ const salesTenants: TestTenantConfig[] = [
         { objection: "I need to talk to my spouse / partner first", response: "Absolutely — this is a big decision and it's great that you two make it together. Would you like to schedule a time to come in together? I can have the vehicle prepped for a test drive and put together a full breakdown to make the conversation easy.", priority_weight: 7 },
       ],
       customSalesLeads: [
-        { status: "new", priority: "high", vehicle_interest: "2025 Toyota RAV4 XLE", interest_type: "vehicle_purchase", budget_range: "$30,000-35,000", has_trade_in: true, trade_in_details: "2019 Honda CR-V ~45k miles", financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "Called about RAV4. Wants AWD. Has trade-in.", lead_number: "SL-001" },
-        { status: "contacted", priority: "normal", vehicle_interest: "2024 Toyota Tacoma TRD Off-Road", interest_type: "vehicle_purchase", budget_range: "$40,000-45,000", has_trade_in: false, trade_in_details: null, financing_preapproved: true, timeline: "this_week", source: "ai_call", notes: "Pre-approved for financing. Test drive Tacoma TRD.", lead_number: "SL-002" },
-        { status: "qualified", priority: "high", vehicle_interest: "2025 Toyota Camry SE", interest_type: "vehicle_purchase", budget_range: "$28,000-32,000", has_trade_in: true, trade_in_details: "2020 Nissan Altima ~28k miles", financing_preapproved: false, timeline: "immediate", source: "ai_call", notes: "Ready to buy. Scheduling test drive.", lead_number: "SL-003" },
-        { status: "new", priority: "low", vehicle_interest: "Toyota bZ4X EV", interest_type: "vehicle_purchase", budget_range: "$40,000-50,000", has_trade_in: false, trade_in_details: null, financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "First time EV buyer. Questions about charging.", lead_number: "SL-004" },
-        { status: "sold", priority: "normal", vehicle_interest: "2025 Toyota Tundra SR5", interest_type: "vehicle_purchase", budget_range: "$48,000-52,000", has_trade_in: true, trade_in_details: "2021 Ram 1500 ~22k miles", financing_preapproved: false, timeline: "immediate", source: "ai_call", notes: "Purchased Tundra SR5 with tow package. Trade-in applied.", lead_number: "SL-005" },
+        { status: "new", priority: "high", vehicle_interest: "2025 Toyota RAV4 XLE", interest_type: "vehicle_purchase", budget_range: "$30,000-35,000", has_trade_in: true, trade_in_details: "2019 Honda CR-V ~45k miles", financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "Called about RAV4. Wants AWD. Has trade-in.", customer_name: "Sarah Johnson", customer_phone: "+15555010001", lead_number: "SL-001" },
+        { status: "contacted", priority: "normal", vehicle_interest: "2024 Toyota Tacoma TRD Off-Road", interest_type: "vehicle_purchase", budget_range: "$40,000-45,000", has_trade_in: false, trade_in_details: null, financing_preapproved: true, timeline: "this_week", source: "ai_call", notes: "Pre-approved for financing. Test drive Tacoma TRD.", customer_name: "Mike Torres", customer_phone: "+15555010002", lead_number: "SL-002" },
+        { status: "qualified", priority: "high", vehicle_interest: "2025 Toyota Camry SE", interest_type: "vehicle_purchase", budget_range: "$28,000-32,000", has_trade_in: true, trade_in_details: "2020 Nissan Altima ~28k miles", financing_preapproved: false, timeline: "immediate", source: "ai_call", notes: "Ready to buy. Scheduling test drive.", customer_name: "Jessica Park", customer_phone: "+15555010003", lead_number: "SL-003" },
+        { status: "new", priority: "low", vehicle_interest: "Toyota bZ4X EV", interest_type: "vehicle_purchase", budget_range: "$40,000-50,000", has_trade_in: false, trade_in_details: null, financing_preapproved: false, timeline: "this_month", source: "ai_call", notes: "First time EV buyer. Questions about charging.", customer_name: "David Chen", customer_phone: "+15555010004", lead_number: "SL-004" },
+        { status: "sold", priority: "normal", vehicle_interest: "2025 Toyota Tundra SR5", interest_type: "vehicle_purchase", budget_range: "$48,000-52,000", has_trade_in: true, trade_in_details: "2021 Ram 1500 ~22k miles", financing_preapproved: false, timeline: "immediate", source: "ai_call", notes: "Purchased Tundra SR5 with tow package. Trade-in applied.", customer_name: "Robert Wilson", customer_phone: "+15555010005", lead_number: "SL-005" },
       ],
       customInventory: [
         { year: 2025, make: "Toyota", model: "RAV4", trim: "XLE", body_style: "SUV", condition: "new", exterior_color: "Midnight Black", asking_price_cents: 3189500, internet_price_cents: 3149500, stock_number: "N2501", features: ["AWD", "Apple CarPlay", "Heated Seats", "Safety Sense 3.0"], description: "Brand new RAV4 XLE with all-wheel drive and Toyota Safety Sense." },

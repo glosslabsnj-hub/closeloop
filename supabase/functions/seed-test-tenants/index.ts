@@ -76,6 +76,8 @@ interface SeedRequest {
         description?: string;
       }[];
       customSalesLeads?: {
+        customer_name?: string;
+        customer_phone?: string;
         status?: string;
         priority?: string;
         vehicle_interest?: string;
@@ -577,22 +579,48 @@ async function seedTenantData(
 
   // Seed sales leads (sales mode only)
   if (seedData.customSalesLeads && seedData.customSalesLeads.length > 0) {
-    const leads = seedData.customSalesLeads.map((l) => ({
-      tenant_id: tenantId,
-      status: l.status ?? "new",
-      priority: l.priority ?? "normal",
-      vehicle_interest: l.vehicle_interest ?? null,
-      interest_type: l.interest_type ?? null,
-      budget_range: l.budget_range ?? null,
-      has_trade_in: l.has_trade_in ?? false,
-      trade_in_details: l.trade_in_details ?? null,
-      financing_preapproved: l.financing_preapproved ?? false,
-      timeline: l.timeline ?? null,
-      source: l.source ?? "ai_call",
-      notes: l.notes ?? null,
-      lead_number: l.lead_number ?? null,
-    }));
-    await client.from("sales_leads").insert(leads);
+    // Create customers for leads that have a customer_name and customer_phone
+    const leadsWithCustomers = await Promise.all(
+      seedData.customSalesLeads.map(async (l) => {
+        let customerId: string | null = null;
+        if (l.customer_name && l.customer_phone) {
+          // Upsert customer by phone (unique per tenant)
+          const { data: existing } = await client
+            .from("customers")
+            .select("id")
+            .eq("tenant_id", tenantId)
+            .eq("phone_e164", l.customer_phone)
+            .maybeSingle();
+          if (existing) {
+            customerId = existing.id;
+          } else {
+            const { data: newCustomer } = await client
+              .from("customers")
+              .insert({ tenant_id: tenantId, full_name: l.customer_name, phone_e164: l.customer_phone, source: "seeded" })
+              .select("id")
+              .single();
+            customerId = newCustomer?.id ?? null;
+          }
+        }
+        return {
+          tenant_id: tenantId,
+          customer_id: customerId,
+          status: l.status ?? "new",
+          priority: l.priority ?? "normal",
+          vehicle_interest: l.vehicle_interest ?? null,
+          interest_type: l.interest_type ?? null,
+          budget_range: l.budget_range ?? null,
+          has_trade_in: l.has_trade_in ?? false,
+          trade_in_details: l.trade_in_details ?? null,
+          financing_preapproved: l.financing_preapproved ?? false,
+          timeline: l.timeline ?? null,
+          source: l.source ?? "ai_call",
+          notes: l.notes ?? null,
+          lead_number: l.lead_number ?? null,
+        };
+      })
+    );
+    await client.from("sales_leads").insert(leadsWithCustomers);
   }
 
   // Seed sample call sessions — use custom if provided, otherwise generate generic

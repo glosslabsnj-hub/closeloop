@@ -544,7 +544,7 @@ serve(async (req) => {
       // Update booking status to canceled
       const { error: cancelUpdateError } = await supabase
         .from("bookings")
-        .update({ status: "canceled", canceled_at: new Date().toISOString() })
+        .update({ status: "canceled" })
         .eq("id", booking_id)
         .eq("tenant_id", tenantId);
 
