@@ -282,6 +282,20 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
     websiteImportActiveRef.current = false;
   }, []);
 
+  // Sync Step 1 scenario answers to Step 4 booking mode
+  // When user toggles "AI Books Appointments" OFF → set callback_only
+  // When user selects a booking mode in the follow-up → sync it
+  useEffect(() => {
+    if (scenarioAnswers.aiBooksDirect === false) {
+      setBookingMode("callback_only");
+    } else if (scenarioAnswers._aiBookingMode) {
+      const mapped = scenarioAnswers._aiBookingMode as string;
+      if (mapped === "auto_book" || mapped === "pending_approval" || mapped === "callback_only" || mapped === "suggest_callback") {
+        setBookingMode(mapped as AIBookingMode);
+      }
+    }
+  }, [scenarioAnswers.aiBooksDirect, scenarioAnswers._aiBookingMode]);
+
   return {
     // Form state
     businessName, setBusinessName,
