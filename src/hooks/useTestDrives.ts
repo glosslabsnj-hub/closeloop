@@ -9,6 +9,7 @@ interface TestDrive {
   tenant_id: string;
   customer_id: string | null;
   session_id: string | null;
+  booking_id: string | null;
   vehicle_stock_number: string | null;
   vehicle_year: string | null;
   vehicle_make: string | null;
@@ -17,11 +18,13 @@ interface TestDrive {
   vehicle_vin: string | null;
   vehicle_color: string | null;
   vehicle_type: string | null;
+  vehicle_description: string | null;
   scheduled_at: string | null;
   scheduled_date: string | null;
   scheduled_time: string | null;
   duration_minutes: number;
   sales_rep_requested: string | null;
+  salesperson: string | null;
   trade_in_interest: boolean;
   trade_in_vehicle_info: string | null;
   financing_interest: boolean;
@@ -118,11 +121,27 @@ export function useTestDrives() {
         .single();
 
       if (error) throw error;
+
+      // Trigger post-service automation when test drive is completed and has a linked booking
+      if (updates.status === "completed" && tenant?.id && data?.booking_id) {
+        supabase.functions.invoke("post-service-automation", {
+          body: {
+            booking_id: data.booking_id,
+            tenant_id: tenant.id,
+            completed_by: "staff",
+          },
+        }).catch(() => { /* best-effort */ });
+      }
+
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["test-drives", tenant?.id] });
-      toast({ title: "Test drive updated", description: "Changes saved." });
+      const isCompletion = variables.status === "completed";
+      toast({
+        title: isCompletion ? "Test drive complete!" : "Test drive updated",
+        description: isCompletion ? "Follow-up messages are being sent." : "Changes saved.",
+      });
     },
     onError: () => {
       toast({ title: "Something went wrong", description: "Try again?", variant: "destructive" });
