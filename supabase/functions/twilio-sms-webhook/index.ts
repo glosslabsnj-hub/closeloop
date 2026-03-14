@@ -16,6 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
 import { sendTenantSms } from "../_shared/sms-sender.ts";
+import { validateTwilioRequest, forbiddenResponse, parseFormBody } from "../_shared/twilioValidator.ts";
 
 const VERSION = "sms-webhook@2026-03-06.1";
 
@@ -42,12 +43,21 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse Twilio webhook form data
-    const formData = await req.formData();
-    const from = formData.get("From") as string;
-    const to = formData.get("To") as string;
-    const messageBody = (formData.get("Body") as string || "").trim();
-    const messageSid = formData.get("MessageSid") as string;
+    // Parse Twilio webhook form data (use text + URLSearchParams to retain raw body for signature validation)
+    const rawBody = await req.text();
+    const formParams = parseFormBody(rawBody);
+
+    // Validate Twilio request signature (reject forged requests)
+    const validation = await validateTwilioRequest(req, rawBody, formParams);
+    if (!validation.valid) {
+      console.warn(`[sms-webhook] Request rejected: ${validation.error}`);
+      return forbiddenResponse();
+    }
+
+    const from = formParams["From"] || "";
+    const to = formParams["To"] || "";
+    const messageBody = (formParams["Body"] || "").trim();
+    const messageSid = formParams["MessageSid"] || "";
 
     console.log(`[${VERSION}] SMS from ${from} to ${to}: "${messageBody.substring(0, 80)}"`);
 

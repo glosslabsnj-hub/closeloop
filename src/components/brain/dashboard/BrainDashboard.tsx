@@ -161,7 +161,7 @@ export function BrainDashboard({ onNavigate, onStartGuidedSetup }: BrainDashboar
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Business Brain</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">AI Setup</h1>
           {tenant?.name && (
             <p className="text-sm text-muted-foreground mt-0.5">{tenant.name as string}</p>
           )}

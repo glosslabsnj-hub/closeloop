@@ -307,7 +307,7 @@ export default function UsagePage() {
                 )}
               </div>
             </div>
-            <Link to="/app/settings?tab=billing">
+            <Link to="/app/settings?tab=plan">
               <Button className="w-full mt-4">
                 Upgrade Plan
                 <ArrowUpRight className="ml-2 h-4 w-4" />

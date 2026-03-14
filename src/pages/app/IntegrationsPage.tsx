@@ -578,8 +578,8 @@ export default function IntegrationsPage() {
             </CardContent>
           </Card>
 
-          {/* FieldEdge Self-Service Setup (for service/dispatch businesses) */}
-          {(businessMode === "service" || businessMode === "dispatch") && (
+          {/* FieldEdge Self-Service Setup (for service businesses in relevant industries) */}
+          {businessMode === "service" && (
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <span className="text-xl">⚙️</span>
@@ -652,7 +652,7 @@ export default function IntegrationsPage() {
               <h2 className="text-lg font-semibold">We'll Set These Up For You</h2>
             </div>
             <p className="text-sm text-muted-foreground -mt-2">
-              {businessMode === "service" && "Need ServiceTitan, Calendly, or Salesforce? Our team will configure these for you — usually within 24 hours."}
+              {businessMode === "service" && "Need Square, Housecall Pro, or Jobber? Our team will configure these for you — usually within 24 hours."}
               {businessMode === "food" && "Need Toast, Clover, or TouchBistro? Our team will configure these for you — usually within 24 hours."}
               {businessMode === "dispatch" && "Need Towbook, Onfleet, or Samsara? Our team will configure these for you — usually within 24 hours."}
               {businessMode === "medical" && "Need AthenaHealth, Practice Fusion, or Epic? Our team will configure these for you — usually within 24 hours."}

@@ -54,7 +54,7 @@ export default function SimulatorPage() {
           </TabsTrigger>
           <TabsTrigger value="brain" className="gap-2">
             <Brain className="h-4 w-4" />
-            Brain Debugger
+            Knowledge Check
           </TabsTrigger>
         </TabsList>
 

@@ -1,0 +1,11 @@
+const fs = require('fs');
+const a = JSON.parse(fs.readFileSync('/tmp/el_agent.json'));
+const c = a.conversation_config;
+console.log('LLM:', c?.agent?.prompt?.llm);
+console.log('Voice:', c?.tts?.voice_id);
+console.log('Tools:', c?.agent?.prompt?.tools?.length);
+const p = c?.agent?.dynamic_variables?.dynamic_variable_placeholders || {};
+const empty = Object.entries(p).filter(([, v]) => !v).map(([k]) => k);
+console.log('Empty placeholders:', empty.length ? empty.join(',') : 'none');
+const nodes = Object.keys(a.workflow?.nodes || {});
+console.log('Workflow nodes:', nodes.join(','));

@@ -13,6 +13,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -280,6 +281,111 @@ async function handleSquareWebhook(
 
       const squareStatus = squareBooking?.status;
 
+      // ─── RESCHEDULE DETECTION ────────────────────────────────────
+      // If the booking already exists in Flux and the time changed, treat as reschedule
+      if (fluxBooking && squareBooking?.start_at && (squareStatus === "ACCEPTED" || squareStatus === "PENDING" || squareStatus === "accepted" || squareStatus === "pending")) {
+        const squareStartAt = new Date(squareBooking.start_at).toISOString();
+        const fluxStartAt = new Date(fluxBooking.start_at).toISOString();
+
+        if (squareStartAt !== fluxStartAt) {
+          const durationMin = squareBooking?.appointment_segments?.[0]?.duration_minutes || 60;
+          const newEndAt = new Date(new Date(squareStartAt).getTime() + durationMin * 60000).toISOString();
+
+          console.log(`[square-webhook] Reschedule detected for ${fluxBooking.id}: ${fluxStartAt} → ${squareStartAt}`);
+
+          // Update the Flux booking times
+          await supabase
+            .from("bookings")
+            .update({
+              start_at: squareStartAt,
+              end_at: newEndAt,
+            })
+            .eq("id", fluxBooking.id);
+
+          // Update the busy_block
+          const { data: tenantInfo } = await supabase
+            .from("tenants")
+            .select("appointment_buffer_minutes, name, timezone")
+            .eq("id", tenantId)
+            .single();
+
+          const bufferMinutes = tenantInfo?.appointment_buffer_minutes || 15;
+          const blockEnd = new Date(new Date(squareStartAt).getTime() + durationMin * 60000 + bufferMinutes * 60000).toISOString();
+
+          await supabase
+            .from("busy_blocks")
+            .update({
+              start_at: squareStartAt,
+              end_at: blockEnd,
+            })
+            .eq("tenant_id", tenantId)
+            .eq("booking_id", fluxBooking.id)
+            .eq("is_active", true);
+
+          // Send reschedule notification to customer
+          if (fluxBooking.lead_id) {
+            try {
+              const { data: lead } = await supabase
+                .from("leads")
+                .select("phone, full_name")
+                .eq("id", fluxBooking.lead_id)
+                .maybeSingle();
+
+              if (lead?.phone) {
+                const tz = tenantInfo?.timezone || "America/New_York";
+                const newTime = new Date(squareStartAt).toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  timeZone: tz,
+                });
+                const newDate = new Date(squareStartAt).toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  timeZone: tz,
+                });
+                const businessName = tenantInfo?.name || "us";
+                const customerName = lead.full_name || "there";
+
+                const smsBody = `Hi ${customerName}, your appointment with ${businessName} has been rescheduled to ${newDate} at ${newTime}. Reply STOP to opt out.`;
+
+                const smsResult = await sendTenantSms({
+                  tenantId: tenantId!,
+                  to: lead.phone,
+                  body: smsBody,
+                });
+
+                if (smsResult.success) {
+                  console.log(`[square-webhook] Reschedule SMS sent for ${fluxBooking.id}`);
+                } else if (!smsResult.skipped) {
+                  console.error(`[square-webhook] Reschedule SMS failed:`, smsResult.error);
+                }
+              }
+            } catch (smsErr) {
+              console.error("[square-webhook] Reschedule notification error:", smsErr);
+            }
+          }
+
+          // Log booking event
+          try {
+            await supabase.from("booking_events").insert({
+              tenant_id: tenantId,
+              booking_id: fluxBooking.id,
+              event_type: "rescheduled",
+              source: "square_webhook",
+              previous_start_at: fluxStartAt,
+              new_start_at: squareStartAt,
+              notification_sent_customer: true,
+              notification_sent_owner: false,
+              metadata: { square_booking_id: squareBookingId, booking_source: bookingSource },
+            });
+          } catch (_logErr) {
+            // Non-critical — table may not exist yet
+            console.warn("[square-webhook] Failed to log booking_event (table may not exist yet)");
+          }
+        }
+      }
+
       // ─── NEW BOOKING (ACCEPTED/PENDING) ──────────────────────────
       if (squareStatus === "ACCEPTED" || squareStatus === "PENDING" || squareStatus === "accepted" || squareStatus === "pending") {
         if (fluxBooking) {
@@ -346,6 +452,23 @@ async function handleSquareWebhook(
                 .single();
               leadId = newLead?.id || null;
             }
+          }
+
+          // If no lead was resolved, create one with whatever info we have
+          if (!leadId) {
+            const fallbackName = squareBooking?.customer_note?.split("\n")?.[0] || "Square Booking";
+            const { data: fallbackLead } = await supabase
+              .from("leads")
+              .insert({
+                tenant_id: tenantId,
+                full_name: fallbackName,
+                source: "square",
+                status: "new",
+              })
+              .select("id")
+              .single();
+            leadId = fallbackLead?.id || null;
+            console.log(`[square-webhook] Created fallback lead ${leadId} for Square booking without customer`);
           }
 
           if (leadId) {
@@ -434,6 +557,27 @@ async function handleSquareWebhook(
             .eq("id", fluxBooking.id);
 
           console.log(`[square-webhook] Marked booking ${fluxBooking.id} as completed`);
+
+          // Trigger post-service automation (thank-you SMS, review request queue)
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || serviceKey,
+              },
+              body: JSON.stringify({
+                booking_id: fluxBooking.id,
+                tenant_id: tenantId,
+                event: "completed",
+              }),
+            });
+            console.log(`[square-webhook] Triggered completion handoff for ${fluxBooking.id}`);
+          } catch (e) {
+            console.error(`[square-webhook] Failed to trigger completion handoff:`, e);
+          }
         } else if (!fluxBooking && busyBlock) {
           // Square-originated booking completed without a Flux record — create one
           const customerId = squareBooking?.customer_id;
@@ -490,6 +634,36 @@ async function handleSquareWebhook(
                 });
 
                 console.log(`[square-webhook] Created completed booking for Square booking ${squareBookingId}`);
+
+                // Trigger post-service automation for newly created completed booking
+                try {
+                  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+                  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+                  const insertedBooking = await supabase
+                    .from("bookings")
+                    .select("id")
+                    .eq("tenant_id", tenantId)
+                    .eq("external_event_id", squareBookingId)
+                    .maybeSingle();
+
+                  if (insertedBooking?.data?.id) {
+                    await fetch(`${supabaseUrl}/functions/v1/booking-handoff`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        "x-closeloop-secret": Deno.env.get("CLOSELOOP_INTERNAL_SECRET") || serviceKey,
+                      },
+                      body: JSON.stringify({
+                        booking_id: insertedBooking.data.id,
+                        tenant_id: tenantId,
+                        event: "completed",
+                      }),
+                    });
+                    console.log(`[square-webhook] Triggered completion handoff for new booking ${insertedBooking.data.id}`);
+                  }
+                } catch (e) {
+                  console.error(`[square-webhook] Failed to trigger completion handoff for new booking:`, e);
+                }
               }
             }
           }

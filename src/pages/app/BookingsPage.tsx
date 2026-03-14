@@ -157,7 +157,7 @@ export default function BookingsPage() {
     return (
       <ModuleUnavailablePage
         title="Scheduling Not Available"
-        description="The Bookings page requires the Booking module to be enabled for your account."
+        description="Scheduling isn't set up for your account yet. Contact support or check your settings to get started."
         moduleName="Booking"
       />
     );

@@ -8,6 +8,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { normalizePhoneE164 } from "../_shared/phoneNormalize.ts";
+import { getSquareConfig } from "../_shared/squareToken.ts";
+import { getValidAccessToken } from "../_shared/oauthHelpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -284,12 +286,12 @@ serve(async (req: Request) => {
     }
 
     // Find the booking
-    let booking: { id: string; start_at: string; end_at: string; service_id: string | null } | null = null;
+    let booking: { id: string; start_at: string; end_at: string; service_id: string | null; external_event_id: string | null; external_provider: string | null } | null = null;
 
     if (bookingId) {
       const { data } = await supabase
         .from("bookings")
-        .select("id, start_at, end_at, service_id")
+        .select("id, start_at, end_at, service_id, external_event_id, external_provider")
         .eq("id", bookingId)
         .eq("tenant_id", resolvedTenantId)
         .in("status", ["pending", "confirmed"])
@@ -311,7 +313,7 @@ serve(async (req: Request) => {
           const leadIds = leads.map((l: { id: string }) => l.id);
           const { data } = await supabase
             .from("bookings")
-            .select("id, start_at, end_at, service_id")
+            .select("id, start_at, end_at, service_id, external_event_id, external_provider")
             .eq("tenant_id", resolvedTenantId)
             .in("lead_id", leadIds)
             .in("status", ["pending", "confirmed"])
@@ -336,7 +338,7 @@ serve(async (req: Request) => {
         const leadIds = leads.map((l: { id: string }) => l.id);
         const { data } = await supabase
           .from("bookings")
-          .select("id, start_at, end_at, service_id")
+          .select("id, start_at, end_at, service_id, external_event_id, external_provider")
           .eq("tenant_id", resolvedTenantId)
           .in("lead_id", leadIds)
           .in("status", ["pending", "confirmed"])
@@ -462,6 +464,163 @@ serve(async (req: Request) => {
       })
       .eq("tenant_id", resolvedTenantId)
       .eq("booking_id", booking.id);
+
+    // ─── EXTERNAL SYNC: Square ──────────────────────────────────────
+    if (booking.external_provider === "square" && booking.external_event_id) {
+      try {
+        const squareConfig = await getSquareConfig(resolvedTenantId);
+        if (squareConfig) {
+          // Fetch current Square booking version (required for updates)
+          const getResponse = await fetch(
+            `https://connect.squareup.com/v2/bookings/${booking.external_event_id}`,
+            {
+              method: "GET",
+              headers: {
+                "Square-Version": "2024-01-18",
+                "Authorization": `Bearer ${squareConfig.accessToken}`,
+              },
+            }
+          );
+
+          if (getResponse.ok) {
+            const squareData = await getResponse.json();
+            const bookingVersion = squareData.booking?.version || 0;
+
+            const updateResponse = await fetch(
+              `https://connect.squareup.com/v2/bookings/${booking.external_event_id}`,
+              {
+                method: "PUT",
+                headers: {
+                  "Square-Version": "2024-01-18",
+                  "Authorization": `Bearer ${squareConfig.accessToken}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  booking: {
+                    version: bookingVersion,
+                    start_at: newStart.toISOString(),
+                    appointment_segments: squareData.booking?.appointment_segments?.map(
+                      (seg: Record<string, unknown>) => ({
+                        ...seg,
+                        // Keep existing duration, just update the start time via top-level start_at
+                      })
+                    ),
+                  },
+                }),
+              }
+            );
+
+            if (updateResponse.ok) {
+              console.log(`[reschedule-booking] Square booking ${booking.external_event_id} rescheduled`);
+            } else {
+              const errText = await updateResponse.text();
+              console.error(`[reschedule-booking] Square reschedule failed: ${updateResponse.status} ${errText}`);
+            }
+          } else {
+            console.error(`[reschedule-booking] Failed to fetch Square booking for version: ${getResponse.status}`);
+          }
+        } else {
+          console.warn(`[reschedule-booking] No Square config for tenant ${resolvedTenantId.substring(0, 8)}, skipping Square sync`);
+        }
+      } catch (squareErr) {
+        console.error("[reschedule-booking] Square sync error:", squareErr);
+      }
+    }
+
+    // ─── EXTERNAL SYNC: Google Calendar ─────────────────────────────
+    // Google Calendar events use external_event_id without external_provider set,
+    // so check for a calendar connection when external_event_id exists and provider is not square
+    if (booking.external_event_id && booking.external_provider !== "square") {
+      try {
+        const { data: calConnection } = await supabase
+          .from("calendar_connections")
+          .select("id, config_json")
+          .eq("tenant_id", resolvedTenantId)
+          .eq("provider", "google")
+          .eq("status", "connected")
+          .maybeSingle();
+
+        if (calConnection) {
+          const { data: tokenData } = await supabase
+            .from("calendar_tokens")
+            .select("access_token, refresh_token, expires_at, id")
+            .eq("tenant_id", resolvedTenantId)
+            .eq("provider", "google")
+            .maybeSingle();
+
+          if (tokenData) {
+            let accessToken = tokenData.access_token;
+
+            // Refresh token if expired
+            const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at).getTime() : null;
+            if (expiresAt && Date.now() > expiresAt - 5 * 60 * 1000) {
+              const googleClientId = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
+              const googleClientSecret = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
+              if (googleClientId && googleClientSecret && tokenData.refresh_token) {
+                const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: new URLSearchParams({
+                    client_id: googleClientId,
+                    client_secret: googleClientSecret,
+                    refresh_token: tokenData.refresh_token,
+                    grant_type: "refresh_token",
+                  }),
+                });
+                if (refreshResponse.ok) {
+                  const refreshed = await refreshResponse.json();
+                  accessToken = refreshed.access_token;
+                  await supabase
+                    .from("calendar_tokens")
+                    .update({
+                      access_token: accessToken,
+                      expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", tokenData.id);
+                }
+              }
+            }
+
+            // Determine which calendar to update
+            const config = calConnection.config_json as {
+              selected_calendar_ids?: string[];
+              available_calendars?: { id: string; primary?: boolean }[];
+            } | null;
+            let calendarId = config?.selected_calendar_ids?.[0];
+            if (!calendarId && config?.available_calendars) {
+              const primaryCal = config.available_calendars.find((c) => c.primary);
+              calendarId = primaryCal?.id;
+            }
+            if (!calendarId) calendarId = "primary";
+
+            const patchResponse = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(booking.external_event_id)}`,
+              {
+                method: "PATCH",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  start: { dateTime: newStart.toISOString(), timeZone: timezone },
+                  end: { dateTime: newEnd.toISOString(), timeZone: timezone },
+                }),
+              }
+            );
+
+            if (patchResponse.ok) {
+              console.log(`[reschedule-booking] Google Calendar event ${booking.external_event_id} rescheduled`);
+            } else {
+              const errText = await patchResponse.text();
+              console.error(`[reschedule-booking] Google Calendar reschedule failed: ${patchResponse.status} ${errText}`);
+            }
+          }
+        }
+      } catch (gcalErr) {
+        console.error("[reschedule-booking] Google Calendar sync error:", gcalErr);
+      }
+    }
 
     const displayDate = formatDateDisplay(targetDate);
     const displayTime = formatTimeDisplay(targetTime);

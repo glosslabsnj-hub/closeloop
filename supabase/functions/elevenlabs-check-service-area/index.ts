@@ -243,27 +243,23 @@ serve(async (req: Request) => {
       let deliveryFee: number | null = null;
       let zoneName: string | null = null;
 
-      if (zip) {
-        const { data: zones } = await supabase
-          .from("delivery_zones")
-          .select("id, name, delivery_fee_cents, zip_codes, estimated_delivery_minutes")
-          .eq("tenant_id", tenantId);
+      const { data: zones } = await supabase
+        .from("delivery_zones")
+        .select("id, name, delivery_fee_cents, zip_codes, estimated_delivery_minutes")
+        .eq("tenant_id", tenantId);
 
-        if (zones && zones.length > 0) {
-          const matchingZone = zones.find(
-            (z: Record<string, unknown>) => z.zip_codes && Array.isArray(z.zip_codes) && (z.zip_codes as string[]).includes(zip)
-          );
-          if (matchingZone) {
-            inDeliveryZone = true;
-            deliveryFee = matchingZone.delivery_fee_cents || 0;
-            zoneName = matchingZone.name;
-          }
+      if (zones && zones.length > 0 && zip) {
+        // Zip-code zone matching
+        const matchingZone = zones.find(
+          (z: Record<string, unknown>) => z.zip_codes && Array.isArray(z.zip_codes) && (z.zip_codes as string[]).includes(zip)
+        );
+        if (matchingZone) {
+          inDeliveryZone = true;
+          deliveryFee = matchingZone.delivery_fee_cents || 0;
+          zoneName = matchingZone.name;
         }
-      }
-
-      // If no zip-code zones configured, fall back to radius check
-      if (!zip || (!inDeliveryZone && !zip)) {
-        // Simplified: assume in-area if we can't determine, let the order proceed
+      } else if (!zones || zones.length === 0) {
+        // No delivery zones configured — assume in-area, let the order proceed
         inDeliveryZone = true;
       }
 

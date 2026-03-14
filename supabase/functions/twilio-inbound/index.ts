@@ -6,6 +6,7 @@ const DEPLOYED_AT = new Date().toISOString();
 // Agent resolution uses getAgentIdForCapabilities() from agentResolver.ts (capabilities-based, replaces legacy mode-based routing)
 import { isHybridCapabilitySet, getAgentIdForCapabilities, derivePrimaryModeFromCapabilities } from "../_shared/agentResolver.ts";
 import { resolveCapabilities } from "../_shared/resolveCapabilities.ts";
+import { validateTwilioRequest, forbiddenResponse, parseFormBody } from "../_shared/twilioValidator.ts";
 // Business context builder — same pipeline used by elevenlabs-init / get-business-context
 import { buildBusinessContext, buildDynamicVariables } from "../_shared/buildBusinessContext.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -327,17 +328,26 @@ Deno.serve(async (req) => {
   let callSid = "";
   let digits = ""; // DTMF digits from IVR selection
 
+  let rawBody = "";
+  let formParams: Record<string, string> = {};
   try {
-    const body = await req.text();
-    const formData = new URLSearchParams(body);
-    toNumber = formData.get("To") || "";
-    fromNumber = formData.get("From") || "";
-    callSid = formData.get("CallSid") || "";
-    digits = formData.get("Digits") || ""; // Capture IVR selection
+    rawBody = await req.text();
+    formParams = parseFormBody(rawBody);
+    toNumber = formParams["To"] || "";
+    fromNumber = formParams["From"] || "";
+    callSid = formParams["CallSid"] || "";
+    digits = formParams["Digits"] || ""; // Capture IVR selection
     console.log(`[${VERSION}] [twilio-inbound] Call from ${fromNumber} to ${toNumber}, CallSid=${callSid}, Digits=${digits}`);
   } catch (error) {
     console.error("[twilio-inbound] Failed to parse request:", error);
     return twimlResponse(hangupTwiml("We're experiencing technical difficulties. Please try again later."));
+  }
+
+  // Validate Twilio request signature (reject forged requests)
+  const validation = await validateTwilioRequest(req, rawBody, formParams);
+  if (!validation.valid) {
+    console.warn(`[twilio-inbound] Request rejected: ${validation.error}`);
+    return forbiddenResponse();
   }
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -450,20 +460,76 @@ Deno.serve(async (req) => {
       );
       const usage = usageRecords[0];
 
-      if (usage && usage.voice_minutes_used >= subscription.trial_minutes_limit) {
-        console.log(`[twilio-inbound] Trial minutes exhausted for tenant ${tenantId}: ${usage.voice_minutes_used}/${subscription.trial_minutes_limit}`);
+      if (usage) {
+        const used = usage.voice_minutes_used || 0;
+        const limit = subscription.trial_minutes_limit;
+        const pct = (used / limit) * 100;
+        const ownerPhone = settings.owner_forward_number;
 
-        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-          tenant_id: tenantId,
-          twilio_call_sid: callSidSafe,
-          to_number: toPhoneE164,
-          from_number: callerPhoneE164,
-          stage: "trial_minutes_exhausted",
-        });
+        // Fire-and-forget: send trial usage SMS alerts to the business owner
+        // Uses a self-invoking async to avoid blocking call handling
+        if (ownerPhone) {
+          void (async () => {
+            try {
+              const acctSid = Deno.env.get("TWILIO_ACCOUNT_SID");
+              const authToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+              const fromNumber = Deno.env.get("TWILIO_FROM_NUMBER");
+              if (!acctSid || !authToken || !fromNumber) return;
 
-        return twimlResponse(hangupTwiml(
-          "Thank you for calling. This business is currently setting up their AI assistant. Please call back later or visit their website."
-        ));
+              const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${acctSid}/Messages.json`;
+              const twilioAuth = btoa(`${acctSid}:${authToken}`);
+
+              const sendOwnerSms = async (body: string) => {
+                await fetch(twilioUrl, {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Basic ${twilioAuth}`,
+                    "Content-Type": "application/x-www-form-urlencoded",
+                  },
+                  body: new URLSearchParams({ To: ownerPhone, From: fromNumber, Body: body }),
+                });
+              };
+
+              // 100% alert (exhausted)
+              if (pct >= 100 && !usage.trial_100pct_alerted) {
+                await sendOwnerSms(
+                  `Your Flux AI receptionist trial minutes are used up. Callers are hearing a generic message instead of your AI. Upgrade now to keep your AI receptionist running: https://app.getfluxdata.com/app/go-live`
+                );
+                await updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "subscription_usage",
+                  { tenant_id: tenantId }, { trial_100pct_alerted: true });
+                console.log(`[twilio-inbound] Sent 100% trial alert SMS to owner for tenant ${tenantId}`);
+              }
+              // 80% alert (warning)
+              else if (pct >= 80 && !usage.trial_80pct_alerted) {
+                await sendOwnerSms(
+                  `Your Flux AI receptionist has used ${Math.round(pct)}% of your trial minutes (${Math.round(used)} of ${limit} minutes). Upgrade now to keep your AI receptionist running: https://app.getfluxdata.com/app/go-live`
+                );
+                await updateSupabase(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, "subscription_usage",
+                  { tenant_id: tenantId }, { trial_80pct_alerted: true });
+                console.log(`[twilio-inbound] Sent 80% trial alert SMS to owner for tenant ${tenantId}`);
+              }
+            } catch (e) {
+              console.error(`[twilio-inbound] Trial alert SMS error for tenant ${tenantId}:`, e);
+            }
+          })();
+        }
+
+        // Block the call if trial minutes are fully exhausted
+        if (used >= limit) {
+          console.log(`[twilio-inbound] Trial minutes exhausted for tenant ${tenantId}: ${used}/${limit}`);
+
+          void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+            tenant_id: tenantId,
+            twilio_call_sid: callSidSafe,
+            to_number: toPhoneE164,
+            from_number: callerPhoneE164,
+            stage: "trial_minutes_exhausted",
+          });
+
+          return twimlResponse(hangupTwiml(
+            "Thank you for calling. This business is currently setting up their AI assistant. Please call back later or visit their website."
+          ));
+        }
       }
     }
 

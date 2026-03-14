@@ -304,7 +304,7 @@ export default function EstimatesPage() {
     return (
       <ModuleUnavailablePage
         title="Estimates Not Available"
-        description="Job estimates and quotes require the Estimates module. Upgrade your plan to send professional estimates to customers."
+        description="Estimates and quotes aren't set up for your account yet. Contact support or check your settings to get started."
         moduleName="Estimates"
       />
     );

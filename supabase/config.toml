@@ -211,3 +211,103 @@ verify_jwt = false
 verify_jwt = false
 [functions.elevenlabs-create-medical-intake]
 verify_jwt = false
+
+# Payment functions — do their own auth internally via requireAuthedTenant
+[functions.create-checkout-session]
+verify_jwt = false
+
+[functions.create-billing-portal-session]
+verify_jwt = false
+
+[functions.create-payment-link]
+verify_jwt = false
+
+# Frontend-called functions — do their own auth internally
+[functions.get-business-context]
+verify_jwt = false
+
+[functions.get-usage-status]
+verify_jwt = false
+
+[functions.get-voice-options]
+verify_jwt = false
+
+[functions.provision-twilio-number]
+verify_jwt = false
+
+[functions.register-a2p-10dlc]
+verify_jwt = false
+
+[functions.create-calendar-event]
+verify_jwt = false
+
+[functions.get-agent-tools-config]
+verify_jwt = false
+
+[functions.compute-available-slots]
+verify_jwt = false
+
+[functions.availability-suggest]
+verify_jwt = false
+
+# Cron/internal functions
+[functions.cron-a2p-status-check]
+verify_jwt = false
+
+[functions.cron-appointment-reminders]
+verify_jwt = false
+
+[functions.cron-calendar-sync]
+verify_jwt = false
+
+[functions.cron-callback-escalation]
+verify_jwt = false
+
+[functions.cron-token-refresh]
+verify_jwt = false
+
+[functions.check-handoff-failures]
+verify_jwt = false
+
+[functions.retry-failed-deliveries]
+verify_jwt = false
+
+[functions.universal-delivery]
+verify_jwt = false
+
+[functions.trigger-workflow]
+verify_jwt = false
+
+[functions.analyze-call-outcome]
+verify_jwt = false
+
+[functions.cron-review-requests]
+verify_jwt = false
+
+[functions.cron-auto-complete-bookings]
+verify_jwt = false
+
+[functions.twilio-sms-webhook]
+verify_jwt = false
+
+# Admin functions — do their own auth
+[functions.admin-auto-discover]
+verify_jwt = false
+
+[functions.admin-check-secrets]
+verify_jwt = false
+
+[functions.admin-reset-password]
+verify_jwt = false
+
+[functions.approve-agency-application]
+verify_jwt = false
+
+[functions.get-agency-metrics]
+verify_jwt = false
+
+[functions.get-agency-readiness-batch]
+verify_jwt = false
+
+[functions.get-intelligence-dashboard]
+verify_jwt = false

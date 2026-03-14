@@ -108,7 +108,7 @@ const allCategories: GuideCategory[] = [
 
 export default function HelpCenterPage() {
   const { businessMode, enabledModules } = useTenantConfig();
-  const { terms } = useIndustryContext();
+  const { terms, catalog } = useIndustryContext();
   const { _tenant } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("getting-started");
@@ -173,7 +173,7 @@ export default function HelpCenterPage() {
           {getModeDescription()}
         </p>
         <Badge variant="secondary" className="mt-3">
-          {businessMode.charAt(0).toUpperCase() + businessMode.slice(1)} Mode
+          {catalog?.name || (businessMode.charAt(0).toUpperCase() + businessMode.slice(1))}
         </Badge>
       </div>
 

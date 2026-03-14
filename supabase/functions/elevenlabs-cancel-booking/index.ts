@@ -327,6 +327,97 @@ serve(async (req: Request) => {
       }
     }
 
+    // Cancel in Google Calendar if this booking has a calendar event
+    // Google Calendar events use external_event_id without external_provider set
+    if (booking.external_event_id && booking.external_provider !== "square") {
+      try {
+        const { data: calConnection } = await supabase
+          .from("calendar_connections")
+          .select("id, config_json")
+          .eq("tenant_id", tenantId)
+          .eq("provider", "google")
+          .eq("status", "connected")
+          .maybeSingle();
+
+        if (calConnection) {
+          const { data: tokenData } = await supabase
+            .from("calendar_tokens")
+            .select("access_token, refresh_token, expires_at, id")
+            .eq("tenant_id", tenantId)
+            .eq("provider", "google")
+            .maybeSingle();
+
+          if (tokenData) {
+            let accessToken = tokenData.access_token;
+
+            // Refresh token if expired (5-min buffer)
+            const expiresAt = tokenData.expires_at ? new Date(tokenData.expires_at).getTime() : null;
+            if (expiresAt && Date.now() > expiresAt - 5 * 60 * 1000) {
+              const googleClientId = Deno.env.get("GOOGLE_CALENDAR_CLIENT_ID");
+              const googleClientSecret = Deno.env.get("GOOGLE_CALENDAR_CLIENT_SECRET");
+              if (googleClientId && googleClientSecret && tokenData.refresh_token) {
+                const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                  body: new URLSearchParams({
+                    client_id: googleClientId,
+                    client_secret: googleClientSecret,
+                    refresh_token: tokenData.refresh_token,
+                    grant_type: "refresh_token",
+                  }),
+                });
+                if (refreshResponse.ok) {
+                  const refreshed = await refreshResponse.json();
+                  accessToken = refreshed.access_token;
+                  await supabase
+                    .from("calendar_tokens")
+                    .update({
+                      access_token: accessToken,
+                      expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq("id", tokenData.id);
+                }
+              }
+            }
+
+            // Determine which calendar the event is in
+            const config = calConnection.config_json as {
+              selected_calendar_ids?: string[];
+              available_calendars?: { id: string; primary?: boolean }[];
+            } | null;
+            let calendarId = config?.selected_calendar_ids?.[0];
+            if (!calendarId && config?.available_calendars) {
+              const primaryCal = config.available_calendars.find((c) => c.primary);
+              calendarId = primaryCal?.id;
+            }
+            if (!calendarId) calendarId = "primary";
+
+            const deleteResponse = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(booking.external_event_id)}`,
+              {
+                method: "DELETE",
+                headers: {
+                  "Authorization": `Bearer ${accessToken}`,
+                },
+              }
+            );
+
+            if (deleteResponse.ok || deleteResponse.status === 204) {
+              console.log(`[cancel-booking] Google Calendar event ${booking.external_event_id} deleted`);
+            } else {
+              const errText = await deleteResponse.text();
+              console.error(`[cancel-booking] Google Calendar delete failed: ${deleteResponse.status} ${errText}`);
+            }
+          } else {
+            console.warn(`[cancel-booking] No Google Calendar tokens for tenant ${tenantId}, skipping calendar cancel`);
+          }
+        }
+      } catch (gcalErr) {
+        console.error("[cancel-booking] Google Calendar cancel error:", gcalErr);
+      }
+    }
+
     // Update session if we have one
     if (sessionId) {
       await supabase

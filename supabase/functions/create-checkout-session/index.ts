@@ -75,15 +75,28 @@ Deno.serve(async (req) => {
       const customer = await customerRes.json();
       stripeCustomerId = customer.id;
 
-      // Store customer ID
-      await supabase
+      // Store customer ID on existing subscription (don't overwrite status)
+      const { data: existingSub } = await supabase
         .from("subscriptions")
-        .upsert({
-          tenant_id: tenantId,
-          stripe_customer_id: stripeCustomerId,
-          plan_code: plan_sku,
-          status: "incomplete",
-        }, { onConflict: "tenant_id" });
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (existingSub) {
+        await supabase
+          .from("subscriptions")
+          .update({ stripe_customer_id: stripeCustomerId, plan_code: plan_sku })
+          .eq("tenant_id", tenantId);
+      } else {
+        await supabase
+          .from("subscriptions")
+          .insert({
+            tenant_id: tenantId,
+            stripe_customer_id: stripeCustomerId,
+            plan_code: plan_sku,
+            status: "incomplete",
+          });
+      }
     }
 
     // Look up Stripe price ID for the plan SKU

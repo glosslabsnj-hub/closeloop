@@ -162,7 +162,10 @@ export default function GoLivePage() {
 
         {/* Step 1: Tier Selection */}
         {step === "tier" && (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className={cn(
+            TIERS.length === 1 ? "max-w-lg mx-auto" : "grid md:grid-cols-3 gap-6",
+            TIERS.length > 1 && "gap-6"
+          )}>
             {TIERS.map((tier) => {
               const Icon = getIcon(tier.icon);
 

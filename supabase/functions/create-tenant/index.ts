@@ -173,6 +173,19 @@ serve(async (req) => {
 
     console.log(`[create-tenant] Tenant created: ${tenantId.substring(0, 8)}...`);
 
+    // 7b. Initialize food_order_settings for food mode tenants
+    if (body.business_mode === "food") {
+      const { error: foodError } = await serviceClient
+        .from("food_order_settings")
+        .insert({ tenant_id: tenantId });
+
+      if (foodError) {
+        console.error("[create-tenant] food_order_settings insert error:", foodError.message);
+      } else {
+        console.log(`[create-tenant] food_order_settings initialized for ${tenantId.substring(0, 8)}...`);
+      }
+    }
+
     // 8. Insert membership row (owner role)
     // Uses ON CONFLICT DO NOTHING for idempotency (requires unique constraint)
     const { error: membershipError } = await serviceClient

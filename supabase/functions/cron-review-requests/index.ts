@@ -19,19 +19,19 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 // Mode-aware default templates — each business type gets a natural message
 const MODE_REVIEW_TEMPLATES: Record<string, string> = {
   service:
-    "Hi {{customer_name}}, thanks for choosing {{business_name}} for your {{service_name}}! If you have a moment, we'd really appreciate a quick review: {{review_link}}. Reply STOP to opt out.",
+    "Hey {{customer_name}}, thanks again for trusting {{business_name}} with your {{service_name}}. We hope it came out looking great.\n\nIf you have 30 seconds, a quick Google review would mean a lot to us and helps other customers find us.\n\n{{review_link}}\n\nThanks for the support. Reply STOP to opt out.",
   dispatch:
-    "Hi {{customer_name}}, glad we could help you today! If {{business_name}} provided great service, we'd love a review: {{review_link}}. Reply STOP to opt out.",
+    "Hey {{customer_name}}, glad we could help you today. If {{business_name}} took care of you, a quick Google review would mean a lot.\n\n{{review_link}}\n\nThanks for the support. Reply STOP to opt out.",
   food:
-    "Hi {{customer_name}}, thanks for your order from {{business_name}}! How was everything? Leave us a review: {{review_link}}. Reply STOP to opt out.",
+    "Hey {{customer_name}}, thanks for your order from {{business_name}}. We hope you enjoyed everything.\n\nIf you have 30 seconds, a quick review helps other customers find us.\n\n{{review_link}}\n\nReply STOP to opt out.",
   medical:
-    "Hi {{customer_name}}, thank you for visiting {{business_name}}. We value your feedback and would appreciate a review of your experience: {{review_link}}. Reply STOP to opt out.",
+    "Hi {{customer_name}}, thank you for visiting {{business_name}}. We hope you had a great experience.\n\nIf you have a moment, a quick review helps other patients find us.\n\n{{review_link}}\n\nReply STOP to opt out.",
   general:
-    "Hi {{customer_name}}, thank you for choosing {{business_name}}! We'd love to hear about your experience: {{review_link}}. Reply STOP to opt out.",
+    "Hey {{customer_name}}, thanks for choosing {{business_name}}. We hope everything went well.\n\nIf you have 30 seconds, a quick Google review would mean a lot to us.\n\n{{review_link}}\n\nThanks for the support. Reply STOP to opt out.",
 };
 
 const FALLBACK_TEMPLATE =
-  "Thank you for visiting {{business_name}}! We'd love your feedback — please leave us a review: {{review_link}}. Reply STOP to opt out.";
+  "Thanks for choosing {{business_name}}. If you have 30 seconds, a quick Google review would mean a lot to us.\n\n{{review_link}}\n\nReply STOP to opt out.";
 
 function resolveTemplate(
   template: string,
@@ -137,26 +137,6 @@ serve(async (_req: Request) => {
               .update({ review_sent: true })
               .eq("id", booking.id);
             results.sent++;
-
-            // Queue outbound AI voice review request (30 min after SMS)
-            try {
-              await supabase.from("outbound_call_queue").insert({
-                tenant_id: tenantId,
-                customer_phone: phone,
-                call_purpose: "review",
-                scheduled_at: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-                context_json: {
-                  customer_name: lead?.full_name || "",
-                  service_name: (booking.services as any)?.name || serviceNameFallback,
-                  review_link: reviewLink,
-                  booking_id: booking.id,
-                  business_mode: businessMode,
-                },
-                max_attempts: 1,
-              });
-            } catch (queueErr) {
-              console.warn(`[cron-review-requests] Failed to queue voice review request:`, queueErr);
-            }
           } else if (smsResult.skipped) {
             results.skipped_sms++;
           } else {

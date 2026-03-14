@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useBillingPortal } from "@/hooks/useBillingPortal";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ export function SubscriptionDetailsCard() {
   const { tenant, effectiveTenant, isSuperAdmin } = useAuth();
   const displayTenant = isSuperAdmin ? (effectiveTenant ?? tenant) : tenant;
   const { subscription, loading } = useSubscription(displayTenant?.id || null);
+  const { openPortal, loading: portalLoading } = useBillingPortal(displayTenant?.id || null);
 
   if (loading) return null;
 
@@ -88,17 +90,27 @@ export function SubscriptionDetailsCard() {
                 : "No payment method on file."}
             </p>
           )}
-          {(isActive || isTrial) && (
+          {(isActive || isTrial) && stripeCustomerId && (
             <Button
               variant="outline"
               size="sm"
               className="mt-2 gap-2"
-              onClick={() =>
-                window.open("/pricing", "_blank")
-              }
+              disabled={portalLoading}
+              onClick={openPortal}
             >
               <CreditCard className="h-3.5 w-3.5" />
-              {stripeCustomerId ? "Update Payment Method" : "Add Payment Method"}
+              {portalLoading ? "Opening..." : "Update Payment Method"}
+            </Button>
+          )}
+          {(isActive || isTrial) && !stripeCustomerId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2 gap-2"
+              onClick={() => window.open("/app/go-live", "_self")}
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              Add Payment Method
             </Button>
           )}
         </div>

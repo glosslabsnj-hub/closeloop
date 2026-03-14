@@ -205,11 +205,11 @@ function WidgetEmpty({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => navigate("/app/settings/ai")}
+              onClick={() => navigate("/app/business-brain")}
               className="gap-1.5"
             >
               <Settings className="h-3.5 w-3.5" />
-              AI Settings
+              AI Setup
             </Button>
           </div>
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndustryContext } from "@/hooks/useIndustryContext";
@@ -74,8 +75,14 @@ export default function SettingsPage() {
     enabled: !!tenant?.id,
   });
 
-  // Default to first available section
-  const [activeSection, setActiveSection] = useState("hours");
+  // Read ?tab= param from URL to allow deep-linking to settings sections
+  const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const validSections = ["hours", "team", "plan", "revenue", "data-privacy", "alerts", "integrations", "automation", "developer", "danger", "recovery", "sms", "referral-network"];
+  const initialSection = tabParam && validSections.includes(tabParam) ? tabParam : "hours";
+
+  // Default to first available section (or URL tab param)
+  const [activeSection, setActiveSection] = useState(initialSection);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<string>("staff");

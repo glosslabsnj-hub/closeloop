@@ -97,14 +97,16 @@ export function useSubscription(tenantId: string | null, isSuperAdmin: boolean =
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
+    // SECURITY: Only set status to "pending_payment" here. The Stripe webhook
+    // (handle-stripe-webhook edge function) is the ONLY path that may set
+    // a subscription to "active". This prevents tenants going live without paying.
     if (existingSub) {
       // Update existing subscription
       const { error: updateError } = await supabase
         .from("subscriptions")
         .update({
           plan_code: sku as string, // Cast to string for DB compatibility
-          status: "active",
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: "pending_payment",
           included_minutes: step.includedMinutes,
           included_sms_segments: step.includedSmsSegments,
           overage_minute_rate_cents: step.overageMinuteRate ? Math.round(step.overageMinuteRate * 100) : null,
@@ -114,14 +116,13 @@ export function useSubscription(tenantId: string | null, isSuperAdmin: boolean =
 
       if (updateError) throw updateError;
     } else {
-      // Create new subscription with active status (requires payment)
+      // Create new subscription — pending until Stripe confirms payment
       const { error: subError } = await supabase
         .from("subscriptions")
         .insert({
           tenant_id: tenantId,
           plan_code: sku as string, // Cast to string for DB compatibility
-          status: "active",
-          current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          status: "pending_payment",
           included_minutes: step.includedMinutes,
           included_sms_segments: step.includedSmsSegments,
           overage_minute_rate_cents: step.overageMinuteRate ? Math.round(step.overageMinuteRate * 100) : null,
@@ -179,20 +180,9 @@ export function useSubscription(tenantId: string | null, isSuperAdmin: boolean =
         });
     }
 
-    // Provision Twilio number for voice plans (skip for super admin test tenants)
-    if (hasVoiceFeature(sku) && !isSuperAdmin) {
-      try {
-        const { data, error: provisionError } = await supabase.functions.invoke("provision-twilio-number", {
-          body: { tenant_id: tenantId, number_type: "local" },
-        });
-
-        if (provisionError || !data?.success) {
-          // Provisioning failure is non-fatal — logged server-side
-        }
-      } catch {
-        // Don't fail subscription creation if provisioning fails
-      }
-    }
+    // NOTE: Twilio number provisioning is handled by the Stripe webhook
+    // (or the dedicated provision-twilio-number edge function) AFTER payment
+    // is confirmed. Do NOT provision here — the subscription is not yet paid.
 
     // Mark onboarding as complete
     await supabase

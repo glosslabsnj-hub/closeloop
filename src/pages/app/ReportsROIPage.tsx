@@ -424,11 +424,11 @@ function ReportEmpty({
         </Button>
         <Button
           variant="ghost"
-          onClick={() => navigate("/app/settings/ai")}
+          onClick={() => navigate("/app/business-brain")}
           className="gap-2"
         >
           <Settings className="h-4 w-4" />
-          View AI Settings
+          AI Setup
         </Button>
       </div>
 

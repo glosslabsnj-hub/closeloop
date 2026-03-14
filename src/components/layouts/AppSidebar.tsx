@@ -164,7 +164,7 @@ export function AppSidebar({
 
   const coreItems: NavItem[] = [
     { href: "/app/dashboard", label: "Dashboard", icon: <LayoutDashboard className={iconClass} /> },
-    { href: "/app/business-brain", label: "Business Brain", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
+    { href: "/app/business-brain", label: "AI Setup", icon: <Bot className={iconClass} />, badge: conflictsCount || undefined },
     { href: "/app/inbox?tab=calls", label: "Calls", icon: <AudioWaveform className={iconClass} /> },
     { href: "/app/inbox?tab=leads", label: "Leads", icon: caps.isDispatchBusiness ? <Phone className={iconClass} /> : <Users className={iconClass} /> },
     { href: "/app/customers", label: (terms.customers ? String(terms.customers).charAt(0).toUpperCase() + String(terms.customers).slice(1) : "Customers"), icon: <UserCircle className={iconClass} /> },
@@ -280,7 +280,7 @@ export function AppSidebar({
             <div className="flex flex-col gap-0.5 mt-3">
               {open && (
                 <p className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/40 px-3 pt-1 pb-1">
-                  {caps.isDispatchBusiness ? "Operations" : caps.isFoodBusiness ? "Orders" : "Workspace"}
+                  {caps.isDispatchBusiness ? "Operations" : caps.isFoodBusiness ? "Orders" : caps.isServiceBusiness ? "Jobs & Scheduling" : "Workspace"}
                 </p>
               )}
               {workspaceItems.map(renderLink)}

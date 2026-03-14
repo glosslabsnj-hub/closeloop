@@ -16,7 +16,7 @@ interface ModuleUnavailablePageProps {
  */
 export function ModuleUnavailablePage({
   title = "Feature Not Available",
-  description = "This feature requires a module that isn't enabled for your account.",
+  description = "This feature isn't available on your current setup.",
   moduleName,
   showSettingsButton = true,
 }: ModuleUnavailablePageProps) {
@@ -34,7 +34,7 @@ export function ModuleUnavailablePage({
             {description}
             {moduleName && (
               <span className="block mt-2 text-sm">
-                Required module: <strong>{moduleName}</strong>
+                Contact support to enable <strong>{moduleName}</strong> for your account.
               </span>
             )}
           </CardDescription>
@@ -47,7 +47,7 @@ export function ModuleUnavailablePage({
               size="lg"
             >
               <Settings className="mr-2 h-4 w-4" />
-              Manage Modules
+              Go to Settings
             </Button>
           )}
           <Button 

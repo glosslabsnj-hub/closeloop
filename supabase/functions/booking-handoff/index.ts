@@ -764,20 +764,32 @@ serve(async (req) => {
           });
 
           const apptLabel = getAppointmentLabel(tenantData?.business_mode || "service", tenantData?.industry);
-          const template = confirmationConfig?.message ||
-            `Hey {{customer_name}}! You're all set with {{business_name}} on {{appointment_date}} at {{appointment_time}}. See you then! Reply STOP to opt out.`;
+          const businessPhone = tenantData?.phone_public
+            ? tenantData.phone_public.replace(/^\+1(\d{3})(\d{3})(\d{4})$/, "($1) $2-$3")
+            : null;
+
+          const defaultTemplate = businessPhone
+            ? `Hi {{customer_name}}, your appointment with {{business_name}} is confirmed.\n\n{{service_name}}\n{{appointment_date}} at {{appointment_time}}\n\nNeed to reschedule or have questions? Call or text us at {{business_phone}}.\n\nSee you then. Reply STOP to opt out.`
+            : `Hi {{customer_name}}, your appointment with {{business_name}} is confirmed.\n\n{{service_name}}\n{{appointment_date}} at {{appointment_time}}\n\nSee you then. Reply STOP to opt out.`;
+
+          const template = confirmationConfig?.message || defaultTemplate;
 
           const message = template
             .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
             .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
             .replace(/\{\{service_name\}\}/g, booking.service?.name || `your ${apptLabel}`)
             .replace(/\{\{appointment_time\}\}/g, startTime)
-            .replace(/\{\{appointment_date\}\}/g, startDate);
+            .replace(/\{\{appointment_date\}\}/g, startDate)
+            .replace(/\{\{business_phone\}\}/g, businessPhone || "");
+
+          // Append self-service prompt to confirmation messages
+          const selfServiceSuffix = "\n\nNeed to change or cancel? Just text us back.";
+          const finalMessage = message + selfServiceSuffix;
 
           const smsResult = await sendTenantSms({
             tenantId,
             to: customerPhone,
-            body: message,
+            body: finalMessage,
           });
 
           if (smsResult.success) {

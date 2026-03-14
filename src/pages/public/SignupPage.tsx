@@ -130,15 +130,15 @@ export default function SignupPage() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground mb-3">{BRAND.name}</h1>
-            <p className="text-muted-foreground text-lg leading-relaxed">Your AI receptionist that answers calls, books jobs, and handles emergencies 24/7.</p>
+            <p className="text-muted-foreground text-lg leading-relaxed">Your AI receptionist that answers calls, captures leads, and books appointments 24/7.</p>
           </div>
           <div className="pt-4 flex flex-col gap-3.5">
             {[
-              "24/7 call answering, booking, and dispatch",
+              "24/7 call answering, booking, and lead capture",
               "AI that learns your services, pricing, and FAQs",
               "20+ integrations (Google Calendar, Square, and more)",
               "SMS confirmations and customer CRM built in",
-              "Emergency detection and instant routing",
+              "Smart call routing and urgent request handling",
             ].map((text) => (
               <div key={text} className="flex items-center gap-3 text-muted-foreground/80 text-sm">
                 <div className="h-5 w-5 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">

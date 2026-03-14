@@ -2448,7 +2448,7 @@ export async function buildBusinessContext(
     supabase.from("assistant_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("tenant_intelligence_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     supabase.from("data_retention_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
-    supabase.from("tenant_food_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
+    supabase.from("food_order_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     // Fetch ETA/distance settings from the canonical table
     supabase.from("tenant_distance_settings").select("*").eq("tenant_id", tenantId).maybeSingle(),
     // Fetch service packages for memberships & bundles
@@ -3550,11 +3550,19 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 
   if (ctx.ai_settings.tone) {
     const toneInstructions: Record<string, string> = {
-      professional: "Maintain a professional, business-like tone. Be polished, precise, and use complete sentences.",
-      friendly: "Be warm and personable. Use a conversational, approachable tone. Feel like a helpful neighbor.",
-      casual: "Be relaxed and informal. Keep it simple and natural, like chatting with a friend.",
+      professional: `Maintain a PROFESSIONAL tone throughout the ENTIRE conversation — not just the greeting.
+- Use complete sentences. No slang, no "Hey!", no "Yeah", no "totally", no "awesome".
+- Say "Thank you" not "Thanks". Say "Certainly" not "Sure thing". Say "I'd be happy to" not "I can totally do that".
+- Be polished, precise, and courteous. Think: experienced office receptionist at a respected firm.
+- EVERY response must match this tone — the first message AND every follow-up.`,
+      friendly: `Be warm and personable throughout. Use a conversational, approachable tone.
+- Feel like a helpful neighbor who genuinely cares. Warm but not overly casual.
+- "Thanks for calling!" and "I'd love to help with that!" are great. Stay upbeat and encouraging.`,
+      casual: `Be relaxed and informal throughout. Keep it simple and natural.
+- Like chatting with a friend. Short sentences, contractions, laid-back energy.
+- "Hey! What's going on?" and "No worries, I got you" are fine.`,
     };
-    prompt += `COMMUNICATION STYLE: ${toneInstructions[ctx.ai_settings.tone] || `Be ${ctx.ai_settings.tone}.`}\n\n`;
+    prompt += `COMMUNICATION STYLE (MANDATORY — applies to ALL responses, not just the greeting):\n${toneInstructions[ctx.ai_settings.tone] || `Be ${ctx.ai_settings.tone}.`}\n\n`;
   }
 
   // Unknown question behavior
