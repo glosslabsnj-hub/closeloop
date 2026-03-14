@@ -108,6 +108,11 @@ function NotificationContactSection() {
 
       // Update ALL delivery settings tables so every mode gets the right contacts
       // Most tables use notify_phone/notify_email columns
+      // Build handoff_methods based on what contact info is provided
+      const handoffMethods: string[] = ["internal"];
+      if (normalizedPhone) handoffMethods.push("sms");
+      if (email) handoffMethods.push("email");
+
       for (const table of [
         "booking_delivery_settings",
         "dispatch_delivery_settings",
@@ -117,6 +122,8 @@ function NotificationContactSection() {
           tenant_id: tenant.id,
           notify_phone: normalizedPhone || null,
           notify_email: email || null,
+          enabled: true,
+          handoff_methods: handoffMethods,
         }, { onConflict: "tenant_id" });
       }
 

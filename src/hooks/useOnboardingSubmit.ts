@@ -389,10 +389,14 @@ export function useOnboardingSubmit(userId?: string) {
       // Without this row, booking-handoff skips customer SMS, calendar sync, and notifications.
       await runStep("delivery settings", async () => {
         const notifyEmail = user?.email || null;
+        // Build handoff methods based on what contact info is available
+        const methods: string[] = ["internal"];
+        if (notificationPhone) methods.push("sms");
+        if (notifyEmail) methods.push("email");
         const { error } = await supabase.from("booking_delivery_settings").upsert({
           tenant_id: tenantId!,
           enabled: true,
-          handoff_methods: notifyEmail ? ["internal", "email"] : ["internal"],
+          handoff_methods: methods,
           notify_email: notifyEmail,
           notify_phone: notificationPhone || null,
         }, { onConflict: "tenant_id" });
@@ -404,10 +408,13 @@ export function useOnboardingSubmit(userId?: string) {
       if (businessMode === "dispatch" || enabledModules.includes("dispatch_queue")) {
         await runStep("dispatch delivery settings", async () => {
           const notifyEmail = user?.email || null;
+          const methods: string[] = ["internal"];
+          if (notificationPhone) methods.push("sms");
+          if (notifyEmail) methods.push("email");
           const { error } = await supabase.from("dispatch_delivery_settings").upsert({
             tenant_id: tenantId!,
             enabled: true,
-            handoff_methods: notifyEmail ? ["internal", "email"] : ["internal"],
+            handoff_methods: methods,
             notify_email: notifyEmail,
             notify_phone: notificationPhone || null,
           }, { onConflict: "tenant_id" });
