@@ -205,9 +205,18 @@ serve(async (req) => {
 
     // Owner notification methods are gated by delivery settings;
     // critical post-dispatch actions (audit, workflow, customer SMS) always run
-    const ownerMethods = settings?.enabled && Array.isArray(settings.handoff_methods)
-      ? settings.handoff_methods.filter((m: string) => m !== "internal")
-      : [];
+    // Support both array format (["email", "sms"]) and object format ({"email": true, "sms": true})
+    let ownerMethods: string[] = [];
+    if (settings?.enabled) {
+      const hm = settings.handoff_methods;
+      if (Array.isArray(hm)) {
+        ownerMethods = hm.filter((m: string) => m !== "internal");
+      } else if (hm && typeof hm === "object") {
+        ownerMethods = Object.entries(hm)
+          .filter(([key, val]) => key !== "internal" && val === true)
+          .map(([key]) => key);
+      }
+    }
     const results: Record<string, { success: boolean; error?: string }> = {};
 
     // Build payload

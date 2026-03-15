@@ -1505,8 +1505,8 @@ function buildCanonicalPayload(
     customer: {
       // Universal key: customer_name (with legacy fallbacks)
       name: getVal("customer_name") || getVal("name") || getVal("caller_name") || extractFromTranscript(transcript, "name"),
-      // Universal key: customer_phone
-      phone_e164: getVal("customer_phone") || getVal("phone") || null,
+      // Universal key: customer_phone — always normalize to E.164
+      phone_e164: normalizeToE164(getVal("customer_phone") || getVal("phone") || "") || null,
       email: getVal("email") || getVal("customer_email"),
     },
     order: {
@@ -2781,18 +2781,58 @@ async function persistBooking(
   callerPhoneE164: string,
   leadId: string | null = null
 ): Promise<{ id: string } | null> {
-  // Try to match service
+  // Try to match service — use same strategy as elevenlabs-create-booking:
+  // 1. Exact match first, 2. Fuzzy partial, 3. Split compound names and try each part
   let serviceId: string | null = null;
   if (payload.booking.service_requested) {
-    const { data: service } = await supabase
+    const svcName = payload.booking.service_requested;
+
+    // Step 1: Exact match (case-insensitive)
+    let { data: service } = await supabase
       .from("services")
-      .select("id, duration_minutes, price_amount, price_type")
+      .select("id, name, duration_minutes, price_amount, price_type")
       .eq("tenant_id", tenantId)
-      .ilike("name", `%${payload.booking.service_requested}%`)
+      .eq("is_active", true)
+      .ilike("name", svcName)
       .limit(1)
       .maybeSingle();
 
-    if (service) serviceId = service.id;
+    // Step 2: Fuzzy partial match — pick shortest name (most specific)
+    if (!service) {
+      const { data: fuzzyMatches } = await supabase
+        .from("services")
+        .select("id, name, duration_minutes, price_amount, price_type")
+        .eq("tenant_id", tenantId)
+        .eq("is_active", true)
+        .ilike("name", `%${svcName}%`);
+      if (fuzzyMatches && fuzzyMatches.length > 0) {
+        service = fuzzyMatches.sort((a: any, b: any) => a.name.length - b.name.length)[0];
+      }
+    }
+
+    // Step 3: Split compound names (e.g. "Furnace Repair - Emergency") and try each part
+    if (!service && (svcName.includes(" - ") || svcName.includes(","))) {
+      const parts = svcName.split(/\s*[-,]\s*/).filter((p: string) => p.length > 2);
+      for (const part of parts) {
+        const { data: partMatches } = await supabase
+          .from("services")
+          .select("id, name, duration_minutes, price_amount, price_type")
+          .eq("tenant_id", tenantId)
+          .eq("is_active", true)
+          .ilike("name", `%${part.trim()}%`);
+        if (partMatches && partMatches.length > 0) {
+          service = partMatches.sort((a: any, b: any) => a.name.length - b.name.length)[0];
+          break;
+        }
+      }
+    }
+
+    if (service) {
+      serviceId = service.id;
+      console.log(`[persistBooking] Matched service: "${svcName}" → "${service.name}" (${service.id})`);
+    } else {
+      console.warn(`[persistBooking] No service match for: "${svcName}"`);
+    }
   }
 
   // Compute pricing from service + modifiers
