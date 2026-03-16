@@ -11,6 +11,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { parseTime } from "../_shared/parseTime.ts";
 import { resolveService } from "../_shared/resolveService.ts";
+import { stripNulls } from "../_shared/stripNullsForVoice.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -286,9 +287,9 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: "Unable to verify availability",
-          slot: null,
+          slot: "",
           alternative_slots: [],
-          service_name: null,
+          service_name: "",
           duration_minutes: 60,
           message: "Unable to check availability - no active session found",
         } as CheckAvailabilityResponse),
@@ -336,7 +337,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: "addon_service",
-          slot: null,
+          slot: "",
           alternative_slots: [],
           service_name: resolvedServiceName,
           duration_minutes: finalDuration,
@@ -362,7 +363,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: `Appointments require at least ${minLeadHours} hours notice`,
-          slot: null,
+          slot: "",
           alternative_slots: alternatives,
           service_name: resolvedServiceName,
           duration_minutes: finalDuration,
@@ -383,7 +384,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: `We are closed on ${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)}`,
-          slot: null,
+          slot: "",
           alternative_slots: alternatives,
           service_name: resolvedServiceName,
           duration_minutes: finalDuration,
@@ -410,7 +411,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: `Outside business hours (${openTime} - ${closeTime})`,
-          slot: null,
+          slot: "",
           alternative_slots: alternatives,
           service_name: resolvedServiceName,
           duration_minutes: finalDuration,
@@ -435,7 +436,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           available: false,
           conflict_reason: "That time is already booked",
-          slot: null,
+          slot: "",
           alternative_slots: alternatives,
           service_name: resolvedServiceName,
           duration_minutes: finalDuration,
@@ -506,9 +507,9 @@ serve(async (req: Request) => {
       JSON.stringify({
         available: false,
         conflict_reason: "Unable to verify availability",
-        slot: null,
+        slot: "",
         alternative_slots: [],
-        service_name: null,
+        service_name: "",
         duration_minutes: 60,
         message: "Unable to check availability at this time",
       } as CheckAvailabilityResponse),

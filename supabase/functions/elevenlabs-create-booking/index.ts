@@ -280,7 +280,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           status: "failed",
-          appointment: null,
+          appointment: "",
           message: "I need your name to book the appointment.",
           error: "customer_name is required",
         } as CreateBookingResponse),
@@ -293,7 +293,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           status: "failed",
-          appointment: null,
+          appointment: "",
           message: "I need to know when you'd like to schedule.",
           error: "date and time are required",
         } as CreateBookingResponse),
@@ -327,7 +327,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           status: "failed",
-          appointment: null,
+          appointment: "",
           message: "Unable to complete the booking right now.",
           error: "No active session found",
         } as CreateBookingResponse),
@@ -383,7 +383,7 @@ serve(async (req: Request) => {
             JSON.stringify({
               success: false,
               status: "failed",
-              appointment: null,
+              appointment: "",
               message: `${service.name} is an add-on service that must be booked with a main service. Please ask the customer which primary service they'd like and then add ${service.name} to that booking.`,
               error: "addon_service_standalone",
             } as CreateBookingResponse),
@@ -428,7 +428,7 @@ serve(async (req: Request) => {
             JSON.stringify({
               success: false,
               status: "failed",
-              appointment: null,
+              appointment: "",
               message: `${service.name} is an add-on service that must be booked with a main service. Please ask the customer which primary service they'd like, such as a full detail, interior detail, or ceramic coating, and then add ${service.name} to that booking.`,
               error: "addon_service_standalone",
             } as CreateBookingResponse),
@@ -500,7 +500,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           status: "failed",
-          appointment: null,
+          appointment: "",
           message: `${formatTimeDisplay(targetTime)} just got booked. Let me find another time.`,
           error: "Time slot no longer available",
         } as CreateBookingResponse),
@@ -600,7 +600,7 @@ serve(async (req: Request) => {
           JSON.stringify({
             success: false,
             status: "failed",
-            appointment: null,
+            appointment: "",
             message: "Unable to complete the booking right now. We'll call you back.",
             error: `Failed to create lead record: ${leadError?.message || "unknown"}`,
           } as CreateBookingResponse),
@@ -647,7 +647,7 @@ serve(async (req: Request) => {
         JSON.stringify({
           success: false,
           status: "failed",
-          appointment: null,
+          appointment: "",
           message: "Unable to complete the booking right now. We'll call you back.",
           error: bookingError?.message || "Failed to create booking",
         } as CreateBookingResponse),
@@ -815,7 +815,7 @@ serve(async (req: Request) => {
       JSON.stringify({
         success: false,
         status: "failed",
-        appointment: null,
+        appointment: "",
         message: "Unable to complete the booking right now. We'll call you back to confirm.",
         error: error instanceof Error ? error.message : "Unknown error",
       } as CreateBookingResponse),
