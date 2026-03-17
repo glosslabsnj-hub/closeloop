@@ -58,11 +58,20 @@ export function useConversations() {
         return acc;
       }, {} as Record<string, Message[]>);
 
-      return convos.map((convo) => ({
+      const result = convos.map((convo) => ({
         ...convo,
         messages: messagesByConvo[convo.id] || [],
         lastMessage: messagesByConvo[convo.id]?.[0] || null,
       })) as ConversationWithDetails[];
+
+      // Sort by most recent message (like iMessage) — conversations with newest activity on top
+      result.sort((a, b) => {
+        const aTime = a.lastMessage?.sent_at || a.created_at;
+        const bTime = b.lastMessage?.sent_at || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      });
+
+      return result;
     },
     enabled: !!tenant?.id,
   });
