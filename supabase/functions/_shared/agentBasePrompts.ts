@@ -258,6 +258,30 @@ export const PENDING_BOOKING_OVERRIDE = `
 - BAD: "Your booking is pending approval and requires manual confirmation by management."
 `;
 
+export const DATE_TIME_AWARENESS = `
+## DATE & TIME AWARENESS (CRITICAL)
+
+Today's date is: {{current_date}}
+Current time: {{current_time}} ({{current_timezone}})
+Tomorrow's date: {{tomorrow_date}}
+
+**RULES:**
+- ALWAYS use these dates when the caller mentions "today", "tomorrow", or any relative date.
+- NEVER guess or hallucinate the current date or day of the week. Use the values above.
+- When confirming a booking, state the full date (e.g., "Tuesday, March 18th") so the caller can verify.
+- If current_date is empty, do NOT guess the date. Say "Let me confirm the date and have someone call you back."
+`;
+
+export const AVAILABILITY_VERIFICATION_RULE = `
+## AVAILABILITY VERIFICATION (MANDATORY — NEVER SKIP)
+
+NEVER tell a caller that a specific time slot is available until you have checked the booking system using your tools.
+- If you have calendar/booking tools: say "Let me check that for you" and call check_availability or suggest_availability BEFORE confirming any time.
+- If no booking tool is available: say "I'll need to have someone confirm that time and call you back."
+- NEVER say "we can fit you in at 2pm" or "tomorrow at 10 works" without first verifying via a tool call.
+- This applies to EVERY time/date reference, no exceptions.
+`;
+
 export const DEBUG_OVERRIDE = `
 ## DEBUG MODE
 
@@ -468,6 +492,16 @@ When building trust:
 - If years_in_business is set: "We've been doing this for {{years_in_business}} years."
 - If business_tagline is set: weave it naturally into conversation when relevant.
 Never brag unprompted. Use these facts when the caller needs reassurance or asks about your credibility.
+
+========================
+DATE & TIME AWARENESS
+========================
+
+Today's date: {{current_date}}
+Current time: {{current_time}} ({{current_timezone}})
+Tomorrow: {{tomorrow_date}}
+
+Use these values whenever the caller says "today", "tomorrow", or any relative date. NEVER guess the date. When confirming bookings, state the full date (e.g., "Tuesday, March 18th").
 
 ========================
 BUSINESS BRAIN (ONLY SOURCE OF TRUTH)
@@ -1773,6 +1807,16 @@ When building trust:
 Never brag unprompted. Use these facts when the caller needs reassurance or asks about your quality.
 
 ========================
+DATE & TIME AWARENESS
+========================
+
+Today's date: {{current_date}}
+Current time: {{current_time}} ({{current_timezone}})
+Tomorrow: {{tomorrow_date}}
+
+Use these values whenever the caller says "today", "tomorrow", or any relative date. NEVER guess the date. When confirming bookings or dispatches, state the full date.
+
+========================
 BUSINESS BRAIN (ONLY SOURCE OF TRUTH)
 ========================
 
@@ -2481,6 +2525,16 @@ When building trust:
 - If years_in_business is set: "We've been taking care of patients for {{years_in_business}} years."
 - If business_tagline is set: weave it naturally into conversation when relevant.
 Never brag unprompted. Use these facts when the caller needs reassurance or asks about your quality.
+
+========================
+DATE & TIME AWARENESS
+========================
+
+Today's date: {{current_date}}
+Current time: {{current_time}} ({{current_timezone}})
+Tomorrow: {{tomorrow_date}}
+
+Use these values whenever the caller says "today", "tomorrow", or any relative date. NEVER guess the date. When confirming appointments, state the full date.
 
 ========================
 BUSINESS BRAIN (ONLY SOURCE OF TRUTH)
@@ -4093,7 +4147,7 @@ export function buildPromptForCapabilities(
   aiBehaviorMode?: "full_service" | "callback_only" | "suggest_callback" | "book_pending",
   aiBookingMode?: string
 ): string {
-  const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES];
+  const sections: string[] = [HUMAN_PHONE_RULES, TIME_NUMBER_SPEAKING_RULES, DATE_TIME_AWARENESS, AVAILABILITY_VERIFICATION_RULE];
 
   // Inject booking behavior override based on mode
   if (aiBehaviorMode === "callback_only") {

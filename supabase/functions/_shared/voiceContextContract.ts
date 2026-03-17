@@ -673,6 +673,110 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
 
+  // ===== DATE & TIME (computed at call time, not from DB) =====
+  {
+    key: "current_date",
+    description: "Today's date in tenant timezone (e.g., Tuesday, March 18, 2026)",
+    type: "string",
+    source: (ctx) => {
+      const tz = ctx.tenant.timezone || "America/New_York";
+      try {
+        return new Date().toLocaleDateString("en-US", {
+          timeZone: tz,
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      } catch {
+        return new Date().toISOString().split("T")[0];
+      }
+    },
+    defaultValue: "",
+    category: "core",
+    speechReady: true,
+  },
+  {
+    key: "current_time",
+    description: "Current time in tenant timezone (e.g., 2:30 PM)",
+    type: "string",
+    source: (ctx) => {
+      const tz = ctx.tenant.timezone || "America/New_York";
+      try {
+        return new Date().toLocaleTimeString("en-US", {
+          timeZone: tz,
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      } catch {
+        return "";
+      }
+    },
+    defaultValue: "",
+    category: "core",
+    speechReady: true,
+  },
+  {
+    key: "tomorrow_date",
+    description: "Tomorrow's date in tenant timezone (e.g., Wednesday, March 19, 2026)",
+    type: "string",
+    source: (ctx) => {
+      const tz = ctx.tenant.timezone || "America/New_York";
+      try {
+        const now = new Date();
+        const tzNowStr = now.toLocaleDateString("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+        const parts = tzNowStr.split("/");
+        const tzDate = new Date(Number(parts[2]), Number(parts[0]) - 1, Number(parts[1]));
+        tzDate.setDate(tzDate.getDate() + 1);
+        return tzDate.toLocaleDateString("en-US", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      } catch {
+        return "";
+      }
+    },
+    defaultValue: "",
+    category: "core",
+    speechReady: true,
+  },
+  {
+    key: "current_timezone",
+    description: "Tenant's timezone identifier (e.g., America/New_York)",
+    type: "string",
+    source: "tenant.timezone",
+    defaultValue: "America/New_York",
+    category: "core",
+  },
+  {
+    key: "current_date_time",
+    description: "Full date and time string for agent awareness",
+    type: "string",
+    source: (ctx) => {
+      const tz = ctx.tenant.timezone || "America/New_York";
+      try {
+        return new Date().toLocaleString("en-US", {
+          timeZone: tz,
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+      } catch {
+        return new Date().toISOString();
+      }
+    },
+    defaultValue: "",
+    category: "core",
+    speechReady: true,
+  },
+
   // ===== CALLER INFO =====
   {
     key: "caller_phone",

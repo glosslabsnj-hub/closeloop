@@ -3533,6 +3533,15 @@ function buildSystemPrompt(ctx: BusinessContext): string {
   if (ctx.tenant.tagline) prompt += ` - ${ctx.tenant.tagline}`;
   prompt += `.\n\nBUSINESS INFORMATION:\n- Industry: ${ctx.tenant.industry_slug || "service business"}\n${ctx.tenant.address ? `- Location: ${ctx.tenant.address}` : ""}\n${ctx.tenant.phone_e164 ? `- Phone: ${ctx.tenant.phone_e164}` : ""}\n${ctx.tenant.website ? `- Website: ${ctx.tenant.website}` : ""}\n${ctx.tenant.years_in_business ? `- In business for ${ctx.tenant.years_in_business} years` : "- Years in business: NOT CONFIGURED — never state or guess a number of years"}\n\n`;
 
+  // Date/time awareness — injected dynamically so agents always know the current date
+  prompt += `DATE & TIME AWARENESS:
+- Today: {{current_date}}
+- Current time: {{current_time}} ({{current_timezone}})
+- Tomorrow: {{tomorrow_date}}
+Use these when the caller says "today", "tomorrow", or any relative date. NEVER guess the date.
+
+`;
+
   // Anti-hallucination guardrail — CRITICAL
   prompt += `STRICT ACCURACY RULES (NEVER VIOLATE):
 - ONLY state facts explicitly provided in this prompt. Do NOT invent, assume, or embellish.
@@ -3550,6 +3559,7 @@ function buildSystemPrompt(ctx: BusinessContext): string {
 - REFERRAL PROGRAMS: Follow the OFFERS FIREWALL section below. If it says NONE configured, do NOT mention any referral program.
 - POST-BOOKING: After confirming a booking, do NOT volunteer promotions, discounts, warranties, or upsells that aren't in your data. Confirm the booking details and close warmly.
 - If a customer asks about something not covered in your context, say you'll have someone follow up with details — do NOT make up an answer.
+- AVAILABILITY: NEVER tell a caller that a specific time is available without first checking via check_availability or suggest_availability tools. If you don't have calendar tools, say "I'll need to have someone confirm that time and call you back."
 
 `;
 

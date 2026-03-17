@@ -174,6 +174,7 @@ serve(async (req) => {
           agent_id: agentId,
           from_number: fromNumber,
           to_number: payload.customer_phone,
+          max_duration_seconds: 300, // 5 minute max
           conversation_initiation_client_data: {
             dynamic_variables: dynamicVars,
           },

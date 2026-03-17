@@ -850,11 +850,15 @@ Deno.serve(async (req) => {
       console.warn("[twilio-inbound] Business context build failed, using minimal vars:", err);
     }
 
-    // Build current date/time string in tenant's timezone for the agent
+    // Build current date/time strings in tenant's timezone for the agent
     const tz = tenant.timezone || "America/New_York";
     let currentDateTimeStr: string;
+    let currentDateStr: string;
+    let currentTimeStr: string;
+    let tomorrowDateStr: string;
     try {
-      currentDateTimeStr = new Date().toLocaleString("en-US", {
+      const now = new Date();
+      currentDateTimeStr = now.toLocaleString("en-US", {
         timeZone: tz,
         weekday: "long",
         year: "numeric",
@@ -864,8 +868,37 @@ Deno.serve(async (req) => {
         minute: "2-digit",
         hour12: true,
       });
+      currentDateStr = now.toLocaleDateString("en-US", {
+        timeZone: tz,
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+      currentTimeStr = now.toLocaleTimeString("en-US", {
+        timeZone: tz,
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+      // Compute tomorrow's date in the tenant's timezone
+      const tzNowStr = now.toLocaleDateString("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+      const tzParts = tzNowStr.split("/");
+      const tzDate = new Date(Number(tzParts[2]), Number(tzParts[0]) - 1, Number(tzParts[1]));
+      tzDate.setDate(tzDate.getDate() + 1);
+      tomorrowDateStr = tzDate.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
     } catch {
       currentDateTimeStr = new Date().toISOString();
+      currentDateStr = new Date().toISOString().split("T")[0];
+      currentTimeStr = new Date().toISOString().split("T")[1]?.slice(0, 5) || "";
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrowDateStr = tomorrow.toISOString().split("T")[0];
     }
 
     // Merge: rich context first, then call-specific overrides on top
@@ -873,6 +906,9 @@ Deno.serve(async (req) => {
       ...richDynamicVars,
       // Current date/time so the agent knows what day/time it is
       current_date_time: currentDateTimeStr,
+      current_date: currentDateStr,
+      current_time: currentTimeStr,
+      tomorrow_date: tomorrowDateStr,
       current_timezone: tz,
       // Call-specific fields (always override context values)
       tenant_id: tenantId,
@@ -933,6 +969,7 @@ Deno.serve(async (req) => {
       agent_id: agentId,
       from_number: callerPhoneE164 || fromNumber,
       to_number: toPhoneE164,
+      max_duration_seconds: 300, // 5 minute max — no business call should run 40 minutes
       conversation_initiation_client_data: {
         dynamic_variables: dynamicVariables,
       },
