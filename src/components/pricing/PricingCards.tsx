@@ -24,7 +24,7 @@ interface PricingCardsProps {
 }
 
 export function PricingCards({ onSelectPlan, linkToSignup = false, compact = false }: PricingCardsProps) {
-  const [selectedSku, setSelectedSku] = useState<PlanSku>("base-200");
+  const [selectedSku, setSelectedSku] = useState<PlanSku>("growth-150");
   const [additionalLocations, setAdditionalLocations] = useState(0);
 
   const selectedStep = LADDER_STEPS.find((s) => s.sku === selectedSku);

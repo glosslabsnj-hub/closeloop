@@ -28,7 +28,7 @@ export function PricingSection() {
         {/* Plan cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto mb-14">
           {displayPlans.map((plan) => {
-            const isRecommended = plan.sku === "growth-2000";
+            const isRecommended = plan.sku === "growth-150";
             return (
               <div
                 key={plan.sku}

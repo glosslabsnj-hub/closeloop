@@ -29,8 +29,8 @@ export default function SignupPage() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Determine the selected SKU - default to base-200
-  let selectedSku: PlanSku = "base-200";
+  // Determine the selected SKU - default to growth-150
+  let selectedSku: PlanSku = "growth-150";
   if (skuParam) {
     const step = getLadderStep(skuParam);
     if (step) selectedSku = step.sku;

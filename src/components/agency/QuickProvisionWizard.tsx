@@ -66,7 +66,7 @@ export function QuickProvisionWizard({ open, onOpenChange, agencyId, prefillLead
   const [industryQuery, setIndustryQuery] = useState("");
   const [selectedIndustry, setSelectedIndustry] = useState<IndustryCatalogEntry | null>(null);
   const [createdTenantId, setCreatedTenantId] = useState<string | null>(null);
-  const [selectedPlanSku, setSelectedPlanSku] = useState<PlanSku>("base-200");
+  const [selectedPlanSku, setSelectedPlanSku] = useState<PlanSku>("growth-150");
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -98,7 +98,7 @@ export function QuickProvisionWizard({ open, onOpenChange, agencyId, prefillLead
     setIndustryQuery("");
     setSelectedIndustry(null);
     setCreatedTenantId(null);
-    setSelectedPlanSku("base-200");
+    setSelectedPlanSku("growth-150");
     setPaymentLinkUrl(null);
     setLinkLoading(false);
     setLinkCopied(false);

@@ -28,7 +28,7 @@ export function AgencyPaymentLinkDialog({
   tenantId,
   tenantName,
 }: AgencyPaymentLinkDialogProps) {
-  const [selectedSku, setSelectedSku] = useState<PlanSku>("base-200");
+  const [selectedSku, setSelectedSku] = useState<PlanSku>("growth-150");
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [linkLoading, setLinkLoading] = useState(false);
   const [payNowLoading, setPayNowLoading] = useState(false);

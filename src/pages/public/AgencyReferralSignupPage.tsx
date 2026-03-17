@@ -88,7 +88,7 @@ export default function AgencyReferralSignupPage() {
       // Store referral info for onboarding
       sessionStorage.setItem("businessName", businessName.trim());
       sessionStorage.setItem("referralAgencySlug", agencySlug || "");
-      sessionStorage.setItem("selectedPlan", "base-200");
+      sessionStorage.setItem("selectedPlan", "growth-150");
 
       toast({
         title: "Account created!",
