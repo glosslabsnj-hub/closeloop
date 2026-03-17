@@ -169,7 +169,7 @@ export function useROIReport(dateRange: DateRangeOption = "this_month") {
       const recoveryRate = totalRecoveryCampaigns > 0 ? (leadsRecovered / totalRecoveryCampaigns) * 100 : 0;
 
       // Subscription cost
-      let subscriptionCostCents = 24900;
+      let subscriptionCostCents = 9900;
       const { data: revSettings } = await supabase
         .from("tenant_revenue_settings" as any)
         .select("subscription_cost_override_cents")

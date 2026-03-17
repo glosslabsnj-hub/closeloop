@@ -36,7 +36,7 @@ const valueProps = [
     icon: TrendingUp,
     title: "Higher Revenue Per Client",
     description:
-      "Clients pay $249-$2,999/mo. At 20% commission, that's $50-$600 per client per month.",
+      "Clients pay $49-$199/mo. At 20% commission, that's $10-$40 per client per month.",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
   },

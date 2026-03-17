@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Check, Pencil, Sparkles, Rocket, AlertTriangle, X, Calendar, MessageSquare, ArrowRight, HelpCircle, Bot, Phone } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,8 @@ interface OnboardingReviewProps {
   customGreeting: string;
   notificationPhone: string;
   onNotificationPhoneChange: (phone: string) => void;
+  smsConsent: boolean;
+  onSmsConsentChange: (checked: boolean) => void;
   calendarConnected: boolean;
   onConnectCalendar: () => void;
   onEditPhase: (phase: number) => void;
@@ -222,6 +225,8 @@ export const OnboardingReview = React.memo(function OnboardingReview({
   customGreeting,
   notificationPhone,
   onNotificationPhoneChange,
+  smsConsent,
+  onSmsConsentChange,
   calendarConnected,
   onConnectCalendar,
   onEditPhase,
@@ -521,6 +526,25 @@ export const OnboardingReview = React.memo(function OnboardingReview({
               onChange={(e) => onNotificationPhoneChange(e.target.value)}
               className="h-9 text-sm"
             />
+            {notificationPhone.replace(/\D/g, "").length >= 10 && (
+              <div className="flex items-start gap-2.5 mt-3 pt-3 border-t">
+                <Checkbox
+                  id="sms-consent"
+                  checked={smsConsent}
+                  onCheckedChange={(checked) => onSmsConsentChange(checked === true)}
+                  className="mt-0.5 shrink-0"
+                />
+                <label
+                  htmlFor="sms-consent"
+                  className="text-xs text-muted-foreground leading-relaxed cursor-pointer select-none"
+                >
+                  I agree to receive automated text messages from Flux Receptionist
+                  including appointment confirmations, booking reminders, and system
+                  notifications. Message frequency varies. Msg &amp; data rates may
+                  apply. Reply STOP to opt out at any time.
+                </label>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -530,7 +554,7 @@ export const OnboardingReview = React.memo(function OnboardingReview({
         <Button
           size="lg"
           onClick={onGoLive}
-          disabled={loading || p0Flags.length > 0}
+          disabled={loading || p0Flags.length > 0 || (notificationPhone.replace(/\D/g, "").length >= 10 && !smsConsent)}
           className="w-full gap-2"
         >
           {loading ? (

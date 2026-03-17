@@ -247,6 +247,9 @@ export interface BusinessContext {
       loyalty_threshold_orders: number;
     };
     ai_guidelines_summary: string;
+    after_hours_policy: string;
+    emergency_policy: string;
+    payment_timing: string;
   };
   food_settings: {
     estimated_prep_minutes: number;
@@ -2778,6 +2781,8 @@ export async function buildBusinessContext(
           loyalty_threshold_orders: aiGuidelines.loyalty_threshold_orders,
         },
         ai_guidelines_summary: buildAiGuidelinesSummary(tenant.ai_policies_json),
+        after_hours_policy: (tenant.ai_policies_json as any)?.after_hours || "",
+        emergency_policy: (tenant.ai_policies_json as any)?.emergency || "",
       };
     })(),
     // Dispatch industry-specific intake fields (for dynamic variable injection)

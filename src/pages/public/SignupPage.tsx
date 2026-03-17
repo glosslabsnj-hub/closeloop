@@ -243,7 +243,11 @@ export default function SignupPage() {
             </Button>
           </form>
 
-          <p className="mt-8 text-center text-sm text-muted-foreground">
+          <p className="mt-4 text-center text-[11px] text-muted-foreground/70 leading-relaxed px-2">
+            By signing up, you may receive important system notifications via email and SMS. You can manage your notification preferences in settings.
+          </p>
+
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link
               to="/login"

@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
       "subscription_data[metadata][plan_code]": plan_sku,
       "metadata[tenant_id]": tenantId,
       "metadata[plan_code]": plan_sku,
-      "payment_method_collection": "always",
+      "payment_method_collection": "if_required",
       "success_url": requestedTenantId
         ? `${origin}/app/dashboard?tenant=${tenantId}&activated=true`
         : `${origin}/app/dashboard?activated=true`,

@@ -74,7 +74,7 @@ function generateRecommendation(answers: Record<string, string>): RecommendedSet
 
   const defaultStep = getDefaultStepForTier(tier);
   let sku = defaultStep?.sku || 'voice-200';
-  let price = defaultStep?.price || 249;
+  let price = defaultStep?.price || 99;
 
   if (callVolume.includes('21–60') || callVolume.includes('60+')) {
     sku = 'voice-600'; price = 299;

@@ -170,6 +170,7 @@ export default function OnboardingPage() {
     afterHours: form.afterHours,
     customGreeting: form.customGreeting,
     notificationPhone: form.notificationPhone,
+    smsConsent: form.smsConsent,
     otherDescription: form.otherDescription,
   });
 
@@ -382,6 +383,8 @@ export default function OnboardingPage() {
                       customGreeting={form.customGreeting}
                       notificationPhone={form.notificationPhone}
                       onNotificationPhoneChange={form.setNotificationPhone}
+                      smsConsent={form.smsConsent}
+                      onSmsConsentChange={form.setSmsConsent}
                       calendarConnected={form.calendarConnected}
                       onConnectCalendar={() => {
                         toast({ title: "Calendar", description: "Calendar connection will be available after setup." });

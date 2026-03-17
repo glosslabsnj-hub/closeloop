@@ -73,6 +73,7 @@ interface SubmitParams {
   afterHours: AfterHoursBehavior;
   customGreeting: string;
   notificationPhone: string;
+  smsConsent: boolean;
 }
 
 export function useOnboardingSubmit(userId?: string) {
@@ -116,7 +117,7 @@ export function useOnboardingSubmit(userId?: string) {
         scenarioAnswers, scenarioDetails, schedulingPrefs, communicationPrefs,
         templateServices, templateFAQs, templatePolicies, serviceArea,
         businessDetails, businessHours, teamMembers, isSoloOperator, a2pData,
-        aiTone, bookingMode, afterHours, customGreeting, notificationPhone,
+        aiTone, bookingMode, afterHours, customGreeting, notificationPhone, smsConsent,
       } = params;
 
       const isFoodMode = businessMode === "food" || enabledModules.includes("food_orders");
@@ -579,6 +580,9 @@ export function useOnboardingSubmit(userId?: string) {
             contact_last_name: a2pData.contactLastName || null,
             contact_email: a2pData.contactEmail || user?.email || null,
             contact_phone: null, website_url: a2pData.websiteUrl || null,
+            owner_sms_consent: smsConsent,
+            owner_sms_consent_at: smsConsent ? new Date().toISOString() : null,
+            owner_sms_consent_ip: null,
           }, { onConflict: "tenant_id" });
           if (error) throw error;
         }
@@ -618,13 +622,13 @@ export function useOnboardingSubmit(userId?: string) {
       if (typeof window.gtag === "function") {
         window.gtag("event", "conversion", {
           send_to: "AW-17970313271/onboarding_complete",
-          value: 249.0,
+          value: 99.0,
           currency: "USD",
         });
         window.gtag("event", "onboarding_complete", {
           event_category: "signup",
           event_label: industrySlug,
-          value: 249.0,
+          value: 99.0,
         });
       }
 

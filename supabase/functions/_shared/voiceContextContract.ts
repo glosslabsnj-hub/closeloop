@@ -783,6 +783,82 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     includeInCompactJson: true,
   },
   {
+    key: "is_open_now",
+    description: "Whether the business is currently open (true/false). CRITICAL: If false, the AI must NOT offer to send anyone or schedule same-day service. Take a message instead.",
+    type: "string",
+    source: (ctx) => {
+      // Use the pre-computed is_open_now from impound context if dispatch,
+      // otherwise compute from tenant hours
+      const hours = ctx.tenant?.hours;
+      const hoursToday = ctx.tenant?.hours_today;
+      if (!hours || !hoursToday || hoursToday === "Closed today") return "false";
+      // Parse hours_today to check (format: "7 AM to 6 PM")
+      const tz = ctx.tenant?.timezone || "America/New_York";
+      try {
+        const now = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const today = dayNames[now.getDay()];
+        const todayH = (hours as Record<string, { open?: string; close?: string; is_open?: boolean }>)[today];
+        if (!todayH?.open || !todayH?.close || todayH?.is_open === false) return "false";
+        const [oh, om] = todayH.open.split(":").map(Number);
+        const [ch, cm] = todayH.close.split(":").map(Number);
+        const cur = now.getHours() * 60 + now.getMinutes();
+        return (cur >= oh * 60 + (om || 0) && cur < ch * 60 + (cm || 0)) ? "true" : "false";
+      } catch { return "false"; }
+    },
+    defaultValue: "false",
+    category: "hours",
+    includeInCompactJson: true,
+  },
+  {
+    key: "next_open",
+    description: "When the business next opens (e.g., 'Tomorrow at 7 AM', 'Monday at 8 AM'). Only populated when business is currently closed.",
+    type: "string",
+    source: (ctx) => {
+      const hours = ctx.tenant?.hours;
+      if (!hours || Object.keys(hours).length === 0) return "";
+      const tz = ctx.tenant?.timezone || "America/New_York";
+      try {
+        const now = new Date(new Date().toLocaleString("en-US", { timeZone: tz }));
+        const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+        const dayLabels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const todayIdx = now.getDay();
+        const today = dayNames[todayIdx];
+        const todayH = (hours as Record<string, { open?: string; close?: string; is_open?: boolean }>)[today];
+
+        const formatTime12 = (t: string): string => {
+          const [h, m] = t.split(":").map(Number);
+          const period = h >= 12 ? "PM" : "AM";
+          const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+          return m === 0 ? `${h12} ${period}` : `${h12}:${String(m).padStart(2, "0")} ${period}`;
+        };
+
+        // Check if opens later today
+        if (todayH?.open && todayH?.close && todayH?.is_open !== false) {
+          const [oh, om] = todayH.open.split(":").map(Number);
+          const cur = now.getHours() * 60 + now.getMinutes();
+          if (cur < oh * 60 + (om || 0)) {
+            return `Today at ${formatTime12(todayH.open)}`;
+          }
+        }
+
+        // Find next open day
+        for (let i = 1; i <= 7; i++) {
+          const checkIdx = (todayIdx + i) % 7;
+          const checkH = (hours as Record<string, { open?: string; close?: string; is_open?: boolean }>)[dayNames[checkIdx]];
+          if (checkH?.open && checkH?.is_open !== false) {
+            const label = i === 1 ? "Tomorrow" : dayLabels[checkIdx];
+            return `${label} at ${formatTime12(checkH.open)}`;
+          }
+        }
+        return "";
+      } catch { return ""; }
+    },
+    defaultValue: "",
+    category: "hours",
+    includeInCompactJson: true,
+  },
+  {
     key: "weekly_hours_schedule",
     description: "Full weekly hours schedule for appointment day validation (e.g., 'Monday through Friday 8 AM to 4:30 PM, Saturday through Sunday closed')",
     type: "string",
@@ -2738,7 +2814,15 @@ export const DYNAMIC_VAR_REGISTRY: DynamicVarSpec[] = [
     key: "after_hours_contact_policy",
     description: "What to tell callers after hours",
     type: "string",
-    source: (ctx) => ctx.medical_settings?.policies?.after_hours_contact_policy || "",
+    source: (ctx) => {
+      // Check medical settings first, then general after_hours_policy from policies
+      if (ctx.medical_settings?.policies?.after_hours_contact_policy) {
+        return ctx.medical_settings.policies.after_hours_contact_policy;
+      }
+      // For service/dispatch modes, use after_hours_policy from policies
+      if (ctx.policies?.after_hours_policy) return ctx.policies.after_hours_policy;
+      return "";
+    },
     defaultValue: "",
     category: "ai_settings",
     speechReady: true,

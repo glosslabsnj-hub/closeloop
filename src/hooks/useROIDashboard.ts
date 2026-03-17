@@ -153,7 +153,7 @@ export function useROIDashboard() {
       ]);
 
       // Get subscription cost
-      let subscriptionCostCents = 24900; // Default $249
+      let subscriptionCostCents = 9900; // Default $99 (Growth plan)
 
       // Check for manual override
       const { data: revenueSettings } = await supabase

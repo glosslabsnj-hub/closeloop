@@ -125,7 +125,7 @@ export function RevenueSettingsSection() {
   const planCode = (subscription as any)?.plan_code;
   const mappedSku = planCode ? mapLegacyToNewSku(planCode) : null;
   const planStep = mappedSku ? getLadderStep(mappedSku) : null;
-  const autoPlanPrice = planStep?.price ?? 249;
+  const autoPlanPrice = planStep?.price ?? 99;
 
   // Sync state from loaded settings (DB value wins), else use smart industry default
   useEffect(() => {

@@ -1,23 +1,28 @@
 /**
  * Centralized Pricing Configuration
  * Single source of truth for all pricing throughout the application
- * 
- * NEW PRICING MODEL:
- * - Base Plan: AI Voice Receptionist Platform ($249/mo, 200 pooled minutes, 1 location)
- * - Minute Bundles: Growth (2,000), Scale (5,000), Power (10,000), Enterprise (20,000+)
- * - Multi-location Add-on: $99/mo per additional location
+ *
+ * PRICING MODEL (Updated Mar 2026):
+ * - Starter: $49/mo (50 minutes)
+ * - Growth: $99/mo (150 minutes) — default/main plan
+ * - Pro: $199/mo (400 minutes)
+ * - Multi-location Add-on: $49/mo per additional location
  */
 
 // Plan type - voice only (SMS coming soon)
 export type PlanTier = "voice";
 
-// Plan SKU codes - Base + Bundles
+// Plan SKU codes
 export type PlanSku =
-  | "base-200"       // Base plan: 200 minutes
-  | "growth-2000"    // Growth bundle: 2,000 minutes
-  | "scale-5000"     // Scale bundle: 5,000 minutes  
-  | "power-10000"    // Power bundle: 10,000 minutes
-  | "enterprise";    // Enterprise: 20,000+ (contact sales)
+  | "starter-50"     // Starter plan: 50 minutes
+  | "growth-150"     // Growth plan: 150 minutes (main plan)
+  | "pro-400"        // Pro plan: 400 minutes
+  | "enterprise"     // Enterprise: custom (contact sales)
+  // Legacy SKUs kept for backward compatibility
+  | "base-200"
+  | "growth-2000"
+  | "scale-5000"
+  | "power-10000";
 
 // Legacy plan codes (for backward compatibility during migration)
 export type LegacyPlanCode = "text" | "voice" | "both" | "voice-200" | "voice-600" | "voice-1500";
@@ -53,14 +58,13 @@ export interface TierInfo {
 export const TIERS: TierInfo[] = [
   {
     tier: "voice",
-    displayName: "AI Voice Receptionist Platform",
-    startingPrice: 249,
+    displayName: "AI Voice Receptionist",
+    startingPrice: 49,
     description: "AI answers calls 24/7, qualifies leads, books appointments, and handles customer inquiries",
     shortDescription: "AI-powered phone answering",
     features: [
       "AI answers inbound calls 24/7",
-      "200 pooled minutes included",
-      "1 location with dedicated number",
+      "Dedicated business phone number",
       "Captures customer info automatically",
       "Handles objections naturally",
       "Pushes to booking links",
@@ -72,69 +76,56 @@ export const TIERS: TierInfo[] = [
   },
 ];
 
-// Minute bundle plans - pooled across all locations
+// Plan ladder - new tiered pricing
 export const LADDER_STEPS: PlanLadderStep[] = [
   {
-    sku: "base-200",
+    sku: "starter-50",
     tier: "voice",
-    name: "Platform Base",
-    shortName: "200 minutes",
+    name: "Starter",
+    shortName: "50 minutes",
     description: "Perfect for getting started",
-    price: 249,
-    includedMinutes: 200,
+    price: 49,
+    includedMinutes: 50,
+    includedSmsSegments: null,
+    overageMinuteRate: 0.65,
+    overageSmsRate: 0,
+    stripePriceId: 'price_1TBmpVDb4MCv003YkpwAkiJD',
+  },
+  {
+    sku: "growth-150",
+    tier: "voice",
+    name: "Growth",
+    shortName: "150 minutes",
+    description: "For growing businesses",
+    price: 99,
+    includedMinutes: 150,
     includedSmsSegments: null,
     overageMinuteRate: 0.55,
     overageSmsRate: 0,
-    stripePriceId: "price_1T9KNDDb4MCv003YDLUDHbBT",
+    stripePriceId: 'price_1TBmpWDb4MCv003YxgoCjbm4',
     isDefault: true,
   },
   {
-    sku: "growth-2000",
+    sku: "pro-400",
     tier: "voice",
-    name: "Growth Minutes",
-    shortName: "2,000 minutes",
-    description: "For growing businesses",
-    price: 799,
-    includedMinutes: 2000,
+    name: "Pro",
+    shortName: "400 minutes",
+    description: "For high-volume businesses",
+    price: 199,
+    includedMinutes: 400,
     includedSmsSegments: null,
     overageMinuteRate: 0.45,
     overageSmsRate: 0,
-    stripePriceId: "price_1T2NscDb4MCv003Y1PCBnZyj",
-  },
-  {
-    sku: "scale-5000",
-    tier: "voice",
-    name: "Scale Minutes",
-    shortName: "5,000 minutes",
-    description: "For high-volume operations",
-    price: 1699,
-    includedMinutes: 5000,
-    includedSmsSegments: null,
-    overageMinuteRate: 0.35,
-    overageSmsRate: 0,
-    stripePriceId: "price_1T2NuQDb4MCv003YOXc10yoj",
-  },
-  {
-    sku: "power-10000",
-    tier: "voice",
-    name: "Power Minutes",
-    shortName: "10,000 minutes",
-    description: "For enterprise-level needs",
-    price: 2999,
-    includedMinutes: 10000,
-    includedSmsSegments: null,
-    overageMinuteRate: 0.29,
-    overageSmsRate: 0,
-    stripePriceId: "price_1T2NvMDb4MCv003YPpbnOx5j",
+    stripePriceId: 'price_1TBmpWDb4MCv003YYlnB72Hb',
   },
   {
     sku: "enterprise",
     tier: "voice",
     name: "Enterprise",
-    shortName: "20,000+ minutes",
+    shortName: "Custom",
     description: "Custom solutions for large organizations",
     price: 0, // Contact sales
-    includedMinutes: 20000,
+    includedMinutes: null,
     includedSmsSegments: null,
     overageMinuteRate: null,
     overageSmsRate: 0,
@@ -145,7 +136,7 @@ export const LADDER_STEPS: PlanLadderStep[] = [
 
 // Location add-on pricing
 export const LOCATION_ADD_ONS = {
-  voice: 99, // per month - extra location with dedicated number
+  voice: 49, // per month - extra location with dedicated number
 };
 
 // What's included in all plans
@@ -192,12 +183,18 @@ export function getLocationAddOnPrice(_tier: PlanTier): number {
 // Map legacy SKUs to new SKUs
 export function mapLegacyToNewSku(sku: string): PlanSku {
   const legacyMap: Record<string, PlanSku> = {
-    "voice-200": "base-200",
-    "voice-600": "growth-2000",
-    "voice-1500": "scale-5000",
-    "voice": "base-200",
-    "text": "base-200",
-    "both": "base-200",
+    // Old pricing SKUs -> new equivalents
+    "base-200": "growth-150",
+    "growth-2000": "pro-400",
+    "scale-5000": "pro-400",
+    "power-10000": "enterprise",
+    // Original legacy codes
+    "voice-200": "growth-150",
+    "voice-600": "pro-400",
+    "voice-1500": "enterprise",
+    "voice": "growth-150",
+    "text": "starter-50",
+    "both": "growth-150",
   };
   return legacyMap[sku] || (sku as PlanSku);
 }
@@ -205,7 +202,8 @@ export function mapLegacyToNewSku(sku: string): PlanSku {
 // Feature entitlement checks based on SKU - handles both new SKUs and legacy plan codes
 export function hasVoiceFeature(sku: string | null | undefined): boolean {
   if (!sku) return false;
-  return sku.startsWith("base") || sku.startsWith("growth") || sku.startsWith("scale") || 
+  return sku.startsWith("starter") || sku.startsWith("growth") || sku.startsWith("pro") ||
+         sku.startsWith("base") || sku.startsWith("scale") ||
          sku.startsWith("power") || sku === "enterprise" ||
          sku.startsWith("voice") || sku.startsWith("both");
 }
@@ -230,9 +228,9 @@ export function isEligibleForTwilioProvision(sku: string | null | undefined): bo
   return hasVoiceFeature(sku);
 }
 
-// Legacy compatibility: map old plan codes to new SKUs - all map to base now
+// Legacy compatibility: map old plan codes to new SKUs
 export function legacyPlanCodeToDefaultSku(_legacyCode: LegacyPlanCode): PlanSku {
-  return "base-200";
+  return "growth-150";
 }
 
 // Format helpers
@@ -266,14 +264,14 @@ export function getNextUpgrade(currentSku: PlanSku | string): PlanLadderStep | n
   const mappedSku = mapLegacyToNewSku(currentSku);
   const currentStep = getLadderStep(mappedSku);
   if (!currentStep) return null;
-  
+
   const tierSteps = getLadderStepsForTier(currentStep.tier);
   const currentIndex = tierSteps.findIndex((s) => s.sku === mappedSku);
-  
+
   if (currentIndex < tierSteps.length - 1) {
     return tierSteps[currentIndex + 1];
   }
-  
+
   return null;
 }
 
@@ -281,7 +279,7 @@ export function getNextUpgrade(currentSku: PlanSku | string): PlanLadderStep | n
 export function calculateMonthlyTotal(sku: PlanSku, additionalLocations: number = 0): number {
   const step = getLadderStep(sku);
   if (!step || step.isEnterprise) return 0;
-  
+
   return step.price + (additionalLocations * LOCATION_ADD_ONS.voice);
 }
 
@@ -294,7 +292,7 @@ export function requiresSalesContact(sku: PlanSku): boolean {
 // Trial configuration
 export const TRIAL_CONFIG = {
   duration_days: 7,
-  included_minutes: 200,
+  included_minutes: 50,
   card_required: false,
 } as const;
 

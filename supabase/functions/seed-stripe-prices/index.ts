@@ -26,32 +26,25 @@ interface PriceDef {
 
 const PRICES: PriceDef[] = [
   {
-    sku: "base-200",
-    unit_amount: 24900,
-    nickname: "Platform Base - 200 minutes",
-    included_minutes: "200",
+    sku: "starter-50",
+    unit_amount: 4900,
+    nickname: "Starter - 50 minutes",
+    included_minutes: "50",
+    overage_rate_cents: "65",
+  },
+  {
+    sku: "growth-150",
+    unit_amount: 9900,
+    nickname: "Growth - 150 minutes",
+    included_minutes: "150",
     overage_rate_cents: "55",
   },
   {
-    sku: "growth-2000",
-    unit_amount: 79900,
-    nickname: "Growth Minutes - 2,000 minutes",
-    included_minutes: "2000",
+    sku: "pro-400",
+    unit_amount: 19900,
+    nickname: "Pro - 400 minutes",
+    included_minutes: "400",
     overage_rate_cents: "45",
-  },
-  {
-    sku: "scale-5000",
-    unit_amount: 169900,
-    nickname: "Scale Minutes - 5,000 minutes",
-    included_minutes: "5000",
-    overage_rate_cents: "35",
-  },
-  {
-    sku: "power-10000",
-    unit_amount: 299900,
-    nickname: "Power Minutes - 10,000 minutes",
-    included_minutes: "10000",
-    overage_rate_cents: "29",
   },
 ];
 

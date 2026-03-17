@@ -32,6 +32,9 @@ export type Database = {
           id: string
           legal_business_name: string | null
           messaging_service_sid: string | null
+          owner_sms_consent: boolean
+          owner_sms_consent_at: string | null
+          owner_sms_consent_ip: string | null
           registration_state: string | null
           state: string | null
           status: string
@@ -63,6 +66,9 @@ export type Database = {
           id?: string
           legal_business_name?: string | null
           messaging_service_sid?: string | null
+          owner_sms_consent?: boolean
+          owner_sms_consent_at?: string | null
+          owner_sms_consent_ip?: string | null
           registration_state?: string | null
           state?: string | null
           status?: string
@@ -94,6 +100,9 @@ export type Database = {
           id?: string
           legal_business_name?: string | null
           messaging_service_sid?: string | null
+          owner_sms_consent?: boolean
+          owner_sms_consent_at?: string | null
+          owner_sms_consent_ip?: string | null
           registration_state?: string | null
           state?: string | null
           status?: string
@@ -3792,6 +3801,7 @@ export type Database = {
           phone_raw: string | null
           preferred_contact_method: string | null
           service_address: string | null
+          sms_consent_at: string | null
           source: string | null
           tags: string[] | null
           tenant_id: string
@@ -3810,6 +3820,7 @@ export type Database = {
           phone_raw?: string | null
           preferred_contact_method?: string | null
           service_address?: string | null
+          sms_consent_at?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id: string
@@ -3828,6 +3839,7 @@ export type Database = {
           phone_raw?: string | null
           preferred_contact_method?: string | null
           service_address?: string | null
+          sms_consent_at?: string | null
           source?: string | null
           tags?: string[] | null
           tenant_id?: string

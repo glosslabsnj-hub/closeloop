@@ -372,7 +372,7 @@ async function handleSquareWebhook(
               tenant_id: tenantId,
               booking_id: fluxBooking.id,
               event_type: "rescheduled",
-              source: "square_webhook",
+              source: "square_import",
               previous_start_at: fluxStartAt,
               new_start_at: squareStartAt,
               notification_sent_customer: true,
@@ -430,7 +430,7 @@ async function handleSquareWebhook(
                     tenant_id: tenantId,
                     full_name: customer.full_name,
                     phone: customer.phone_e164,
-                    source: "square",
+                    source: "square_import",
                     status: "new",
                   })
                   .select("id")
@@ -445,7 +445,7 @@ async function handleSquareWebhook(
                 .insert({
                   tenant_id: tenantId,
                   full_name: customerName,
-                  source: "square",
+                  source: "square_import",
                   status: "new",
                 })
                 .select("id")
@@ -462,7 +462,7 @@ async function handleSquareWebhook(
               .insert({
                 tenant_id: tenantId,
                 full_name: fallbackName,
-                source: "square",
+                source: "square_import",
                 status: "new",
               })
               .select("id")
@@ -607,7 +607,7 @@ async function handleSquareWebhook(
                     tenant_id: tenantId,
                     full_name: customer.full_name,
                     phone: customer.phone_e164,
-                    source: "square",
+                    source: "square_import",
                     status: "completed",
                   })
                   .select("id")

@@ -19,7 +19,7 @@ export default function DashboardPage() {
         // GA4 event for analytics tracking
         window.gtag("event", "trial_activated", {
           send_to: "G-FS9HB4ZQKB",
-          value: 249.0,
+          value: 99.0,
           currency: "USD",
         });
         // Google Ads conversion - uses signup conversion action label
@@ -27,7 +27,7 @@ export default function DashboardPage() {
         // and replace this label with the new one
         window.gtag("event", "conversion", {
           send_to: "AW-17970313271/tRXaCOK_5v4bELfw9PhC",
-          value: 249.0,
+          value: 99.0,
           currency: "USD",
         });
       }

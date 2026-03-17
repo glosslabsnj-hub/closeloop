@@ -260,7 +260,7 @@ For each message provide exact copy, no placeholders. Include personalization va
   {
     title: "0 to 100 Customers Acquisition Plan",
     description: "Detailed 90-day plan with exact tactics, budgets, and milestones to hit 100 paying customers.",
-    prompt: `Create an extremely detailed 90-day plan to acquire the first 100 paying customers for Flux Receptionist (AI phone receptionist, $249-$2,999/mo plans):
+    prompt: `Create an extremely detailed 90-day plan to acquire the first 100 paying customers for Flux Receptionist (AI phone receptionist, $49-$199/mo plans):
 
 **Phase 1: Days 1-30 (Target: 15 customers)**
 - Exact daily actions (hour by hour for week 1)

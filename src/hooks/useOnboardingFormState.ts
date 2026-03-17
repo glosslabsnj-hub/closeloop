@@ -127,6 +127,7 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
   // Phase 4 state
   const [notificationPhone, setNotificationPhone] = useState(saved.current?.notificationPhone ?? "");
   const [calendarConnected] = useState(false);
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // "Other" industry description
   const [otherDescription, setOtherDescription] = useState(saved.current?.otherDescription ?? "");
@@ -322,6 +323,7 @@ export function useOnboardingFormState(userId?: string, userMetadata?: Record<st
     afterHours, setAfterHours,
     customGreeting, setCustomGreeting,
     notificationPhone, setNotificationPhone,
+    smsConsent, setSmsConsent,
     otherDescription, setOtherDescription,
     calendarConnected,
     // Actions
