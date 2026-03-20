@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -128,40 +129,25 @@ serve(async (req) => {
 
     // Send SMS if requested and customer has phone
     if ((channel === "sms" || channel === "both") && customer.phone_e164) {
-      const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-      const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-      const twilioFromNumber = Deno.env.get("TWILIO_PHONE_NUMBER");
+      try {
+        // Use shared SMS sender which routes through A2P/toll-free/messaging service
+        // This avoids sending from blocked local numbers (error 30034)
+        const smsResult = await sendTenantSms({
+          tenantId: tenant.id,
+          to: customer.phone_e164,
+          body: sms,
+        });
 
-      if (twilioAccountSid && twilioAuthToken && twilioFromNumber) {
-        try {
-          const twilioResponse = await fetch(
-            `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-              body: new URLSearchParams({
-                To: customer.phone_e164,
-                From: twilioFromNumber,
-                Body: sms,
-              }),
-            }
-          );
+        results.sms = smsResult.success;
 
-          results.sms = twilioResponse.ok;
-
-          if (!twilioResponse.ok) {
-            const error = await twilioResponse.text();
-            console.error("Twilio SMS error:", error);
-          }
-        } catch (err) {
-          console.error("Error sending SMS:", err);
+        if (!smsResult.success && !smsResult.skipped) {
+          console.error("SMS send error:", smsResult.error);
+        } else if (smsResult.skipped) {
+          console.log(`Review SMS skipped for tenant ${tenant.id}: ${smsResult.reason}`);
           results.sms = false;
         }
-      } else {
-        console.log("Twilio not configured, SMS skipped");
+      } catch (err) {
+        console.error("Error sending SMS:", err);
         results.sms = false;
       }
     }

@@ -1,6 +1,22 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { crypto } from "https://deno.land/std@0.168.0/crypto/mod.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
+
+// Send Telegram message to Jack for payment event visibility
+async function notifyJackTelegram(message: string): Promise<void> {
+  try {
+    const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+    const CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID") || "6841391368";
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: CHAT_ID, text: message }),
+    });
+  } catch (err) {
+    console.error("Telegram notification failed:", err);
+  }
+}
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -651,6 +667,35 @@ serve(async (req) => {
               attempt_count: invoice.attempt_count,
             },
           });
+
+          // SMS notification to tenant owner about payment failure
+          try {
+            const { data: deliverySettings } = await supabase
+              .from("booking_delivery_settings")
+              .select("notify_phone")
+              .eq("tenant_id", sub.tenant_id)
+              .maybeSingle();
+
+            if (deliverySettings?.notify_phone) {
+              await sendTenantSms({
+                tenantId: sub.tenant_id,
+                to: deliverySettings.notify_phone,
+                body: "Your Flux Receptionist payment was unsuccessful. Update your payment method at app.getfluxdata.com/settings to keep your AI receptionist running. Reply STOP to opt out.",
+              });
+            }
+          } catch (smsErr) {
+            console.error(`PaymentFailed SMS error for tenant ${sub.tenant_id}:`, smsErr);
+          }
+
+          // Telegram alert to Jack
+          const { data: failedTenant } = await supabase
+            .from("tenants")
+            .select("name")
+            .eq("id", sub.tenant_id)
+            .maybeSingle();
+          await notifyJackTelegram(
+            `STRIPE: invoice.payment_failed for ${failedTenant?.name || sub.tenant_id} — $${((invoice.amount_due || 0) / 100).toFixed(2)} (attempt ${invoice.attempt_count || 1})`
+          );
         }
       }
     }
@@ -697,6 +742,35 @@ serve(async (req) => {
           },
         });
       }
+    }
+
+    // Telegram notifications for all significant payment events (except payment_failed which is handled above)
+    try {
+      const eventType = event.type;
+      if (eventType === "checkout.session.completed") {
+        const s = event.data.object;
+        const tId = s.metadata?.tenant_id;
+        if (tId) {
+          const { data: t } = await supabase.from("tenants").select("name").eq("id", tId).maybeSingle();
+          await notifyJackTelegram(`STRIPE: checkout.session.completed for ${t?.name || tId} — ${s.metadata?.plan_code || "unknown plan"}`);
+        }
+      } else if (eventType === "invoice.payment_succeeded") {
+        const inv = event.data.object;
+        const tId = inv.subscription_details?.metadata?.tenant_id || inv.lines?.data?.[0]?.metadata?.tenant_id;
+        if (tId) {
+          const { data: t } = await supabase.from("tenants").select("name").eq("id", tId).maybeSingle();
+          await notifyJackTelegram(`STRIPE: invoice.payment_succeeded for ${t?.name || tId} — $${((inv.amount_paid || 0) / 100).toFixed(2)}`);
+        }
+      } else if (eventType === "customer.subscription.deleted") {
+        const sub = event.data.object;
+        const tId = sub.metadata?.tenant_id;
+        if (tId) {
+          const { data: t } = await supabase.from("tenants").select("name").eq("id", tId).maybeSingle();
+          await notifyJackTelegram(`STRIPE: subscription.deleted for ${t?.name || tId}`);
+        }
+      }
+    } catch (tgErr) {
+      console.error("Telegram event notification failed:", tgErr);
     }
 
     return new Response(JSON.stringify({ received: true }), {

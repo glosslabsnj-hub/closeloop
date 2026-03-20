@@ -512,10 +512,11 @@ async function handleSquareWebhook(
               });
             }
 
-            // ─── NOTIFICATION DEDUP ──────────────────────────────────
-            // Website and AI phone already sent SMS — skip notifications for those
-            // Square direct/online bookings need notifications via booking-handoff
-            const shouldNotify = bookingSource === "square_direct" || bookingSource === "square_online";
+            // ─── NOTIFICATION ──────────────────────────────────────────
+            // Send SMS confirmation for all Square-originated bookings.
+            // Square only sends email confirmations — SMS must come from Flux.
+            // phone_ai bookings already got SMS during the call flow, so skip those.
+            const shouldNotify = bookingSource !== "phone_ai";
 
             if (shouldNotify && newBooking?.id) {
               try {

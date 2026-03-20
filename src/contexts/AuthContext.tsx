@@ -429,9 +429,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check isSuperAdmin first to prevent any race conditions during initialization
   const hasActiveSubscription = React.useMemo(() => {
     if (isSuperAdmin) return true;
-    if (subscription?.status === "past_due") return false;
-    return subscription?.status === "active" || subscription?.status === "trialing";
-  }, [isSuperAdmin, subscription?.status]);
+    if (subscription?.status === "active") return true;
+    if (subscription?.status === "trialing") {
+      // Trial is only valid if current_period_end exists and is in the future
+      if (!subscription.current_period_end) return false;
+      return new Date(subscription.current_period_end) > new Date();
+    }
+    return false;
+  }, [isSuperAdmin, subscription?.status, subscription?.current_period_end]);
 
   // For super admins, expose the *effective* tenant as `tenant` so the whole app updates
   // when switching the active test tenant.

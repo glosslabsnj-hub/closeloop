@@ -165,6 +165,27 @@ export async function sendTenantSms(req: SendSmsRequest): Promise<SendSmsResult>
   }
 
   const result = await smsResponse.json();
-  console.log(`[sms-sender] SMS sent via ${channel} for tenant ${tenantId}: ${result.sid}`);
+  const actualFrom = messagingServiceSid ? null : fromNumber;
+  const isGlobalFallback = actualFrom === Deno.env.get("TWILIO_FROM_NUMBER");
+  console.log(`[sms-sender] SMS sent via ${channel} for tenant ${tenantId}: ${result.sid}${isGlobalFallback ? " (global fallback)" : ""}`);
+
+  // If we used the global fallback number, record the routing so inbound replies
+  // to the fallback can be matched back to this tenant.
+  if (isGlobalFallback) {
+    try {
+      await supabase.from("sms_fallback_routes").upsert(
+        {
+          fallback_number: actualFrom!,
+          customer_phone: to,
+          tenant_id: tenantId,
+          last_sent_at: new Date().toISOString(),
+        },
+        { onConflict: "fallback_number,customer_phone" }
+      );
+    } catch (e) {
+      console.error(`[sms-sender] Failed to record fallback route:`, e);
+    }
+  }
+
   return { success: true, twilioSid: result.sid, channel };
 }

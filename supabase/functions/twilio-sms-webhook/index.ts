@@ -107,6 +107,48 @@ Deno.serve(async (req) => {
       if (a2p) tenantId = a2p.tenant_id;
     }
 
+    // Strategy 4: Global fallback number (TWILIO_FROM_NUMBER) — reverse-lookup via
+    // sms_fallback_routes table. When sms-sender uses the global fallback to send
+    // outbound SMS, it records (fallback_number, customer_phone) -> tenant_id.
+    // If a customer replies to the fallback number, we find the tenant here.
+    if (!tenantId) {
+      const globalFallback = Deno.env.get("TWILIO_FROM_NUMBER");
+      if (globalFallback && normalizedTo === (normalizePhoneE164(globalFallback) || globalFallback)) {
+        console.log(`[sms-webhook] "To" is global fallback number, looking up route for sender ${normalizedFrom}`);
+
+        // First try the explicit routing table
+        const { data: route } = await supabase
+          .from("sms_fallback_routes")
+          .select("tenant_id")
+          .eq("fallback_number", normalizedTo)
+          .eq("customer_phone", normalizedFrom)
+          .order("last_sent_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (route) {
+          tenantId = route.tenant_id;
+          console.log(`[sms-webhook] Resolved tenant ${tenantId} via sms_fallback_routes`);
+        }
+
+        // Fallback: find the most recent SMS conversation with this customer phone
+        if (!tenantId) {
+          const { data: customer } = await supabase
+            .from("customers")
+            .select("tenant_id")
+            .eq("phone_e164", normalizedFrom)
+            .order("updated_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (customer) {
+            tenantId = customer.tenant_id;
+            console.log(`[sms-webhook] Resolved tenant ${tenantId} via customer phone reverse-lookup`);
+          }
+        }
+      }
+    }
+
     if (!tenantId) {
       console.log(`[sms-webhook] No tenant for number ${normalizedTo}`);
       return twilioResponse("");

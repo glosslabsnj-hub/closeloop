@@ -364,8 +364,8 @@ serve(async (req) => {
         `https://messaging.twilio.com/v1/Services/${a2pStep4.messaging_service_sid}/UsAppToPerson`,
         {
           BrandRegistrationSid: a2pStep4.brand_sid,
-          Description: `${businessName} sends appointment confirmations, reminders, and follow-ups to customers who have booked services or made inquiries.`,
-          MessageFlow: `Customers provide their phone number when booking an appointment or calling ${businessName}. They receive automated appointment confirmations, reminders, and follow-up messages. Customers can reply STOP to opt out at any time.`,
+          Description: `${businessName} sends appointment confirmations, reminders, and follow-ups to customers who have booked services or made inquiries via phone call.`,
+          MessageFlow: `Business owners provide explicit SMS consent during onboarding via a clearly labeled checkbox with TCPA-compliant opt-in language. Customer opt-in is collected during live phone calls with the AI receptionist, which verbally informs callers that they may receive appointment confirmations and reminders via text. Customers can reply STOP to opt out at any time. Message frequency: 2-5 messages per appointment.`,
           // Use MIXED for the broadest use case coverage
           UsAppToPersonUsecase: "MIXED",
           HasEmbeddedLinks: "true",
@@ -376,7 +376,7 @@ serve(async (req) => {
             `Reminder: You have an appointment with ${businessName} in 1 hour. See you soon! Reply STOP to unsubscribe.`,
             `Thank you for visiting ${businessName}! We'd love your feedback. Reply STOP to opt out.`,
           ]),
-          OptInMessage: `By providing your phone number, you agree to receive appointment-related text messages from ${businessName}. Message and data rates may apply. Reply STOP to opt out.`,
+          OptInMessage: `By providing your phone number during a call with ${businessName}, you consent to receive automated text messages including appointment confirmations, reminders, and service updates. Message and data rates may apply. Message frequency varies. Reply STOP to opt out at any time.`,
           OptOutMessage: `You have been unsubscribed from ${businessName} messages. You will no longer receive texts. Reply START to re-subscribe.`,
           HelpMessage: `For help, contact ${businessName} directly or reply HELP for more info. Message and data rates may apply.`,
           OptInKeywords: "START,YES,SUBSCRIBE",

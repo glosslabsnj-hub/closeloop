@@ -828,6 +828,52 @@ async function processCallData(
     }
   }
 
+  // ===== SPAM / ROBOCALL DETECTION =====
+  const isSpamCall = detectSpamCall(transcriptText, payload.transcript);
+  if (isSpamCall) {
+    console.log(`[spam-detection] Spam call detected for session ${sessionId}, skipping customer/lead creation`);
+    await logEventStage(supabase, tenantId, sessionId, session.twilio_call_sid, payload.conversation_id, "spam_detected", {
+      reason: isSpamCall.reason,
+      pattern: isSpamCall.pattern,
+    });
+
+    // Update session as spam with "lost" outcome, then return early
+    await supabase
+      .from("ai_call_sessions")
+      .update({
+        transcript: transcriptText,
+        summary: `[SPAM] ${summaryText || isSpamCall.reason}`,
+        outcome: "lost" as "lost",
+        ended_at: payload.metadata?.end_time || new Date().toISOString(),
+        context_json: { ...existingContext, is_spam: true, spam_reason: isSpamCall.reason },
+        elevenlabs_conversation_id: payload.conversation_id,
+        extracted_payload: { ...validatedPayload, _meta: { ...validatedPayload._meta, is_spam: true } } as unknown as Record<string, unknown>,
+        lead_score: "cold",
+        followup_status: "completed",
+      })
+      .eq("id", sessionId);
+
+    // Track voice usage even for spam (we still consumed minutes)
+    const spamDuration = payload.metadata?.call_duration_secs || 0;
+    if (spamDuration > 0) {
+      const voiceMinutes = Math.ceil(spamDuration / 60);
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/track-usage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${supabaseKey}` },
+          body: JSON.stringify({ tenant_id: tenantId, event_type: "voice_minute", quantity: voiceMinutes }),
+        });
+      } catch { /* non-critical */ }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      session_id: sessionId,
+      outcome: "spam",
+      spam_reason: isSpamCall.reason,
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  }
+
   // ===== DETERMINE OUTCOME =====
   const outcome = determineOutcomeFromIntent(validatedPayload.intent, tenantBusinessMode);
 
@@ -2020,6 +2066,91 @@ function determineIntentFromPayload(
 }
 
 // ===== QUOTE DETECTION HELPERS =====
+
+/**
+ * Detect spam / robocall patterns in call transcript.
+ * Returns null if the call appears legitimate, or an object with reason + matched pattern if spam.
+ *
+ * Known patterns:
+ * - Google Business Profile scam ("your Google Business account", "Google Voice search")
+ * - SEO/marketing robocalls ("your website is not ranking", "first page of Google")
+ * - Extended warranty scams
+ * - Generic robocall indicators (press zero/one to speak to agent)
+ */
+// deno-lint-ignore no-explicit-any
+function detectSpamCall(
+  transcriptText: string | null,
+  transcriptArray: Array<{ role: string; message: string }> | null | undefined
+): { reason: string; pattern: string } | null {
+  if (!transcriptText && (!transcriptArray || transcriptArray.length === 0)) return null;
+
+  // Get customer-side messages only (the robocall script)
+  const customerMessages = transcriptArray
+    ?.filter(t => t.role === "user")
+    .map(t => t.message)
+    .join(" ")
+    .toLowerCase() || "";
+
+  const fullTranscript = (transcriptText || "").toLowerCase();
+  const textToCheck = customerMessages || fullTranscript;
+
+  // If the call is very short and has no customer speech, skip detection
+  if (!textToCheck || textToCheck.trim().length < 20) return null;
+
+  // Known robocall patterns (ordered by specificity)
+  const SPAM_PATTERNS: Array<{ pattern: RegExp; reason: string; name: string }> = [
+    // Google Business Profile scam (most common for Gloss Labs)
+    {
+      pattern: /google business account|google voice (?:search|clients)|your business is not showing correctly|verify your google listing/,
+      reason: "Google Business Profile robocall scam",
+      name: "google_gbp_scam",
+    },
+    // SEO/marketing scam calls
+    {
+      pattern: /your website is not (?:ranking|showing)|first page of google|search engine optimization|improve your online presence/,
+      reason: "SEO marketing robocall",
+      name: "seo_scam",
+    },
+    // Extended warranty
+    {
+      pattern: /extended warranty|vehicle warranty|warranty (?:is about to|has) expir/,
+      reason: "Extended warranty robocall",
+      name: "warranty_scam",
+    },
+    // Insurance robocalls
+    {
+      pattern: /health insurance|insurance (?:plan|coverage|rate).*(?:expir|renew|lower)/,
+      reason: "Insurance robocall",
+      name: "insurance_scam",
+    },
+    // Debt/financial scam
+    {
+      pattern: /(?:credit card|student loan|tax) (?:debt|relief|forgiveness)|irs (?:audit|lien|warrant)/,
+      reason: "Financial scam robocall",
+      name: "financial_scam",
+    },
+    // Generic robocall indicators: press-to-connect pattern with no real conversation
+    {
+      pattern: /press (?:zero|one|nine|0|1|9) to (?:speak|connect|be connected|opt)|press (?:zero|0|9|nine) to speak (?:with|to) an agent/,
+      reason: "Automated robocall (press-to-connect pattern)",
+      name: "press_to_connect",
+    },
+    // "This is an important message" + no actual conversation about services
+    {
+      pattern: /this is an? (?:important|urgent|critical) (?:message|notice|alert) (?:regarding|about|for)/,
+      reason: "Automated alert/scam robocall",
+      name: "important_message_scam",
+    },
+  ];
+
+  for (const { pattern, reason, name } of SPAM_PATTERNS) {
+    if (pattern.test(textToCheck)) {
+      return { reason, pattern: name };
+    }
+  }
+
+  return null;
+}
 
 /**
  * Detect if transcript contains pricing-related questions
@@ -3319,7 +3450,8 @@ function buildSummaryFromTranscript(transcript: NonNullable<ElevenLabsWebhookPay
   const parts: string[] = [];
   
   const nameMatch = customerMessages.match(/(?:my name is|this is|i'm|call me|name is)\s+([a-z]+)/i);
-  if (nameMatch) parts.push(`Customer: ${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)}`);
+  const SPAM_NAME_WORDS = new Set(["an", "a", "the", "your", "our", "this", "that", "important", "urgent", "automated", "auto", "regarding"]);
+  if (nameMatch && !SPAM_NAME_WORDS.has(nameMatch[1].toLowerCase())) parts.push(`Customer: ${nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1)}`);
   
   switch (businessMode) {
     case "food": {
@@ -3357,10 +3489,11 @@ function extractFromTranscript(transcript: ElevenLabsWebhookPayload["transcript"
   const customerMessages = transcript.filter(t => t.role === "user").map(t => t.message).join(" ");
 
   if (type === "name") {
+    const SPAM_NAMES = new Set(["an", "a", "the", "your", "our", "this", "that", "important", "urgent", "automated", "auto", "regarding"]);
     const namePatterns = [/my name is ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, /this is ([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i, /i'm ([A-Z][a-z]+)/i, /i am ([A-Z][a-z]+)/i, /call me ([A-Z][a-z]+)/i];
     for (const pattern of namePatterns) {
       const match = customerMessages.match(pattern);
-      if (match) return match[1];
+      if (match && !SPAM_NAMES.has(match[1].toLowerCase())) return match[1];
     }
   }
 
@@ -3380,9 +3513,10 @@ function extractStructuredDataFromTranscript(transcript: NonNullable<ElevenLabsW
   const customerMessages = transcript.filter(t => t.role === "user").map(t => t.message.toLowerCase()).join(" ");
   const allMessages = transcript.map(t => t.message.toLowerCase()).join(" ");
   
-  // Extract customer name
+  // Extract customer name (filter out common robocall false positives)
+  const SPAM_NAMES = new Set(["an", "a", "the", "your", "our", "this", "that", "important", "urgent", "automated", "auto", "regarding"]);
   const nameMatch = customerMessages.match(/(?:my name is|this is|i'm|i am|call me)\s+([a-z]+(?:\s+[a-z]+)?)/i);
-  if (nameMatch) extracted.customer_name = nameMatch[1].split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  if (nameMatch && !SPAM_NAMES.has(nameMatch[1].split(" ")[0].toLowerCase())) extracted.customer_name = nameMatch[1].split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
   
   // Extract callback number
   const phoneMatch = customerMessages.match(/(?:call me (?:back )?at|my number is|reach me at)\s*([\d()\s-]+)/);

@@ -575,12 +575,18 @@ serve(async (req) => {
             const template = cancelConfig?.message ||
               `Hi {{customer_name}}, your {{service_name}} with {{business_name}} has been cancelled. If you'd like to rebook, give us a call. Reply STOP to opt out.`;
 
+            const cancelTime = new Date(booking.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tenantTimezone });
+            const cancelDate = new Date(booking.start_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: tenantTimezone });
             const message = template
               .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
+              .replace(/\{\{first_name\}\}/g, (booking.lead?.full_name || "there").split(" ")[0])
               .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
               .replace(/\{\{service_name\}\}/g, booking.service?.name || apptLabel)
-              .replace(/\{\{appointment_time\}\}/g, new Date(booking.start_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: tenantTimezone }))
-              .replace(/\{\{appointment_date\}\}/g, new Date(booking.start_at).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: tenantTimezone }));
+              .replace(/\{\{service\}\}/g, booking.service?.name || apptLabel)
+              .replace(/\{\{appointment_time\}\}/g, cancelTime)
+              .replace(/\{\{time\}\}/g, cancelTime)
+              .replace(/\{\{appointment_date\}\}/g, cancelDate)
+              .replace(/\{\{date\}\}/g, cancelDate);
 
             const smsResult = await sendTenantSms({ tenantId, to: customerPhone, body: message });
             if (smsResult.success) {
@@ -785,10 +791,14 @@ serve(async (req) => {
 
           const message = template
             .replace(/\{\{customer_name\}\}/g, booking.lead?.full_name || "there")
+            .replace(/\{\{first_name\}\}/g, (booking.lead?.full_name || "there").split(" ")[0])
             .replace(/\{\{business_name\}\}/g, tenantData?.name || "us")
             .replace(/\{\{service_name\}\}/g, booking.service?.name || `your ${apptLabel}`)
+            .replace(/\{\{service\}\}/g, booking.service?.name || `your ${apptLabel}`)
             .replace(/\{\{appointment_time\}\}/g, startTime)
+            .replace(/\{\{time\}\}/g, startTime)
             .replace(/\{\{appointment_date\}\}/g, startDate)
+            .replace(/\{\{date\}\}/g, startDate)
             .replace(/\{\{business_phone\}\}/g, businessPhone || "");
 
           // Append self-service prompt to confirmation messages

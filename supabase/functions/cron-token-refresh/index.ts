@@ -185,6 +185,31 @@ serve(async (_req: Request) => {
       }
     }
 
+    // Send Telegram alert to Jack on any token refresh errors
+    if (results.errors > 0 || results.no_refresh_token > 0) {
+      try {
+        const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8429513226:AAGnt47zIkkUIAyFB4Mb4_fYdptaV2iKnt0";
+        const TELEGRAM_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID") || "6841391368";
+        const errorLines = results.error_details.map(
+          (e: { tenant_id: string; provider: string; error: string }) => `  ${e.provider} (tenant ${e.tenant_id.substring(0, 8)}): ${e.error}`
+        ).join("\n");
+        const msg = [
+          `TOKEN REFRESH ALERT`,
+          `Checked: ${results.checked} | Refreshed: ${results.refreshed} | Errors: ${results.errors} | No refresh token: ${results.no_refresh_token}`,
+          results.error_details.length > 0 ? `\nFailures:\n${errorLines}` : "",
+          results.no_refresh_token > 0 ? `\n${results.no_refresh_token} token(s) have no refresh_token. Manual reconnect needed.` : "",
+        ].filter(Boolean).join("\n");
+
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg }),
+        });
+      } catch (tgErr) {
+        console.error("[cron-token-refresh] Telegram alert failed:", tgErr);
+      }
+    }
+
     console.log(`[cron-token-refresh] Done:`, results);
     return new Response(JSON.stringify(results));
   } catch (error) {

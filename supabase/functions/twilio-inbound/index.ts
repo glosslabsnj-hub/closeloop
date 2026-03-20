@@ -450,6 +450,41 @@ Deno.serve(async (req) => {
     );
     const subscription = subscriptionRecords[0];
 
+    // Gate: reject calls for expired/canceled subscriptions
+    if (subscription) {
+      const subStatus = subscription.status;
+      const periodEnd = subscription.current_period_end ? new Date(subscription.current_period_end) : null;
+
+      if (subStatus === 'canceled' || subStatus === 'past_due') {
+        console.log(`[twilio-inbound] Subscription ${subStatus} for tenant ${tenantId} — rejecting call`);
+        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          tenant_id: tenantId,
+          twilio_call_sid: callSidSafe,
+          to_number: toPhoneE164,
+          from_number: callerPhoneE164,
+          stage: "subscription_expired",
+        });
+        return twimlResponse(hangupTwiml(
+          "We're sorry, this number is no longer in service. Please contact the business directly."
+        ));
+      }
+
+      if (subStatus === 'trialing' && periodEnd && periodEnd < new Date()) {
+        console.log(`[twilio-inbound] Trial expired for tenant ${tenantId} (ended ${periodEnd.toISOString()}) — rejecting call`);
+        void logTwilioEvent(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+          tenant_id: tenantId,
+          twilio_call_sid: callSidSafe,
+          to_number: toPhoneE164,
+          from_number: callerPhoneE164,
+          stage: "trial_expired",
+        });
+        return twimlResponse(hangupTwiml(
+          "We're sorry, this number is no longer in service. Please contact the business directly."
+        ));
+      }
+    }
+    // Note: No subscription record = allow call (covers demo/internal tenants that don't have subscriptions)
+
     if (subscription?.status === "trialing" && subscription?.trial_minutes_limit) {
       const usageRecords = await querySupabase(
         SUPABASE_URL,

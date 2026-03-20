@@ -207,25 +207,107 @@ serve(async (req) => {
       supabase, tenant_id, "service_completion" as any, settings
     );
 
+    // ─── 0. SYNC LATEST PRICE FROM SQUARE (if applicable) ────────
+    // When a booking originated from Square, the owner may have adjusted
+    // pricing (discounts, add-ons) directly in Square after the initial import.
+    // Fetch the latest appointment data from Square to get the current price.
+    if (booking.external_provider === "square" && booking.external_event_id) {
+      try {
+        const { data: integration } = await supabase
+          .from("integrations")
+          .select("config_json")
+          .eq("tenant_id", tenant_id)
+          .eq("provider", "square_pos")
+          .eq("status", "connected")
+          .maybeSingle();
+
+        const squareToken = (integration?.config_json as any)?.access_token;
+        if (squareToken) {
+          // Fetch the Square booking to get current price from appointment segments
+          const sqRes = await fetch(
+            `https://connect.squareup.com/v2/bookings/${booking.external_event_id}`,
+            {
+              headers: {
+                "Authorization": `Bearer ${squareToken}`,
+                "Square-Version": "2024-12-18",
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          if (sqRes.ok) {
+            const sqData = await sqRes.json();
+            const sqBooking = sqData.booking;
+
+            // Check appointment segments for price overrides
+            const segment = sqBooking?.appointment_segments?.[0];
+            const anyPriceMoney = segment?.any_team_member_booking_override?.price_money
+              || segment?.team_member_booking_override?.price_money;
+
+            if (anyPriceMoney?.amount) {
+              const squarePriceCents = anyPriceMoney.amount;
+              if (squarePriceCents !== booking.price_cents) {
+                console.log(`[post-service] Square price sync: ${booking.price_cents} -> ${squarePriceCents}`);
+                booking.price_cents = squarePriceCents;
+                booking.price_breakdown = {
+                  ...booking.price_breakdown,
+                  final_price_cents: squarePriceCents,
+                  method: "square_live_sync",
+                };
+
+                // Persist the updated price to the booking record
+                await supabase
+                  .from("bookings")
+                  .update({
+                    price_cents: squarePriceCents,
+                    price_breakdown: booking.price_breakdown,
+                  })
+                  .eq("id", booking_id);
+              }
+            }
+
+            // Also check the customer_note for updated service details
+            if (sqBooking?.customer_note && sqBooking.customer_note !== booking.notes) {
+              booking.notes = sqBooking.customer_note;
+            }
+          }
+        }
+      } catch (e) {
+        // Non-critical: if Square sync fails, use existing booking price
+        console.warn("[post-service] Square price sync failed (using existing price):", e);
+      }
+    }
+
     // ─── 1. GENERATE INVOICE ─────────────────────────────────────
     let invoiceId: string | null = null;
     let paymentUrl: string | null = null;
 
-    if (autoInvoice && booking.service) {
+    if (autoInvoice && (booking.service || booking.price_cents)) {
       const lineItems: any[] = [];
 
-      // Primary service
-      const servicePrice = booking.service.price_amount
-        ? Math.round(booking.service.price_amount * 100) // Convert dollars to cents
+      // Primary service — prefer booking-level price (from Square import or AI booking)
+      // over the generic service catalog price. The booking's price_cents reflects
+      // the actual amount agreed upon (discounts, vehicle-size adjustments, etc.).
+      const bookingPriceCents = booking.price_cents
+        || booking.price_breakdown?.final_price_cents
+        || null;
+      const catalogPriceCents = booking.service?.price_amount
+        ? Math.round(booking.service.price_amount * 100)
         : 0;
+      const servicePrice = bookingPriceCents ?? catalogPriceCents;
+
+      const serviceName = booking.price_breakdown?.service_name
+        || booking.service?.name
+        || booking.notes?.replace(/^Square import - /, "")
+        || "Service";
 
       if (servicePrice > 0) {
         lineItems.push({
-          description: booking.service.name,
+          description: serviceName,
           quantity: 1,
           unit_price_cents: servicePrice,
           total_cents: servicePrice,
-          service_id: booking.service.id,
+          service_id: booking.service?.id || null,
         });
       }
 

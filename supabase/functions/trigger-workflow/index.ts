@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsResponse, errorResponse, jsonResponse } from "../_shared/cors.ts";
 import { sendEmail } from "../_shared/sendEmail.ts";
+import { sendTenantSms } from "../_shared/sms-sender.ts";
 
 interface TriggerWorkflowRequest {
   tenant_id: string;
@@ -438,38 +439,20 @@ async function executeNotifySms(
     throw new Error("SMS requires 'to' and 'message'");
   }
 
-  const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const twilioFromNumber = Deno.env.get("TWILIO_FROM_NUMBER");
+  // Use shared SMS sender which routes through A2P/toll-free/messaging service
+  // This avoids sending from blocked local numbers (error 30034)
+  const smsResult = await sendTenantSms({ tenantId, to, body: message });
 
-  if (!twilioAccountSid || !twilioAuthToken || !twilioFromNumber) {
-    console.warn("[executeNotifySms] Twilio not configured, simulating send");
-    return { simulated: true, to, message };
+  if (smsResult.skipped) {
+    console.log(`[executeNotifySms] SMS skipped for tenant ${tenantId}: ${smsResult.reason}`);
+    return { skipped: true, reason: smsResult.reason, to };
   }
 
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        To: to,
-        From: twilioFromNumber,
-        Body: message,
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Twilio error: ${errorText}`);
+  if (!smsResult.success) {
+    throw new Error(`SMS failed: ${smsResult.error}`);
   }
 
-  const result = await response.json();
-  return { message_sid: result.sid, status: "sent", to };
+  return { message_sid: smsResult.twilioSid, status: "sent", to, channel: smsResult.channel };
 }
 
 async function executeNotifyEmail(
@@ -1481,7 +1464,7 @@ async function executePrintAction(
 
 // SMS action
 async function executeSmsAction(
-  supabase: any,
+  _supabase: any,
   config: any,
   context: Record<string, any>,
   tenantId: string,
@@ -1511,47 +1494,20 @@ async function executeSmsAction(
     };
   }
 
-  // Get Twilio credentials
-  const twilioAccountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const twilioAuthToken = Deno.env.get("TWILIO_AUTH_TOKEN");
+  // Use shared SMS sender which routes through A2P/toll-free/messaging service
+  // This avoids sending from blocked local numbers (error 30034)
+  const smsResult = await sendTenantSms({ tenantId, to, body: message });
 
-  if (!twilioAccountSid || !twilioAuthToken) {
-    console.log("[executeSmsAction] Twilio not configured, simulating");
-    return { success: true, response: { simulated: true, to, message } };
+  if (smsResult.skipped) {
+    console.log(`[executeSmsAction] SMS skipped for tenant ${tenantId}: ${smsResult.reason}`);
+    return { success: true, response: { skipped: true, reason: smsResult.reason } };
   }
 
-  // Get from number
-  const { data: phoneNumber } = await supabase
-    .from("phone_numbers")
-    .select("phone_e164")
-    .eq("tenant_id", tenantId)
-    .eq("purpose", "forwarding")
-    .single();
-
-  const fromNumber = phoneNumber?.phone_e164;
-  if (!fromNumber) {
-    return { success: false, error: "No from number configured" };
+  if (!smsResult.success) {
+    return { success: false, error: `SMS failed: ${smsResult.error}` };
   }
 
-  const response = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${btoa(`${twilioAccountSid}:${twilioAuthToken}`)}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({ To: to, From: fromNumber, Body: message }),
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    return { success: false, error: `Twilio error: ${errorText}` };
-  }
-
-  const result = await response.json();
-  return { success: true, response: { message_sid: result.sid, to } };
+  return { success: true, response: { message_sid: smsResult.twilioSid, to, channel: smsResult.channel } };
 }
 
 // Helper to generate simple receipt HTML

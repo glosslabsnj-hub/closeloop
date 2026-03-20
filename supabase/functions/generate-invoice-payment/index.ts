@@ -135,7 +135,7 @@ serve(async (req) => {
       }
     }
 
-    // ─── TRY SQUARE (if Stripe didn't work) ──────────────────────
+    // ─── TRY SQUARE CHECKOUT LINK (if Stripe didn't work) ────────
     if (!paymentUrl && connectedProviders.includes("square_pos")) {
       try {
         const squareToken = await getValidAccessToken("square_pos", tenant_id);
@@ -143,35 +143,82 @@ serve(async (req) => {
         const locationId = (squareIntegration?.config_json as any)?.location_id;
 
         if (squareToken && locationId) {
-          // Create a Square invoice
           const lineItems = (invoice.line_items as any[]) || [];
+          const description = lineItems.map((l: any) => l.description).join(", ") || "Service";
 
-          const squareInvoice = {
-            idempotency_key: `inv-${invoice_id}`,
-            invoice: {
+          // Step 1: Create a Square Order (required for checkout links)
+          const orderBody = {
+            idempotency_key: `order-inv-${invoice_id}`,
+            order: {
               location_id: locationId,
-              order_id: null, // We'd need to create an order first
-              primary_recipient: {
-                customer_id: null, // Would need Square customer lookup
-                given_name: invoice.customer_name?.split(" ")[0] || "Customer",
-                family_name: invoice.customer_name?.split(" ").slice(1).join(" ") || "",
-                email_address: invoice.customer_email,
-                phone_number: invoice.customer_phone,
-              },
-              payment_requests: [{
-                request_type: "BALANCE",
-                due_date: invoice.due_at ? new Date(invoice.due_at).toISOString().split("T")[0] : undefined,
-                automatic_payment_source: "NONE",
+              line_items: [{
+                name: `Invoice #${invoice.invoice_number} - ${description}`,
+                quantity: "1",
+                base_price_money: {
+                  amount: invoice.balance_due_cents,
+                  currency: "USD",
+                },
               }],
-              delivery_method: invoice.customer_email ? "EMAIL" : "SHARE_MANUALLY",
-              title: `Invoice #${invoice.invoice_number}`,
             },
           };
 
-          // Square invoice creation is more complex (needs order first)
-          // For now, mark as external and let the business handle it via Square dashboard
-          paymentMethod = "external";
-          console.log("[generate-invoice-payment] Square invoice creation queued (complex flow)");
+          const orderRes = await fetch("https://connect.squareup.com/v2/orders", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${squareToken}`,
+              "Content-Type": "application/json",
+              "Square-Version": "2024-12-18",
+            },
+            body: JSON.stringify(orderBody),
+          });
+
+          if (orderRes.ok) {
+            const orderData = await orderRes.json();
+            const orderId = orderData.order?.id;
+
+            if (orderId) {
+              // Step 2: Create a Payment Link from the order
+              const linkBody = {
+                idempotency_key: `link-inv-${invoice_id}`,
+                order_id: orderId,
+                checkout_options: {
+                  allow_tipping: false,
+                  redirect_url: `${SUPABASE_URL}/functions/v1/invoice-payment-complete?invoice_id=${invoice_id}`,
+                },
+              };
+
+              const linkRes = await fetch("https://connect.squareup.com/v2/online-checkout/payment-links", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${squareToken}`,
+                  "Content-Type": "application/json",
+                  "Square-Version": "2024-12-18",
+                },
+                body: JSON.stringify(linkBody),
+              });
+
+              if (linkRes.ok) {
+                const linkData = await linkRes.json();
+                paymentUrl = linkData.payment_link?.long_url || linkData.payment_link?.url || null;
+                paymentMethod = "square";
+
+                // Store the Square invoice/order reference
+                if (paymentUrl) {
+                  await supabase
+                    .from("invoices")
+                    .update({ square_invoice_id: orderId })
+                    .eq("id", invoice_id);
+                }
+                console.log(`[generate-invoice-payment] Square payment link created: ${paymentUrl}`);
+              } else {
+                const errBody = await linkRes.text();
+                console.error("[generate-invoice-payment] Square link creation failed:", errBody);
+              }
+            }
+          } else {
+            const errBody = await orderRes.text();
+            console.error("[generate-invoice-payment] Square order creation failed:", errBody);
+          }
         }
       } catch (e) {
         console.error("[generate-invoice-payment] Square error:", e);
