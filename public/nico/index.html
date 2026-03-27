@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Buying Strategy Guide - Nico</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.7; }
+  .container { max-width: 940px; margin: 0 auto; padding: 20px 30px; }
+  h1 { font-size: 2.2em; color: #fff; text-align: center; margin: 40px 0 10px; letter-spacing: -1px; }
+  .subtitle { text-align: center; color: #888; font-size: 1.1em; margin-bottom: 40px; }
+  h2 { font-size: 1.5em; color: #4fc3f7; margin: 40px 0 15px; padding-bottom: 8px; border-bottom: 2px solid #1a3a4a; }
+  h3 { font-size: 1.2em; color: #81d4fa; margin: 25px 0 10px; }
+  h4 { font-size: 1.05em; color: #b3e5fc; margin: 20px 0 8px; }
+  p { margin: 8px 0; color: #ccc; }
+  .highlight { background: #1a2a1a; border-left: 4px solid #66bb6a; padding: 15px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .warning { background: #2a1a1a; border-left: 4px solid #ef5350; padding: 15px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  .info { background: #1a1a2a; border-left: 4px solid #42a5f5; padding: 15px 20px; margin: 15px 0; border-radius: 0 8px 8px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+  th { background: #1a1a2a; color: #4fc3f7; text-align: left; padding: 12px 15px; font-weight: 600; }
+  td { padding: 10px 15px; border-bottom: 1px solid #222; }
+  tr:hover { background: #111; }
+  .price { color: #66bb6a; font-weight: 600; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+  .badge-green { background: #1a3a1a; color: #66bb6a; border: 1px solid #2a5a2a; }
+  .badge-blue { background: #1a1a3a; color: #42a5f5; border: 1px solid #2a2a5a; }
+  .badge-orange { background: #3a2a1a; color: #ffa726; border: 1px solid #5a3a1a; }
+  .badge-red { background: #3a1a1a; color: #ef5350; border: 1px solid #5a1a1a; }
+  ul, ol { margin: 8px 0 8px 25px; }
+  li { margin: 5px 0; color: #ccc; }
+  .step { background: #111; border: 1px solid #222; border-radius: 10px; padding: 20px; margin: 15px 0; }
+  .step-number { display: inline-block; width: 30px; height: 30px; background: #4fc3f7; color: #000; border-radius: 50%; text-align: center; line-height: 30px; font-weight: 700; margin-right: 10px; }
+  .card { background: #111; border: 1px solid #222; border-radius: 10px; padding: 20px; }
+  .divider { height: 1px; background: linear-gradient(to right, transparent, #333, transparent); margin: 40px 0; }
+  strong { color: #fff; }
+  code { background: #1a1a2a; color: #4fc3f7; padding: 2px 6px; border-radius: 4px; font-size: 0.95em; }
+  .total-row td { border-top: 2px solid #4fc3f7; font-weight: 700; color: #fff; }
+  .toc { background: #111; border: 1px solid #222; border-radius: 10px; padding: 25px 30px; margin: 20px 0; }
+  .toc a { color: #4fc3f7; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc ol { margin-left: 20px; }
+  .toc li { margin: 8px 0; }
+  .checklist { list-style: none; margin-left: 0; }
+  .checklist li { padding-left: 28px; position: relative; }
+  .checklist li::before { content: "\2610"; color: #4fc3f7; font-size: 1.1em; position: absolute; left: 0; }
+  .script-box { background: #0a1a0a; border: 1px solid #1a3a1a; border-radius: 10px; padding: 20px; margin: 15px 0; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 0.9em; color: #a5d6a7; white-space: pre-line; line-height: 1.8; }
+  .doctor-script { background: #1a1a0a; border: 2px solid #ffa726; border-radius: 10px; padding: 20px; margin: 15px 0; }
+  @media print {
+    body { background: #fff; color: #111; }
+    h1 { color: #111; } h2 { color: #0277bd; } h3, h4 { color: #01579b; }
+    p, li, td { color: #222; }
+    .highlight { background: #e8f5e9; border-color: #4caf50; }
+    .warning { background: #fbe9e7; border-color: #f44336; }
+    .info { background: #e3f2fd; border-color: #2196f3; }
+    th { background: #e3f2fd; color: #01579b; }
+    .step, .card, .toc { background: #f5f5f5; border-color: #ddd; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>CAR BUYING STRATEGY GUIDE</h1>
+<p class="subtitle">Built for Nico. 22 years old | $4,000 down | No credit history | New Jersey. How to not get screwed.</p>
+
+<div class="info">
+  <strong>Your Situation:</strong> 22 years old | $4,000 cash for down payment | No credit history (not bad credit, just none) | W-2 job with verifiable income | New Jersey resident | No guaranteed cosigner | Wants a Honda Civic Type R ($20-30K range) | Needs cheapest possible insurance
+</div>
+
+<div class="toc">
+  <h3>Table of Contents</h3>
+  <ol>
+    <li><a href="#reality-check">The Reality Check: Type R Numbers</a></li>
+    <li><a href="#paths">Your Two Paths (Type R vs Smart Alternative)</a></li>
+    <li><a href="#credit">Step 1: Build Credit BEFORE Going to the Dealer</a></li>
+    <li><a href="#pre-approval">Step 2: Get Pre-Approved (Credit Unions, Not Dealers)</a></li>
+    <li><a href="#research">Step 3: Research the Car (Don't Walk In Blind)</a></li>
+    <li><a href="#finding">Step 4: Finding the Car (Where to Look)</a></li>
+    <li><a href="#inspection">Step 5: Inspecting a Used Car (What to Check)</a></li>
+    <li><a href="#negotiation">Step 6: Negotiation (How to Not Get Ripped Off)</a></li>
+    <li><a href="#financing">Step 7: Financing at the Dealer (The F&I Office Trap)</a></li>
+    <li><a href="#insurance">Step 8: Insurance (How to Get the Cheapest Rate)</a></li>
+    <li><a href="#closing">Step 9: Closing the Deal (Paperwork Checklist)</a></li>
+    <li><a href="#after">Step 10: After You Buy (Protect Yourself)</a></li>
+    <li><a href="#nj-laws">New Jersey Buyer Protections & Laws</a></li>
+    <li><a href="#scams">Common Scams & How to Spot Them</a></li>
+    <li><a href="#scripts">Word-for-Word Scripts (What to Say)</a></li>
+    <li><a href="#checklist">Master Checklist</a></li>
+  </ol>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 1: REALITY CHECK ===== -->
+<h2 id="reality-check">1. The Reality Check: Type R Numbers</h2>
+
+<p>Before anything else, you need to see the real numbers. Not to crush your dream, but so you walk into this with eyes wide open and don't get buried in a payment you can't handle.</p>
+
+<h3>What a Honda Civic Type R Actually Costs</h3>
+
+<table>
+  <tr><th>Type R Option</th><th>Price Range</th><th>Notes</th></tr>
+  <tr><td>New 2025 Type R</td><td class="price">$45,895 + dealer markup</td><td>MSRP $44,700 + $1,195 destination. Dealers typically add $1,000-$5,000 markup on top. Realistic out-the-door: $48,000-$53,000. <strong>Way outside your budget.</strong></td></tr>
+  <tr><td>New 2026 Type R</td><td class="price">$48,090 + markup</td><td>$1,000 increase over 2025. Even more out of reach.</td></tr>
+  <tr><td>Used 2023-2025 FL5 (newest gen)</td><td class="price">$33,000-$47,000</td><td>Depends on mileage. A 2023 with 30K+ miles is the cheapest FL5 at ~$33-37K. Still above your stated range.</td></tr>
+  <tr><td>Used 2019-2021 FK8 (older gen)</td><td class="price">$30,000-$37,000</td><td>These hold value insanely well. A 2019 with 30-50K miles runs $30-34K. This is the cheapest realistic entry.</td></tr>
+  <tr><td>Used 2017-2018 FK8</td><td class="price">$28,000-$33,000</td><td>Oldest Type R available. 50K+ miles. ~$28-30K for higher mileage. This is the absolute floor for a clean Type R.</td></tr>
+</table>
+
+<h3>The Full Monthly Cost (This Is What Matters)</h3>
+
+<p>Let's use the best-case scenario: a 2018 FK8 at $28,000, $4,000 down payment, and the best rate you'll realistically get with no credit (~10-12% from a credit union).</p>
+
+<table>
+  <tr><th>Expense</th><th>Monthly Cost</th><th>Notes</th></tr>
+  <tr><td>Car payment ($24K financed at 12%, 60 months)</td><td class="price">$534/mo</td><td>At 10%: $510/mo. At 15% (dealer financing): $571/mo.</td></tr>
+  <tr><td>Insurance (full coverage, required when financing)</td><td class="price">$200-450/mo</td><td>22yo male, NJ. Varies hugely by company. Progressive quotes in the $200-350 range are common. Get 5-7 real quotes before assuming a number. Sports car classification on a Type R may push it higher with some companies.</td></tr>
+  <tr><td>Gas (premium required)</td><td class="price">$60-100/mo</td><td>Type R requires 91+ octane. Currently ~$3.80-4.20/gal for premium in NJ.</td></tr>
+  <tr><td>Maintenance/Tires fund</td><td class="price">$100-150/mo</td><td>Type R tires (Continental SportContact, 265-width) cost $1,200+ per set. Budget monthly or get hit with a $1,200 surprise bill.</td></tr>
+  <tr class="total-row"><td><strong>TOTAL MONTHLY</strong></td><td class="price"><strong>$894-$1,180/mo</strong></td><td>Before registration, parking, tolls, or anything going wrong. Insurance is the biggest variable. Get real quotes.</td></tr>
+</table>
+
+<div class="warning">
+  <strong>Be honest with yourself:</strong> Can you afford $1,200-1,400/month JUST for a car? That's $14,400-17,200/year. If you're making $45,000/year, that's roughly 40% of your take-home pay on a car alone. Financial advisors recommend keeping total car costs under 15-20% of take-home pay. At $45K/year (~$3,000/mo take-home), that would be $450-600/mo total, not $1,200+.
+  <p style="margin-top:10px;">This isn't about whether you CAN make the payments. It's about whether you'll be living comfortably or living paycheck-to-paycheck with zero margin for error. One unexpected expense (medical bill, job loss, car repair) and you're in trouble.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 2: TWO PATHS ===== -->
+<h2 id="paths">2. Your Two Paths</h2>
+
+<p>Every strategy in this guide applies to BOTH paths. The negotiation, insurance, financing, and scam-avoidance sections are universal. The only difference is the car itself.</p>
+
+<h3>PATH A: The Type R (If the Numbers Work)</h3>
+<div class="info">
+  <p><strong>Target:</strong> 2017-2019 Honda Civic Type R (FK8), 40K-60K miles, $28,000-$32,000</p>
+  <p><strong>Monthly total:</strong> ~$900-1,200/mo (depends heavily on insurance rate)</p>
+  <p><strong>Requirements:</strong> You need to be making at least $55-60K/year to afford this without being house-poor on a car. If your income supports it, the Type R is actually a GREAT investment because it holds value better than almost any car in its class. You won't lose money on depreciation like you would on most cars.</p>
+  <p><strong>The silver lining:</strong> If you buy a Type R at $28K today and drive it for 3 years, it'll still be worth $22-25K. That's only $3-6K in depreciation over 3 years. A regular $28K car would lose $8-12K in the same period. The Type R's value retention partially offsets the higher insurance/maintenance costs.</p>
+</div>
+
+<h3>PATH B: The Smart Play (Same Vibe, Half the Cost)</h3>
+<div class="highlight">
+  <p><strong>If the Type R numbers don't work right now, these cars give you a similar driving experience at half the total monthly cost:</strong></p>
+</div>
+
+<table>
+  <tr><th>Car</th><th>Price Range</th><th>Why It's a Good Alternative</th><th>Est. Monthly Total</th></tr>
+  <tr>
+    <td><strong>Honda Civic Si</strong><br>(2017-2021)</td>
+    <td class="price">$18,000-$24,000</td>
+    <td>Same Civic platform as the Type R. Turbo engine (205 HP), 6-speed manual, sport-tuned suspension, limited-slip diff. It's the Type R's little brother. 90% of the fun for 60% of the price. Still holds value well.</td>
+    <td class="price">~$650-900/mo</td>
+  </tr>
+  <tr>
+    <td><strong>Volkswagen GTI</strong><br>(2018-2022)</td>
+    <td class="price">$17,000-$26,000</td>
+    <td>Hot hatch icon. Turbo engine (228-241 HP), available in manual, refined interior. More "grown up" than the Si. MK7.5 and MK8 are both excellent. Fun to drive, practical, and cheaper to insure than a Type R.</td>
+    <td class="price">~$650-900/mo</td>
+  </tr>
+  <tr>
+    <td><strong>Mazda3 Turbo</strong><br>(2021-2024)</td>
+    <td class="price">$22,000-$28,000</td>
+    <td>250 HP turbo, AWD, premium interior that punches above its price. Not as raw as the Type R but smooth, fast, and WAY cheaper to insure (not classified as sports car). Great in NJ winters with AWD.</td>
+    <td class="price">~$700-950/mo</td>
+  </tr>
+  <tr>
+    <td><strong>Hyundai Elantra N</strong><br>(2022-2024)</td>
+    <td class="price">$22,000-$30,000</td>
+    <td>276 HP turbo, 6-speed manual or DCT, track-focused suspension. Many reviewers put it in the same conversation as the Type R for driving feel. Significantly cheaper insurance. Depreciates faster though.</td>
+    <td class="price">~$700-1,000/mo</td>
+  </tr>
+  <tr>
+    <td><strong>Honda Accord Sport</strong><br>(2018-2022)</td>
+    <td class="price">$18,000-$25,000</td>
+    <td>If you want practical + affordable. 1.5T or 2.0T (252 HP), available manual (1.5T only in older years). Cheapest insurance of all options. Honda reliability. Bigger, more comfortable. Boring? Maybe. Smart? Definitely.</td>
+    <td class="price">~$550-800/mo</td>
+  </tr>
+</table>
+
+<div class="highlight">
+  <strong>The real play if you want a Type R eventually:</strong> Buy a Civic Si or GTI now for $18-22K. Your total monthly cost is ~$700-800 instead of $1,200+. Save the $400-500/month difference. In 18-24 months, you'll have built credit history (which drops your interest rate by 3-5%), have insurance history (which drops premiums by 20-30%), and have saved $7,000-12,000 extra. Then trade up to the Type R from a position of strength instead of desperation. You'll pay LESS per month for the Type R in 2 years than you would buying it today with no credit and no insurance history.
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 3: CREDIT ===== -->
+<h2 id="credit">3. Step 1: Build Credit BEFORE Going to the Dealer</h2>
+
+<p>This is the single highest-ROI thing you can do before buying a car. Every 1% lower on your interest rate saves you $600-1,400 over the life of the loan. Even 2-3 months of credit activity helps.</p>
+
+<h3>If You Have Time (2-6 Months Before Buying)</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Get a secured credit card TODAY.</strong></p>
+  <ul>
+    <li><strong>Discover it Secured Card</strong> - best for no credit. You deposit $200-500 as collateral (you get this back later). Use it for small purchases (gas, groceries). Pay it off IN FULL every month.</li>
+    <li><strong>Capital One Platinum Secured</strong> - another good option. No annual fee.</li>
+    <li>After 6-8 months of on-time payments, you'll have a credit score in the 630-680 range. That alone can drop your car loan rate from 12-15% down to 8-10%.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Become an authorized user on someone's credit card.</strong></p>
+  <ul>
+    <li>If a parent, sibling, or trusted friend has a credit card with a long history and low utilization, ask them to add you as an authorized user.</li>
+    <li>You don't even need to USE the card. Their payment history gets added to YOUR credit report. This can give you an instant credit score boost.</li>
+    <li>Make sure their card has: (a) long history (2+ years), (b) low balance relative to limit (under 30%), (c) no late payments.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Sign up for a credit-builder loan.</strong></p>
+  <ul>
+    <li><strong>Self.inc</strong> or <strong>MoneyLion</strong> offer small "credit builder" loans ($25-150/month) that report to all three bureaus. You're essentially paying into a savings account while building credit history.</li>
+    <li>This stacks with the secured card to build your file faster.</li>
+  </ul>
+</div>
+
+<h3>If You Need to Buy NOW (No Time to Build Credit)</h3>
+
+<div class="info">
+  <p>You can still buy a car with no credit. Your options are just more expensive. Here's how to minimize the damage:</p>
+  <ul>
+    <li><strong>Get pre-approved at a credit union FIRST</strong> (see Step 2). Their rates beat dealer financing by 2-5%.</li>
+    <li><strong>Bring proof of stable income:</strong> 3 months of pay stubs, bank statements showing consistent deposits, employment letter if possible.</li>
+    <li><strong>Larger down payment helps.</strong> $4,000 on a $20K car (20%) is much better than $4,000 on a $30K car (13%). Lenders see a bigger down payment as lower risk.</li>
+    <li><strong>Plan to refinance in 6-12 months.</strong> Buy the car now at a higher rate. Make 6-12 months of on-time payments. Your credit score will exist by then. Refinance at a lower rate. This can save you thousands over the life of the loan.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 4: PRE-APPROVAL ===== -->
+<h2 id="pre-approval">4. Step 2: Get Pre-Approved (Credit Unions, Not Dealers)</h2>
+
+<p><strong>NEVER walk into a dealership without a pre-approved loan in hand.</strong> The dealer's financing department (F&I) exists to make money off you. Their rates are almost always higher than what you can get on your own. Your pre-approval is your leverage.</p>
+
+<h3>Where to Get Pre-Approved (In This Order)</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>NJ Credit Unions with First-Time Buyer Programs</strong></p>
+  <table>
+    <tr><th>Credit Union</th><th>Program Details</th><th>Max Loan</th><th>Notes</th></tr>
+    <tr>
+      <td><strong>Greater Alliance FCU</strong></td>
+      <td>First Time Auto Buyer Program. Rates from 10.99% (new) / 11.24% (used).</td>
+      <td>$25,000</td>
+      <td>Bergen & Passaic County. No cosigner needed. Best option for first-time buyers if your car is under $25K.</td>
+    </tr>
+    <tr>
+      <td><strong>Picatinny FCU</strong></td>
+      <td>First-Time Buyer friendly. Works with thin credit.</td>
+      <td>Not published</td>
+      <td>Worth applying. May have higher limits than Greater Alliance.</td>
+    </tr>
+    <tr>
+      <td><strong>Credit Union of NJ</strong></td>
+      <td>Auto loans starting at 3.74% APR (with credit). First-time buyer friendly.</td>
+      <td>Not published</td>
+      <td>Apply and see what they offer. Rates will be higher with no credit but still better than dealer.</td>
+    </tr>
+    <tr>
+      <td><strong>Navy Federal CU</strong></td>
+      <td>Does NOT require a set credit score. Very flexible.</td>
+      <td>High</td>
+      <td>Only if you have military affiliation (you, parent, sibling, grandparent). If you qualify, this is the best option, period.</td>
+    </tr>
+  </table>
+  <p style="margin-top:10px;"><strong>How to join a credit union:</strong> Most NJ credit unions have open membership for NJ residents. Go to their website, apply for membership ($5-25 to open a savings account), then apply for the auto loan. Do this BEFORE going to any dealer.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Online Lenders (Apply to 2-3 for comparison)</strong></p>
+  <ul>
+    <li><strong>Capital One Auto Finance</strong> - pre-qualification doesn't affect credit score. Good for thin credit.</li>
+    <li><strong>LightStream</strong> - competitive rates but may require some credit history.</li>
+    <li><strong>myAutoloan.com</strong> - submits to multiple lenders at once. Good for comparing offers.</li>
+  </ul>
+  <p><strong>IMPORTANT:</strong> All auto loan inquiries within a 14-day window count as ONE inquiry on your credit report. So apply to all your options within the same 2-week period. Don't spread it out over months.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Your Own Bank</strong></p>
+  <ul>
+    <li>If you have a checking/savings account with a bank, walk in and ask about auto loan pre-approval. Banks sometimes offer better rates to existing customers.</li>
+    <li>They already have your deposit history, which helps when you have no credit score.</li>
+  </ul>
+</div>
+
+<div class="warning">
+  <strong>What to bring when applying for pre-approval:</strong>
+  <ul>
+    <li>Valid NJ driver's license</li>
+    <li>Social Security number</li>
+    <li>Proof of income: last 3 pay stubs + most recent W-2</li>
+    <li>Proof of residence: utility bill or bank statement with your address</li>
+    <li>Bank statements: last 3 months (shows you have the down payment and stable income)</li>
+    <li>Employment info: employer name, address, phone, how long you've worked there</li>
+  </ul>
+</div>
+
+<div class="highlight">
+  <strong>What pre-approval gives you:</strong> A letter (or printout) stating the maximum amount a lender will loan you, the interest rate, and the terms. When you walk into a dealer with this, you have POWER. The dealer knows they have to beat your rate to make money on the financing. If they can't, you use your pre-approved loan and they get nothing from F&I. This completely changes the power dynamic.
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 5: RESEARCH ===== -->
+<h2 id="research">5. Step 3: Research the Car (Don't Walk In Blind)</h2>
+
+<h3>Know the Fair Price BEFORE You Go</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Check these pricing tools (they're free):</strong></p>
+  <ul>
+    <li><strong>KBB.com</strong> (Kelley Blue Book) - enter the exact year, make, model, trim, mileage, condition. Get the "Fair Purchase Price" range. This is what people in your area are actually paying.</li>
+    <li><strong>Edmunds.com</strong> - same thing. Cross-reference with KBB. The truth is usually between the two.</li>
+    <li><strong>CarGurus.com</strong> - shows you whether a listing is priced "Great Deal," "Good Deal," "Fair Deal," or "Overpriced" based on market data. Use this to filter listings.</li>
+    <li><strong>Cars.com and Autotrader.com</strong> - search comparable listings in your area. Know what the same car is selling for at other dealers. This is your ammunition for negotiation.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Know the car's common problems:</strong></p>
+  <p>Every car has known issues. Google "[year] [make] [model] common problems" and read forums. For the cars on your list:</p>
+  <table>
+    <tr><th>Car</th><th>Known Issues to Watch For</th></tr>
+    <tr><td><strong>Civic Type R (FK8)</strong></td><td>1st/2nd gear synchro grinding (especially on 2017-2018), paint chipping (thin factory paint), clutch wear if launched hard, carbon buildup on direct-injection engine. Check for mods: many FK8s have been tuned/modified. Mods can void warranty and indicate hard driving.</td></tr>
+    <tr><td><strong>Civic Si</strong></td><td>Generally rock solid. Check for oil dilution on 1.5T engine in cold climates (older models). A/C compressor failures on some years.</td></tr>
+    <tr><td><strong>VW GTI</strong></td><td>Water pump/thermostat failures (common on MK7/7.5), mechatronic unit issues on DSG (automatic) models, turbo failures on high-mileage units. Check service records carefully.</td></tr>
+    <tr><td><strong>Mazda3 Turbo</strong></td><td>Very few known issues. One of the most reliable in this class. Check for carbon buildup on direct-injection engine.</td></tr>
+    <tr><td><strong>Elantra N</strong></td><td>Still relatively new. Some reports of rev-matching glitches, dashboard rattles. Long-term reliability TBD.</td></tr>
+  </table>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Run a Vehicle History Report BEFORE you go see it:</strong></p>
+  <ul>
+    <li>Get the VIN from the listing (every listing should show it).</li>
+    <li><strong>CARFAX</strong> ($44.99 for 1 report, $99 for 3, or check if the dealer provides one free).</li>
+    <li><strong>AutoCheck</strong> (by Experian, sometimes cheaper).</li>
+    <li><strong>NMVTIS</strong> (National Motor Vehicle Title Information System) - free basic check at vehiclehistory.gov.</li>
+    <li><strong>What to look for:</strong> accident history, number of previous owners (fewer is better), service records, title status (should be CLEAN, not salvage/rebuilt/flood), odometer consistency (no rollbacks).</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 6: FINDING ===== -->
+<h2 id="finding">6. Step 4: Finding the Car (Where to Look)</h2>
+
+<h3>Where to Shop (Best to Worst)</h3>
+
+<table>
+  <tr><th>Source</th><th>Pros</th><th>Cons</th><th>Rating</th></tr>
+  <tr>
+    <td><strong>Honda Certified Pre-Owned (CPO) from Honda dealer</strong></td>
+    <td>Inspected, comes with extended warranty, Honda backs it. Clean title guaranteed. Can finance through Honda Financial.</td>
+    <td>Usually $1-3K more than private sale or non-CPO dealer.</td>
+    <td><span class="badge badge-green">BEST FOR NO EXPERIENCE</span></td>
+  </tr>
+  <tr>
+    <td><strong>Private party sale (Craigslist, Facebook Marketplace, enthusiast forums)</strong></td>
+    <td>Cheapest prices. No dealer markup. Can negotiate directly with owner. Type R forums (CivicXI) have great listings from enthusiasts who maintained their cars.</td>
+    <td>No warranty. YOU are responsible for inspection. More risk. Can't finance as easily (some lenders don't do private party loans).</td>
+    <td><span class="badge badge-blue">BEST PRICE IF YOU KNOW CARS</span></td>
+  </tr>
+  <tr>
+    <td><strong>CarMax / Carvana / Vroom</strong></td>
+    <td>No-haggle pricing. Easy process. CarMax offers a 30-day return policy. Carvana has 7-day return. Low pressure.</td>
+    <td>Prices are typically $1-2K above market. No negotiation. Limited inspection transparency.</td>
+    <td><span class="badge badge-orange">CONVENIENT BUT PRICIER</span></td>
+  </tr>
+  <tr>
+    <td><strong>Regular used car dealer (independent lot)</strong></td>
+    <td>More selection, may negotiate.</td>
+    <td>Highest risk of shady tactics. No manufacturer backing. "Buy here pay here" lots are the WORST (18-25% APR, overpriced cars). Avoid unless reputable.</td>
+    <td><span class="badge badge-red">PROCEED WITH CAUTION</span></td>
+  </tr>
+</table>
+
+<h3>For Type R Specifically</h3>
+<div class="info">
+  <ul>
+    <li><strong>CivicXI.com forums</strong> - the largest Type R community. Their classifieds section has listings from enthusiasts. These owners typically maintained their cars obsessively.</li>
+    <li><strong>Type R Owners Facebook groups</strong> - same deal. Enthusiast-owned cars tend to be well-maintained.</li>
+    <li><strong>Honda dealer CPO inventory</strong> - search on Honda's website for certified pre-owned Type Rs in your area. These come with Honda's 7-year/100K mile powertrain warranty.</li>
+    <li><strong>Be willing to travel.</strong> The best-priced Type R might be 100-200 miles away. The $1,000-2,000 you save easily covers a one-way flight or drive.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 7: INSPECTION ===== -->
+<h2 id="inspection">7. Step 5: Inspecting a Used Car (What to Check)</h2>
+
+<p>NEVER buy a used car without an independent inspection. This is non-negotiable. Here's the process.</p>
+
+<h3>Before You Go (Remote Checks)</h3>
+<ul class="checklist">
+  <li>CARFAX or AutoCheck report pulled (check VIN for accidents, title status, owners, service history)</li>
+  <li>Fair market price researched (KBB + Edmunds + CarGurus)</li>
+  <li>Common problems for this specific year/model researched</li>
+  <li>3-5 comparable listings bookmarked (your negotiation ammo)</li>
+</ul>
+
+<h3>At the Car (Your Visual Inspection)</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Exterior Check</strong></p>
+  <ul>
+    <li>Walk around the entire car slowly. Look for paint inconsistencies (different shades = repainted panel = possible accident repair).</li>
+    <li>Check panel gaps. Run your finger along where body panels meet. Uneven gaps = accident repair.</li>
+    <li>Look for overspray (paint on rubber seals, trim pieces, or under the hood). This means the car was repainted.</li>
+    <li>Check all four tires. Uneven wear = alignment issues or suspension damage. Check tread depth (penny test: if you can see all of Lincoln's head, tires need replacing).</li>
+    <li>Check under the car for rust, leaks, or damage.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Interior Check</strong></p>
+  <ul>
+    <li>Check all electronics: A/C, heat, radio, Bluetooth, power windows, power locks, backup camera, USB ports.</li>
+    <li>Check all lights: headlights, high beams, turn signals, brake lights, interior lights.</li>
+    <li>Look at the driver's seat bolster wear. Heavy wear with low miles = possible odometer rollback.</li>
+    <li>Smell the interior. Musty/moldy smell = water damage. Heavy air freshener = hiding something.</li>
+    <li>Check the carpet under the floor mats for water stains or dampness.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Under the Hood</strong></p>
+  <ul>
+    <li>Check oil level and color (should be amber/brown, not black or milky. Milky = coolant leak = head gasket = WALK AWAY).</li>
+    <li>Check coolant level and color (should be green or orange, not brown/rusty).</li>
+    <li>Look for aftermarket modifications. On a Type R, check for: intake, downpipe, exhaust, intercooler, tune. <strong>Mods on a Type R are a yellow flag.</strong> It means the car was driven hard. If the seller says "I only had a tune for a week," that's probably not true.</li>
+    <li>Check for fluid leaks under the engine.</li>
+    <li>Look at the belts and hoses for cracking or wear.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">4</span> <strong>Test Drive (15-20 minutes minimum)</strong></p>
+  <ul>
+    <li>Drive it cold (don't let them warm it up first). Problems show up more on cold starts.</li>
+    <li>Listen for unusual noises: grinding, clicking, whining, rattling.</li>
+    <li>Test all gears. For a manual: smooth shifts? Grinding into any gear? (Type R FK8 is known for 1st/2nd synchro issues.)</li>
+    <li>Test brakes hard. Does it pull to one side? Vibrate? Squeal?</li>
+    <li>Get on the highway. Does it track straight? Any vibrations at speed?</li>
+    <li>Hit some bumps. Listen for suspension clunking or rattling.</li>
+    <li>Test the clutch engagement (manual). It should catch smoothly, not slip or grab suddenly.</li>
+    <li>Let it idle for 5 minutes after the drive. Any smoke from the exhaust? (Blue smoke = burning oil. White smoke = coolant leak.)</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">5</span> <strong>Pre-Purchase Inspection (PPI) by an Independent Mechanic</strong></p>
+  <ul>
+    <li><strong>This is MANDATORY.</strong> Tell the seller: "I'd like to have my mechanic inspect it before we finalize anything." If they say no, WALK AWAY. No legitimate seller refuses a PPI.</li>
+    <li>Cost: $100-200 at a local independent mechanic. For a Type R, find a Honda specialist.</li>
+    <li>They'll check: compression, leak-down test, suspension, brakes, fluids, electrical, codes, frame damage, and everything you can't see yourself.</li>
+    <li>A $150 PPI can save you $5,000+ in hidden problems. This is the best $150 you'll spend in the entire process.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 8: NEGOTIATION ===== -->
+<h2 id="negotiation">8. Step 6: Negotiation (How to Not Get Ripped Off)</h2>
+
+<h3>The Golden Rules</h3>
+
+<div class="warning">
+  <ul>
+    <li><strong>NEVER tell the dealer your monthly budget.</strong> They will manipulate the loan terms to hit your number while screwing you on price. "What monthly payment are you looking for?" is a TRAP question. Answer: "I'm focused on the total price of the car, not the monthly payment."</li>
+    <li><strong>NEVER tell them you're financing before negotiating price.</strong> Negotiate the price of the car FIRST, completely separately from financing. If they ask, say "I might pay cash, I'm still deciding." This prevents them from inflating the price because they think they'll make it up on the loan.</li>
+    <li><strong>NEVER negotiate a trade-in and purchase at the same time.</strong> If you have a trade-in, negotiate the purchase price first. Then negotiate the trade-in value separately. They will lowball your trade-in while making the "deal" look good on the purchase. Keep them separate.</li>
+    <li><strong>ALWAYS be willing to walk away.</strong> The most powerful thing you can say is "I need to think about it." The dealer's biggest fear is you leaving. If they let you walk, the car wasn't a good deal. If they chase you, you have leverage.</li>
+    <li><strong>NEVER buy the same day you first see the car.</strong> Go home. Sleep on it. Pressure to "close today" is a dealer tactic. There will always be another car.</li>
+  </ul>
+</div>
+
+<h3>The Negotiation Process (Step by Step)</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Know your target price before walking in.</strong></p>
+  <p>Take the KBB/Edmunds fair price. Subtract $500-1,500 (your negotiation room). That's your opening offer. Example: KBB says $29,000 is fair. Your opening offer is $27,500.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Start with the out-the-door (OTD) price.</strong></p>
+  <p>Always negotiate the OTD price, not just the sticker. OTD includes: car price + tax + registration + title + dealer fees. Dealers add hundreds in "dealer fees" (doc fee, prep fee, etc.) on top of the sticker. NJ caps the doc fee at a "reasonable" amount, but dealers will try $300-700. Push back on anything over $300.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Make your offer confidently.</strong></p>
+  <p>Say: "Based on my research, comparable [car] in similar condition are selling for [your target price]. I'm prepared to buy today at [your number] out the door." Then STOP TALKING. Silence is your weapon. Let them respond first.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">4</span> <strong>They'll counter. You counter back.</strong></p>
+  <p>They'll come back higher. You come up slightly. Meet somewhere in the middle. Standard negotiation. Don't go above your walk-away number (the max you're willing to pay, set BEFORE you walked in).</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">5</span> <strong>Get the final agreed price IN WRITING before going to F&I.</strong></p>
+  <p>Ask for the "buyer's order" or "purchase order" that shows the agreed price, all fees, and the OTD total. Review it carefully before signing anything. This document locks the price before they send you to the finance office.</p>
+</div>
+
+<h3>Dealer Fees to Watch For</h3>
+<table>
+  <tr><th>Fee</th><th>Legitimate?</th><th>What to Do</th></tr>
+  <tr><td>Documentation Fee (Doc Fee)</td><td>Yes, but negotiable</td><td>NJ doesn't have a hard cap but $300-400 is normal. Push back on anything over $400.</td></tr>
+  <tr><td>Sales Tax (6.625% in NJ)</td><td>Yes, required by law</td><td>Non-negotiable. On a $28K car = $1,855 in tax.</td></tr>
+  <tr><td>Title & Registration</td><td>Yes, required</td><td>~$50-100 total. State fee, not dealer profit.</td></tr>
+  <tr><td>"Dealer Prep" or "Reconditioning"</td><td>SCAM</td><td>Refuse. This is washing the car and charging you $500 for it.</td></tr>
+  <tr><td>"Market Adjustment" or "ADM"</td><td>Legal but predatory</td><td>This is dealer markup above MSRP/listing price. On new Type Rs, this is common ($1,000-5,000). On used cars, it's just them charging more. Negotiate it away or walk.</td></tr>
+  <tr><td>"Paint Protection" / "Fabric Protection"</td><td>SCAM</td><td>$300-800 charge for a $20 spray job. Refuse.</td></tr>
+  <tr><td>"Nitrogen Tire Fill"</td><td>SCAM</td><td>$99-199 for filling tires with nitrogen. Regular air is fine. Refuse.</td></tr>
+  <tr><td>"VIN Etching"</td><td>SCAM</td><td>$200-400 to etch the VIN on windows. You can buy a $20 kit and do it yourself. Refuse.</td></tr>
+  <tr><td>"Pinstripes / Mud Guards / Accessories"</td><td>Usually a scam</td><td>Pre-installed accessories you didn't ask for, charged at 5-10x their actual cost. Refuse or ask them to remove and deduct.</td></tr>
+</table>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 9: FINANCING ===== -->
+<h2 id="financing">9. Step 7: Financing at the Dealer (The F&I Office Trap)</h2>
+
+<p>The Finance & Insurance (F&I) office is where dealers make a HUGE chunk of their profit. This is where most people get ripped off. Here's how to survive it.</p>
+
+<h3>What Happens in F&I</h3>
+<div class="info">
+  <p>After you agree on a price, you're sent to the "finance manager." Their job is to:</p>
+  <ol>
+    <li>Try to get you to finance through the dealer (they get a kickback from the lender for every loan they originate, and they often markup the rate 1-3%)</li>
+    <li>Sell you add-on products: extended warranty, GAP insurance, tire/wheel protection, paint protection, theft protection, maintenance plans</li>
+    <li>Move fast and make it confusing so you say "yes" to everything</li>
+  </ol>
+</div>
+
+<h3>How to Handle It</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Show them your pre-approval.</strong> Say: "I have financing arranged at [X]% through [credit union name]. Can you beat that?" If they can, great. If not, use your pre-approval. They MUST honor the negotiated price regardless of which financing you use. If they suddenly change the price because you won't use their financing, that's a red flag. Leave.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Say NO to everything by default.</strong> The F&I manager will pitch 5-10 products. Say: "No thank you" to all of them initially. Then consider only these two:</p>
+  <ul>
+    <li><strong>GAP Insurance:</strong> Actually worth considering. If you owe $24,000 on the car and it gets totaled, insurance pays the market value (maybe $20,000). YOU owe the $4,000 difference. GAP covers that difference. <strong>BUT don't buy it from the dealer.</strong> Dealer GAP costs $500-800. Your auto insurance company or credit union offers it for $30-50/year. MUCH cheaper.</li>
+    <li><strong>Extended Warranty (Vehicle Service Contract):</strong> On a used car out of manufacturer warranty, this CAN be worth it if the price is right. But NEVER buy it at the dealer on the spot. Get the price, go home, and compare it to third-party warranty companies (Endurance, CARCHEX, Protect My Car). You can buy an extended warranty any time, not just at purchase. The dealer marks them up 50-100%.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Read EVERY document before signing.</strong> Slow down. The F&I manager moves fast on purpose. Read every line. Check that the price, interest rate, loan term, and monthly payment match what was agreed. Check for products you said "no" to that somehow appeared on the contract. This happens ALL THE TIME.</p>
+</div>
+
+<div class="warning">
+  <strong>Common F&I tricks:</strong>
+  <ul>
+    <li><strong>"Payment packing":</strong> They show you a monthly payment that includes add-on products, making it seem like that's the base payment. Ask to see the contract WITHOUT any add-ons first.</li>
+    <li><strong>"Rate markup":</strong> The bank approved you at 8%, but the dealer tells you 11% and keeps the 3% spread. This is legal. Your pre-approval prevents this because you already know what rate you qualify for.</li>
+    <li><strong>"Spot delivery / yo-yo financing":</strong> They let you drive the car home "pending financing approval." Days later, they call saying the financing fell through and you need to sign at a higher rate. This is sometimes legitimate (the original lender declined), sometimes a scam (they planned it). <strong>NEVER drive the car home until financing is 100% confirmed in writing.</strong></li>
+    <li><strong>Sneaking products onto the contract:</strong> You said no to the $800 extended warranty, but it appears on page 3 of the contract as a line item. If you don't catch it, you just paid $800 for something you declined. Read every page.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 10: INSURANCE ===== -->
+<h2 id="insurance">10. Step 8: Insurance (How to Get the Cheapest Rate)</h2>
+
+<p>NJ is one of the most expensive states for auto insurance. As a 22-year-old male with no credit history and no prior insurance, you're in the highest-risk category. Here's how to minimize the damage.</p>
+
+<h3>What Insurance Actually Costs (Get Real Quotes, Not Estimates)</h3>
+
+<div class="info">
+  <strong>Your actual rate depends on your specific situation, and it varies WILDLY between companies.</strong> The only way to know your real cost is to get quotes from 5-7 companies (see below). For reference, Progressive has been quoting 22-year-old males in NJ in the <strong>$200-350/month range</strong> for full coverage depending on the car, coverage levels, and discounts applied. Your quote could be higher or lower. The point is: don't assume a number. Get the real quotes.
+</div>
+
+<p>General ballpark by vehicle type (22yo male, NJ, full coverage). These are ROUGH ranges, not predictions:</p>
+<table>
+  <tr><th>Vehicle Type</th><th>Full Coverage (Est. Range)</th><th>Why</th></tr>
+  <tr><td>Sports car classification (Type R, WRX)</td><td class="price">$250-500+/mo</td><td>Sports car = higher premiums. But it varies hugely. Some companies rate the Type R as a "Civic" and give you a normal rate. Others classify it as performance and double the price. This is why you quote-shop.</td></tr>
+  <tr><td>Sport compact (Civic Si, GTI, Elantra N)</td><td class="price">$200-375/mo</td><td>Often not classified as "sports car" by insurers. Some companies treat these as regular compacts.</td></tr>
+  <tr><td>Regular sedan (Accord, Camry, Mazda3)</td><td class="price">$175-300/mo</td><td>Cheapest to insure. Boring to insurers = lower premiums for you.</td></tr>
+</table>
+
+<div class="warning">
+  <strong>These are ESTIMATES, not quotes.</strong> Your real rate depends on: which company (rates vary 2-3x between companies for the same driver), your specific coverage levels and deductibles, available discounts, and whether you bundle with renters insurance. The strategies below can save you $50-200/month vs just picking the first quote you see. <strong>ALWAYS get multiple quotes before deciding.</strong>
+</div>
+
+<div class="warning">
+  <strong>IMPORTANT:</strong> If you're financing the car, the LENDER requires full coverage (comprehensive + collision). You cannot choose minimum liability only when there's a loan on the car. Full coverage is mandatory until the loan is paid off. This is non-negotiable.
+</div>
+
+<h3>How to Get the Lowest Rate (Do ALL of These)</h3>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>QUOTE SHOP. Get at least 5-7 quotes.</strong></p>
+  <p>Insurance rates vary WILDLY between companies for the same driver and same car. One company might quote you $350/mo and another $200/mo for the exact same coverage. The only way to find the cheapest is to quote shop. Get quotes from ALL of these:</p>
+  <ul>
+    <li><strong>NJ Manufacturers Insurance Group (NJM)</strong> - NJ-only company. Often the cheapest in the state. Not on comparison sites, you have to go to njm.com directly.</li>
+    <li><strong>Plymouth Rock Assurance</strong> - NJ-focused. Good rates for young drivers.</li>
+    <li><strong>GEICO</strong> - usually competitive for young males.</li>
+    <li><strong>Progressive</strong> - good for high-risk/no-history drivers.</li>
+    <li><strong>State Farm</strong></li>
+    <li><strong>Liberty Mutual</strong></li>
+    <li><strong>The General</strong> - specializes in high-risk drivers. Rates aren't great but they'll insure anyone.</li>
+    <li><strong>Comparison tools:</strong> Policygenius.com, The Zebra, Insurify.com - these pull quotes from multiple companies at once.</li>
+  </ul>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Ask about EVERY possible discount.</strong></p>
+  <table>
+    <tr><th>Discount</th><th>Savings</th><th>How to Get It</th></tr>
+    <tr><td>Bundling (renters insurance)</td><td>10-25%</td><td>Get a cheap renters insurance policy ($10-15/mo) from the same company. The bundle discount on auto often exceeds the cost of the renters policy. Net savings.</td></tr>
+    <tr><td>Pay-in-full (6 months upfront)</td><td>5-15%</td><td>If you can pay the full 6-month premium upfront instead of monthly, most companies discount it. Significant savings.</td></tr>
+    <tr><td>Paperless / autopay</td><td>3-5%</td><td>Sign up for paperless billing and automatic payments. Free money.</td></tr>
+    <tr><td>Good student</td><td>5-15%</td><td>If you're enrolled in school (even part-time community college) with a B average. Some companies accept up to age 25.</td></tr>
+    <tr><td>Defensive driving course</td><td>5-10%</td><td>Take a NJ-approved defensive driving course online ($25-50, takes ~6 hours). The discount lasts 3 years. Easily pays for itself.</td></tr>
+    <tr><td>Low mileage</td><td>5-15%</td><td>If you drive under 7,500-10,000 miles/year. Some companies offer usage-based programs (Snapshot from Progressive, DriveEasy from GEICO).</td></tr>
+    <tr><td>Anti-theft device</td><td>3-10%</td><td>If the car has a factory alarm, immobilizer, or you install a tracking device. Type R has factory immobilizer.</td></tr>
+    <tr><td>Military / association</td><td>5-15%</td><td>USAA (military family), AAA membership, employer group discounts. Ask every company what affiliations they honor.</td></tr>
+  </table>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Optimize your coverage levels.</strong></p>
+  <p>NJ minimum liability is 15/30/5 (ridiculously low). But you don't need to go maximum on everything. Here's the sweet spot:</p>
+  <table>
+    <tr><th>Coverage</th><th>What It Covers</th><th>Recommended Level</th></tr>
+    <tr><td>Bodily Injury Liability</td><td>Injuries you cause to others</td><td>100/300 (100K per person, 300K per accident). More is better but this is the minimum smart level.</td></tr>
+    <tr><td>Property Damage Liability</td><td>Damage you cause to other cars/property</td><td>$50,000. NJ minimum is $5K which is laughable. One fender bender and you're sued.</td></tr>
+    <tr><td>Collision</td><td>Damage to YOUR car in an accident</td><td>$1,000 deductible (saves money vs $500 deductible, and you're unlikely to have two at-fault accidents in a year)</td></tr>
+    <tr><td>Comprehensive</td><td>Theft, weather, vandalism, animals</td><td>$500 deductible. Type Rs are theft targets. Keep this lower.</td></tr>
+    <tr><td>Uninsured/Underinsured Motorist</td><td>Protects you if an uninsured driver hits you</td><td>100/300 (match your bodily injury). NJ has a lot of uninsured drivers.</td></tr>
+    <tr><td>Personal Injury Protection (PIP)</td><td>Your medical bills regardless of fault</td><td>$15,000 (NJ requires PIP). You can choose "primary" or "secondary to health insurance." If you have health insurance, choose secondary (cheaper).</td></tr>
+  </table>
+</div>
+
+<div class="step">
+  <p><span class="step-number">4</span> <strong>Additional strategies to lower premiums:</strong></p>
+  <ul>
+    <li><strong>Get added to a parent/family member's policy as a listed driver</strong> (if they're willing). This is usually 30-50% cheaper than your own standalone policy because you benefit from their longer history and multi-car discount. You would need to be at the same address or they'd need to own the car (varies by company).</li>
+    <li><strong>Consider usage-based insurance.</strong> Progressive Snapshot, GEICO DriveEasy, etc. If you're actually a safe driver, these can save 10-30%. They track your driving via an app. Drive well = lower rate.</li>
+    <li><strong>Shop again every 6 months.</strong> Insurance rates change constantly. Every time your policy renews, get new quotes from competitors. Companies give the best rates to new customers, not loyal ones.</li>
+    <li><strong>Build credit.</strong> In NJ, insurance companies CAN use credit score as a rating factor. No credit = higher premiums. As you build credit (see Section 3), your insurance rate will drop at renewal.</li>
+  </ul>
+</div>
+
+<div class="highlight">
+  <strong>The math on the renters insurance hack:</strong> A basic renters policy costs ~$12-15/month. Bundling it with auto insurance saves 10-25% on the auto premium. If your auto is $500/month, a 15% discount saves $75/month. You pay $15 for renters, save $75 on auto = $60/month net savings ($720/year). This is the single easiest money you'll save.
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 11: CLOSING ===== -->
+<h2 id="closing">11. Step 9: Closing the Deal (Paperwork Checklist)</h2>
+
+<h3>Documents You Should Receive</h3>
+<ul class="checklist">
+  <li><strong>Title</strong> - must be CLEAN (not salvage, rebuilt, flood, or bonded). The title transfers to the lender if you're financing. You get it when the loan is paid off.</li>
+  <li><strong>Bill of Sale</strong> - shows the purchase price, date, buyer, seller. You need this for registration.</li>
+  <li><strong>Loan Contract (Retail Installment Sales Contract)</strong> - the full financing agreement. CHECK: interest rate, loan term, monthly payment, total amount financed, total of payments. Make sure no add-on products were sneaked in.</li>
+  <li><strong>Buyer's Guide</strong> - federally required on all used cars from dealers. States whether the car is sold "AS IS" or with a warranty. In NJ, used car lemon law may apply (see NJ laws section).</li>
+  <li><strong>Vehicle History Report</strong> - CARFAX or equivalent. Dealer should provide one. If they don't, you should already have pulled your own.</li>
+  <li><strong>NJ Inspection Report</strong> - all cars sold by NJ dealers must pass NJ inspection. Get the inspection sticker/report.</li>
+  <li><strong>Temporary Registration / Temp Tag</strong> - allows you to drive while permanent registration processes. Usually 30 days.</li>
+  <li><strong>Any warranty documentation</strong> - if CPO or extended warranty, get the full terms in writing.</li>
+</ul>
+
+<h3>Before You Sign</h3>
+<div class="warning">
+  <ul>
+    <li>Re-read the entire contract. Check every number against what was verbally agreed.</li>
+    <li>Confirm the VIN on the contract matches the car you're buying.</li>
+    <li>Confirm there are no products you didn't agree to.</li>
+    <li>Confirm the interest rate and term are correct.</li>
+    <li>Ask: "Is this the final out-the-door price? Are there any other fees?" Get verbal confirmation.</li>
+    <li>Take photos of EVERY document you sign. Keep copies of everything.</li>
+  </ul>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 12: AFTER ===== -->
+<h2 id="after">12. Step 10: After You Buy (Protect Yourself)</h2>
+
+<div class="step">
+  <p><span class="step-number">1</span> <strong>Register the car at NJ MVC within 10 days.</strong> If the dealer handles it, confirm the timeline. If you bought private party, you need to do it yourself at the MVC. Bring: title, bill of sale, insurance card, ID, payment for fees.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">2</span> <strong>Set up auto-pay on the loan.</strong> Never miss a payment. This is building your credit now. One late payment destroys your progress. Set up auto-pay on the DAY the loan starts.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">3</span> <strong>Refinance in 6-12 months.</strong> After 6-12 months of on-time payments, your credit score will exist and be decent (650+). Apply to refinance at a lower rate. Going from 12% to 7% on a $24K loan saves you ~$3,600 over the remaining term. Check your credit union and online lenders (LightStream, Capital One Auto Refinance).</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">4</span> <strong>Re-shop insurance at 6 months.</strong> Your premium should drop at renewal because you now have 6 months of insurance history. Get new quotes from competitors. Switch if someone is cheaper.</p>
+</div>
+
+<div class="step">
+  <p><span class="step-number">5</span> <strong>Keep all receipts and service records.</strong> Especially for a Type R. Documented maintenance history significantly increases resale value.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 13: NJ LAWS ===== -->
+<h2 id="nj-laws">13. New Jersey Buyer Protections & Laws</h2>
+
+<table>
+  <tr><th>Protection</th><th>What It Covers</th><th>Details</th></tr>
+  <tr>
+    <td><strong>NJ Used Car Lemon Law</strong></td>
+    <td>Used cars sold by licensed NJ dealers</td>
+    <td>If the car has a major defect within the warranty period (based on mileage at time of sale), the dealer must repair it or give you a refund. Covers cars with under 100,000 miles at time of sale. Does NOT apply to private party sales or "AS IS" sales (though NJ limits when dealers can sell "AS IS").</td>
+  </tr>
+  <tr>
+    <td><strong>NJ Consumer Fraud Act</strong></td>
+    <td>All sales</td>
+    <td>Protects against deceptive practices: odometer fraud, title washing, material misrepresentation. If a dealer lies about the car's condition, history, or features, you have legal recourse. Triple damages in some cases.</td>
+  </tr>
+  <tr>
+    <td><strong>Buyer's Guide Requirement</strong></td>
+    <td>All dealer sales</td>
+    <td>Federal FTC rule: every used car must have a Buyer's Guide posted on the window stating warranty terms or "AS IS" status. READ THIS. It's a legal document.</td>
+  </tr>
+  <tr>
+    <td><strong>Title Branding</strong></td>
+    <td>All sales</td>
+    <td>NJ requires disclosure of title brands (salvage, rebuilt, flood, lemon buyback). If a seller fails to disclose, that's fraud. Always check the title yourself.</td>
+  </tr>
+  <tr>
+    <td><strong>Sales Tax</strong></td>
+    <td>All vehicle purchases</td>
+    <td>NJ sales tax on vehicles: <strong>6.625%</strong>. On a $28,000 car = $1,855. Private party sales are also subject to sales tax (paid at MVC when registering). No exemptions for used cars in NJ.</td>
+  </tr>
+  <tr>
+    <td><strong>Temp Tag Duration</strong></td>
+    <td>Dealer purchases</td>
+    <td>Dealer issues a temporary tag valid for 30 days. Must register at MVC before it expires. For private party: you need to register before driving it on public roads (or get a transit permit).</td>
+  </tr>
+  <tr>
+    <td><strong>NJ Inspection</strong></td>
+    <td>All vehicles</td>
+    <td>NJ requires a valid inspection. Dealer-sold cars should come with a fresh inspection. Private party: the seller should have a current inspection. If not, the car needs to pass NJ inspection within 14 days of registration. NJ does emissions only (no safety inspection), so get your own safety check done.</td>
+  </tr>
+</table>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 14: SCAMS ===== -->
+<h2 id="scams">14. Common Scams & How to Spot Them</h2>
+
+<table>
+  <tr><th>Scam</th><th>How It Works</th><th>How to Protect Yourself</th></tr>
+  <tr>
+    <td><strong>Odometer Rollback</strong></td>
+    <td>Seller rolls back the odometer to show fewer miles, increasing the car's value. Digital odometers can be manipulated with cheap tools.</td>
+    <td>Pull a CARFAX. Check the mileage at every reported service visit. Does the wear match the miles? A "20,000 mile" car with heavily worn seats and pedals is suspicious. During PPI, the mechanic checks for signs.</td>
+  </tr>
+  <tr>
+    <td><strong>Title Washing</strong></td>
+    <td>A totaled car (salvage title) gets moved to another state with looser rules, re-titled as "clean," then sold as if nothing happened.</td>
+    <td>Check the CARFAX for title history across states. Multiple state transfers in a short period = red flag. Run the VIN through NICB's free VinCheck (nicb.org/vincheck) to check for theft/salvage records.</td>
+  </tr>
+  <tr>
+    <td><strong>Flood Damage (Hidden)</strong></td>
+    <td>Car was flooded, cleaned up, and sold as clean. Flood damage causes long-term electrical and corrosion issues that won't show up for months.</td>
+    <td>Check CARFAX for flood title. Check under carpets for water stains or mud. Smell for mold/mildew. Check electrical systems thoroughly. Look for rust in unusual places (seat rails, trunk floor). PPI mechanic checks for this.</td>
+  </tr>
+  <tr>
+    <td><strong>Curbstoning</strong></td>
+    <td>An unlicensed dealer poses as a private seller on Craigslist/Facebook to avoid dealer regulations and lemon law protections. They buy and flip cars without disclosing problems.</td>
+    <td>Search the seller's phone number. If they have multiple car listings, they're a curbstoner. Ask for ID matching the title name. If the name on the title doesn't match the seller, ask why. Check if they've sold other cars recently.</td>
+  </tr>
+  <tr>
+    <td><strong>Yo-Yo Financing (Spot Delivery)</strong></td>
+    <td>Dealer lets you drive home "pending financing." Days later calls saying the loan fell through and you need to sign at a higher rate or return the car.</td>
+    <td>Don't drive the car home until financing is CONFIRMED. If they insist on "pending approval," get it in writing that the terms are final regardless of what happens with the lender. Or just use your pre-approved credit union loan.</td>
+  </tr>
+  <tr>
+    <td><strong>Bait and Switch</strong></td>
+    <td>Dealer advertises a great deal on a specific car. When you arrive, that car is "just sold" but they have another one at a higher price.</td>
+    <td>Get the VIN of the advertised car before you go. When you arrive, ask for THAT specific VIN. If it doesn't exist, leave.</td>
+  </tr>
+  <tr>
+    <td><strong>"Mandatory" Add-Ons</strong></td>
+    <td>Dealer says you "must" buy paint protection, window tint, LoJack, etc. as part of the deal. They're pre-installed and "can't be removed."</td>
+    <td>Nothing is mandatory except the car, tax, title, and registration. Say: "I don't want any add-ons. Remove them from the price." If they refuse, walk.</td>
+  </tr>
+  <tr>
+    <td><strong>Fake Online Listings (Wire Fraud)</strong></td>
+    <td>Craigslist/Facebook listing for a too-good-to-be-true price. Seller asks for a wire transfer or deposit before you see the car. Car doesn't exist.</td>
+    <td>NEVER send money before seeing the car in person. NEVER wire money to anyone. If the deal seems too good, it is. If the seller can't meet in person, it's a scam.</td>
+  </tr>
+</table>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 15: SCRIPTS ===== -->
+<h2 id="scripts">15. Word-for-Word Scripts (What to Say)</h2>
+
+<h3>When the Dealer Asks About Your Budget</h3>
+<div class="doctor-script">
+  <p><strong>Dealer:</strong> "What monthly payment are you looking for?"</p>
+  <p style="color: #ffa726; font-style: italic;">"I'm focused on the total out-the-door price, not the monthly payment. What's your best OTD price on this car?"</p>
+  <p style="margin-top:10px;"><strong>Why this works:</strong> Monthly payment negotiation lets them manipulate the loan term (72, 84 months) to hit your number while charging more for the car. Total price negotiation is the only way to know what you're actually paying.</p>
+</div>
+
+<h3>When the Dealer Asks About Financing</h3>
+<div class="doctor-script">
+  <p><strong>Dealer:</strong> "Will you be financing or paying cash?"</p>
+  <p style="color: #ffa726; font-style: italic;">"I might pay cash. I'm still deciding. Let's work on the price first."</p>
+  <p style="margin-top:10px;"><strong>Why this works:</strong> If they think you're paying cash, they negotiate the price lower (they make no financing profit either way). Once you agree on price, THEN reveal your pre-approved financing. They can't change the agreed price.</p>
+</div>
+
+<h3>Making Your Offer</h3>
+<div class="doctor-script">
+  <p style="color: #ffa726; font-style: italic;">"I've done my research. Comparable [car] with similar mileage are selling for [price] in this market. I'm prepared to buy today at [your target OTD price]. Can you make that work?"</p>
+  <p style="margin-top:10px;"><strong>Then stop talking.</strong> Silence is your best tool. Let them respond. Don't fill the silence with justifications or negotiations against yourself.</p>
+</div>
+
+<h3>When They Push Add-Ons in F&I</h3>
+<div class="doctor-script">
+  <p><strong>F&I Manager:</strong> "For just $39 more per month, you can have our comprehensive protection package..."</p>
+  <p style="color: #ffa726; font-style: italic;">"No thank you. I don't want any additional products. Just the car and the financing we agreed on."</p>
+  <p style="margin-top:10px;">They'll push 2-3 more times. Keep saying: <span style="color: #ffa726;">"No thank you, just the car."</span> Be polite but firm. They're trained to push. You're trained to say no.</p>
+</div>
+
+<h3>When You Want to Walk Away</h3>
+<div class="doctor-script">
+  <p style="color: #ffa726; font-style: italic;">"I appreciate your time. I'm going to think about it and I have a few other options I want to look at. If I decide to move forward, I'll be in touch."</p>
+  <p style="margin-top:10px;">Then stand up and walk toward the door. If they let you leave, it wasn't a good deal. If they stop you with a better offer, you just gained leverage.</p>
+</div>
+
+<h3>Pre-Purchase Inspection Request</h3>
+<div class="doctor-script">
+  <p style="color: #ffa726; font-style: italic;">"I'm very interested in the car. Before we go any further on price, I'd like to have my independent mechanic inspect it. Can I take it to [mechanic name/location], or can they come here? It should take about an hour."</p>
+  <p style="margin-top:10px;">If they say no, say: <span style="color: #ffa726;">"I understand, but I don't purchase any used vehicle without an independent inspection. Thank you for your time."</span> Walk away. Any seller who refuses a PPI is hiding something.</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ===== SECTION 16: CHECKLIST ===== -->
+<h2 id="checklist">16. Master Checklist</h2>
+
+<h3>Before You Start Shopping</h3>
+<ul class="checklist">
+  <li>Applied for secured credit card (if you have time to build credit)</li>
+  <li>Asked about becoming authorized user on family member's card</li>
+  <li>Got pre-approved at 2-3 credit unions / lenders</li>
+  <li>Know your maximum budget (total OTD price, NOT monthly payment)</li>
+  <li>Set a WALK-AWAY number you will not exceed</li>
+  <li>Researched fair price for target car (KBB + Edmunds + CarGurus)</li>
+  <li>Researched common problems for target car</li>
+  <li>Got insurance quotes from 5-7 companies (know your monthly insurance cost before buying)</li>
+  <li>Calculated total monthly cost: payment + insurance + gas + maintenance</li>
+  <li>Confirmed total monthly cost is affordable (under 20% of take-home pay)</li>
+</ul>
+
+<h3>When You Find a Car</h3>
+<ul class="checklist">
+  <li>Pulled CARFAX or AutoCheck (clean title, no accidents, mileage consistent)</li>
+  <li>Verified fair price against comparable listings</li>
+  <li>Bookmarked 3-5 comparable listings for negotiation leverage</li>
+  <li>Scheduled time to see the car (daytime, good lighting)</li>
+</ul>
+
+<h3>At the Car</h3>
+<ul class="checklist">
+  <li>Visual exterior inspection (paint, panels, gaps, tires, rust)</li>
+  <li>Interior inspection (electronics, lights, smell, wear)</li>
+  <li>Under the hood (fluids, mods, leaks, belts)</li>
+  <li>Test drive (cold start, all gears, brakes, highway, bumps, idle)</li>
+  <li>Scheduled independent PPI with mechanic ($100-200)</li>
+  <li>PPI came back clean (or negotiated price reduction for issues found)</li>
+</ul>
+
+<h3>Negotiation</h3>
+<ul class="checklist">
+  <li>Negotiated OTD price (not monthly payment)</li>
+  <li>Did NOT disclose financing method until price was agreed</li>
+  <li>Reviewed all fees (doc fee reasonable, no junk fees)</li>
+  <li>Got agreed price in writing (buyer's order / purchase order)</li>
+  <li>If trade-in: negotiated separately from purchase price</li>
+</ul>
+
+<h3>F&I / Closing</h3>
+<ul class="checklist">
+  <li>Presented pre-approved financing (asked dealer to beat it)</li>
+  <li>Said NO to all add-on products (or only accepted GAP from your own insurer)</li>
+  <li>Read EVERY page of the contract before signing</li>
+  <li>Verified: price, APR, term, monthly payment, VIN all match agreement</li>
+  <li>Confirmed no sneaked-in products or fees</li>
+  <li>Took photos of all signed documents</li>
+  <li>Received: title (or lien acknowledgment), bill of sale, loan contract, buyer's guide, temp tag</li>
+  <li>Financing is CONFIRMED (not "pending approval") before driving off the lot</li>
+</ul>
+
+<h3>After Purchase</h3>
+<ul class="checklist">
+  <li>Insurance active before driving the car</li>
+  <li>Registered at NJ MVC within 10 days</li>
+  <li>Auto-pay set up on car loan (never miss a payment)</li>
+  <li>Calendar reminder: refinance at 6-12 months</li>
+  <li>Calendar reminder: re-shop insurance at 6 months</li>
+  <li>Keep all service records and receipts</li>
+</ul>
+
+<div class="divider"></div>
+
+<p style="text-align:center; color: #666; margin: 40px 0;">
+  <em>This guide was built for Nico. March 2026.<br>
+  Take your time. Do your research. Walk away if it doesn't feel right.<br>
+  The right car at the right price will come. Don't rush.</em>
+</p>
+
+</div>
+</body>
+</html>
